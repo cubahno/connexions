@@ -1,0 +1,149 @@
+openapi: 3.0.1
+info:
+  title: Complex Union Simplification Test
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    # Case 1: Optional union field - should be removed entirely
+    UserProfile:
+      type: object
+      required:
+        - userId
+        - username
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        optionalMetadata:
+          anyOf:
+            - type: string
+            - type: object
+              properties:
+                key:
+                  type: string
+            - type: array
+              items:
+                type: string
+
+    # Case 2: Required union field - keep first variant only
+    PaymentMethod:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+        type:
+          oneOf:
+            - type: string
+              enum: [credit_card, debit_card]
+            - type: integer
+            - type: object
+              properties:
+                custom:
+                  type: string
+
+    # Case 3: Nested unions - first variant has another union
+    NestedUnionData:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          anyOf:
+            - anyOf:
+                - type: string
+                - type: number
+            - type: boolean
+            - type: object
+              properties:
+                nested:
+                  type: string
+
+    # Case 4: Mix of required and optional union fields
+    MixedUnions:
+      type: object
+      required:
+        - requiredUnion
+      properties:
+        requiredUnion:
+          anyOf:
+            - type: string
+            - type: integer
+        optionalUnion:
+          anyOf:
+            - type: boolean
+            - type: number
+
+    # Case 5: Union with refs
+    ResponseData:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/SuccessResponse'
+            - $ref: '#/components/schemas/ErrorResponse'
+        optionalError:
+          anyOf:
+            - $ref: '#/components/schemas/ErrorResponse'
+            - type: string
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: integer
+
+    # Case 6: Array items with unions
+    ListWithUnions:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: number
+              - type: object
+                properties:
+                  id:
+                    type: string
+
+    # Case 7: Multiple union types in same schema
+    MultipleUnionTypes:
+      type: object
+      required:
+        - field1
+      properties:
+        field1:
+          anyOf:
+            - type: string
+            - type: integer
+        field2:
+          oneOf:
+            - type: boolean
+            - type: number
+        field3:
+          anyOf:
+            - type: array
+              items:
+                type: string
+            - type: object
+

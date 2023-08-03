@@ -1,0 +1,25 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Test API
+paths:
+  /config:
+    patch:
+      operationId: editConfig
+      requestBody:
+        $ref: "#/components/requestBodies/KeyValue"
+      responses:
+        '200':
+          description: Success
+components:
+  requestBodies:
+    KeyValue:
+      description: arbitrary object
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/KeyValue'
+  schemas:
+    KeyValue:
+      type: object
+      additionalProperties: {}

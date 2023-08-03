@@ -1,0 +1,4 @@
+.data
+resources/data/services
+resources/data/openapi
+resources/data/static

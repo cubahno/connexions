@@ -1,0 +1,78 @@
+openapi: 3.0.0
+info:
+  title: Nullable Array Test (from Stripe)
+  version: 1.0.0
+paths:
+  /v1/billing_portal/sessions:
+    post:
+      operationId: PostBillingPortalSessions
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                flow_data:
+                  type: object
+                  properties:
+                    subscription_update_confirm:
+                      $ref: '#/components/schemas/portal_flows_flow_subscription_update_confirm'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+
+components:
+  schemas:
+    portal_flows_flow_subscription_update_confirm:
+      type: object
+      properties:
+        discounts:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/portal_flows_subscription_update_confirm_discount'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/portal_flows_subscription_update_confirm_item'
+        subscription:
+          type: string
+          maxLength: 5000
+      required:
+        - items
+        - subscription
+
+    portal_flows_subscription_update_confirm_discount:
+      type: object
+      properties:
+        coupon:
+          type: string
+          maxLength: 5000
+          nullable: true
+        promotion_code:
+          type: string
+          maxLength: 5000
+          nullable: true
+
+    portal_flows_subscription_update_confirm_item:
+      type: object
+      properties:
+        id:
+          type: string
+          maxLength: 5000
+          nullable: true
+        price:
+          type: string
+          maxLength: 5000
+          nullable: true
+        quantity:
+          type: integer
+

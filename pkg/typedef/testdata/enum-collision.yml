@@ -1,0 +1,90 @@
+openapi: 3.0.0
+info:
+  title: Enum Collision Test
+  version: 1.0.0
+paths:
+  /referrals:
+    get:
+      operationId: GetReferrals
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  # This uses the product_name schema with 6 values
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/product_name'
+  /merchants:
+    get:
+      operationId: GetMerchants
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  # This uses the product schema which has an inline 'name' enum with 25 values
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/product'
+components:
+  schemas:
+    # Schema-level enum with 6 values
+    product_name:
+      type: string
+      description: The PayPal product for which the customer is onboarded.
+      enum:
+        - EXPRESS_CHECKOUT
+        - PPPLUS
+        - WP_PRO
+        - PPCP
+        - PAYMENT_METHODS
+        - ADVANCED_VAULTING
+    
+    # Object with inline 'name' enum that has MORE values than product_name
+    product:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the product.
+          enum:
+            - EXPRESS_CHECKOUT
+            - WEBSITE_PAYMENTS_STANDARD
+            - MASS_PAYMENT
+            - EMAIL_PAYMENTS
+            - EBAY_CHECKOUT
+            - PAYFLOW_LINK
+            - PAYFLOW_PRO
+            - WEBSITE_PAYMENTS_PRO_3_0
+            - WEBSITE_PAYMENTS_PRO_2_0
+            - VIRTUAL_TERMINAL
+            - HOSTED_SOLE_SOLUTION
+            - BILL_ME_LATER
+            - MOBILE_EXPRESS_CHECKOUT
+            - PAYPAL_HERE
+            - MOBILE_IN_STORE
+            - PAYPAL_STANDARD
+            - MOBILE_PAYPAL_STANDARD
+            - MOBILE_PAYMENT_ACCEPTANCE
+            - PAYPAL_ADVANCED
+            - PAYPAL_PRO
+            - ENHANCED_RECURRING_PAYMENTS
+            - PPCP_STANDARD
+            - PPCP_CUSTOM
+            - PAYMENT_METHODS
+            - ADVANCED_VAULTING
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - PENDING

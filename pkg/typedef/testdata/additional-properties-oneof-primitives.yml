@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: Additional Properties OneOf Primitives Test
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      operationId: getTest
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+
+components:
+  schemas:
+    Response:
+      type: object
+      properties:
+        id:
+          type: string
+        customData:
+          $ref: '#/components/schemas/CustomData'
+    
+    CustomData:
+      description: Arbitrary custom data
+      type: object
+      nullable: true
+      additionalProperties:
+        oneOf:
+          - type: string
+          - type: number
+          - type: boolean
+

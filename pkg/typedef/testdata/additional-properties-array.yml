@@ -1,0 +1,28 @@
+openapi: 3.1.0
+info:
+  title: Test Additional Properties Array
+  version: 1.0.0
+paths:
+  /test:
+    post:
+      operationId: testAdditionalPropertiesArray
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+components:
+  schemas:
+    Response:
+      type: object
+      properties:
+        terminalsWithErrors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: Map of error messages to arrays of terminal IDs
+

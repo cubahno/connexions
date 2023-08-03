@@ -1,0 +1,21 @@
+package config
+
+// HandlerConfig is a config for the handler.
+// It is created from the service config.
+// SelfPrefix is the prefix for helper routes outside OpenAPI spec:
+//
+//	for example, payload generation.
+//
+// Validate is the validation config.
+type HandlerConfig struct {
+	SelfPrefix string          `yaml:"self-prefix"`
+	Validate   *ValidateConfig `yaml:"validate"`
+}
+
+// NewHandlerConfig creates a new handler config from the service config.
+func NewHandlerConfig(service *ServiceConfig) *HandlerConfig {
+	return &HandlerConfig{
+		SelfPrefix: service.ResourcesPrefix,
+		Validate:   service.Validate,
+	}
+}

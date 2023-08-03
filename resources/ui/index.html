@@ -1,0 +1,219 @@
+<html>
+<head>
+    <title>{{.AppConfig.Title}}</title>
+    <script>
+        const appConfig = {
+            homeUrl: "{{.AppConfig.HomeURL}}",
+            serviceUrl: "{{.AppConfig.ServiceURL}}",
+            editor: {
+                theme: "{{.AppConfig.Editor.Theme}}",
+                fontSize: "{{.AppConfig.Editor.FontSize}}",
+            },
+            version: "{{.Version}}",
+        }
+        console.log(`loaded appConfig:`, appConfig)
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+
+    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
+    <link type="text/css" rel="stylesheet" href="css/global.css?v={{.Version}}"/>
+    <link type="text/css" rel="stylesheet" href="css/index.css?v={{.Version}}"/>
+    <link type="text/css" rel="stylesheet" href="css/overwrite.css?v={{.Version}}"/>
+    <script type="module" src="js/index.js?v={{.Version}}" defer=""></script>
+</head>
+<body>
+<div class="holy-grail-grid">
+    <div class="holy-grail-header">
+        <div class="header-logo-container">
+            <a href=""><img class="logo" src="images/logo-top.png" title="{{.AppConfig.Title}}"></a>
+        </div>
+        <div class="header-menu-container">
+            <div id="message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="holy-grail-left">
+        <div class="left-title-container">
+            <h3>
+                <div id="services-link" style="display: inline;" class="menu-link active">
+                    <a href="#/services" title="View Services">
+                        Services
+                    </a>
+                </div>
+            </h3>
+        </div>
+
+        <table style="display: none">
+        </table>
+
+        <table id="service-table" style="display: none;">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Service</th>
+                <th># of Resources</th>
+            </tr>
+            </thead>
+            <tbody id="table-body">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="holy-grail-middle">
+        <h3 id="container-title"></h3>
+
+        <div id="home-contents" style="display: none;">{{.Contents.Home}}</div>
+
+        <div id="fixed-service-container" style="display: none;">
+            <div class="service-resources-list-header">
+                <h3>Resources</h3>
+            </div>
+            <div class="service-resources-results-header">
+                <div style="text-align: center;">
+                    <h3>Click on the resource to see the response. <span id="refresh" style="cursor:pointer;font-size: 16px;display: none; color: #058ff3;"> ⟳ Refresh</span></h3>
+                </div>
+            </div>
+
+            <div class="service-resources-list-container">
+                <table id="fixed-service-table-list">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Method</th>
+                        <th>Path</th>
+                    </tr>
+                    </thead>
+                    <tbody id="fixed-service-table-body"></tbody>
+                </table>
+            </div>
+            <div class="service-resources-results-container">
+                <div id="resource-edit-container" style="display: none;">
+                    <table class="resource-edit-table">
+                        <tr>
+                            <td>Path or prefix:</td>
+                            <td>
+                                <input type="text" name="path" id="res-endpoint-path" value="">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Method:</td>
+                            <td>
+                                <select name="method" id="res-endpoint-method">
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="PATCH">PATCH</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Response:<br/><br/>
+                                Use fakes to generate random data:<br/><br/>
+                                for example: <code>{fake:uuid.v4}</code><br/><br/>
+                                All fakes are listed in the <a href="https://cubahno.github.io/connexions/fake-list/#aliases">documentation</a>.
+                            </td>
+                            <td>
+                                <div>
+                                    Content-Type:
+                                    <select name="content_type" id="res-response-content-type">
+                                        <option value="json">json</option>
+                                        <option value="yml">yaml</option>
+                                        <option value="xml">xml</option>
+                                        <option value="html">html</option>
+                                        <option value="text">text</option>
+                                        <option value="markdown">markdown</option>
+                                    </select>
+                                </div>
+                                <div style="width: 500px; height: 300px;margin-top: 20px;" id="res-selected-text-response">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <button id="res-save-button" class="button blue-bg"> Save </button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div id="generator-container" style="display: none;">
+                    <div class="accordion" style="display: block;">
+                        <div class="accordion-header"><i class="fa-solid fa-terminal"></i> With Context Replacements</div>
+                        <div class="accordion-content">
+                            <div id="context-replacements" style="width:100%; height: 200px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="accordion" style="display: block;">
+                        <div class="accordion-header"><i class="fa-solid fa-terminal"></i> cURL:</div>
+                        <div class="accordion-content" style="position: relative;">
+                            <div class="copy-code">
+                                <span class="copy-icon" id="copy-icon"><i class="fa-solid fa-copy"></i> Copy</span>
+                            </div>
+                            <pre class="code" id="example-curl">&nbsp;</pre>
+                        </div>
+                    </div>
+                    <div id="generated-results-container" style="background-color: #fff; padding: 6px; border-radius: 3px;">
+                        <div id="request-path-container" style="display: none;">
+                            <b>Path:</b>
+
+                            <br/>
+                            <pre class="code" id="request-path">&nbsp;</pre>
+                        </div>
+                    </div>
+
+                    <div id="request-body-container" class="accordion" style="display: block;">
+                        <div class="accordion-header"><i class="fa-solid fa-terminal"></i> Request Payload:</div>
+                        <div class="accordion-content active" style="position: relative;">
+                            <b>Payload:</b>
+                            <br/><br/>
+                            <div id="request-body" style="height: 200px; width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <br/>
+
+                    <div id="response-body-container" class="accordion" style="display: block;">
+                        <div class="accordion-header"><i class="fa-solid fa-code"></i> Response:</div>
+                        <div class="accordion-content active" style="position: relative;">
+                            <b>Response Body:</b>
+                            <br/><br/>
+                            <div id="response-body" style="height: 300px; width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="resource-result" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <iframe id="iframe-contents"  src="" style="display: none;"></iframe>
+    </div>
+
+    <footer class="section">
+        <div class="footer-block">
+            <a href="https://github.com/cubahno/connexions" target="_blank">
+                <i class="fa-brands fa-github"></i> Source code
+            </a>
+        </div>
+
+        <div class="footer-block">
+            <a href="https://cubahno.github.io/connexions/" target="_blank">
+                <img src="images/squares.png" style="width: 20px; vertical-align: middle;"/> Documentation
+            </a>
+        </div>
+
+        <div class="footer-block">
+            <a href="https://github.com/cubahno/connexions/tags" target="_blank">
+                <i class="fa-solid fa-tag"></i>
+                Version: <span id="app-version"></span>
+            </a>
+        </div>
+    </footer>
+</div>
+
+</body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.min.js" integrity="sha512-j/s6QJ8uW2gD8owi6Mw45E2k8w9TwRojEesI02CWZFGxVcQPGfdIwFzKHRONoCYwLMgDdOXORArWjl2oFWFc5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+</html>

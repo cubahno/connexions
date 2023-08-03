@@ -1,0 +1,13 @@
+package: types
+output:
+  use-single-file: false
+  directory: ../
+generate:
+  omit-description: true
+  default-int-type: int64
+  always-prefix-enum-values: true
+  validation:
+    response: true
+additional-imports:
+  - package: github.com/go-playground/validator/v10
+error-mapping:

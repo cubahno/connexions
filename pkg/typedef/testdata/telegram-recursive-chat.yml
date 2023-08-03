@@ -1,0 +1,46 @@
+openapi: 3.0.0
+info:
+  title: Telegram Bot API
+  version: "1.0"
+paths:
+  /getChat:
+    post:
+      operationId: PostGetChat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: '#/components/schemas/Chat'
+components:
+  schemas:
+    Chat:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        pinned_message:
+          $ref: '#/components/schemas/Message'
+    Message:
+      type: object
+      required:
+        - message_id
+        - date
+        - chat
+      properties:
+        message_id:
+          type: integer
+        date:
+          type: integer
+        chat:
+          $ref: '#/components/schemas/Chat'
+

@@ -1,0 +1,23 @@
+services:
+  connexions:
+    image: cubahno/connexions:latest
+    ports:
+      - "2200:2200"
+    volumes:
+      - ./openapi:/app/resources/data/openapi:ro
+      - ./static:/app/resources/data/static:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2200/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Example: your application that uses the mock server
+  # app:
+  #   build: ./your-app
+  #   environment:
+  #     - API_BASE_URL=http://connexions:2200
+  #   depends_on:
+  #     connexions:
+  #       condition: service_healthy

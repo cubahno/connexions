@@ -1,0 +1,204 @@
+openapi: 3.0.3
+info:
+  title: Connexions API
+  description: Internal API for the Connexions UI to manage and interact with mock services.
+  version: v2.0.0
+  contact:
+    name: cubahno
+servers:
+  - url: http://localhost:2200
+    description: Local development server
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      description: Returns OK if the server is running.
+      tags:
+        - health
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  /.services:
+    get:
+      summary: List services
+      description: Get list of all registered services with their resource counts.
+      tags:
+        - services
+      operationId: listServices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+
+  /.services/{serviceName}:
+    get:
+      summary: Get service routes
+      description: Get all routes/endpoints for a specific service.
+      tags:
+        - services
+      operationId: getServiceRoutes
+      parameters:
+        - name: serviceName
+          in: path
+          description: |
+            Service name. Use `.root` for root-level services (services with empty name).
+            Can include slashes for nested services (e.g., `stripe/v2`).
+          required: true
+          schema:
+            type: string
+            example: petstore
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResourcesResponse'
+        '404':
+          description: Service not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Service not found
+
+    post:
+      summary: Generate request
+      description: |
+        Generate a valid request for a specific operation within a service.
+        Returns the generated path, headers, body, and content type.
+      tags:
+        - services
+      operationId: generateRequest
+      parameters:
+        - name: serviceName
+          in: path
+          description: Service name. Use `.root` for root-level services.
+          required: true
+          schema:
+            type: string
+            example: petstore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+        '400':
+          description: Bad request (invalid JSON)
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Service not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Service not found
+
+components:
+  schemas:
+    ServiceListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceItem'
+
+    ServiceItem:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Service name (empty string for root service)
+          example: petstore
+        resourceNumber:
+          type: integer
+          description: Number of routes/endpoints in this service
+          example: 15
+
+    ServiceResourcesResponse:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteDescription'
+
+    RouteDescription:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Operation ID
+          example: getPetById
+        method:
+          type: string
+          description: HTTP method
+          example: GET
+        path:
+          type: string
+          description: URL path pattern
+          example: /pet/{petId}
+        contentType:
+          type: string
+          description: Response content type
+          example: application/json
+
+    GenerateRequest:
+      type: object
+      properties:
+        path:
+          type: string
+          description: The path pattern to generate a request for
+          example: /pet/{petId}
+        method:
+          type: string
+          description: HTTP method
+          example: GET
+        context:
+          type: object
+          description: Custom context values for placeholder replacement
+          additionalProperties: true
+          example:
+            petId: 123
+            name: Fluffy
+
+    GenerateResponse:
+      type: object
+      properties:
+        path:
+          type: string
+          description: Generated path with placeholders replaced
+          example: /pet/123
+        contentType:
+          type: string
+          description: Request content type (for POST/PUT/PATCH)
+          example: application/json
+        headers:
+          type: object
+          description: Generated request headers
+          additionalProperties:
+            type: string
+        body:
+          description: Generated request body (structure depends on the operation)

@@ -1,0 +1,28 @@
+id: "alias:fake.uuid.v4"
+_id$: "alias:fake.uuid.v4"
+_count$: "alias:fake.u_int8"
+_amount$: "alias:fake.u_int8"
+phone_number: "alias:fake.phone.number"
+_phone_number$: "alias:fake.phone.number"
+ip_address: "alias:fake.internet.ipv4"
+_ip_address$: "alias:fake.internet.ipv4"
+email: "alias:fake.internet.email"
+_email$: "alias:fake.internet.email"
+_currency$: "alias:fake.currency.code"
+ip: "alias:fake.internet.ipv4"
+_ip$: "alias:fake.internet.ipv4"
+
+payment_method:
+  type: ["cash", "card", "googlepay", "applepay", "wallet"]
+
+result: ["success", "completed", "failed", "accepted"]
+language: ["en", "de", "fr", "es", "it", "pt", "ru", "zh", "ja", "ko"]
+
+in-path:
+  id$: "alias:fake.u_int8"
+
+url: "alias:fake.internet.url"
+url$: "alias:fake.internet.url"
+link$: "alias:fake.internet.url"
+
+^total_: "func:int8_between:1,100"

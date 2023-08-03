@@ -1,0 +1,59 @@
+openapi: 3.1.0
+info:
+  title: Test Adyen Schedule
+  version: 1.0.0
+paths:
+  /test:
+    post:
+      operationId: testSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                schedule:
+                  oneOf:
+                    - $ref: '#/components/schemas/CronSweepSchedule'
+                    - $ref: '#/components/schemas/SweepSchedule'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+components:
+  schemas:
+    CronSweepSchedule:
+      additionalProperties: false
+      properties:
+        cronExpression:
+          type: string
+          description: A cron expression
+        type:
+          type: string
+          enum:
+            - daily
+            - weekly
+            - monthly
+      required:
+        - cronExpression
+      type: object
+    SweepSchedule:
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          description: The schedule type
+          enum:
+            - cron
+            - daily
+            - weekly
+            - monthly
+      type: object
+

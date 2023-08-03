@@ -1,0 +1,13 @@
+export const url = window.location.origin;
+export const serviceUrl = `${url}${appConfig.serviceUrl}`;
+export const version = appConfig.version;
+export const editor = appConfig.editor;
+export const homeContents = document.getElementById('home-contents');
+export const serviceTable = document.getElementById('service-table');
+export const servicesLink = document.getElementById('services-link');
+export const generatorCont = document.getElementById('generator-container');
+export const contentTitleEl = document.getElementById('container-title');
+export const iframeContents = document.getElementById('iframe-contents');
+export const messageCont = document.getElementById('message');
+export const fixedServiceContainer = document.getElementById('fixed-service-container');
+export const resourceRefreshBtn = document.getElementById('refresh');

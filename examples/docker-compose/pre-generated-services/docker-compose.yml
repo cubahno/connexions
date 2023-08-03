@@ -1,0 +1,23 @@
+services:
+  mock-server:
+    build:
+      context: ../../..
+      dockerfile: examples/docker-compose/pre-generated-services/Dockerfile
+    ports:
+      - "2200:2200"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2200/.well-known/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Example: your application that uses the mock server
+  # app:
+  #   build: ./your-app
+  #   environment:
+  #     - API_BASE_URL=http://mock-server:2200
+  #   depends_on:
+  #     mock-server:
+  #       condition: service_healthy
+

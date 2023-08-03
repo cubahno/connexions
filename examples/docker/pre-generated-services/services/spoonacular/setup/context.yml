@@ -1,0 +1,5 @@
+# Context definitions for mock data generation
+# Edit this file to define custom context values
+
+status: ["success", "pending", "failed"]
+payment_method: ["card", "cash", "wallet"]

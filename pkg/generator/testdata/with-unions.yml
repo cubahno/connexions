@@ -1,0 +1,99 @@
+openapi: 3.0.0
+info:
+  title: API with Union Types
+  version: 1.0.0
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/Dog'
+                    - $ref: '#/components/schemas/Cat'
+  /payment:
+    post:
+      operationId: processPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/CreditCard'
+                - $ref: '#/components/schemas/BankAccount'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResult'
+components:
+  schemas:
+    Dog:
+      type: object
+      required:
+        - name
+        - breed
+      properties:
+        name:
+          type: string
+        breed:
+          type: string
+        barkVolume:
+          type: integer
+    Cat:
+      type: object
+      required:
+        - name
+        - color
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+        meowPitch:
+          type: integer
+    CreditCard:
+      type: object
+      required:
+        - cardNumber
+        - expiryDate
+      properties:
+        cardNumber:
+          type: string
+        expiryDate:
+          type: string
+        cvv:
+          type: string
+    BankAccount:
+      type: object
+      required:
+        - accountNumber
+        - routingNumber
+      properties:
+        accountNumber:
+          type: string
+        routingNumber:
+          type: string
+        bankName:
+          type: string
+    PaymentResult:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        status:
+          type: string
+          enum:
+            - success
+            - failed
+            - pending
+

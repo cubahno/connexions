@@ -1,0 +1,355 @@
+package types
+
+import (
+	"fmt"
+	"math"
+	"reflect"
+)
+
+// SignedInt is a constraint for signed integer types.
+type SignedInt interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
+
+// IsNumber checks if the value is a number: integer or float
+func IsNumber(value any) bool {
+	switch value.(type) {
+	case int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64,
+		float32, float64:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsInteger checks if the value is an integer
+func IsInteger(value any) bool {
+	switch v := value.(type) {
+	case int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64:
+		return true
+	case float32:
+		return v == float32(math.Trunc(float64(v)))
+	case float64:
+		return value == math.Trunc(v)
+	default:
+
+		return false
+	}
+}
+
+// ToFloat64 converts underlying value to float64 if it can be represented as float64
+func ToFloat64(value any) (float64, error) {
+	switch v := value.(type) {
+	case int, int8, int16, int32, int64:
+		return float64(reflect.ValueOf(v).Int()), nil
+	case uint8, uint16, uint32, uint64:
+		return float64(reflect.ValueOf(v).Uint()), nil
+	case float32, float64:
+		return reflect.ValueOf(v).Float(), nil
+	default:
+		return 0, fmt.Errorf("unsupported type: %s", reflect.TypeOf(value))
+	}
+}
+
+// ToInt32 converts underlying value to int32 if it can be represented as int32
+func ToInt32(value any) (int32, bool) {
+	switch v := value.(type) {
+	case uint:
+		if v <= math.MaxInt32 {
+			return int32(v), true
+		}
+		return 0, false
+	case uint8:
+		return int32(v), true
+	case uint16:
+		return int32(v), true
+	case uint32:
+		if v <= math.MaxInt32 {
+			return int32(v), true
+		}
+		return 0, false
+	case uint64:
+		if v <= math.MaxInt32 {
+			return int32(v), true
+		}
+	case int:
+		if v >= math.MinInt32 && v <= math.MaxInt32 {
+			return int32(v), true
+		}
+	case int8:
+		return int32(v), true
+	case int16:
+		return int32(v), true
+	case int32:
+		return v, true
+	case int64:
+		if v >= math.MinInt32 && v <= math.MaxInt32 {
+			return int32(v), true
+		}
+	case float32:
+		intValue := int32(v)
+		if float32(intValue) == v {
+			return intValue, true
+		}
+	case float64:
+		intValue := int32(v)
+		if float64(intValue) == v {
+			return intValue, true
+		}
+	}
+	return 0, false
+}
+
+// ToInt64 converts underlying value to int64 if it can be represented as int64
+func ToInt64(value any) (int64, bool) {
+	switch v := value.(type) {
+	case int:
+		return int64(v), true
+	case int8:
+		return int64(v), true
+	case int16:
+		return int64(v), true
+	case int32:
+		return int64(v), true
+	case int64:
+		return v, true
+	case uint:
+		return int64(v), true
+	case uint8:
+		return int64(v), true
+	case uint16:
+		return int64(v), true
+	case uint32:
+		return int64(v), true
+	case uint64:
+		return int64(v), true
+	case float32:
+		intValue := int64(v)
+		if float32(intValue) == v {
+			return intValue, true
+		}
+	case float64:
+		intValue := int64(v)
+		if float64(intValue) == v {
+			return intValue, true
+		}
+	}
+	return 0, false
+}
+
+// ToUint8 converts underlying value to uint8 if it can be represented as uint8
+func ToUint8(value any) (uint8, bool) {
+	switch v := value.(type) {
+	case uint8:
+		return v, true
+	case uint16:
+		if v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case uint32:
+		if v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case uint64:
+		if v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case uint:
+		if v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case int:
+		if v >= 0 && v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case int8:
+		if v >= 0 {
+			return uint8(v), true
+		}
+	case int16:
+		if v >= 0 && v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case int32:
+		if v >= 0 && v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case int64:
+		if v >= 0 && v <= math.MaxUint8 {
+			return uint8(v), true
+		}
+	case float32:
+		intValue := uint8(v)
+		if v >= 0 && float32(intValue) == v && v <= math.MaxUint8 {
+			return intValue, true
+		}
+	case float64:
+		intValue := uint8(v)
+		if v >= 0 && float64(intValue) == v && v <= math.MaxUint8 {
+			return intValue, true
+		}
+	}
+	return 0, false
+}
+
+// ToUint16 converts underlying value to uint16 if it can be represented as uint16
+func ToUint16(value any) (uint16, bool) {
+	switch v := value.(type) {
+	case uint8:
+		return uint16(v), true
+	case uint16:
+		return v, true
+	case uint32:
+		if v <= math.MaxUint16 {
+			return uint16(v), true
+		}
+	case uint64:
+		if v <= math.MaxUint16 {
+			return uint16(v), true
+		}
+	case uint:
+		if v <= math.MaxUint16 {
+			return uint16(v), true
+		}
+	case int:
+		if v >= 0 && v <= math.MaxUint16 {
+			return uint16(v), true
+		}
+	case int8:
+		if v >= 0 {
+			return uint16(v), true
+		}
+	case int16:
+		if v >= 0 {
+			return uint16(v), true
+		}
+	case int32:
+		if v >= 0 && v <= math.MaxUint16 {
+			return uint16(v), true
+		}
+	case int64:
+		if v >= 0 && v <= math.MaxUint16 {
+			return uint16(v), true
+		}
+	case float32:
+		intValue := uint16(v)
+		if v >= 0 && float32(intValue) == v && v <= math.MaxUint16 {
+			return intValue, true
+		}
+	case float64:
+		intValue := uint16(v)
+		if v >= 0 && float64(intValue) == v && v <= math.MaxUint16 {
+			return intValue, true
+		}
+	}
+	return 0, false
+}
+
+// ToUint32 converts underlying value to uint32 if it can be represented as uint32
+func ToUint32(value any) (uint32, bool) {
+	switch v := value.(type) {
+	case uint8:
+		return uint32(v), true
+	case uint16:
+		return uint32(v), true
+	case uint32:
+		return v, true
+	case uint64:
+		if v <= math.MaxUint32 {
+			return uint32(v), true
+		}
+	case uint:
+		if v <= math.MaxUint32 {
+			return uint32(v), true
+		}
+	case int:
+		if v >= 0 && uint64(v) <= math.MaxUint32 {
+			return uint32(v), true
+		}
+	case int8:
+		if v >= 0 {
+			return uint32(v), true
+		}
+	case int16:
+		if v >= 0 {
+			return uint32(v), true
+		}
+	case int32:
+		if v >= 0 {
+			return uint32(v), true
+		}
+	case int64:
+		if v >= 0 && uint64(v) <= math.MaxUint32 {
+			return uint32(v), true
+		}
+	case float32:
+		intValue := uint32(v)
+		if v >= 0 && float32(intValue) == v {
+			return intValue, true
+		}
+	case float64:
+		intValue := uint32(v)
+		if v >= 0 && float64(intValue) == v && v <= math.MaxUint32 {
+			return intValue, true
+		}
+	}
+	return 0, false
+}
+
+// ToUint64 converts underlying value to uint64 if it can be represented as uint64
+func ToUint64(value any) (uint64, bool) {
+	switch v := value.(type) {
+	case uint8:
+		return uint64(v), true
+	case uint16:
+		return uint64(v), true
+	case uint32:
+		return uint64(v), true
+	case uint64:
+		return v, true
+	case uint:
+		return uint64(v), true
+	case int:
+		if v >= 0 {
+			return uint64(v), true
+		}
+	case int8:
+		if v >= 0 {
+			return uint64(v), true
+		}
+	case int16:
+		if v >= 0 {
+			return uint64(v), true
+		}
+	case int32:
+		if v >= 0 {
+			return uint64(v), true
+		}
+	case int64:
+		if v >= 0 {
+			return uint64(v), true
+		}
+	case float32:
+		intValue := uint64(v)
+		if v >= 0 && float32(intValue) == v {
+			return intValue, true
+		}
+	case float64:
+		intValue := uint64(v)
+		if v >= 0 && float64(intValue) == v {
+			return intValue, true
+		}
+	}
+	return 0, false
+}
+
+// RemovePointer removes pointer from the boolean or numeric value
+func RemovePointer[T bool | float64 | int64 | uint64](value *T) T {
+	var res T
+	if value == nil {
+		return res
+	}
+	return *value
+}

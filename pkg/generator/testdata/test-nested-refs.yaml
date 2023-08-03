@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+  title: Test Nested Refs
+  version: 1.0.0
+paths:
+  /test:
+    post:
+      operationId: PostTest
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Configuration'
+components:
+  schemas:
+    Configuration:
+      type: object
+      required:
+        - features
+      properties:
+        features:
+          $ref: '#/components/schemas/Features'
+    
+    Features:
+      type: object
+      required:
+        - invoice_history
+      properties:
+        invoice_history:
+          $ref: '#/components/schemas/InvoiceList'
+    
+    InvoiceList:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+

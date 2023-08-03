@@ -1,0 +1,133 @@
+openapi: 3.0.3
+info:
+  title: Simplify Demo API
+  version: 1.0.0
+  description: Demonstrates what the simplify command removes
+
+paths:
+  /users/{id}:
+    get:
+      operationId: getUser
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+components:
+  schemas:
+    # Case 1: Required property with union - anyOf/oneOf removed
+    User:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+        status:
+          description: Required union - anyOf will be removed
+          anyOf:
+            - type: string
+              enum: [active, inactive]
+            - type: object
+              properties:
+                code:
+                  type: string
+                reason:
+                  type: string
+        # Case 2: Optional property with union - entire property removed
+        metadata:
+          description: Optional union - entire property will be removed
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+        # Case 3: Many optional properties - only 5 kept (alphabetically first)
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        address:
+          type: string
+        country:
+          type: string
+        timezone:
+          type: string
+        language:
+          type: string
+        currency:
+          type: string
+
+    # Case 4: Nested schema with unions
+    Order:
+      type: object
+      required:
+        - id
+        - payment
+      properties:
+        id:
+          type: string
+        # Required union - anyOf removed
+        payment:
+          description: Required union - anyOf will be removed
+          anyOf:
+            - $ref: '#/components/schemas/CardPayment'
+            - $ref: '#/components/schemas/BankPayment'
+        # Optional union - entire property removed
+        shipping:
+          description: Optional union - entire property will be removed
+          oneOf:
+            - $ref: '#/components/schemas/StandardShipping'
+            - $ref: '#/components/schemas/ExpressShipping'
+        notes:
+          type: string
+
+    CardPayment:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [card]
+        last4:
+          type: string
+
+    BankPayment:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bank]
+        accountNumber:
+          type: string
+
+    StandardShipping:
+      type: object
+      properties:
+        method:
+          type: string
+          enum: [standard]
+        days:
+          type: integer
+
+    ExpressShipping:
+      type: object
+      properties:
+        method:
+          type: string
+          enum: [express]
+        days:
+          type: integer
+

@@ -1,0 +1,49 @@
+openapi: 3.0.0
+info:
+  title: Notification Test
+  version: 1.0.0
+paths:
+  /api/v1/notifications:
+    get:
+      operationId: getNotifications
+      responses:
+        '200':
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+components:
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - follow
+            - reply
+            - move
+        account:
+          $ref: '#/components/schemas/Account'
+        status:
+          $ref: '#/components/schemas/Account'
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        acct:
+          type: string
+          enum:
+            - pending
+            - failed
+            - success
+

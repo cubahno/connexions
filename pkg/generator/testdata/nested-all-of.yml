@@ -1,0 +1,45 @@
+openapi: 3.0.0
+info:
+  version: "0.0.1"
+  title: Schema
+paths:
+  "/foo":
+    get:
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Foo"
+components:
+  schemas:
+    Foo:
+      type: object
+      allOf:
+        - type: object
+          properties:
+            name:
+              type: string
+        - type: object
+          allOf:
+            - type: object
+              properties:
+                age:
+                  type: integer
+            - type: object
+              allOf:
+                - type: object
+                  properties:
+                    tag:
+                      type: string
+                - type: object
+                  allOf:
+                    - type: object
+                      properties:
+                        league:
+                          type: string
+                    - type: object
+                      properties:
+                        rating:
+                          type: integer

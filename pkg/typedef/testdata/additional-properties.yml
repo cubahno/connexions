@@ -1,0 +1,132 @@
+openapi: 3.0.0
+info:
+  title: Additional Properties Test
+  version: 1.0.0
+paths:
+  /map-any:
+    get:
+      operationId: getMapAny
+      responses:
+        '200':
+          description: Map with any values
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /map-string:
+    get:
+      operationId: getMapString
+      responses:
+        '200':
+          description: Map with string values
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /map-number:
+    get:
+      operationId: getMapNumber
+      responses:
+        '200':
+          description: Map with number values
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: number
+  /map-int32:
+    get:
+      operationId: getMapInt32
+      responses:
+        '200':
+          description: Map with int32 values
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int32
+  /map-object:
+    get:
+      operationId: getMapObject
+      responses:
+        '200':
+          description: Map with object values
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    value:
+                      type: integer
+  /object-with-props-and-additional:
+    get:
+      operationId: getObjectWithPropsAndAdditional
+      responses:
+        '200':
+          description: Object with properties and additionalProperties
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                additionalProperties:
+                  type: string
+  /map-oneof:
+    get:
+      operationId: getMapOneOf
+      responses:
+        '200':
+          description: Map with oneOf in additionalProperties
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  oneOf:
+                    - $ref: '#/components/schemas/StringValue'
+                    - $ref: '#/components/schemas/NumberValue'
+
+  /map-object-no-type:
+    get:
+      operationId: getMapObjectNoType
+      responses:
+        '200':
+          description: Map with object values but no explicit type on additionalProperties
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  # No type: object here - should be inferred from properties
+                  properties:
+                    name:
+                      type: string
+                    path:
+                      type: string
+
+components:
+  schemas:
+    StringValue:
+      type: object
+      properties:
+        value:
+          type: string
+    NumberValue:
+      type: object
+      properties:
+        value:
+          type: number

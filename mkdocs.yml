@@ -1,0 +1,83 @@
+site_name: "Connexions Documentation"
+repo_url: https://github.com/cubahno/connexions
+
+theme:
+  custom_dir: resources/docs
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - header.autohide
+  font:
+    code: Roboto Mono
+    text: Roboto
+  locale: en
+  logo: images/logo.png #connexions.png
+  favicon: images/favicon.ico
+  name: material
+  icon:
+    annotation: material/plus-circle
+  palette:
+    - accent: indigo
+      primary: blue
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - accent: red
+      primary: black
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+plugins:
+  - search:
+markdown_extensions:
+  - admonition
+  - abbr
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.details
+  - pymdownx.snippets:
+      base_path: [".", "examples"]
+  - toc:
+      permalink: true
+
+extra:
+  generator: false
+extra_css:
+  - css/extra.css
+extra_javascript:
+  - js/extra.js
+nav:
+  - Get Started:
+      - 'Welcome': 'index.md'
+      - 'How It Works': 'how-it-works.md'
+  - Usage:
+      - Docker: 'usage/docker.md'
+      - Docker Compose: 'usage/docker-compose.md'
+  - Services: 'services.md'
+  - Configuration:
+      - Service Config: 'config/service.md'
+      - Codegen Config: 'config/codegen.md'
+      - Global Settings: 'settings.md'
+  - Middleware: 'middleware.md'
+  - Contexts:
+      - Overview: 'contexts.md'
+      - Fake Functions: 'fake-list.md'
+  - Commands:
+      - service: 'commands/service.md'
+      - simplify: 'commands/simplify.md'
+  - API:
+      - Overview: 'api/index.md'
