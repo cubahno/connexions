@@ -66,5 +66,28 @@ func createHandler(prefix string, doc *openapi3.T) func(c echo.Context) error {
 }
 
 func openAPIHandler(c echo.Context, operation *openapi3.Operation) error {
-    return c.JSON(http.StatusOK, map[string]string{"hallo": "welt! " + operation.OperationID})
+    schemas := operation.Responses
+    schemaKey := ""
+    j := 0
+    for i, _ := range schemas {
+        if j == 0 && i != "default" {
+            schemaKey = i
+            break
+        }
+        j++
+    }
+    schema := schemas[schemaKey]
+
+    data := make(map[string]interface{})
+    resp := schema.Value.Content["application/json"].Schema.Value
+    for key, prop := range resp.Properties {
+        if prop.Value != nil {
+            data[key] = nestedSchema(prop.Value)
+        } else {
+            data[key] = ""
+        }
+    }
+    return c.JSON(http.StatusOK, data)
+
+    // return c.JSON(http.StatusOK, map[string]string{"hallo": "welt! " + operation.OperationID})
 }
