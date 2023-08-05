@@ -1,0 +1,23 @@
+app:
+  services:
+    petstore:
+      active: true
+      latency: 0.350
+      errors:
+        chance: 50%
+        # in order to use specific error code - connexion.validate_responses must be set to false
+        codes:
+          400: 50%
+          500: 50%
+
+  resolve:
+    locale: en-US
+    order:
+    - app.resolvers.for_headers
+    - app.resolvers.from_predefined
+    - app.resolvers.from_scope
+    - app.resolvers.from_alias
+    - app.resolvers.from_format
+    - app.resolvers.from_primitive
+    - app.resolvers.from_example
+    - app.resolvers.default

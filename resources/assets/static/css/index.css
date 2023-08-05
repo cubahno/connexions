@@ -1,0 +1,360 @@
+ul {
+    display: block;
+}
+
+input {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 2px solid #cccccc;
+    border-radius: 4px;
+}
+
+input[type=text]:focus {
+    background-color: lightblue;
+}
+
+table {
+    width: 100%;
+}
+
+.fixed-service-table-body td:nth-child(1),
+.fixed-service-table-body td:nth-child(2) {
+    width: 10%;
+    text-align: center;
+}
+.fixed-resource-number {
+    width: 10% !important;
+    text-align: center;
+}
+
+.fixed-resource-method {
+    width: 10% !important;
+    text-align: center;
+}
+
+.fixed-resource-path {
+    width: 80% !important;
+    text-align: left !important;
+    cursor: pointer;
+    text-decoration: underline;
+    color: #0d5aa7;
+}
+
+input[type=file] {
+    border: 0;
+}
+
+.logo {
+    height: 80px;
+}
+
+select {
+    padding: 5px;
+    margin: 5px;
+    font-size: 14px;
+}
+
+.header-logo-container {
+    float: left;
+    width: 20%;
+}
+
+.header-menu-container {
+    float: left;
+    margin-left: 100px;
+    padding: 18px;
+    width: 70%;
+}
+
+#message {
+    padding: 10px;
+    font-weight: bold;
+    border-radius: 4px;
+    min-width: 200px;
+    width: auto;
+    text-align: center;
+    vertical-align: middle;
+    opacity: 1;
+    transition: opacity 2s ease;
+}
+
+.alert-success {
+    background-color: #abe7ab;
+    color: #043356;
+}
+
+.alert-warning {
+    background-color: #e3bf64;
+    color: #043356;
+}
+
+.alert-error {
+    background-color: #f37365;
+    color: #ffffff;
+}
+
+.code {
+    background-color: #b6bbbd;
+    padding: 10px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+}
+
+.selected-service{
+    background-color: #c0c7cb;
+}
+
+tr.selected-service {
+    font-weight: bold;
+}
+
+tr.selected-resource {
+    font-weight: bold;
+}
+
+.swagger-icon {
+    width: 20px;
+    vertical-align: middle;
+}
+
+.services-add-link {
+    text-decoration: none;
+}
+
+.services-upload-container {
+
+}
+
+.accordion-header {
+    background-color: #f0f0f0;
+    padding: 10px;
+    cursor: pointer;
+    color: rgba(68, 68, 68, 0.71);
+}
+
+.accordion-icon {
+    color: #444444;
+    font-weight: bold;
+}
+
+.accordion-content {
+    display: none;
+    padding: 10px;
+}
+
+.accordion-content.active {
+    display: block;
+}
+
+.accordion-header {
+    background-color: #f0f0f0;
+    padding: 10px;
+    cursor: pointer;
+    position: relative;
+    display: inline-block;
+}
+
+.accordion-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-image: linear-gradient(to right, currentColor 25%, transparent 25%),
+    linear-gradient(to right, currentColor 50%, transparent 50%),
+    linear-gradient(to right, currentColor 25%, transparent 25%);
+    background-size: 4px 1px, 4px 1px, 4px 1px;
+    background-repeat: repeat-x;
+    background-position: 0 0, 0 4px, 0 8px;
+}
+
+.accordion-content {
+    display: none;
+    padding: 10px;
+}
+
+.accordion-content.active {
+    display: block;
+}
+
+textarea#replacements {
+    width: 25%;
+    height: 100px;
+    background-color: #ededed;
+    color: #000000;
+}
+
+.main-container {
+    height: 50vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+}
+
+.left-container {
+    grid-column: 1;
+    margin: 10px;
+}
+
+.right-container {
+    grid-column: 2;
+    display: flex;
+    justify-content: flex-start; /* Align contents horizontally to the left */
+    align-items: flex-start; /* Align contents vertically to the top */
+    background-color: #fff; /* White background */
+    padding: 20px; /* Add some padding for better appearance */
+    margin: 10px;
+}
+
+.blue-bg {
+    background-color: #007bff;
+    color: #fff;
+}
+
+.button {
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 10px 20px;
+}
+
+.upload-button {
+    display: inline-block;
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#fileupload {
+    display: none;
+}
+
+.save-button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 10px 20px;
+}
+
+.save-alt-button {
+    background-color: rgba(94, 110, 128, 0.44);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 10px 20px;
+}
+
+.left-title-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.left-title-container-last {
+
+}
+.left-title-container-last a {
+    text-decoration: none;
+    color: inherit;
+}
+
+h3.active {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+h3.inactive {
+    opacity: 0.4;
+}
+
+a.service-settings-link {
+    text-decoration: none;
+}
+
+.services-upload-container input[type=text] {
+    width: 50%;
+    padding: 5px;
+}
+
+.services-upload-container input[type=radio] {
+    cursor: pointer;
+}
+
+.fixed-service-container {
+    width: 100%;
+    overflow: hidden;
+}
+
+.service-resources-list-header {
+    float: left;
+    width: 49%;
+    padding: 10px;
+    margin: 6px;
+    border-radius: 6px;
+    background-color: #ffffff;
+}
+
+.service-resources-list-container {
+    float: left;
+    width: 50%;
+    max-width: 50%;
+    margin: 6px;
+}
+
+.service-resources-results-header {
+    float: left;
+    width: 46%;
+    max-width: 46%;
+    background-color: #ffffff;
+    padding: 10px;
+    margin: 6px;
+    border-radius: 6px;
+}
+
+.service-resources-results-container {
+    float: left;
+    width: 46%;
+    max-width: 50%;
+    /*background-color: #ffffff;*/
+    min-height: 30%;
+    padding: 10px;
+    margin: 6px;
+    border-radius: 6px;
+}
+
+.fixed-resource-method {
+    font-weight: bold;
+}
+
+.fixed-resource-method.get {
+    color: #1f811f;
+}
+
+.fixed-resource-method.post {
+    color: #dcb92e;
+}
+
+.fixed-resource-method.patch {
+    color: #a53fc5;
+}
+
+.fixed-resource-method.put {
+    color: #3065b6;
+}
+
+.fixed-resource-method.delete {
+    color: #ee7551;
+}
+
+.fixed-resource-method.options {
+    color: #b53fd5;
+}
