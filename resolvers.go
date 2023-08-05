@@ -8,7 +8,8 @@ import (
 func CreateValueMaker() ValueMaker {
     fake := faker.New()
 
-    return func(namePath []string, schema *openapi3.Schema) any {
+    return func(schema *openapi3.Schema, state *generatorState) any {
+        namePath := state.NamePath
         for _, name := range namePath {
             if name == "id" {
                 return fake.UUID()

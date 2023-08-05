@@ -36,7 +36,8 @@ func TestGenerateContentObject(t *testing.T) {
 			t.Fail()
 		}
 
-		valueMaker := func(namePath []string, schema *openapi3.Schema) any {
+		valueMaker := func(schema *openapi3.Schema, state *generatorState) any {
+			namePath := state.NamePath
 			for _, name := range namePath {
 				if name == "first" {
 					return "Jane"

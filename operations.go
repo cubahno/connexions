@@ -22,10 +22,9 @@ func NewResponse(operation *openapi3.Operation, valueMaker ValueMaker) *Response
         return nil
     }
 
-    content := GenerateContent(contentSchema, valueMaker, nil)
-
     return &Response{
-        Content:     content,
+        Headers:     GenerateHeaders(response.Headers, valueMaker, nil),
+        Content:     GenerateContent(contentSchema, valueMaker, nil),
         ContentType: contentType,
         StatusCode:  statusCode,
     }

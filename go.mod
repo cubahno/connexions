@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/brianvoe/gofakeit/v6 v6.23.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
