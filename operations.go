@@ -19,7 +19,9 @@ func NewResponse(operation *openapi3.Operation, valueMaker ValueMaker) *Response
     // contentType := response.Content
     contentType, contentSchema := GetContentType(response.Content)
     if contentType == "" {
-        return nil
+        return &Response{
+            StatusCode: statusCode,
+        }
     }
 
     return &Response{

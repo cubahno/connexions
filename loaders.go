@@ -24,15 +24,17 @@ func LoadOpenAPI(serviceName, filePath string, router *echo.Router) error {
     }
 
     for resName, pathItem := range doc.Paths {
+        valueMaker := CreateValueMaker()
+
         for method, _ := range pathItem.Operations() {
             path := openAPIPlaceholders.ReplaceAllString(prefix+resName, "/:$1")
-            router.Add(method, path, createHandler(prefix, doc))
+            router.Add(method, path, createHandler(prefix, doc, valueMaker))
         }
     }
     return nil
 }
 
-func createHandler(prefix string, doc *openapi3.T) func(c echo.Context) error {
+func createHandler(prefix string, doc *openapi3.T, valueMaker ValueMaker) func(c echo.Context) error {
     return func(c echo.Context) error {
         resourceName := strings.Replace(c.Path(), prefix, "", 1)
         resourceName = routePlaceholders.ReplaceAllString(resourceName, "/{$1}")
@@ -61,33 +63,11 @@ func createHandler(prefix string, doc *openapi3.T) func(c echo.Context) error {
             return c.NoContent(http.StatusMethodNotAllowed)
         }
 
-        return openAPIHandler(c, operation)
+        return openAPIHandler(c, operation, valueMaker)
     }
 }
 
-func openAPIHandler(c echo.Context, operation *openapi3.Operation) error {
-    schemas := operation.Responses
-    schemaKey := ""
-    j := 0
-    for i, _ := range schemas {
-        if j == 0 && i != "default" {
-            schemaKey = i
-            break
-        }
-        j++
-    }
-    schema := schemas[schemaKey]
-
-    data := make(map[string]interface{})
-    resp := schema.Value.Content["application/json"].Schema.Value
-    for key, prop := range resp.Properties {
-        if prop.Value != nil {
-            data[key] = nestedSchema(prop.Value)
-        } else {
-            data[key] = ""
-        }
-    }
-    return c.JSON(http.StatusOK, data)
-
-    // return c.JSON(http.StatusOK, map[string]string{"hallo": "welt! " + operation.OperationID})
+func openAPIHandler(c echo.Context, operation *openapi3.Operation, valueMaker ValueMaker) error {
+    response := NewResponse(operation, valueMaker)
+    return c.JSON(response.StatusCode, response.Content)
 }

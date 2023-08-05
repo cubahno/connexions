@@ -4,38 +4,38 @@ import (
     "github.com/getkin/kin-openapi/openapi3"
 )
 
-type ValueMaker func(schema *openapi3.Schema, state *generatorState) any
+type ValueMaker func(schema *openapi3.Schema, state *GeneratorState) any
 
-type generatorState struct {
+type GeneratorState struct {
     NamePath []string
     Example  any
     IsHeader bool
 }
 
-func (s *generatorState) addPath(name string) *generatorState {
+func (s *GeneratorState) addPath(name string) *GeneratorState {
     namePath := s.NamePath
     if len(namePath) == 0 {
         namePath = []string{}
     }
 
-    return &generatorState{
+    return &GeneratorState{
         NamePath: append(namePath, name),
         Example:  s.Example,
         IsHeader: s.IsHeader,
     }
 }
 
-func (s *generatorState) header() *generatorState {
-    return &generatorState{
+func (s *GeneratorState) header() *GeneratorState {
+    return &GeneratorState{
         NamePath: s.NamePath,
         Example:  s.Example,
         IsHeader: true,
     }
 }
 
-func GenerateHeaders(headers openapi3.Headers, valueMaker ValueMaker, state *generatorState) any {
+func GenerateHeaders(headers openapi3.Headers, valueMaker ValueMaker, state *GeneratorState) any {
     if state == nil {
-        state = &generatorState{}
+        state = &GeneratorState{}
     }
 
     res := map[string]interface{}{}
@@ -48,9 +48,9 @@ func GenerateHeaders(headers openapi3.Headers, valueMaker ValueMaker, state *gen
     return res
 }
 
-func GenerateContent(schema *openapi3.Schema, valueMaker ValueMaker, state *generatorState) any {
+func GenerateContent(schema *openapi3.Schema, valueMaker ValueMaker, state *GeneratorState) any {
     if state == nil {
-        state = &generatorState{}
+        state = &GeneratorState{}
     }
     // fast track with value and correctly resolved type
     if len(state.NamePath) > 0 {
@@ -61,17 +61,33 @@ func GenerateContent(schema *openapi3.Schema, valueMaker ValueMaker, state *gene
 
     if schema.Type == "object" {
         return generateContentObject(schema, valueMaker, state)
-    } else if schema.Type == "array" {
+    }
+
+    if schema.Type == "array" {
         return generateContentArray(schema, valueMaker, state)
     }
+
+    for _, s := range schema.AllOf {
+        return GenerateContent(s.Value, valueMaker, state)
+    }
+
+    if len(schema.AnyOf) > 0 {
+        return GenerateContent(schema.AnyOf[0].Value, valueMaker, state)
+    }
+
+    if len(schema.OneOf) > 0 {
+        return GenerateContent(schema.OneOf[0].Value, valueMaker, state)
+    }
+
+    // handle Not case
 
     // try to resolve anything
     return valueMaker(schema, state)
 }
 
-func generateContentObject(schema *openapi3.Schema, valueMaker ValueMaker, state *generatorState) any {
+func generateContentObject(schema *openapi3.Schema, valueMaker ValueMaker, state *GeneratorState) any {
     if state == nil {
-        state = &generatorState{}
+        state = &GeneratorState{}
     }
     res := map[string]interface{}{}
 
@@ -86,11 +102,14 @@ func generateContentObject(schema *openapi3.Schema, valueMaker ValueMaker, state
     return res
 }
 
-func generateContentArray(schema *openapi3.Schema, valueMaker ValueMaker, state *generatorState) any {
+func generateContentArray(schema *openapi3.Schema, valueMaker ValueMaker, state *GeneratorState) any {
     if state == nil {
-        state = &generatorState{}
+        state = &GeneratorState{}
     }
     minItems := int(schema.MinItems)
+    if minItems == 0 {
+        minItems = 1
+    }
     var res []any
 
     for i := 0; i < minItems; i++ {
