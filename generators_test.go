@@ -96,16 +96,42 @@ func TestGenerateQuery(t *testing.T) {
 		}
 		res := GenerateQuery(valueMaker, params)
 
-		// sorted order
-		expected := "file-id=foo&id=123"
+		expected := "id=123&file-id=foo"
+		assert.Equal(t, expected, res)
+	})
+
+	t.Run("arrays in url", func(t *testing.T) {
+		valueMaker := func(schema *openapi3.Schema, state *GeneratorState) any {
+			return "foo bar"
+		}
+		params := openapi3.Parameters{
+			{
+				Value: &openapi3.Parameter{
+					Name: "tags",
+					In:   "query",
+					Schema: &openapi3.SchemaRef{
+						Value: &openapi3.Schema{
+							Type: "array",
+							Items: &openapi3.SchemaRef{
+								Value: &openapi3.Schema{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		res := GenerateQuery(valueMaker, params)
+
+		expected := "tags[]=foo+bar&tags[]=foo+bar"
 		assert.Equal(t, expected, res)
 	})
 }
 
 func TestGenerateContentObject(t *testing.T) {
 	t.Run("test case 1", func(t *testing.T) {
-		schema := &openapi3.Schema{}
-		src := `
+		schema := CreateSchemaFromString(t, `
         {
             "type":"object",
             "properties": {
@@ -124,12 +150,7 @@ func TestGenerateContentObject(t *testing.T) {
                     "type": "integer"
                 }
             }
-        }`
-
-		err := json.Unmarshal([]byte(src), schema)
-		if err != nil {
-			t.Fail()
-		}
+        }`)
 
 		valueMaker := func(schema *openapi3.Schema, state *GeneratorState) any {
 			namePath := state.NamePath
@@ -149,5 +170,44 @@ func TestGenerateContentObject(t *testing.T) {
 		expected := `{"age":21,"name":{"first":"Jane","last":"Doe"}}`
 		resJs, _ := json.Marshal(res)
 		assert.Equal(t, expected, string(resJs))
+	})
+}
+
+func TestGenerateContentArray(t *testing.T) {
+	t.Run("generate simple array without min/max items", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `{
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }`)
+
+		valueMaker := func(schema *openapi3.Schema, state *GeneratorState) any {
+			return "foo"
+		}
+
+		res := generateContentArray(schema, valueMaker, nil)
+		assert.ElementsMatch(t, []string{"foo", "foo"}, res)
+	})
+
+	t.Run("generate simple array", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `{
+            "type": "array",
+			"minItems": 3,
+            "items": {
+                "type": "string"
+            }
+        }`)
+
+		callNum := -1
+
+		valueMaker := func(schema *openapi3.Schema, state *GeneratorState) any {
+			callNum++
+			items := []string{"a", "b", "c", "d"}
+			return items[callNum]
+		}
+
+		res := generateContentArray(schema, valueMaker, nil)
+		assert.ElementsMatch(t, []string{"a", "b", "c", "d"}, res)
 	})
 }

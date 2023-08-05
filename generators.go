@@ -51,7 +51,7 @@ func (s *GeneratorState) setContentType(value string) *GeneratorState {
 func GenerateURL(path string, valueMaker ValueMaker, params openapi3.Parameters) string {
 	for _, paramRef := range params {
 		param := paramRef.Value
-		if param == nil || param.In != "path" {
+		if param == nil || param.In != openapi3.ParameterInPath {
 			continue
 		}
 
@@ -67,18 +67,51 @@ func GenerateURL(path string, valueMaker ValueMaker, params openapi3.Parameters)
 func GenerateQuery(valueMaker ValueMaker, params openapi3.Parameters) string {
 	queryValues := url.Values{}
 
+	// avoid encoding [] in the query
+	encode := func(queryValues url.Values) string {
+		var params []string
+		for key, values := range queryValues {
+			for _, value := range values {
+				param := fmt.Sprintf("%s=%s", key, url.QueryEscape(value))
+				params = append(params, param)
+			}
+		}
+		return strings.Join(params, "&")
+	}
+
 	for _, paramRef := range params {
 		param := paramRef.Value
-		if param == nil || param.In != "query" {
+		if param == nil || param.In != openapi3.ParameterInQuery {
 			continue
 		}
 
 		name := param.Name
 		state := &GeneratorState{NamePath: []string{name}}
-		replaced := valueMaker(param.Schema.Value, state)
-		queryValues.Add(name, fmt.Sprintf("%v", replaced))
+		replaced := GenerateContent(param.Schema.Value, valueMaker, state)
+		if replaced == nil {
+			replaced = ""
+		}
+
+		if slice, ok := replaced.([]interface{}); ok {
+			for _, item := range slice {
+				queryValues.Add(fmt.Sprintf("%s[]", name), fmt.Sprintf("%v", item))
+			}
+		} else {
+			queryValues.Add(name, fmt.Sprintf("%v", replaced))
+		}
+
+		// v := reflect.ValueOf(replaced)
+		// if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		//     for i := 0; i < v.Len(); i++ {
+		//         item := v.Index(i).Interface()
+		//         // handle arrays in the url
+		//         queryValues.Add(fmt.Sprintf("%s[]", name), fmt.Sprintf("%v", item))
+		//     }
+		// } else {
+		//     queryValues.Add(name, fmt.Sprintf("%v", replaced))
+		// }
 	}
-	return queryValues.Encode()
+	return encode(queryValues)
 }
 
 func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueMaker, state *GeneratorState) any {
@@ -102,16 +135,16 @@ func GenerateContent(schema *openapi3.Schema, valueMaker ValueMaker, state *Gene
 	}
 	// fast track with value and correctly resolved type
 	if len(state.NamePath) > 0 {
-		if res := valueMaker(schema, state); res != nil { // add correct resolved type check
+		if res := valueMaker(schema, state); res != nil && IsCorrectlyResolvedType(res, schema.Type) {
 			return res
 		}
 	}
 
-	if schema.Type == "object" {
+	if schema.Type == openapi3.TypeObject {
 		return generateContentObject(schema, valueMaker, state)
 	}
 
-	if schema.Type == "array" {
+	if schema.Type == openapi3.TypeArray {
 		return generateContentArray(schema, valueMaker, state)
 	}
 
@@ -190,7 +223,7 @@ func generateContentArray(schema *openapi3.Schema, valueMaker ValueMaker, state 
 	}
 	var res []any
 
-	for i := 0; i < minItems; i++ {
+	for i := 0; i < minItems+1; i++ {
 		res = append(res, GenerateContent(schema.Items.Value, valueMaker, state))
 	}
 
