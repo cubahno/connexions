@@ -24,20 +24,12 @@ type Response struct {
 }
 
 func NewRequest(pathPrefix, path, method string, operation *openapi3.Operation, valueMaker ValueMaker) *Request {
-	params := CollectParams(operation.Parameters)
-
-	headers := make(map[string]interface{})
-	for paramName, param := range params["header"] {
-		// join with GenerateResponseHeaders
-		headers[paramName] = GenerateContent(param.Schema.Value, valueMaker, nil)
-	}
-
 	body, contentType := GenerateRequestBody(operation.RequestBody, valueMaker, nil)
 
 	return &Request{
-		Headers:     headers,
+		Headers:     GenerateRequestHeaders(operation.Parameters, valueMaker),
 		Method:      method,
-		Path:        GenerateURL(path, valueMaker, operation.Parameters),
+		Path:        pathPrefix + GenerateURL(path, valueMaker, operation.Parameters),
 		Query:       GenerateQuery(valueMaker, operation.Parameters),
 		Body:        body,
 		ContentType: contentType,
@@ -54,8 +46,11 @@ func NewResponse(operation *openapi3.Operation, valueMaker ValueMaker) *Response
 		}
 	}
 
+	headers := GenerateResponseHeaders(response.Headers, valueMaker)
+	headers["Content-Type"] = contentType
+
 	return &Response{
-		Headers:     GenerateResponseHeaders(response.Headers, valueMaker, nil),
+		Headers:     headers,
 		Content:     GenerateContent(contentSchema, valueMaker, nil),
 		ContentType: contentType,
 		StatusCode:  statusCode,
