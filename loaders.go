@@ -28,13 +28,13 @@ func LoadOpenAPI(serviceName, filePath string, router *echo.Router) error {
 
         for method, _ := range pathItem.Operations() {
             path := openAPIPlaceholders.ReplaceAllString(prefix+resName, "/:$1")
-            router.Add(method, path, createHandler(prefix, doc, valueMaker))
+            router.Add(method, path, createResponseHandler(prefix, doc, valueMaker))
         }
     }
     return nil
 }
 
-func createHandler(prefix string, doc *openapi3.T, valueMaker ValueMaker) func(c echo.Context) error {
+func createResponseHandler(prefix string, doc *openapi3.T, valueMaker ValueMaker) func(c echo.Context) error {
     return func(c echo.Context) error {
         resourceName := strings.Replace(c.Path(), prefix, "", 1)
         resourceName = routePlaceholders.ReplaceAllString(resourceName, "/{$1}")
@@ -63,11 +63,11 @@ func createHandler(prefix string, doc *openapi3.T, valueMaker ValueMaker) func(c
             return c.NoContent(http.StatusMethodNotAllowed)
         }
 
-        return openAPIHandler(c, operation, valueMaker)
+        return openAPIResponseHandler(c, operation, valueMaker)
     }
 }
 
-func openAPIHandler(c echo.Context, operation *openapi3.Operation, valueMaker ValueMaker) error {
+func openAPIResponseHandler(c echo.Context, operation *openapi3.Operation, valueMaker ValueMaker) error {
     response := NewResponse(operation, valueMaker)
     return c.JSON(response.StatusCode, response.Content)
 }
