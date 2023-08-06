@@ -5,13 +5,51 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
-type Resolver struct {
+type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
+
+type ResolveState struct {
+	NamePath    []string
+	Example     any
+	IsHeader    bool
+	ContentType string
 }
 
-func CreateValueMaker() ValueMaker {
+func (s *ResolveState) addPath(name string) *ResolveState {
+	namePath := s.NamePath
+	if len(namePath) == 0 {
+		namePath = []string{}
+	}
+
+	return &ResolveState{
+		NamePath:    append(namePath, name),
+		Example:     s.Example,
+		IsHeader:    s.IsHeader,
+		ContentType: s.ContentType,
+	}
+}
+
+func (s *ResolveState) markAsHeader() *ResolveState {
+	return &ResolveState{
+		NamePath:    s.NamePath,
+		Example:     s.Example,
+		IsHeader:    true,
+		ContentType: s.ContentType,
+	}
+}
+
+func (s *ResolveState) setContentType(value string) *ResolveState {
+	return &ResolveState{
+		NamePath:    s.NamePath,
+		Example:     s.Example,
+		IsHeader:    s.IsHeader,
+		ContentType: value,
+	}
+}
+
+func CreateValueResolver() ValueResolver {
 	faker := gofakeit.New(0)
 
-	return func(schema *openapi3.Schema, state *GeneratorState) any {
+	return func(schema *openapi3.Schema, state *ResolveState) any {
 		namePath := state.NamePath
 		for _, name := range namePath {
 			if name == "id" {

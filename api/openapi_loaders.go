@@ -31,7 +31,7 @@ func LoadOpenAPI(serviceName, filePath string, router *echo.Router) error {
 		prefix = "/" + serviceName
 	}
 
-	valueMaker := xs.CreateValueMaker()
+	valueMaker := xs.CreateValueResolver()
 
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
@@ -48,7 +48,7 @@ func LoadOpenAPI(serviceName, filePath string, router *echo.Router) error {
 	return nil
 }
 
-func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueMaker) echo.HandlerFunc {
+func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		payload, err := GetPayload[ResourceGeneratePayload](c)
 		if err != nil {
@@ -74,7 +74,7 @@ func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueM
 }
 
 // createResponseHandler creates a handler function for an OpenAPI route.
-func createResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueMaker) echo.HandlerFunc {
+func createResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		resourceName := strings.Replace(c.Path(), prefix, "", 1)
 		resourceName = routePlaceholders.ReplaceAllString(resourceName, "/{$1}")
@@ -108,7 +108,7 @@ func createResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueMa
 }
 
 // openAPIResponseHandler generates the response for a route.
-func openAPIResponseHandler(c echo.Context, operation *openapi3.Operation, valueMaker xs.ValueMaker) error {
+func openAPIResponseHandler(c echo.Context, operation *openapi3.Operation, valueMaker xs.ValueResolver) error {
 	response := xs.NewResponse(operation, valueMaker)
 	return c.JSON(response.StatusCode, response.Content)
 }
