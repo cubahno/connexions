@@ -8,5 +8,5 @@ test:
 	@if [ "$(with_docker)" = "true" ]; then \
 		$(call docker-cmd, sh -c "/wait && go test -race ./... -coverprofile .testCoverage.txt -count=1"); \
 	else \
-		app_env=testing go test -race ./... -coverprofile .testCoverage.txt -count=1; \
+		go test -race ./... -coverprofile .testCoverage.txt -count=1; \
 	fi;

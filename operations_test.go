@@ -7,8 +7,292 @@ import (
 	"testing"
 )
 
-func TestNewResponse(t *testing.T) {
+func TestNewRequest(t *testing.T) {
+	t.Run("base-case", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			if state.NamePath[0] == "userId" {
+				return "123"
+			}
+			if schema.Example != nil {
+				return schema.Example
+			}
+			return schema.Default
+		}
 
+		operation := CreateOperationFromString(t, `
+{
+  "operationId": "createUser",
+  "parameters": [
+    {
+      "name": "userId",
+      "in": "path",
+      "description": "The unique identifier of the user.",
+      "required": true,
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    {
+      "name": "lang",
+      "in": "header",
+      "description": "The language preference for the response.",
+      "required": false,
+      "schema": {
+        "type": "string",
+        "enum": [
+          "en",
+          "es",
+          "de"
+        ],
+        "default": "de"
+      }
+    }
+  ],
+  "requestBody": {
+    "description": "JSON payload containing user information.",
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string",
+              "description": "The username of the new user.",
+              "example": "john_doe"
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "description": "The email address of the new user.",
+              "example": "john.doe@example.com"
+            }
+          },
+          "required": [
+            "username",
+            "email"
+          ]
+        }
+      }
+    }
+  },
+  "responses": {
+    "500": {
+      "description": "Internal Server Error"
+    },
+    "200": {
+      "description": "User account successfully created.",
+      "headers": {
+        "Location": {
+          "description": "The URL of the newly created user account.",
+          "schema": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "400": {
+      "description": "Bad request"
+    }
+  }
+}
+		`)
+		req := NewRequest("/foo", "/users/{userId}", "POST", operation, valueResolver)
+
+		expectedBody := map[string]any{
+			"username": "john_doe",
+			"email":    "john.doe@example.com",
+		}
+
+		expectedHeaders := map[string]any{"lang": "de"}
+
+		assert.Equal(t, "POST", req.Method)
+		assert.Equal(t, "/foo/users/123", req.Path)
+		assert.Equal(t, "limit=10", req.Query)
+		assert.Equal(t, "application/json", req.ContentType)
+		assert.Equal(t, expectedBody, req.Body)
+		assert.Equal(t, expectedHeaders, req.Headers)
+	})
+}
+
+func TestNewResponse(t *testing.T) {
+	t.Run("base-case", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			if state.NamePath[0] == "userId" {
+				return 123
+			}
+			if schema.Example != nil {
+				return schema.Example
+			}
+			return schema.Default
+		}
+
+		operation := CreateOperationFromString(t, `
+{
+  "operationId": "createUser",
+  "parameters": [
+    {
+      "name": "userId",
+      "in": "path",
+      "description": "The unique identifier of the user.",
+      "required": true,
+      "schema": {
+        "type": "string"
+      }
+    },
+    {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10
+      }
+    },
+    {
+      "name": "lang",
+      "in": "header",
+      "description": "The language preference for the response.",
+      "required": false,
+      "schema": {
+        "type": "string",
+        "enum": [
+          "en",
+          "es",
+          "de"
+        ],
+        "default": "de"
+      }
+    }
+  ],
+  "responses": {
+    "500": {
+      "description": "Internal Server Error"
+    },
+    "200": {
+      "description": "User account successfully created.",
+      "headers": {
+        "Location": {
+          "description": "The URL of the newly created user account.",
+          "schema": {
+            "type": "string",
+            "example": "https://example.com/users/123"
+          }
+        }
+      },
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 123
+              },
+              "email": {
+                "type": "string",
+                "example": "jane.doe@example.com"
+              }
+            }
+          }
+        }
+      }
+    },
+    "400": {
+      "description": "Bad request"
+    }
+  }
+}
+		`)
+		res := NewResponse(operation, valueResolver)
+
+		expectedHeaders := map[string]any{
+			"location":     "https://example.com/users/123",
+			"content-type": "application/json",
+		}
+		expectedContent := map[string]any{
+			"id":    float64(123),
+			"email": "jane.doe@example.com",
+		}
+
+		assert.Equal(t, "application/json", res.ContentType)
+		assert.Equal(t, 200, res.StatusCode)
+		assert.Equal(t, expectedHeaders, res.Headers)
+		assert.Equal(t, expectedContent, res.Content)
+	})
+
+	t.Run("no-content-type", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			if state.NamePath[0] == "userId" {
+				return 123
+			}
+			if schema.Example != nil {
+				return schema.Example
+			}
+			return schema.Default
+		}
+
+		operation := CreateOperationFromString(t, `
+{
+  "operationId": "createUser",
+  "parameters": [
+    {
+      "name": "userId",
+      "in": "path",
+      "description": "The unique identifier of the user.",
+      "required": true,
+      "schema": {
+        "type": "string"
+      }
+    }
+  ],
+  "responses": {
+    "500": {
+      "description": "Internal Server Error"
+    },
+    "200": {
+      "description": "User account successfully created.",
+      "headers": {
+        "Location": {
+          "description": "The URL of the newly created user account.",
+          "schema": {
+            "type": "string",
+            "example": "https://example.com/users/123"
+          }
+        }
+      },
+      "400": {
+        "description": "Bad request"
+      }
+    }
+  }
+}
+		`)
+		res := NewResponse(operation, valueResolver)
+
+		expectedHeaders := map[string]any{
+			"location":     "https://example.com/users/123",
+		}
+
+		assert.Equal(t, 200, res.StatusCode)
+		assert.Equal(t, expectedHeaders, res.Headers)
+
+		assert.Equal(t, "", res.ContentType)
+		assert.Equal(t, nil, res.Content)
+	})
 }
 
 func TestExtractResponse(t *testing.T) {
@@ -683,15 +967,15 @@ func TestGenerateRequestHeaders(t *testing.T) {
 		params := openapi3.Parameters{
 			{
 				Value: &openapi3.Parameter{
-					Name: "X-Key",
-					In:   openapi3.ParameterInHeader,
+					Name:   "X-Key",
+					In:     openapi3.ParameterInHeader,
 					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
 				},
 			},
 			{
 				Value: &openapi3.Parameter{
-					Name: "Version",
-					In:   openapi3.ParameterInHeader,
+					Name:   "Version",
+					In:     openapi3.ParameterInHeader,
 					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
 				},
 			},
@@ -710,16 +994,16 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			},
 			{
 				Value: &openapi3.Parameter{
-					Name: "id",
-					In:   openapi3.ParameterInPath,
+					Name:   "id",
+					In:     openapi3.ParameterInPath,
 					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
 				},
 			},
 		}
 
 		expected := map[string]any{
-			"x-key": "abcdef",
-			"version": "1.0.0",
+			"x-key":       "abcdef",
+			"version":     "1.0.0",
 			"preferences": map[string]any{"mode": "dark", "lang": "de"},
 		}
 
@@ -743,8 +1027,8 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			"X-Rate-Limit-Limit": {
 				Value: &openapi3.Header{
 					Parameter: openapi3.Parameter{
-						Name: "X-Key",
-						In:   openapi3.ParameterInHeader,
+						Name:   "X-Key",
+						In:     openapi3.ParameterInHeader,
 						Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
 					},
 				},
@@ -752,8 +1036,8 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			"X-Rate-Limit-Remaining": {
 				Value: &openapi3.Header{
 					Parameter: openapi3.Parameter{
-						Name: "X-Key",
-						In:   openapi3.ParameterInHeader,
+						Name:   "X-Key",
+						In:     openapi3.ParameterInHeader,
 						Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
 					},
 				},
@@ -761,7 +1045,7 @@ func TestGenerateResponseHeaders(t *testing.T) {
 		}
 
 		expected := map[string]any{
-			"x-rate-limit-limit": 100,
+			"x-rate-limit-limit":     100,
 			"x-rate-limit-remaining": 80,
 		}
 
@@ -772,6 +1056,85 @@ func TestGenerateResponseHeaders(t *testing.T) {
 
 func TestMergeSubSchemas(t *testing.T) {
 	t.Run("MergeSubSchemas", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `
+        {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        },
+                        "score": {
+                            "type": "number"
+                        }
+                    },
+					"required": ["id"]
+                }
+            },
+			"allOf": [
+				{
+					"type": "object",
+					"properties": {
+						"limit": {"type": "integer"},
+						"tag1": {"type": "string"}
+					},
+					"required": ["limit"]
+				},
+				{
+					"type": "object",
+					"properties": {"tag2": {"type": "string"}}
+				}
+			],
+			"anyOf": [
+				{
+					"type": "object",
+					"properties": {
+						"offset": {"type": "integer"}
+					},
+					"required": ["offset"]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"query": {"type": "string"}
+					},
+					"required": ["query"]
+				}
+			],
+			"oneOf": [
+				{
+					"type": "object",
+					"properties": {
+						"first": {"type": "integer"},
+						"second": {"type": "integer"}
+					},
+					"required": ["first", "second"]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"last": {"type": "integer"}
+					},
+					"required": ["last"]
+				}
+			],
+			"not": {
+				"type": "object",
+				"properties": {
+					"second": {"type": "integer"}
+				}
+			}
+        }`)
+		res := GenerateContent(schema, nil, nil)
+		expectedProperties := []string{"user", "limit", "tag1", "tag2", "offset", "first"}
 
+		resProps := make([]string, 0)
+		for k := range res.(map[string]any) {
+			resProps = append(resProps, k)
+		}
+
+		assert.ElementsMatch(t, expectedProperties, resProps)
 	})
 }

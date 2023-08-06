@@ -25,35 +25,37 @@ type Response struct {
 	StatusCode  int         `json:"statusCode,omitempty"`
 }
 
-func NewRequest(pathPrefix, path, method string, operation *openapi3.Operation, valueMaker ValueResolver) *Request {
-	body, contentType := GenerateRequestBody(operation.RequestBody, valueMaker, nil)
+func NewRequest(pathPrefix, path, method string, operation *openapi3.Operation, valueResolver ValueResolver) *Request {
+	body, contentType := GenerateRequestBody(operation.RequestBody, valueResolver, nil)
 
 	return &Request{
-		Headers:     GenerateRequestHeaders(operation.Parameters, valueMaker),
+		Headers:     GenerateRequestHeaders(operation.Parameters, valueResolver),
 		Method:      method,
-		Path:        pathPrefix + GenerateURL(path, valueMaker, operation.Parameters),
-		Query:       GenerateQuery(valueMaker, operation.Parameters),
+		Path:        pathPrefix + GenerateURL(path, valueResolver, operation.Parameters),
+		Query:       GenerateQuery(valueResolver, operation.Parameters),
 		Body:        body,
 		ContentType: contentType,
 	}
 }
 
-func NewResponse(operation *openapi3.Operation, valueMaker ValueResolver) *Response {
+func NewResponse(operation *openapi3.Operation, valueResolver ValueResolver) *Response {
 	response, statusCode := ExtractResponse(operation)
+
+	headers := GenerateResponseHeaders(response.Headers, valueResolver)
 
 	contentType, contentSchema := GetContentType(response.Content)
 	if contentType == "" {
 		return &Response{
 			StatusCode: statusCode,
+			Headers:    headers,
 		}
 	}
 
-	headers := GenerateResponseHeaders(response.Headers, valueMaker)
-	headers["Content-Type"] = contentType
+	headers["content-type"] = contentType
 
 	return &Response{
 		Headers:     headers,
-		Content:     GenerateContent(contentSchema, valueMaker, nil),
+		Content:     GenerateContent(contentSchema, valueResolver, nil),
 		ContentType: contentType,
 		StatusCode:  statusCode,
 	}
@@ -177,7 +179,7 @@ func GenerateContent(schema *openapi3.Schema, valueResolver ValueResolver, state
 		state = &ResolveState{}
 	}
 	// fast track with value and correctly resolved type
-	if len(state.NamePath) > 0 {
+	if valueResolver != nil && len(state.NamePath) > 0 {
 		if res := valueResolver(schema, state); res != nil && IsCorrectlyResolvedType(res, schema.Type) {
 			return res
 		}
@@ -194,7 +196,10 @@ func GenerateContent(schema *openapi3.Schema, valueResolver ValueResolver, state
 	}
 
 	// try to resolve anything
-	return valueResolver(mergedSchema, state)
+	if valueResolver != nil {
+		return valueResolver(mergedSchema, state)
+	}
+	return nil
 }
 
 func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueResolver, state *ResolveState) (any, string) {
@@ -312,7 +317,7 @@ func generateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 }
 
 func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
-	// create copy
+	// create a copy
 	mergedSchema := &openapi3.Schema{}
 	jsonData, err := schema.MarshalJSON()
 	if err != nil {
