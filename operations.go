@@ -268,6 +268,7 @@ func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueResolver)
 	res := map[string]any{}
 
 	for name, headerRef := range headers {
+		name = strings.ToLower(name)
 		state := &ResolveState{NamePath: []string{name}, IsHeader: true}
 		header := headerRef.Value
 		params := header.Parameter
