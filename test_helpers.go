@@ -14,3 +14,13 @@ func CreateSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 	}
 	return schema
 }
+
+func CreateOperationFromString(t *testing.T, src string) *openapi3.Operation {
+	res := &openapi3.Operation{}
+	err := json.Unmarshal([]byte(src), res)
+	if err != nil {
+		t.Errorf("Error parsing JSON: %v", err)
+		t.FailNow()
+	}
+	return res
+}

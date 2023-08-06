@@ -39,7 +39,7 @@ func NewRequest(pathPrefix, path, method string, operation *openapi3.Operation, 
 }
 
 func NewResponse(operation *openapi3.Operation, valueMaker ValueResolver) *Response {
-	response, statusCode := extractResponse(operation)
+	response, statusCode := ExtractResponse(operation)
 
 	contentType, contentSchema := GetContentType(response.Content)
 	if contentType == "" {
@@ -59,16 +59,14 @@ func NewResponse(operation *openapi3.Operation, valueMaker ValueResolver) *Respo
 	}
 }
 
-func extractResponse(operation *openapi3.Operation) (*openapi3.Response, int) {
+func ExtractResponse(operation *openapi3.Operation) (*openapi3.Response, int) {
 	available := operation.Responses
 
 	var responseRef *openapi3.ResponseRef
-	var statusCode int
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
 		responseRef = available.Get(code)
 		if responseRef != nil {
-			statusCode = code
-			break
+			return responseRef.Value, code
 		}
 	}
 
@@ -77,16 +75,31 @@ func extractResponse(operation *openapi3.Operation) (*openapi3.Response, int) {
 		if codeName == "default" {
 			continue
 		}
-		responseRef = respRef
-		statusCode = transformHTTPCode(codeName)
-		break
+		return respRef.Value, TransformHTTPCode(codeName)
 	}
 
-	if responseRef == nil {
-		responseRef = available.Default()
-	}
+	return available.Default().Value, 200
+}
 
-	return responseRef.Value, statusCode
+func TransformHTTPCode(httpCode string) int {
+    httpCode = strings.ToLower(httpCode)
+    httpCode = strings.Replace(httpCode, "x", "0", -1)
+
+    switch httpCode {
+    case "*":
+        fallthrough
+    case "default":
+        fallthrough
+    case "000":
+        return 200
+    }
+
+    codeInt, err := strconv.Atoi(httpCode)
+    if err != nil {
+        return 0
+    }
+
+    return codeInt
 }
 
 func GetContentType(content openapi3.Content) (string, *openapi3.Schema) {
@@ -102,30 +115,6 @@ func GetContentType(content openapi3.Content) (string, *openapi3.Schema) {
 	}
 
 	return "", nil
-}
-
-func transformHTTPCode(httpCode string) int {
-	httpCode = strings.ToLower(httpCode)
-
-	switch httpCode {
-	case "*":
-		return 200
-	case "3xx":
-		return 300
-	case "4xx":
-		return 400
-	case "5xx":
-		return 500
-	case "xxx":
-		return 200
-	}
-
-	codeInt, err := strconv.Atoi(httpCode)
-	if err != nil {
-		return 0
-	}
-
-	return codeInt
 }
 
 func GenerateURL(path string, valueMaker ValueResolver, params openapi3.Parameters) string {
