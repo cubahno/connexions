@@ -352,6 +352,9 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	}
 
 	mergedSchema.Items = schema.Items
+	if mergedSchema.Type == "" {
+		mergedSchema.Type = "object"
+	}
 
 	return mergedSchema
 }
