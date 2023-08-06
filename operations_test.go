@@ -151,7 +151,7 @@ func TestGetContentType(t *testing.T) {
 func TestGenerateURL(t *testing.T) {
 	t.Run("params correctly replaced in path", func(t *testing.T) {
 		path := "/users/{id}/{file-id}"
-		valueMaker := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			if state.NamePath[0] == "id" {
 				return 123
 			}
@@ -195,14 +195,14 @@ func TestGenerateURL(t *testing.T) {
 				},
 			},
 		}
-		res := GenerateURL(path, valueMaker, params)
+		res := GenerateURL(path, valueResolver, params)
 		assert.Equal(t, "/users/123/foo", res)
 	})
 }
 
 func TestGenerateQuery(t *testing.T) {
 	t.Run("params correctly replaced in query", func(t *testing.T) {
-		valueMaker := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			if state.NamePath[0] == "id" {
 				return 123
 			}
@@ -235,14 +235,14 @@ func TestGenerateQuery(t *testing.T) {
 				},
 			},
 		}
-		res := GenerateQuery(valueMaker, params)
+		res := GenerateQuery(valueResolver, params)
 
 		expected := "id=123&file-id=foo"
 		assert.Equal(t, expected, res)
 	})
 
 	t.Run("arrays in url", func(t *testing.T) {
-		valueMaker := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			return "foo bar"
 		}
 		params := openapi3.Parameters{
@@ -263,9 +263,233 @@ func TestGenerateQuery(t *testing.T) {
 				},
 			},
 		}
-		res := GenerateQuery(valueMaker, params)
+		res := GenerateQuery(valueResolver, params)
 
 		expected := "tags[]=foo+bar&tags[]=foo+bar"
+		assert.Equal(t, expected, res)
+	})
+}
+
+func TestGenerateContent(t *testing.T) {
+	t.Run("base-case", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			switch state.NamePath[len(state.NamePath)-1] {
+			case "id":
+				return 21
+			case "score":
+				return 11.5
+			case "limit":
+				return 100
+			case "tag1":
+				return "#dice"
+			case "tag2":
+				return "#nice"
+			case "offset":
+				return -1
+			case "query":
+				return "games"
+			case "first":
+				return 10
+			case "second":
+				return 20
+			case "last":
+				return 30
+			}
+			return nil
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "type": "object",
+                    "properties": {
+                        "id": {
+                            "type": "integer"
+                        },
+                        "score": {
+                            "type": "number"
+                        }
+                    },
+					"required": ["id"]
+                },
+                "pages": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"allOf": [
+							{
+								"type": "object",
+								"properties": {
+									"limit": {"type": "integer"},
+									"tag1": {"type": "string"}
+								},
+						        "required": ["limit"]
+							},
+							{
+								"type": "object",
+								"properties": {"tag2": {"type": "string"}}
+							}
+						],
+						"anyOf": [
+							{
+								"type": "object",
+								"properties": {
+									"offset": {"type": "integer"}
+								},
+						        "required": ["offset"]
+							},
+							{
+								"type": "object",
+								"properties": {
+									"query": {"type": "string"}
+								},
+						        "required": ["query"]
+							}
+						],
+						"oneOf": [
+							{
+								"type": "object",
+								"properties": {
+									"first": {"type": "integer"},
+									"second": {"type": "integer"}
+								},
+                                "required": ["first", "second"]
+							},
+							{
+								"type": "object",
+								"properties": {
+									"last": {"type": "integer"}
+								},
+                                "required": ["last"]
+							}
+						],
+						"not": {
+							"type": "object",
+							"properties": {
+								"second": {"type": "integer"}
+                            }
+                        }
+					}
+                }
+            }
+        }`)
+		res := GenerateContent(schema, valueResolver, nil)
+
+		expected := map[string]any{
+			"user": map[string]any{"id": 21, "score": 11.5},
+			"pages": []any{
+				map[string]any{
+					"limit": 100, "tag1": "#dice", "tag2": "#nice", "offset": -1, "first": 10,
+				},
+				map[string]any{
+					"limit": 100, "tag1": "#dice", "tag2": "#nice", "offset": -1, "first": 10,
+				},
+			},
+		}
+		assert.Equal(t, expected, res)
+	})
+
+	t.Run("with-nested-all-of", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			switch state.NamePath[len(state.NamePath)-1] {
+			case "name":
+				return "Jane Doe"
+			case "age":
+				return 30
+			case "tag":
+				return "#doe"
+			case "league":
+				return "premier"
+			case "rating":
+				return 345.6
+			}
+			return nil
+		}
+
+		schema := CreateSchemaFromString(t, `
+        {
+			"type": "object",
+			"allOf": [
+				{
+					"type": "object",
+					"properties": {
+						"name": {"type": "string"}
+					}
+				},
+				{
+					"type": "object",
+	                "allOf": [
+						{
+							"type": "object",
+							"properties": {"age": {"type": "integer"}}
+						},
+						{
+							"type": "object",
+							"allOf": [
+								{
+									"type": "object",
+									"properties": {"tag": {"type": "string"}}
+								},
+								{
+									"type": "object",
+									"allOf": [
+										{
+											"type": "object",
+											"properties": {"league": {"type": "string"}}
+										}
+									]
+								},
+								{
+									"type": "object",
+									"properties": {"rating": {"type": "integer"}}
+								}
+							]
+						}
+					]
+				}
+			]
+        }`)
+		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
+
+		res := GenerateContent(schema, valueResolver, nil)
+		assert.Equal(t, expected, res)
+	})
+
+	t.Run("fast-track-used-with-object", func(t *testing.T) {
+		dice := map[string]string{"nice": "very nice", "rice": "good rice"}
+
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			switch state.NamePath[0] {
+			case "nice":
+				return "not so nice"
+			case "rice":
+				return "not a rice"
+			case "dice":
+				return dice
+			}
+			return nil
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type":"object",
+            "properties": {
+                "dice": {
+                    "type": "object",
+                    "properties": {
+                        "nice": {
+                            "type": "string"
+                        },
+                        "rice": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }`)
+		res := GenerateContent(schema, valueResolver, nil)
+
+		expected := map[string]any{"dice": dice}
 		assert.Equal(t, expected, res)
 	})
 }
@@ -293,7 +517,7 @@ func TestGenerateContentObject(t *testing.T) {
             }
         }`)
 
-		valueMaker := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			namePath := state.NamePath
 			for _, name := range namePath {
 				if name == "first" {
@@ -306,7 +530,7 @@ func TestGenerateContentObject(t *testing.T) {
 			}
 			return nil
 		}
-		res := generateContentObject(schema, valueMaker, nil)
+		res := generateContentObject(schema, valueResolver, nil)
 
 		expected := `{"age":21,"name":{"first":"Jane","last":"Doe"}}`
 		resJs, _ := json.Marshal(res)
@@ -323,11 +547,11 @@ func TestGenerateContentArray(t *testing.T) {
             }
         }`)
 
-		valueMaker := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			return "foo"
 		}
 
-		res := generateContentArray(schema, valueMaker, nil)
+		res := generateContentArray(schema, valueResolver, nil)
 		assert.ElementsMatch(t, []string{"foo", "foo"}, res)
 	})
 
@@ -342,13 +566,13 @@ func TestGenerateContentArray(t *testing.T) {
 
 		callNum := -1
 
-		valueMaker := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			callNum++
 			items := []string{"a", "b", "c", "d"}
 			return items[callNum]
 		}
 
-		res := generateContentArray(schema, valueMaker, nil)
+		res := generateContentArray(schema, valueResolver, nil)
 		assert.ElementsMatch(t, []string{"a", "b", "c", "d"}, res)
 	})
 }

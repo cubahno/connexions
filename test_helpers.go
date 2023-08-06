@@ -10,6 +10,7 @@ func CreateSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 	schema := &openapi3.Schema{}
 	err := json.Unmarshal([]byte(src), schema)
 	if err != nil {
+		t.Errorf("Error parsing JSON: %v", err)
 		t.FailNow()
 	}
 	return schema

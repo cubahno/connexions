@@ -3,6 +3,7 @@ package xs
 import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/getkin/kin-openapi/openapi3"
+	"reflect"
 )
 
 type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
@@ -101,8 +102,7 @@ func IsCorrectlyResolvedType(value any, needed string) bool {
 		_, ok := value.(bool)
 		return ok
 	case openapi3.TypeObject:
-		_, ok := value.(map[string]interface{})
-		return ok
+		return reflect.TypeOf(value).Kind() == reflect.Map
 	case openapi3.TypeArray:
 		_, ok := value.([]interface{})
 		return ok

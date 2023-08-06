@@ -82,24 +82,24 @@ func ExtractResponse(operation *openapi3.Operation) (*openapi3.Response, int) {
 }
 
 func TransformHTTPCode(httpCode string) int {
-    httpCode = strings.ToLower(httpCode)
-    httpCode = strings.Replace(httpCode, "x", "0", -1)
+	httpCode = strings.ToLower(httpCode)
+	httpCode = strings.Replace(httpCode, "x", "0", -1)
 
-    switch httpCode {
-    case "*":
-        fallthrough
-    case "default":
-        fallthrough
-    case "000":
-        return 200
-    }
+	switch httpCode {
+	case "*":
+		fallthrough
+	case "default":
+		fallthrough
+	case "000":
+		return 200
+	}
 
-    codeInt, err := strconv.Atoi(httpCode)
-    if err != nil {
-        return 0
-    }
+	codeInt, err := strconv.Atoi(httpCode)
+	if err != nil {
+		return 0
+	}
 
-    return codeInt
+	return codeInt
 }
 
 func GetContentType(content openapi3.Content) (string, *openapi3.Schema) {
@@ -183,30 +183,18 @@ func GenerateContent(schema *openapi3.Schema, valueMaker ValueResolver, state *R
 		}
 	}
 
-	if schema.Type == openapi3.TypeObject {
-		return generateContentObject(schema, valueMaker, state)
+	mergedSchema := MergeSubSchemas(schema)
+
+	if mergedSchema.Type == openapi3.TypeObject {
+		return generateContentObject(mergedSchema, valueMaker, state)
 	}
 
-	if schema.Type == openapi3.TypeArray {
-		return generateContentArray(schema, valueMaker, state)
+	if mergedSchema.Type == openapi3.TypeArray {
+		return generateContentArray(mergedSchema, valueMaker, state)
 	}
-
-	for _, s := range schema.AllOf {
-		return GenerateContent(s.Value, valueMaker, state)
-	}
-
-	if len(schema.AnyOf) > 0 {
-		return GenerateContent(schema.AnyOf[0].Value, valueMaker, state)
-	}
-
-	if len(schema.OneOf) > 0 {
-		return GenerateContent(schema.OneOf[0].Value, valueMaker, state)
-	}
-
-	// handle Not case
 
 	// try to resolve anything
-	return valueMaker(schema, state)
+	return valueMaker(mergedSchema, state)
 }
 
 func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueMaker ValueResolver, state *ResolveState) (any, string) {
@@ -294,8 +282,8 @@ func generateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, st
 		return res
 	}
 
-	for name, prop := range schema.Properties {
-		res[name] = GenerateContent(prop.Value, valueMaker, state.addPath(name))
+	for name, schemaRef := range schema.Properties {
+		res[name] = GenerateContent(schemaRef.Value, valueMaker, state.addPath(name))
 	}
 
 	return res
@@ -316,4 +304,90 @@ func generateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 	}
 
 	return res
+}
+
+func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
+	// create copy
+	mergedSchema := &openapi3.Schema{}
+	jsonData, err := schema.MarshalJSON()
+	if err != nil {
+		return nil
+	}
+	err = mergedSchema.UnmarshalJSON(jsonData)
+	if err != nil {
+		return nil
+	}
+
+	mergedSchema.AllOf = make(openapi3.SchemaRefs, 0)
+	mergedSchema.AnyOf = make(openapi3.SchemaRefs, 0)
+	mergedSchema.OneOf = make(openapi3.SchemaRefs, 0)
+
+	if len(mergedSchema.Properties) == 0 {
+		mergedSchema.Properties = make(map[string]*openapi3.SchemaRef)
+	}
+
+	for _, schemaRef := range schema.AllOf {
+		sub := schemaRef.Value
+		if sub == nil {
+			continue
+		}
+
+		for propertyName, property := range sub.Properties {
+			mergedSchema.Properties[propertyName] = property
+		}
+
+		mergedSchema.AllOf = append(mergedSchema.AllOf, sub.AllOf...)
+		mergedSchema.AnyOf = append(mergedSchema.AnyOf, sub.AnyOf...)
+		mergedSchema.OneOf = append(mergedSchema.OneOf, sub.OneOf...)
+		mergedSchema.Required = append(mergedSchema.Required, sub.Required...)
+	}
+
+	// pick first from each if present
+	schemaRefs := []openapi3.SchemaRefs{schema.AnyOf, schema.OneOf}
+	for _, schemaRef := range schemaRefs {
+		if len(schemaRef) == 0 {
+			continue
+		}
+
+		sub := schemaRef[0].Value
+		if sub == nil {
+			continue
+		}
+
+		for propertyName, property := range sub.Properties {
+			mergedSchema.Properties[propertyName] = property
+		}
+
+		mergedSchema.AllOf = append(mergedSchema.AllOf, sub.AllOf...)
+		mergedSchema.AnyOf = append(mergedSchema.AnyOf, sub.AnyOf...)
+		mergedSchema.OneOf = append(mergedSchema.OneOf, sub.OneOf...)
+		mergedSchema.Required = append(mergedSchema.Required, sub.Required...)
+	}
+
+	// exclude properties from `not`
+	if schema.Not != nil {
+		notSchema := schema.Not.Value
+		if notSchema == nil {
+			return mergedSchema
+		}
+
+		deletes := map[string]bool{}
+		for propertyName, _ := range notSchema.Properties {
+			delete(mergedSchema.Properties, propertyName)
+			deletes[propertyName] = true
+		}
+
+		// remove from required properties
+		for i, propertyName := range mergedSchema.Required {
+			if _, ok := deletes[propertyName]; ok {
+				mergedSchema.Required = append(mergedSchema.Required[:i], mergedSchema.Required[i+1:]...)
+			}
+		}
+	}
+
+	if len(mergedSchema.AllOf) > 0 || len(mergedSchema.AnyOf) > 0 || len(mergedSchema.OneOf) > 0 {
+		return MergeSubSchemas(mergedSchema)
+	}
+
+	return mergedSchema
 }
