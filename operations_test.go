@@ -802,10 +802,7 @@ func TestGenerateContent(t *testing.T) {
 
 	t.Run("with-recursive-references", func(t *testing.T) {
 		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
-			// if len(state.NamePath) > 1 && state.NamePath[0] == state.NamePath[1] {
-			// 	return nil
-			// }
-			switch state.NamePath[0] {
+			switch state.NamePath[len(state.NamePath)-1] {
 			case "id":
 				return 123
 			case "name":
@@ -880,15 +877,15 @@ func TestGenerateContent(t *testing.T) {
 		res := GenerateContent(schema, valueResolver, nil)
 
 		expected := map[string]any{
-			"id": 123,
+			"id":   123,
 			"name": "noda-123",
 			"children": []any{
 				map[string]any{
-					"id": 123,
+					"id":   123,
 					"name": "noda-123",
 				},
 				map[string]any{
-					"id": 123,
+					"id":   123,
 					"name": "noda-123",
 				},
 			},

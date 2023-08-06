@@ -4,15 +4,48 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
+	"sync"
 )
 
 type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
 
 type ResolveState struct {
-	NamePath    []string
-	Example     any
-	IsHeader    bool
-	ContentType string
+	NamePath           []string
+	Example            any
+	IsHeader           bool
+	ContentType        string
+	CircularArrayTrip  int
+	CircularObjectTrip string
+	mu                 sync.Mutex
+}
+
+type ResolveStateBuilder struct {
+	ResolveState
+}
+
+func NewResolveStateBuilder() *ResolveStateBuilder {
+	return &ResolveStateBuilder{}
+}
+
+func (b *ResolveStateBuilder) WithNamePath(namePath []string) *ResolveStateBuilder {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.NamePath = namePath
+	return b
+}
+
+func (b *ResolveStateBuilder) WithExample(example interface{}) *ResolveStateBuilder {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.Example = example
+	return b
+}
+
+func (b *ResolveStateBuilder) WithHeader(isHeader bool) *ResolveStateBuilder {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.IsHeader = isHeader
+	return b
 }
 
 func (s *ResolveState) addPath(name string) *ResolveState {
@@ -22,28 +55,56 @@ func (s *ResolveState) addPath(name string) *ResolveState {
 	}
 
 	return &ResolveState{
-		NamePath:    append(namePath, name),
-		Example:     s.Example,
-		IsHeader:    s.IsHeader,
-		ContentType: s.ContentType,
+		NamePath:           append(namePath, name),
+		Example:            s.Example,
+		IsHeader:           s.IsHeader,
+		ContentType:        s.ContentType,
+		CircularArrayTrip:  s.CircularArrayTrip,
+		CircularObjectTrip: s.CircularObjectTrip,
 	}
 }
 
 func (s *ResolveState) markAsHeader() *ResolveState {
 	return &ResolveState{
-		NamePath:    s.NamePath,
-		Example:     s.Example,
-		IsHeader:    true,
-		ContentType: s.ContentType,
+		NamePath:           s.NamePath,
+		Example:            s.Example,
+		IsHeader:           true,
+		ContentType:        s.ContentType,
+		CircularArrayTrip:  s.CircularArrayTrip,
+		CircularObjectTrip: s.CircularObjectTrip,
 	}
 }
 
 func (s *ResolveState) setContentType(value string) *ResolveState {
 	return &ResolveState{
-		NamePath:    s.NamePath,
-		Example:     s.Example,
-		IsHeader:    s.IsHeader,
-		ContentType: value,
+		NamePath:           s.NamePath,
+		Example:            s.Example,
+		IsHeader:           s.IsHeader,
+		ContentType:        value,
+		CircularArrayTrip:  s.CircularArrayTrip,
+		CircularObjectTrip: s.CircularObjectTrip,
+	}
+}
+
+func (s *ResolveState) MarkCircularArrayTrip(value int) *ResolveState {
+	return &ResolveState{
+		NamePath:           s.NamePath,
+		Example:            s.Example,
+		IsHeader:           s.IsHeader,
+		ContentType:        s.ContentType,
+		CircularObjectTrip: s.CircularObjectTrip,
+		CircularArrayTrip:  value,
+	}
+}
+
+func (s *ResolveState) MarkCircularObjectTrip(value string) *ResolveState {
+	return &ResolveState{
+		NamePath:           s.NamePath,
+		Example:            s.Example,
+		IsHeader:           s.IsHeader,
+		ContentType:        s.ContentType,
+		CircularObjectTrip: value,
+		CircularArrayTrip:  s.CircularArrayTrip,
 	}
 }
 

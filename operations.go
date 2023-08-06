@@ -199,77 +199,32 @@ func GenerateContent(schema *openapi3.Schema, valueResolver ValueResolver, state
 	if valueResolver != nil {
 		return valueResolver(mergedSchema, state)
 	}
+
 	return nil
 }
 
-func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueResolver, state *ResolveState) (any, string) {
+func GenerateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
 	if state == nil {
 		state = &ResolveState{}
 	}
 
-	if bodyRef == nil {
-		return nil, ""
-	}
-
-	schema := bodyRef.Value
-	if schema == nil {
-		return nil, ""
-	}
-
-	contentTypes := schema.Content
-	if len(contentTypes) == 0 {
-		return nil, ""
-	}
-
-	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
-	for _, contentType := range typesOrder {
-		if _, ok := contentTypes[contentType]; ok {
-			// TODO(igor): handle correctly content types
-			return GenerateContent(
-					contentTypes[contentType].Schema.Value, valueResolver, state.setContentType(contentType)),
-				contentType
-		}
-	}
-
-	var res any
-	var typ string
-
-	// Get first defined
-	for contentType, mediaType := range contentTypes {
-		typ = contentType
-		res = GenerateContent(mediaType.Schema.Value, valueResolver, state.setContentType(contentType))
-		break
-	}
-
-	return res, typ
-}
-
-func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueResolver) any {
 	res := map[string]interface{}{}
 
-	for _, paramRef := range parameters {
-		param := paramRef.Value
-		if param == nil {
+	if schema.Properties == nil {
+		return nil
+	}
+
+	namePath := strings.Join(state.NamePath, ".")
+	if namePath != "" && state.CircularObjectTrip == namePath {
+		return nil
+	}
+
+	for name, schemaRef := range schema.Properties {
+		item := GenerateContent(schemaRef.Value, valueMaker, state.addPath(name).MarkCircularObjectTrip(namePath+"."+name))
+		if item == nil {
 			continue
 		}
-
-		in := strings.ToLower(param.In)
-		if in != openapi3.ParameterInHeader {
-			continue
-		}
-
-		schemaRef := param.Schema
-		if schemaRef == nil {
-			continue
-		}
-
-		schema := schemaRef.Value
-		if schema == nil {
-			continue
-		}
-
-		name := strings.ToLower(param.Name)
-		res[name] = GenerateContent(schema, valueMaker, &ResolveState{NamePath: []string{name}, IsHeader: true})
+		res[name] = item
 	}
 
 	if len(res) == 0 {
@@ -279,49 +234,33 @@ func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueReso
 	return res
 }
 
-func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueResolver) map[string]any {
-	res := map[string]any{}
-
-	for name, headerRef := range headers {
-		name = strings.ToLower(name)
-		state := &ResolveState{NamePath: []string{name}, IsHeader: true}
-		header := headerRef.Value
-		params := header.Parameter
-		res[name] = GenerateContent(params.Schema.Value, valueMaker, state)
-	}
-	return res
-}
-
-func GenerateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
-	if state == nil {
-		state = &ResolveState{}
-	}
-	res := map[string]interface{}{}
-
-	if schema.Properties == nil {
-		return nil
-
-	}
-
-	for name, schemaRef := range schema.Properties {
-		res[name] = GenerateContent(schemaRef.Value, valueMaker, state.addPath(name))
-	}
-
-	return res
-}
-
 func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
 	if state == nil {
 		state = &ResolveState{}
 	}
+
+	// if state.CircularArrayTrip > 0 {
+	// 	return nil
+	// }
+
 	minItems := int(schema.MinItems)
 	if minItems == 0 {
 		minItems = 1
 	}
+
 	var res []any
 
 	for i := 0; i < minItems+1; i++ {
-		res = append(res, GenerateContent(schema.Items.Value, valueMaker, state))
+		// same item landed here again, stop
+		if state.CircularArrayTrip == i+1 {
+			return nil
+		}
+		item := GenerateContent(schema.Items.Value, valueMaker, state.MarkCircularArrayTrip(i+1))
+		res = append(res, item)
+	}
+
+	if len(res) == 0 {
+		return nil
 	}
 
 	return res
@@ -415,4 +354,94 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	mergedSchema.Items = schema.Items
 
 	return mergedSchema
+}
+
+func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueResolver, state *ResolveState) (any, string) {
+	if state == nil {
+		state = &ResolveState{}
+	}
+
+	if bodyRef == nil {
+		return nil, ""
+	}
+
+	schema := bodyRef.Value
+	if schema == nil {
+		return nil, ""
+	}
+
+	contentTypes := schema.Content
+	if len(contentTypes) == 0 {
+		return nil, ""
+	}
+
+	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
+	for _, contentType := range typesOrder {
+		if _, ok := contentTypes[contentType]; ok {
+			// TODO(igor): handle correctly content types
+			return GenerateContent(
+					contentTypes[contentType].Schema.Value, valueResolver, state.setContentType(contentType)),
+				contentType
+		}
+	}
+
+	var res any
+	var typ string
+
+	// Get first defined
+	for contentType, mediaType := range contentTypes {
+		typ = contentType
+		res = GenerateContent(mediaType.Schema.Value, valueResolver, state.setContentType(contentType))
+		break
+	}
+
+	return res, typ
+}
+
+func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueResolver) any {
+	res := map[string]interface{}{}
+
+	for _, paramRef := range parameters {
+		param := paramRef.Value
+		if param == nil {
+			continue
+		}
+
+		in := strings.ToLower(param.In)
+		if in != openapi3.ParameterInHeader {
+			continue
+		}
+
+		schemaRef := param.Schema
+		if schemaRef == nil {
+			continue
+		}
+
+		schema := schemaRef.Value
+		if schema == nil {
+			continue
+		}
+
+		name := strings.ToLower(param.Name)
+		res[name] = GenerateContent(schema, valueMaker, &ResolveState{NamePath: []string{name}, IsHeader: true})
+	}
+
+	if len(res) == 0 {
+		return nil
+	}
+
+	return res
+}
+
+func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueResolver) map[string]any {
+	res := map[string]any{}
+
+	for name, headerRef := range headers {
+		name = strings.ToLower(name)
+		state := &ResolveState{NamePath: []string{name}, IsHeader: true}
+		header := headerRef.Value
+		params := header.Parameter
+		res[name] = GenerateContent(params.Schema.Value, valueMaker, state)
+	}
+	return res
 }
