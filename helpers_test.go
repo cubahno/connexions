@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func CreateDocumentFromString(t *testing.T, src string) *openapi3.T {
+	loader := openapi3.NewLoader()
+	doc, err := loader.LoadFromData([]byte(src))
+	if err != nil {
+		t.Errorf("Error loading document: %v", err)
+		t.FailNow()
+	}
+	return doc
+}
+
 func CreateSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 	schema := &openapi3.Schema{}
 	err := json.Unmarshal([]byte(src), schema)

@@ -329,6 +329,7 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 
 func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	// create a copy
+	props := schema.Properties
 	mergedSchema := &openapi3.Schema{}
 	jsonData, err := schema.MarshalJSON()
 	if err != nil {
@@ -338,6 +339,9 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	if err != nil {
 		return nil
 	}
+
+	// don't loose circular references
+	mergedSchema.Properties = props
 
 	mergedSchema.AllOf = make(openapi3.SchemaRefs, 0)
 	mergedSchema.AnyOf = make(openapi3.SchemaRefs, 0)
@@ -407,6 +411,8 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	if len(mergedSchema.AllOf) > 0 || len(mergedSchema.AnyOf) > 0 || len(mergedSchema.OneOf) > 0 {
 		return MergeSubSchemas(mergedSchema)
 	}
+
+	mergedSchema.Items = schema.Items
 
 	return mergedSchema
 }
