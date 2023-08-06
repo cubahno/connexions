@@ -172,13 +172,13 @@ func GenerateQuery(valueMaker ValueResolver, params openapi3.Parameters) string 
 	return encode(queryValues)
 }
 
-func GenerateContent(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
+func GenerateContent(schema *openapi3.Schema, valueResolver ValueResolver, state *ResolveState) any {
 	if state == nil {
 		state = &ResolveState{}
 	}
 	// fast track with value and correctly resolved type
 	if len(state.NamePath) > 0 {
-		if res := valueMaker(schema, state); res != nil && IsCorrectlyResolvedType(res, schema.Type) {
+		if res := valueResolver(schema, state); res != nil && IsCorrectlyResolvedType(res, schema.Type) {
 			return res
 		}
 	}
@@ -186,18 +186,18 @@ func GenerateContent(schema *openapi3.Schema, valueMaker ValueResolver, state *R
 	mergedSchema := MergeSubSchemas(schema)
 
 	if mergedSchema.Type == openapi3.TypeObject {
-		return generateContentObject(mergedSchema, valueMaker, state)
+		return generateContentObject(mergedSchema, valueResolver, state)
 	}
 
 	if mergedSchema.Type == openapi3.TypeArray {
-		return generateContentArray(mergedSchema, valueMaker, state)
+		return generateContentArray(mergedSchema, valueResolver, state)
 	}
 
 	// try to resolve anything
-	return valueMaker(mergedSchema, state)
+	return valueResolver(mergedSchema, state)
 }
 
-func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueMaker ValueResolver, state *ResolveState) (any, string) {
+func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueResolver, state *ResolveState) (any, string) {
 	if state == nil {
 		state = &ResolveState{}
 	}
@@ -205,7 +205,13 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueMaker ValueResol
 	if bodyRef == nil {
 		return nil, ""
 	}
-	contentTypes := bodyRef.Value.Content
+
+	schema := bodyRef.Value
+	if schema == nil {
+		return nil, ""
+	}
+
+	contentTypes := schema.Content
 	if len(contentTypes) == 0 {
 		return nil, ""
 	}
@@ -215,13 +221,13 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueMaker ValueResol
 		if _, ok := contentTypes[contentType]; ok {
 			// TODO(igor): handle correctly content types
 			return GenerateContent(
-					contentTypes[contentType].Schema.Value, valueMaker, state.setContentType(contentType)),
+					contentTypes[contentType].Schema.Value, valueResolver, state.setContentType(contentType)),
 				contentType
 		}
 	}
 
 	for contentType, mediaType := range contentTypes {
-		return GenerateContent(mediaType.Schema.Value, valueMaker, state.setContentType(contentType)), contentType
+		return GenerateContent(mediaType.Schema.Value, valueResolver, state.setContentType(contentType)), contentType
 	}
 
 	return nil, ""
@@ -251,10 +257,8 @@ func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueReso
 			continue
 		}
 
-		for paramName, schemaRef := range schema.Properties {
-			state := &ResolveState{NamePath: []string{paramName}, IsHeader: true}
-			res[paramName] = GenerateContent(schemaRef.Value, valueMaker, state)
-		}
+		name := strings.ToLower(param.Name)
+		res[name] = GenerateContent(schema, valueMaker, &ResolveState{NamePath: []string{name}, IsHeader: true})
 	}
 
 	return res

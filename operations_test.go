@@ -576,3 +576,166 @@ func TestGenerateContentArray(t *testing.T) {
 		assert.ElementsMatch(t, []string{"a", "b", "c", "d"}, res)
 	})
 }
+
+func TestGenerateRequestBody(t *testing.T) {
+	t.Run("GenerateRequestBody", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			namePath := state.NamePath
+			for _, name := range namePath {
+				if name == "foo" {
+					return "bar"
+				}
+			}
+			return nil
+		}
+		schema := CreateSchemaFromString(t, `{
+			"type": "object",
+			"properties": {
+				"foo": {
+					"type": "string"
+				}
+			}
+	    }`)
+		reqBodyRef := &openapi3.RequestBodyRef{
+			Value: &openapi3.RequestBody{
+				Content: openapi3.NewContentWithJSONSchema(schema),
+			},
+		}
+		payload, contentType := GenerateRequestBody(reqBodyRef, valueResolver, nil)
+
+		assert.Equal(t, "application/json", contentType)
+		assert.Equal(t, map[string]any{"foo": "bar"}, payload)
+	})
+
+	t.Run("GenerateRequestBody-first-from-encountered", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			namePath := state.NamePath
+			for _, name := range namePath {
+				if name == "foo" {
+					return "bar"
+				}
+			}
+			return nil
+		}
+
+		schema := CreateSchemaFromString(t, `{
+			"type": "object",
+			"properties": {
+				"foo": {
+					"type": "string"
+				}
+			}
+	    }`)
+		reqBodyRef := &openapi3.RequestBodyRef{
+			Value: &openapi3.RequestBody{
+				Content: map[string]*openapi3.MediaType{
+					"application/xml": {
+						Schema: &openapi3.SchemaRef{Value: schema},
+					},
+				},
+			},
+		}
+		payload, contentType := GenerateRequestBody(reqBodyRef, valueResolver, nil)
+
+		assert.Equal(t, "application/xml", contentType)
+		assert.Equal(t, map[string]any{"foo": "bar"}, payload)
+	})
+
+	t.Run("case-empty-body-reference", func(t *testing.T) {
+		payload, contentType := GenerateRequestBody(nil, nil, nil)
+
+		assert.Equal(t, "", contentType)
+		assert.Equal(t, nil, payload)
+	})
+
+	t.Run("case-empty-schema", func(t *testing.T) {
+		reqBodyRef := &openapi3.RequestBodyRef{}
+		payload, contentType := GenerateRequestBody(reqBodyRef, nil, nil)
+
+		assert.Equal(t, "", contentType)
+		assert.Equal(t, nil, payload)
+	})
+
+	t.Run("case-empty-content-types", func(t *testing.T) {
+		reqBodyRef := &openapi3.RequestBodyRef{Value: &openapi3.RequestBody{Content: nil}}
+		payload, contentType := GenerateRequestBody(reqBodyRef, nil, nil)
+
+		assert.Equal(t, "", contentType)
+		assert.Equal(t, nil, payload)
+	})
+}
+
+func TestGenerateRequestHeaders(t *testing.T) {
+	t.Run("GenerateRequestHeaders", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			switch state.NamePath[len(state.NamePath)-1] {
+			case "mode":
+				return "dark"
+			case "lang":
+				return "de"
+			case "x-key":
+				return "abcdef"
+			case "version":
+				return "1.0.0"
+			}
+			return nil
+		}
+		params := openapi3.Parameters{
+			{
+				Value: &openapi3.Parameter{
+					Name: "X-Key",
+					In:   openapi3.ParameterInHeader,
+					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+				},
+			},
+			{
+				Value: &openapi3.Parameter{
+					Name: "Version",
+					In:   openapi3.ParameterInHeader,
+					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+				},
+			},
+			{
+				Value: &openapi3.Parameter{
+					Name: "Preferences",
+					In:   openapi3.ParameterInHeader,
+					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+						Type: "object",
+						Properties: map[string]*openapi3.SchemaRef{
+							"mode": {Value: &openapi3.Schema{Type: "string"}},
+							"lang": {Value: &openapi3.Schema{Type: "string"}},
+						},
+					}},
+				},
+			},
+			{
+				Value: &openapi3.Parameter{
+					Name: "id",
+					In:   openapi3.ParameterInPath,
+					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+				},
+			},
+		}
+
+		expected := map[string]any{
+			"x-key": "abcdef",
+			"version": "1.0.0",
+			"preferences": map[string]any{"mode": "dark", "lang": "de"},
+		}
+
+		res := GenerateRequestHeaders(params, valueResolver)
+		assert.Equal(t, expected, res)
+	})
+}
+
+func TestGenerateResponseHeaders(t *testing.T) {
+	t.Run("GenerateResponseHeaders", func(t *testing.T) {
+
+	})
+}
+
+func TestMergeSubSchemas(t *testing.T) {
+	t.Run("MergeSubSchemas", func(t *testing.T) {
+
+	})
+}
