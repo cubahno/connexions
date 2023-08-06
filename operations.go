@@ -188,11 +188,11 @@ func GenerateContent(schema *openapi3.Schema, valueResolver ValueResolver, state
 	mergedSchema := MergeSubSchemas(schema)
 
 	if mergedSchema.Type == openapi3.TypeObject {
-		return generateContentObject(mergedSchema, valueResolver, state)
+		return GenerateContentObject(mergedSchema, valueResolver, state)
 	}
 
 	if mergedSchema.Type == openapi3.TypeArray {
-		return generateContentArray(mergedSchema, valueResolver, state)
+		return GenerateContentArray(mergedSchema, valueResolver, state)
 	}
 
 	// try to resolve anything
@@ -231,11 +231,17 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueRe
 		}
 	}
 
+	var res any
+	var typ string
+
+	// Get first defined
 	for contentType, mediaType := range contentTypes {
-		return GenerateContent(mediaType.Schema.Value, valueResolver, state.setContentType(contentType)), contentType
+		typ = contentType
+		res = GenerateContent(mediaType.Schema.Value, valueResolver, state.setContentType(contentType))
+		break
 	}
 
-	return nil, ""
+	return res, typ
 }
 
 func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueResolver) any {
@@ -266,6 +272,10 @@ func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueReso
 		res[name] = GenerateContent(schema, valueMaker, &ResolveState{NamePath: []string{name}, IsHeader: true})
 	}
 
+	if len(res) == 0 {
+		return nil
+	}
+
 	return res
 }
 
@@ -282,14 +292,15 @@ func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueResolver)
 	return res
 }
 
-func generateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
+func GenerateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
 	if state == nil {
 		state = &ResolveState{}
 	}
 	res := map[string]interface{}{}
 
 	if schema.Properties == nil {
-		return res
+		return nil
+
 	}
 
 	for name, schemaRef := range schema.Properties {
@@ -299,7 +310,7 @@ func generateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, st
 	return res
 }
 
-func generateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
+func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, state *ResolveState) any {
 	if state == nil {
 		state = &ResolveState{}
 	}
@@ -377,20 +388,18 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	// exclude properties from `not`
 	if schema.Not != nil {
 		notSchema := schema.Not.Value
-		if notSchema == nil {
-			return mergedSchema
-		}
+		if notSchema != nil {
+			deletes := map[string]bool{}
+			for propertyName, _ := range notSchema.Properties {
+				delete(mergedSchema.Properties, propertyName)
+				deletes[propertyName] = true
+			}
 
-		deletes := map[string]bool{}
-		for propertyName, _ := range notSchema.Properties {
-			delete(mergedSchema.Properties, propertyName)
-			deletes[propertyName] = true
-		}
-
-		// remove from required properties
-		for i, propertyName := range mergedSchema.Required {
-			if _, ok := deletes[propertyName]; ok {
-				mergedSchema.Required = append(mergedSchema.Required[:i], mergedSchema.Required[i+1:]...)
+			// remove from required properties
+			for i, propertyName := range mergedSchema.Required {
+				if _, ok := deletes[propertyName]; ok {
+					mergedSchema.Required = append(mergedSchema.Required[:i], mergedSchema.Required[i+1:]...)
+				}
 			}
 		}
 	}

@@ -284,7 +284,7 @@ func TestNewResponse(t *testing.T) {
 		res := NewResponse(operation, valueResolver)
 
 		expectedHeaders := map[string]any{
-			"location":     "https://example.com/users/123",
+			"location": "https://example.com/users/123",
 		}
 
 		assert.Equal(t, 200, res.StatusCode)
@@ -552,6 +552,29 @@ func TestGenerateQuery(t *testing.T) {
 		expected := "tags[]=foo+bar&tags[]=foo+bar"
 		assert.Equal(t, expected, res)
 	})
+
+	t.Run("no-resolved-values", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			return nil
+		}
+		params := openapi3.Parameters{
+			{
+				Value: &openapi3.Parameter{
+					Name: "id",
+					In:   "query",
+					Schema: &openapi3.SchemaRef{
+						Value: &openapi3.Schema{
+							Type: "integer",
+						},
+					},
+				},
+			},
+		}
+		res := GenerateQuery(valueResolver, params)
+
+		expected := "id="
+		assert.Equal(t, expected, res)
+	})
 }
 
 func TestGenerateContent(t *testing.T) {
@@ -779,7 +802,7 @@ func TestGenerateContent(t *testing.T) {
 }
 
 func TestGenerateContentObject(t *testing.T) {
-	t.Run("test case 1", func(t *testing.T) {
+	t.Run("GenerateContentObject", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `
         {
             "type":"object",
@@ -814,11 +837,17 @@ func TestGenerateContentObject(t *testing.T) {
 			}
 			return nil
 		}
-		res := generateContentObject(schema, valueResolver, nil)
+		res := GenerateContentObject(schema, valueResolver, nil)
 
 		expected := `{"age":21,"name":{"first":"Jane","last":"Doe"}}`
 		resJs, _ := json.Marshal(res)
 		assert.Equal(t, expected, string(resJs))
+	})
+
+	t.Run("with-no-properties", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `{"type": "object"}`)
+		res := GenerateContentObject(schema, nil, nil)
+		assert.Nil(t, res)
 	})
 }
 
@@ -835,7 +864,7 @@ func TestGenerateContentArray(t *testing.T) {
 			return "foo"
 		}
 
-		res := generateContentArray(schema, valueResolver, nil)
+		res := GenerateContentArray(schema, valueResolver, nil)
 		assert.ElementsMatch(t, []string{"foo", "foo"}, res)
 	})
 
@@ -856,7 +885,7 @@ func TestGenerateContentArray(t *testing.T) {
 			return items[callNum]
 		}
 
-		res := generateContentArray(schema, valueResolver, nil)
+		res := GenerateContentArray(schema, valueResolver, nil)
 		assert.ElementsMatch(t, []string{"a", "b", "c", "d"}, res)
 	})
 }
@@ -1010,6 +1039,31 @@ func TestGenerateRequestHeaders(t *testing.T) {
 		res := GenerateRequestHeaders(params, valueResolver)
 		assert.Equal(t, expected, res)
 	})
+
+	t.Run("param-is-nil", func(t *testing.T) {
+		params := openapi3.Parameters{{}}
+		res := GenerateRequestHeaders(params, nil)
+		assert.Nil(t, res)
+	})
+
+	t.Run("schema-ref-is-nil", func(t *testing.T) {
+		params := openapi3.Parameters{{Value: &openapi3.Parameter{Schema: nil, In: openapi3.ParameterInHeader}}}
+		res := GenerateRequestHeaders(params, nil)
+		assert.Nil(t, res)
+	})
+
+	t.Run("schema-is-nil", func(t *testing.T) {
+		params := openapi3.Parameters{
+			{
+				Value: &openapi3.Parameter{
+					Schema: &openapi3.SchemaRef{Value: nil},
+					In:     openapi3.ParameterInHeader,
+				},
+			},
+		}
+		res := GenerateRequestHeaders(params, nil)
+		assert.Nil(t, res)
+	})
 }
 
 func TestGenerateResponseHeaders(t *testing.T) {
@@ -1127,12 +1181,49 @@ func TestMergeSubSchemas(t *testing.T) {
 				}
 			}
         }`)
-		res := GenerateContent(schema, nil, nil)
+		res := MergeSubSchemas(schema)
 		expectedProperties := []string{"user", "limit", "tag1", "tag2", "offset", "first"}
 
 		resProps := make([]string, 0)
-		for k := range res.(map[string]any) {
-			resProps = append(resProps, k)
+		for name, _ := range res.Properties {
+			resProps = append(resProps, name)
+		}
+
+		assert.ElementsMatch(t, expectedProperties, resProps)
+	})
+
+	t.Run("without-all-of-and-empty-one-of-schema", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `
+        {
+            "type": "object",
+			"anyOf": [
+				{}
+			],
+			"oneOf": [
+				{
+					"type": "object",
+					"properties": {
+						"first": {"type": "integer"},
+						"second": {"type": "integer"}
+					},
+					"required": ["first", "second"]
+				},
+				{
+					"type": "object",
+					"properties": {
+						"last": {"type": "integer"}
+					},
+					"required": ["last"]
+				}
+			],
+			"not": {}
+        }`)
+		res := MergeSubSchemas(schema)
+		expectedProperties := []string{"first", "second"}
+
+		resProps := make([]string, 0)
+		for name, _ := range res.Properties {
+			resProps = append(resProps, name)
 		}
 
 		assert.ElementsMatch(t, expectedProperties, resProps)
