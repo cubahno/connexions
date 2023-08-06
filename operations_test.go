@@ -106,6 +106,48 @@ func TestTransformHTTPCode(t *testing.T) {
 	}
 }
 
+func TestGetContentType(t *testing.T) {
+	t.Run("get-first-prioritized", func(t *testing.T) {
+		content := openapi3.Content{
+			"text/html": {
+				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}},
+			},
+			"application/json": {
+				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}},
+			},
+			"text/plain": {
+				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}},
+			},
+		}
+		contentType, schema := GetContentType(content)
+
+		assert.Equal(t, "application/json", contentType)
+		assert.NotNil(t, schema)
+	})
+
+	t.Run("get-first-found", func(t *testing.T) {
+		content := openapi3.Content{
+			"multipart/form-data; boundary=something": {
+				Schema: &openapi3.SchemaRef{},
+			},
+			"application/xml": {
+				Schema: &openapi3.SchemaRef{},
+			},
+		}
+		contentType, _ := GetContentType(content)
+
+		assert.Contains(t, []string{"multipart/form-data; boundary=something", "application/xml"}, contentType)
+	})
+
+	t.Run("nothing-found", func(t *testing.T) {
+		content := openapi3.Content{}
+		contentType, schema := GetContentType(content)
+
+		assert.Equal(t, "", contentType)
+		assert.Nil(t, schema)
+	})
+}
+
 func TestGenerateURL(t *testing.T) {
 	t.Run("params correctly replaced in path", func(t *testing.T) {
 		path := "/users/{id}/{file-id}"
