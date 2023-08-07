@@ -4,6 +4,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"reflect"
+	"sync"
 	"testing"
 )
 
@@ -38,6 +39,33 @@ func TestResolveState(t *testing.T) {
 
 		res := src.WithElementIndex(10)
 		assert.Equal(t, 10, res.ElementIndex)
+	})
+
+	t.Run("WithElementIndexRacing", func(t *testing.T) {
+		const numGoroutines = 1000
+		const targetValue = 42
+
+		// Create a shared ResolveState
+		state := &ResolveState{}
+
+		// Use a WaitGroup to wait for all goroutines to finish
+		var wg sync.WaitGroup
+		wg.Add(numGoroutines)
+
+		// Start multiple goroutines that concurrently call WithElementIndex
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				state.WithElementIndex(targetValue)
+			}()
+		}
+
+		// Wait for all goroutines to finish
+		wg.Wait()
+
+		if state.ElementIndex != targetValue || state.stopCircularArrayTripOn != targetValue+1 {
+			t.Errorf("State not consistent: ElementIndex = %d, stopCircularArrayTripOn = %d", state.ElementIndex, state.stopCircularArrayTripOn)
+		}
 	})
 
 	t.Run("WithHeader", func(t *testing.T) {

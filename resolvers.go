@@ -5,6 +5,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
@@ -16,6 +17,7 @@ type ResolveState struct {
 	ContentType              string
 	stopCircularArrayTripOn  int
 	stopCircularObjectTripOn string
+	mu 					 sync.Mutex
 }
 
 func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
@@ -29,6 +31,9 @@ func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
 }
 
 func (s *ResolveState) WithName(name string) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	namePath := s.NamePath
 	if len(namePath) == 0 {
 		namePath = []string{}
@@ -41,17 +46,23 @@ func (s *ResolveState) WithName(name string) *ResolveState {
 }
 
 func (s *ResolveState) WithElementIndex(value int) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.stopCircularArrayTripOn = value + 1
 	s.ElementIndex = value
 	return s
 }
 
 func (s *ResolveState) WithHeader() *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.IsHeader = true
 	return s
 }
 
 func (s *ResolveState) WithContentType(value string) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.ContentType = value
 	return s
 }
