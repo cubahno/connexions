@@ -5,7 +5,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
@@ -17,7 +16,6 @@ type ResolveState struct {
 	ContentType              string
 	stopCircularArrayTripOn  int
 	stopCircularObjectTripOn string
-	mu                       sync.Mutex
 }
 
 func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
@@ -27,7 +25,6 @@ func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
 		ContentType:              src.ContentType,
 		stopCircularArrayTripOn:  src.stopCircularArrayTripOn,
 		stopCircularObjectTripOn: src.stopCircularObjectTripOn,
-		mu:                       sync.Mutex{},
 	}
 }
 
@@ -71,23 +68,6 @@ func CreateValueResolver() ValueResolver {
 	faker := gofakeit.New(0)
 
 	return func(schema *openapi3.Schema, state *ResolveState) any {
-		namePath := state.NamePath
-		for _, name := range namePath {
-			if name == "id" {
-				return faker.Uint32()
-			} else if name == "first" {
-				return faker.Person().FirstName
-			} else if name == "last" {
-				return faker.Person().LastName
-			} else if name == "age" {
-				return 21
-			} else if name == "name" {
-				return faker.PetName()
-			} else if name == "tag" {
-				return faker.Gamertag()
-			}
-		}
-
 		if schema.Example != nil {
 			return schema.Example
 		}
@@ -98,7 +78,7 @@ func CreateValueResolver() ValueResolver {
 		case openapi3.TypeInteger:
 			return faker.Uint32()
 		case openapi3.TypeNumber:
-			return faker.Float32()
+			return faker.Uint32()
 		case openapi3.TypeBoolean:
 			return faker.Bool()
 		}
@@ -113,19 +93,17 @@ func IsCorrectlyResolvedType(value any, needed string) bool {
 		_, ok := value.(string)
 		return ok
 	case openapi3.TypeInteger:
-		_, ok := value.(int)
-		return ok
+		return IsInteger(value)
 	case openapi3.TypeNumber:
-		_, ok := value.(float32)
-		return ok
+		return IsNumber(value)
 	case openapi3.TypeBoolean:
 		_, ok := value.(bool)
 		return ok
 	case openapi3.TypeObject:
 		return reflect.TypeOf(value).Kind() == reflect.Map
 	case openapi3.TypeArray:
-		_, ok := value.([]interface{})
-		return ok
+		val := reflect.ValueOf(value)
+		return val.Kind() == reflect.Slice || val.Kind() == reflect.Array
 	default:
 		return false
 	}
