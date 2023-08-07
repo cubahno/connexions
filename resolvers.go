@@ -4,78 +4,68 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
+	"strings"
 	"sync"
 )
 
 type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
 
 type ResolveState struct {
-	NamePath           []string
-	IsHeader           bool
-	ContentType        string
-	CircularArrayTrip  int
-	CircularObjectTrip string
-	mu                 sync.Mutex
+	NamePath                 []string
+	ElementIndex             int
+	IsHeader                 bool
+	ContentType              string
+	stopCircularArrayTripOn  int
+	stopCircularObjectTripOn string
+	mu                       sync.Mutex
 }
 
-func (s *ResolveState) Copy(src *ResolveState) *ResolveState {
+func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
 	return &ResolveState{
-		NamePath:           src.NamePath,
-		IsHeader:           src.IsHeader,
-		ContentType:        src.ContentType,
-		CircularArrayTrip:  src.CircularArrayTrip,
-		CircularObjectTrip: src.CircularObjectTrip,
-		mu:                 sync.Mutex{},
+		NamePath:                 src.NamePath,
+		IsHeader:                 src.IsHeader,
+		ContentType:              src.ContentType,
+		stopCircularArrayTripOn:  src.stopCircularArrayTripOn,
+		stopCircularObjectTripOn: src.stopCircularObjectTripOn,
+		mu:                       sync.Mutex{},
 	}
 }
 
 func (s *ResolveState) WithName(name string) *ResolveState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	namePath := s.NamePath
 	if len(namePath) == 0 {
 		namePath = []string{}
 	}
+	s.stopCircularObjectTripOn = strings.Join(namePath, ".") + "." + name
 	namePath = append(namePath, name)
 
 	s.NamePath = namePath
-	// s.CircularObjectTrip = namePath
+	return s
+}
+
+func (s *ResolveState) WithElementIndex(value int) *ResolveState {
+	s.stopCircularArrayTripOn = value + 1
+	s.ElementIndex = value
 	return s
 }
 
 func (s *ResolveState) WithHeader() *ResolveState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.IsHeader = true
 	return s
 }
 
 func (s *ResolveState) WithContentType(value string) *ResolveState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.ContentType = value
 	return s
 }
 
-func (s *ResolveState) WithCircularArrayTrip(value int) *ResolveState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.CircularArrayTrip = value
-	return s
+func (s *ResolveState) IsCircularObjectTrip() bool {
+	return len(s.NamePath) > 0 && s.stopCircularObjectTripOn == strings.Join(s.NamePath, ".")
 }
 
-func (s *ResolveState) WithCircularObjectTrip(trip string) *ResolveState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.CircularObjectTrip = trip
-	return s
+func (s *ResolveState) IsCircularArrayTrip(index int) bool {
+	return index+1 == s.stopCircularArrayTripOn
 }
-
-// func (s *ResolveState) IsCircularObjectTrip() bool {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
-// 	return len(s.NamePath) > 0 && IsSlicesEqual[string](s.NamePath, s.CircularObjectTrip)
-// }
 
 func CreateValueResolver() ValueResolver {
 	faker := gofakeit.New(0)

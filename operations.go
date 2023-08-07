@@ -214,13 +214,12 @@ func GenerateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, st
 		return nil
 	}
 
-	namePath := strings.Join(state.NamePath, ".")
-	if namePath != "" && state.CircularObjectTrip == namePath {
+	if state.IsCircularObjectTrip() {
 		return nil
 	}
 
 	for name, schemaRef := range schema.Properties {
-		item := GenerateContent(schemaRef.Value, valueMaker, state.Copy(state).WithName(name).WithCircularObjectTrip(namePath+"."+name))
+		item := GenerateContent(schemaRef.Value, valueMaker, state.NewFrom(state).WithName(name))
 		if item == nil {
 			continue
 		}
@@ -247,11 +246,10 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 	var res []any
 
 	for i := 0; i < minItems+1; i++ {
-		// same item landed here again, stop
-		if state.CircularArrayTrip == i+1 {
+		if state.IsCircularArrayTrip(i) {
 			return nil
 		}
-		item := GenerateContent(schema.Items.Value, valueMaker, state.WithCircularArrayTrip(i+1))
+		item := GenerateContent(schema.Items.Value, valueMaker, state.NewFrom(state).WithElementIndex(i))
 		res = append(res, item)
 	}
 
@@ -327,7 +325,7 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 		// remove from required properties
 		for i, propertyName := range schema.Required {
 			if _, ok := deletes[propertyName]; ok {
-				schema.Required = append(schema.Required[:i],schema.Required[i+1:]...)
+				schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
 			}
 		}
 	}
