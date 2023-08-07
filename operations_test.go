@@ -800,7 +800,7 @@ func TestGenerateContent(t *testing.T) {
 		assert.Equal(t, expected, res)
 	})
 
-	t.Run("with-recursive-references", func(t *testing.T) {
+	t.Run("with-circular-array-references", func(t *testing.T) {
 		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "id":
@@ -888,6 +888,90 @@ func TestGenerateContent(t *testing.T) {
 					"id":   123,
 					"name": "noda-123",
 				},
+			},
+		}
+		assert.Equal(t, expected, res)
+	})
+
+	t.Run("with-circular-object-references", func(t *testing.T) {
+		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+			switch state.NamePath[len(state.NamePath)-1] {
+			case "id":
+				return 123
+			case "name":
+				return "noda-123"
+			}
+			return nil
+		}
+		doc := CreateDocumentFromString(t, `
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Recursive API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/nodes/{id}": {
+      "get": {
+        "summary": "Get a node by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the node",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Node"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Node not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Node": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent": {
+            "$ref": "#/components/schemas/Node"
+          }
+        }
+      }
+    }
+  }
+}
+`)
+		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
+		res := GenerateContent(schema, valueResolver, nil)
+
+		expected := map[string]any{
+			"id":   123,
+			"name": "noda-123",
+			"parent": map[string]any{
+				"id":   123,
+				"name": "noda-123",
 			},
 		}
 		assert.Equal(t, expected, res)

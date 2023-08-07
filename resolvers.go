@@ -11,7 +11,6 @@ type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
 
 type ResolveState struct {
 	NamePath           []string
-	Example            any
 	IsHeader           bool
 	ContentType        string
 	CircularArrayTrip  int
@@ -19,94 +18,64 @@ type ResolveState struct {
 	mu                 sync.Mutex
 }
 
-type ResolveStateBuilder struct {
-	ResolveState
+func (s *ResolveState) Copy(src *ResolveState) *ResolveState {
+	return &ResolveState{
+		NamePath:           src.NamePath,
+		IsHeader:           src.IsHeader,
+		ContentType:        src.ContentType,
+		CircularArrayTrip:  src.CircularArrayTrip,
+		CircularObjectTrip: src.CircularObjectTrip,
+		mu:                 sync.Mutex{},
+	}
 }
 
-func NewResolveStateBuilder() *ResolveStateBuilder {
-	return &ResolveStateBuilder{}
-}
-
-func (b *ResolveStateBuilder) WithNamePath(namePath []string) *ResolveStateBuilder {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.NamePath = namePath
-	return b
-}
-
-func (b *ResolveStateBuilder) WithExample(example interface{}) *ResolveStateBuilder {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.Example = example
-	return b
-}
-
-func (b *ResolveStateBuilder) WithHeader(isHeader bool) *ResolveStateBuilder {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.IsHeader = isHeader
-	return b
-}
-
-func (s *ResolveState) addPath(name string) *ResolveState {
+func (s *ResolveState) WithName(name string) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	namePath := s.NamePath
 	if len(namePath) == 0 {
 		namePath = []string{}
 	}
+	namePath = append(namePath, name)
 
-	return &ResolveState{
-		NamePath:           append(namePath, name),
-		Example:            s.Example,
-		IsHeader:           s.IsHeader,
-		ContentType:        s.ContentType,
-		CircularArrayTrip:  s.CircularArrayTrip,
-		CircularObjectTrip: s.CircularObjectTrip,
-	}
+	s.NamePath = namePath
+	// s.CircularObjectTrip = namePath
+	return s
 }
 
-func (s *ResolveState) markAsHeader() *ResolveState {
-	return &ResolveState{
-		NamePath:           s.NamePath,
-		Example:            s.Example,
-		IsHeader:           true,
-		ContentType:        s.ContentType,
-		CircularArrayTrip:  s.CircularArrayTrip,
-		CircularObjectTrip: s.CircularObjectTrip,
-	}
+func (s *ResolveState) WithHeader() *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.IsHeader = true
+	return s
 }
 
-func (s *ResolveState) setContentType(value string) *ResolveState {
-	return &ResolveState{
-		NamePath:           s.NamePath,
-		Example:            s.Example,
-		IsHeader:           s.IsHeader,
-		ContentType:        value,
-		CircularArrayTrip:  s.CircularArrayTrip,
-		CircularObjectTrip: s.CircularObjectTrip,
-	}
+func (s *ResolveState) WithContentType(value string) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ContentType = value
+	return s
 }
 
-func (s *ResolveState) MarkCircularArrayTrip(value int) *ResolveState {
-	return &ResolveState{
-		NamePath:           s.NamePath,
-		Example:            s.Example,
-		IsHeader:           s.IsHeader,
-		ContentType:        s.ContentType,
-		CircularObjectTrip: s.CircularObjectTrip,
-		CircularArrayTrip:  value,
-	}
+func (s *ResolveState) WithCircularArrayTrip(value int) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.CircularArrayTrip = value
+	return s
 }
 
-func (s *ResolveState) MarkCircularObjectTrip(value string) *ResolveState {
-	return &ResolveState{
-		NamePath:           s.NamePath,
-		Example:            s.Example,
-		IsHeader:           s.IsHeader,
-		ContentType:        s.ContentType,
-		CircularObjectTrip: value,
-		CircularArrayTrip:  s.CircularArrayTrip,
-	}
+func (s *ResolveState) WithCircularObjectTrip(trip string) *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.CircularObjectTrip = trip
+	return s
 }
+
+// func (s *ResolveState) IsCircularObjectTrip() bool {
+// 	s.mu.Lock()
+// 	defer s.mu.Unlock()
+// 	return len(s.NamePath) > 0 && IsSlicesEqual[string](s.NamePath, s.CircularObjectTrip)
+// }
 
 func CreateValueResolver() ValueResolver {
 	faker := gofakeit.New(0)
@@ -129,8 +98,8 @@ func CreateValueResolver() ValueResolver {
 			}
 		}
 
-		if state.Example != nil {
-			return state.Example
+		if schema.Example != nil {
+			return schema.Example
 		}
 
 		switch schema.Type {

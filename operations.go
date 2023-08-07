@@ -220,7 +220,7 @@ func GenerateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, st
 	}
 
 	for name, schemaRef := range schema.Properties {
-		item := GenerateContent(schemaRef.Value, valueMaker, state.addPath(name).MarkCircularObjectTrip(namePath+"."+name))
+		item := GenerateContent(schemaRef.Value, valueMaker, state.Copy(state).WithName(name).WithCircularObjectTrip(namePath+"."+name))
 		if item == nil {
 			continue
 		}
@@ -239,10 +239,6 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 		state = &ResolveState{}
 	}
 
-	// if state.CircularArrayTrip > 0 {
-	// 	return nil
-	// }
-
 	minItems := int(schema.MinItems)
 	if minItems == 0 {
 		minItems = 1
@@ -255,7 +251,7 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 		if state.CircularArrayTrip == i+1 {
 			return nil
 		}
-		item := GenerateContent(schema.Items.Value, valueMaker, state.MarkCircularArrayTrip(i+1))
+		item := GenerateContent(schema.Items.Value, valueMaker, state.WithCircularArrayTrip(i+1))
 		res = append(res, item)
 	}
 
@@ -267,47 +263,38 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 }
 
 func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
-	// create a copy
-	props := schema.Properties
-	mergedSchema := &openapi3.Schema{}
-	jsonData, err := schema.MarshalJSON()
-	if err != nil {
-		return nil
-	}
-	err = mergedSchema.UnmarshalJSON(jsonData)
-	if err != nil {
-		return nil
+	allOf := schema.AllOf
+	anyOf := schema.AnyOf
+	oneOf := schema.OneOf
+	not := schema.Not
+
+	if len(schema.Properties) == 0 {
+		schema.Properties = make(map[string]*openapi3.SchemaRef)
 	}
 
-	// don't loose circular references
-	mergedSchema.Properties = props
+	schema.AllOf = make([]*openapi3.SchemaRef, 0)
+	schema.AnyOf = make([]*openapi3.SchemaRef, 0)
+	schema.OneOf = make([]*openapi3.SchemaRef, 0)
+	schema.Not = nil
 
-	mergedSchema.AllOf = make(openapi3.SchemaRefs, 0)
-	mergedSchema.AnyOf = make(openapi3.SchemaRefs, 0)
-	mergedSchema.OneOf = make(openapi3.SchemaRefs, 0)
-
-	if len(mergedSchema.Properties) == 0 {
-		mergedSchema.Properties = make(map[string]*openapi3.SchemaRef)
-	}
-
-	for _, schemaRef := range schema.AllOf {
+	for _, schemaRef := range allOf {
 		sub := schemaRef.Value
 		if sub == nil {
 			continue
 		}
 
 		for propertyName, property := range sub.Properties {
-			mergedSchema.Properties[propertyName] = property
+			schema.Properties[propertyName] = property
 		}
 
-		mergedSchema.AllOf = append(mergedSchema.AllOf, sub.AllOf...)
-		mergedSchema.AnyOf = append(mergedSchema.AnyOf, sub.AnyOf...)
-		mergedSchema.OneOf = append(mergedSchema.OneOf, sub.OneOf...)
-		mergedSchema.Required = append(mergedSchema.Required, sub.Required...)
+		schema.AllOf = append(schema.AllOf, sub.AllOf...)
+		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
+		schema.OneOf = append(schema.OneOf, sub.OneOf...)
+		schema.Required = append(schema.Required, sub.Required...)
 	}
 
 	// pick first from each if present
-	schemaRefs := []openapi3.SchemaRefs{schema.AnyOf, schema.OneOf}
+	schemaRefs := []openapi3.SchemaRefs{anyOf, oneOf}
 	for _, schemaRef := range schemaRefs {
 		if len(schemaRef) == 0 {
 			continue
@@ -319,44 +306,41 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 		}
 
 		for propertyName, property := range sub.Properties {
-			mergedSchema.Properties[propertyName] = property
+			schema.Properties[propertyName] = property
 		}
 
-		mergedSchema.AllOf = append(mergedSchema.AllOf, sub.AllOf...)
-		mergedSchema.AnyOf = append(mergedSchema.AnyOf, sub.AnyOf...)
-		mergedSchema.OneOf = append(mergedSchema.OneOf, sub.OneOf...)
-		mergedSchema.Required = append(mergedSchema.Required, sub.Required...)
+		schema.AllOf = append(schema.AllOf, sub.AllOf...)
+		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
+		schema.OneOf = append(schema.OneOf, sub.OneOf...)
+		schema.Required = append(schema.Required, sub.Required...)
 	}
 
 	// exclude properties from `not`
-	if schema.Not != nil {
-		notSchema := schema.Not.Value
-		if notSchema != nil {
-			deletes := map[string]bool{}
-			for propertyName, _ := range notSchema.Properties {
-				delete(mergedSchema.Properties, propertyName)
-				deletes[propertyName] = true
-			}
+	if not != nil && not.Value != nil {
+		notSchema := not.Value
+		deletes := map[string]bool{}
+		for propertyName, _ := range notSchema.Properties {
+			delete(schema.Properties, propertyName)
+			deletes[propertyName] = true
+		}
 
-			// remove from required properties
-			for i, propertyName := range mergedSchema.Required {
-				if _, ok := deletes[propertyName]; ok {
-					mergedSchema.Required = append(mergedSchema.Required[:i], mergedSchema.Required[i+1:]...)
-				}
+		// remove from required properties
+		for i, propertyName := range schema.Required {
+			if _, ok := deletes[propertyName]; ok {
+				schema.Required = append(schema.Required[:i],schema.Required[i+1:]...)
 			}
 		}
 	}
 
-	if len(mergedSchema.AllOf) > 0 || len(mergedSchema.AnyOf) > 0 || len(mergedSchema.OneOf) > 0 {
-		return MergeSubSchemas(mergedSchema)
+	if len(schema.AllOf) > 0 || len(schema.AnyOf) > 0 || len(schema.OneOf) > 0 {
+		return MergeSubSchemas(schema)
 	}
 
-	mergedSchema.Items = schema.Items
-	if mergedSchema.Type == "" {
-		mergedSchema.Type = "object"
+	if schema.Type == "" {
+		schema.Type = "object"
 	}
 
-	return mergedSchema
+	return schema
 }
 
 func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueResolver, state *ResolveState) (any, string) {
@@ -383,7 +367,7 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueRe
 		if _, ok := contentTypes[contentType]; ok {
 			// TODO(igor): handle correctly content types
 			return GenerateContent(
-					contentTypes[contentType].Schema.Value, valueResolver, state.setContentType(contentType)),
+					contentTypes[contentType].Schema.Value, valueResolver, state.WithContentType(contentType)),
 				contentType
 		}
 	}
@@ -394,7 +378,7 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueRe
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		typ = contentType
-		res = GenerateContent(mediaType.Schema.Value, valueResolver, state.setContentType(contentType))
+		res = GenerateContent(mediaType.Schema.Value, valueResolver, state.WithContentType(contentType))
 		break
 	}
 
