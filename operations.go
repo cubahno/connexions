@@ -250,6 +250,9 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 			return nil
 		}
 		item := GenerateContent(schema.Items.Value, valueMaker, state.NewFrom(state).WithElementIndex(i))
+		if item == nil {
+			continue
+		}
 		res = append(res, item)
 	}
 

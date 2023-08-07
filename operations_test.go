@@ -976,6 +976,23 @@ func TestGenerateContent(t *testing.T) {
 		}
 		assert.Equal(t, expected, res)
 	})
+
+	t.Run("with-no-resolved-values", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `
+        {
+            "type":"object",
+            "properties": {
+                "name": {
+                    "type": "object",
+                    "properties": {
+                        "first": {"type": "string"}
+                    }
+                }
+            }
+        }`)
+		res := GenerateContent(schema, nil, nil)
+		assert.Nil(t, res)
+	})
 }
 
 func TestGenerateContentObject(t *testing.T) {
@@ -1026,6 +1043,23 @@ func TestGenerateContentObject(t *testing.T) {
 		res := GenerateContentObject(schema, nil, nil)
 		assert.Nil(t, res)
 	})
+
+	t.Run("with-no-resolved-values", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `
+        {
+            "type":"object",
+            "properties": {
+                "name": {
+                    "type": "object",
+                    "properties": {
+                        "first": {"type": "string"}
+                    }
+                }
+            }
+        }`)
+		res := GenerateContentObject(schema, nil, nil)
+		assert.Nil(t, res)
+	})
 }
 
 func TestGenerateContentArray(t *testing.T) {
@@ -1064,6 +1098,16 @@ func TestGenerateContentArray(t *testing.T) {
 
 		res := GenerateContentArray(schema, valueResolver, nil)
 		assert.ElementsMatch(t, []string{"a", "b", "c", "d"}, res)
+	})
+
+	t.Run("with-no-resolved-values", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `{
+            "type": "array",
+			"minItems": 3,
+            "items": {"type": "string"}
+        }`)
+		res := GenerateContentArray(schema, nil, nil)
+		assert.Nil(t, res)
 	})
 }
 
@@ -1404,5 +1448,35 @@ func TestMergeSubSchemas(t *testing.T) {
 		}
 
 		assert.ElementsMatch(t, expectedProperties, resProps)
+	})
+
+	t.Run("with-allof-nil-schema", func(t *testing.T) {
+		schema := &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{
+					Value: nil,
+				},
+			},
+		}
+		res := MergeSubSchemas(schema)
+		assert.Equal(t, "object", res.Type)
+	})
+
+	t.Run("with-anyof-nil-schema", func(t *testing.T) {
+		schema := &openapi3.Schema{
+			AnyOf: openapi3.SchemaRefs{
+				{
+					Value: nil,
+				},
+			},
+		}
+		res := MergeSubSchemas(schema)
+		assert.Equal(t, "object", res.Type)
+	})
+
+	t.Run("empty-type-defaults-in-object", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `{"type": ""}`)
+		res := MergeSubSchemas(schema)
+		assert.Equal(t, "object", res.Type)
 	})
 }
