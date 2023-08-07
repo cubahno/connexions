@@ -1,10 +1,13 @@
 package api
 
 import (
+	"fmt"
 	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -19,7 +22,12 @@ type ResourceGeneratePayload struct {
 }
 
 // LoadOpenAPI loads an OpenAPI specification from a file and adds the routes to the router.
-func LoadOpenAPI(serviceName, filePath string, router *echo.Router) error {
+func LoadOpenAPI(filePath string, router *echo.Router) error {
+	fileName := path.Base(filePath)
+	ext := filepath.Ext(fileName)
+	serviceName := fileName[:len(fileName)-len(ext)]
+
+	fmt.Printf("Loading OpenAPI service %s from %s\n", serviceName, filePath)
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(filePath)
 	if err != nil {
@@ -111,4 +119,9 @@ func createResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueRe
 func openAPIResponseHandler(c echo.Context, operation *openapi3.Operation, valueMaker xs.ValueResolver) error {
 	response := xs.NewResponse(operation, valueMaker)
 	return c.JSON(response.StatusCode, response.Content)
+}
+
+func LoadOverwriteService(filePath string, router *echo.Router) error {
+	fmt.Printf("Loading overwrite service from %s\n", filePath)
+	return nil
 }

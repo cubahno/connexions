@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/cubahno/xs"
 	"github.com/cubahno/xs/api"
 	"github.com/labstack/echo/v4"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -30,10 +28,10 @@ func readSpec() {
 	e.Logger.Fatal(e.Start(":2200"))
 }
 
-func loadServices(path string, router *echo.Router) error {
+func loadServices(serviceDirPath string, router *echo.Router) error {
 	wg := &sync.WaitGroup{}
 
-	err := filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(serviceDirPath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -43,24 +41,23 @@ func loadServices(path string, router *echo.Router) error {
 			return nil
 		}
 
-		inRootPath := path+"/"+info.Name() == filePath
-		if inRootPath {
-			wg.Add(1)
+		inRootPath := serviceDirPath+"/"+info.Name() == filePath
 
-			go func() {
-				defer wg.Done()
-				t1 := time.Now()
-				fileName := info.Name()
-				serviceName := fileName[:len(fileName)-len(filepath.Ext(fileName))]
+		wg.Add(1)
 
-				err := api.LoadOpenAPI(serviceName, filePath, router)
-				if err != nil {
-					println(err.Error())
-				}
-				t2 := time.Now()
-				fmt.Printf("added OpenAPI service %s from %s in %s\n", serviceName, filePath, t2.Sub(t1).String())
-			}()
-		}
+		go func() {
+			defer wg.Done()
+
+			var err error
+			if inRootPath {
+				err = api.LoadOpenAPI(filePath, router)
+			} else {
+				err = api.LoadOverwriteService(filePath, router)
+			}
+			if err != nil {
+				println(err.Error())
+			}
+		}()
 
 		return nil
 	})
