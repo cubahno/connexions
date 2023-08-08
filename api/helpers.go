@@ -62,9 +62,13 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	serviceName := parts[0]
 	method := ""
 	resource := ""
+	isPossibleOpenAPI := false
 
 	if serviceName == fileName {
 		serviceName = strings.TrimSuffix(fileName, ext)
+		if ext == ".yaml" || ext == ".yml" || ext == ".json" {
+			isPossibleOpenAPI = true
+		}
 	} else if len(parts) > 1 {
 		method = strings.ToUpper(parts[1])
 		if !IsValidHTTPVerb(method) {
@@ -74,11 +78,12 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	}
 
 	return &FileProperties{
-		ServiceName: serviceName,
-		Method:      method,
-		Resource:    resource,
-		FilePath:    filePath,
-		FileName:    fileName,
-		Extension:   strings.ToLower(ext),
+		ServiceName:       serviceName,
+		IsPossibleOpenAPI: isPossibleOpenAPI,
+		Method:            method,
+		Resource:          resource,
+		FilePath:          filePath,
+		FileName:          fileName,
+		Extension:         strings.ToLower(ext),
 	}
 }

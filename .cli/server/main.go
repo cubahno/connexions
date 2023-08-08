@@ -34,6 +34,9 @@ func readSpec() {
 func loadServices(serviceDirPath string, router *chi.Mux) error {
 	wg := &sync.WaitGroup{}
 
+	possibleOpenAPIFiles := make([]*api.FileProperties, 0)
+	overwriteFiles := make([]*api.FileProperties, 0)
+
 	err := filepath.Walk(serviceDirPath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -44,27 +47,53 @@ func loadServices(serviceDirPath string, router *chi.Mux) error {
 			return nil
 		}
 
-		inRootPath := serviceDirPath+"/"+info.Name() == filePath
-
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			var err error
-			if inRootPath {
-				err = api.RegisterOpenAPIService(filePath, router)
-			} else {
-				err = api.RegisterOverwriteService(filePath, router)
-			}
-			if err != nil {
-				println(err.Error())
-			}
-		}()
+		fileProps := api.GetPropertiesFromFilePath(filePath)
+		if fileProps.IsPossibleOpenAPI {
+			possibleOpenAPIFiles = append(possibleOpenAPIFiles, fileProps)
+		} else {
+			overwriteFiles = append(overwriteFiles, fileProps)
+		}
 
 		return nil
 	})
+
+	// these are more specific and should be registered first
+	println("Registering overwrite services...")
+	for _, fileProps := range overwriteFiles {
+		wg.Add(1)
+
+		go func(props *api.FileProperties) {
+			defer wg.Done()
+			err := api.RegisterOverwriteService(props, router)
+			if err != nil {
+				println(err.Error())
+			}
+		}(fileProps)
+	}
+
 	wg.Wait()
+
+
+	println("Registering OpenAPI services...")
+	for _, fileProps := range possibleOpenAPIFiles {
+		wg.Add(1)
+
+		go func(props *api.FileProperties) {
+			defer wg.Done()
+			err := api.RegisterOpenAPIService(props, router)
+			if err != nil {
+				println(err.Error())
+				// try to register as overwrite service
+				err := api.RegisterOverwriteService(props, router)
+				if err != nil {
+					println(err.Error())
+				}
+			}
+		}(fileProps)
+	}
+
+	wg.Wait()
+
 
 	return err
 }

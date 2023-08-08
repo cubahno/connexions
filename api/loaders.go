@@ -17,21 +17,20 @@ type ResourceGeneratePayload struct {
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
 type FileProperties struct {
-	ServiceName string
-	Method      string
-	Resource    string
-	FilePath    string
-	FileName    string
-	Extension   string
+	ServiceName       string
+	IsPossibleOpenAPI bool
+	Method            string
+	Resource          string
+	FilePath          string
+	FileName          string
+	Extension         string
 }
 
 // RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
-func RegisterOpenAPIService(filePath string, router *chi.Mux) error {
-	fileProps := GetPropertiesFromFilePath(filePath)
-
-	fmt.Printf("Loading OpenAPI service %s\n", fileProps.ServiceName)
+func RegisterOpenAPIService(fileProps *FileProperties, router *chi.Mux) error {
+	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromFile(filePath)
+	doc, err := loader.LoadFromFile(fileProps.FilePath)
 	if err != nil {
 		return err
 	}
@@ -122,13 +121,21 @@ func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.
 	}
 }
 
-func RegisterOverwriteService(filePath string, router *chi.Mux) error {
-	fileProps := GetPropertiesFromFilePath(filePath)
-
+func RegisterOverwriteService(fileProps *FileProperties, router *chi.Mux) error {
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
-	router.Method(fileProps.Method, fileProps.Resource, createOverwriteResponseHandler(fileProps))
+	resources := []string{fileProps.Resource}
+
+	if fileProps.FileName == "index"+fileProps.Extension && fileProps.Extension == ".html" || fileProps.Extension == ".json" {
+		indexName := strings.Replace(fileProps.Resource, "/index"+fileProps.Extension, "", 1)
+		resources = append(resources, indexName)
+		resources = append(resources, indexName+"/")
+	}
+
+	for _, resource := range resources {
+		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps))
+	}
 
 	return nil
 }
