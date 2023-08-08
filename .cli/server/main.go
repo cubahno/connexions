@@ -3,11 +3,13 @@ package main
 import (
 	"github.com/cubahno/xs"
 	"github.com/cubahno/xs/api"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -15,20 +17,21 @@ func main() {
 }
 
 func readSpec() {
-	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
 
-	r := e.Router()
 	err := loadServices(xs.ServicePath, r)
 	if err != nil {
 		panic(err)
 	}
 
-	e.Logger.Fatal(e.Start(":2200"))
+	http.ListenAndServe(":2200", r)
 }
 
-func loadServices(serviceDirPath string, router *echo.Router) error {
+func loadServices(serviceDirPath string, router *chi.Mux) error {
 	wg := &sync.WaitGroup{}
 
 	err := filepath.Walk(serviceDirPath, func(filePath string, info os.FileInfo, err error) error {
@@ -50,9 +53,9 @@ func loadServices(serviceDirPath string, router *echo.Router) error {
 
 			var err error
 			if inRootPath {
-				err = api.LoadOpenAPI(filePath, router)
+				err = api.RegisterOpenAPIService(filePath, router)
 			} else {
-				err = api.LoadOverwriteService(filePath, router)
+				err = api.RegisterOverwriteService(filePath, router)
 			}
 			if err != nil {
 				println(err.Error())

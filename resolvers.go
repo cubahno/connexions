@@ -17,7 +17,7 @@ type ResolveState struct {
 	ContentType              string
 	stopCircularArrayTripOn  int
 	stopCircularObjectTripOn string
-	mu 					 sync.Mutex
+	mu                       sync.Mutex
 }
 
 func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {

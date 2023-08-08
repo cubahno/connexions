@@ -2,7 +2,12 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/labstack/echo/v4"
+	"fmt"
+	"github.com/cubahno/xs"
+	"net/http"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 type ErrorMessage struct {
@@ -14,9 +19,9 @@ type ErrorResponse struct {
 	Details []*ErrorMessage `json:"details"`
 }
 
-func GetPayload[T any](c echo.Context) (*T, error) {
+func GetPayload[T any](req *http.Request) (*T, error) {
 	var payload T
-	err := json.NewDecoder(c.Request().Body).Decode(&payload)
+	err := json.NewDecoder(req.Body).Decode(&payload)
 	if err != nil {
 		return nil, err
 	}
@@ -26,5 +31,54 @@ func GetPayload[T any](c echo.Context) (*T, error) {
 func GetErrorResponse(err error) *ErrorMessage {
 	return &ErrorMessage{
 		Message: err.Error(),
+	}
+}
+
+func IsValidHTTPVerb(verb string) bool {
+	validVerbs := map[string]bool{
+		http.MethodGet:     true,
+		http.MethodHead:    true,
+		http.MethodPost:    true,
+		http.MethodPut:     true,
+		http.MethodPatch:   true,
+		http.MethodDelete:  true,
+		http.MethodConnect: true,
+		http.MethodOptions: true,
+		http.MethodTrace:   true,
+	}
+
+	// Convert the input verb to uppercase for case-insensitive comparison
+	verb = strings.ToUpper(verb)
+
+	return validVerbs[verb]
+}
+
+func GetPropertiesFromFilePath(filePath string) *FileProperties {
+	fileName := path.Base(filePath)
+	ext := filepath.Ext(fileName)
+
+	s := strings.TrimPrefix(strings.Replace(filePath, xs.ServicePath, "", 1), "/")
+	parts := strings.Split(s, "/")
+	serviceName := parts[0]
+	method := ""
+	resource := ""
+
+	if serviceName == fileName {
+		serviceName = strings.TrimSuffix(fileName, ext)
+	} else if len(parts) > 1 {
+		method = strings.ToUpper(parts[1])
+		if !IsValidHTTPVerb(method) {
+			method = "GET"
+		}
+		resource = fmt.Sprintf("/%s/%s", serviceName, strings.Join(parts[2:], "/"))
+	}
+
+	return &FileProperties{
+		ServiceName: serviceName,
+		Method:      method,
+		Resource:    resource,
+		FilePath:    filePath,
+		FileName:    fileName,
+		Extension:   strings.ToLower(ext),
 	}
 }

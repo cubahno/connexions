@@ -4,16 +4,10 @@ import (
 	"fmt"
 	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/go-chi/chi/v5"
 	"net/http"
-	"path"
-	"path/filepath"
-	"regexp"
 	"strings"
 )
-
-var routePlaceholders = regexp.MustCompile("/:([^/]+)")
-var openAPIPlaceholders = regexp.MustCompile("/{([^/]+)}")
 
 type ResourceGeneratePayload struct {
 	Resource     string         `json:"resource"`
@@ -21,13 +15,21 @@ type ResourceGeneratePayload struct {
 	Replacements map[string]any `json:"replacements"`
 }
 
-// LoadOpenAPI loads an OpenAPI specification from a file and adds the routes to the router.
-func LoadOpenAPI(filePath string, router *echo.Router) error {
-	fileName := path.Base(filePath)
-	ext := filepath.Ext(fileName)
-	serviceName := fileName[:len(fileName)-len(ext)]
+// FileProperties contains inferred properties of a file that is being loaded from service directory.
+type FileProperties struct {
+	ServiceName string
+	Method      string
+	Resource    string
+	FilePath    string
+	FileName    string
+	Extension   string
+}
 
-	fmt.Printf("Loading OpenAPI service %s from %s\n", serviceName, filePath)
+// RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
+func RegisterOpenAPIService(filePath string, router *chi.Mux) error {
+	fileProps := GetPropertiesFromFilePath(filePath)
+
+	fmt.Printf("Loading OpenAPI service %s\n", fileProps.ServiceName)
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(filePath)
 	if err != nil {
@@ -35,60 +37,64 @@ func LoadOpenAPI(filePath string, router *echo.Router) error {
 	}
 
 	prefix := ""
-	if serviceName != "" {
-		prefix = "/" + serviceName
+	if fileProps.ServiceName != "" {
+		prefix = "/" + fileProps.ServiceName
 	}
 
 	valueMaker := xs.CreateValueResolver()
 
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
-			path := openAPIPlaceholders.ReplaceAllString(prefix+resName, "/:$1")
-
 			// register route
-			router.Add(method, path, createResponseHandler(prefix, doc, valueMaker))
+			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, router))
 		}
 	}
 
 	// register resource generator
-	router.Add(http.MethodPost, "/services"+prefix, createGenerateOpenAPIResourceHandler(prefix, doc, valueMaker))
+	router.Method(http.MethodPost, "/services"+prefix, createGenerateOpenAPIResourceHandler(prefix, doc, valueMaker))
 
 	return nil
 }
 
-func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		payload, err := GetPayload[ResourceGeneratePayload](c)
+func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		payload, err := GetPayload[ResourceGeneratePayload](r)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, GetErrorResponse(err))
+			NewJSONResponse(http.StatusBadRequest, GetErrorResponse(err), w)
+			return
 		}
 
 		pathItem := doc.Paths[payload.Resource]
 		if pathItem == nil {
-			return c.JSON(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound))
+			NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
+			return
 		}
 
 		operation := pathItem.GetOperation(strings.ToUpper(payload.Method))
 		if operation == nil {
-			return c.JSON(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound))
+			NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 		}
 
 		res := map[string]any{}
 		res["request"] = xs.NewRequest(prefix, payload.Resource, payload.Method, operation, valueMaker)
 		res["response"] = xs.NewResponse(operation, valueMaker)
 
-		return c.JSON(http.StatusOK, res)
+		NewJSONResponse(http.StatusOK, res, w)
 	}
 }
 
-// createResponseHandler creates a handler function for an OpenAPI route.
-func createResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		resourceName := strings.Replace(c.Path(), prefix, "", 1)
-		resourceName = routePlaceholders.ReplaceAllString(resourceName, "/{$1}")
+// createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
+func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver, router *chi.Mux) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := chi.RouteContext(r.Context())
+		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 		paths := doc.Paths[resourceName]
+		if paths == nil {
+			NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
+			return
+		}
 
-		currentMethod := c.Request().Method
+		currentMethod := r.Method
 		var operation *openapi3.Operation
 
 		if currentMethod == http.MethodGet {
@@ -108,20 +114,27 @@ func createResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueRe
 		} else if currentMethod == http.MethodTrace {
 			operation = paths.Trace
 		} else {
-			return c.NoContent(http.StatusMethodNotAllowed)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 
-		return openAPIResponseHandler(c, operation, valueMaker)
+		response := xs.NewResponse(operation, valueMaker)
+		NewJSONResponse(response.StatusCode, response.Content, w)
 	}
 }
 
-// openAPIResponseHandler generates the response for a route.
-func openAPIResponseHandler(c echo.Context, operation *openapi3.Operation, valueMaker xs.ValueResolver) error {
-	response := xs.NewResponse(operation, valueMaker)
-	return c.JSON(response.StatusCode, response.Content)
+func RegisterOverwriteService(filePath string, router *chi.Mux) error {
+	fileProps := GetPropertiesFromFilePath(filePath)
+
+	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
+		fileProps.Resource)
+
+	router.Method(fileProps.Method, fileProps.Resource, createOverwriteResponseHandler(fileProps))
+
+	return nil
 }
 
-func LoadOverwriteService(filePath string, router *echo.Router) error {
-	fmt.Printf("Loading overwrite service from %s\n", filePath)
-	return nil
+func createOverwriteResponseHandler(fileProps *FileProperties) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, fileProps.FilePath)
+	}
 }
