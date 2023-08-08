@@ -5,8 +5,10 @@ import (
 	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type ResourceGeneratePayload struct {
@@ -27,7 +29,7 @@ type FileProperties struct {
 }
 
 // RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
-func RegisterOpenAPIService(fileProps *FileProperties, router *chi.Mux) error {
+func RegisterOpenAPIService(fileProps *FileProperties, config *xs.Config, router *chi.Mux) error {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(fileProps.FilePath)
@@ -45,7 +47,7 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *chi.Mux) error {
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
 			// register route
-			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, router))
+			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, config))
 		}
 	}
 
@@ -83,7 +85,7 @@ func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueM
 }
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
-func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver, router *chi.Mux) http.HandlerFunc {
+func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver, config *xs.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := chi.RouteContext(r.Context())
 		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
@@ -114,14 +116,20 @@ func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.
 			operation = paths.Trace
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
 		}
 
 		response := xs.NewResponse(operation, valueMaker)
+
+		if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
+			return
+		}
+
 		NewJSONResponse(response.StatusCode, response.Content, w)
 	}
 }
 
-func RegisterOverwriteService(fileProps *FileProperties, router *chi.Mux) error {
+func RegisterOverwriteService(fileProps *FileProperties, config *xs.Config, router *chi.Mux) error {
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
@@ -134,14 +142,34 @@ func RegisterOverwriteService(fileProps *FileProperties, router *chi.Mux) error 
 	}
 
 	for _, resource := range resources {
-		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps))
+		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, config))
 	}
 
 	return nil
 }
 
-func createOverwriteResponseHandler(fileProps *FileProperties) http.HandlerFunc {
+func createOverwriteResponseHandler(fileProps *FileProperties, config *xs.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if handled := handleErrorAndLatency(fileProps.ServiceName, config, w); handled {
+			return
+		}
+
 		http.ServeFile(w, r, fileProps.FilePath)
 	}
+}
+
+func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWriter) bool {
+	svcConfig := config.GetServiceConfig(service)
+	if svcConfig.Latency > 0 {
+		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)
+		time.Sleep(svcConfig.Latency)
+	}
+
+	err := svcConfig.Errors.GetError()
+	if err != 0 {
+		NewResponse(err, []byte("Random config error"), w)
+		return true
+	}
+
+	return false
 }

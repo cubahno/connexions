@@ -29,11 +29,13 @@ func readSpec() {
 	}
 
 	http.ListenAndServe(":2200", r)
+	println("Server started on port 2200")
 }
 
 func loadServices(serviceDirPath string, router *chi.Mux) error {
 	wg := &sync.WaitGroup{}
 
+	config := xs.MustConfig()
 	possibleOpenAPIFiles := make([]*api.FileProperties, 0)
 	overwriteFiles := make([]*api.FileProperties, 0)
 
@@ -64,7 +66,7 @@ func loadServices(serviceDirPath string, router *chi.Mux) error {
 
 		go func(props *api.FileProperties) {
 			defer wg.Done()
-			err := api.RegisterOverwriteService(props, router)
+			err := api.RegisterOverwriteService(props, config, router)
 			if err != nil {
 				println(err.Error())
 			}
@@ -80,11 +82,12 @@ func loadServices(serviceDirPath string, router *chi.Mux) error {
 
 		go func(props *api.FileProperties) {
 			defer wg.Done()
-			err := api.RegisterOpenAPIService(props, router)
+
+			err := api.RegisterOpenAPIService(props, config, router)
 			if err != nil {
 				println(err.Error())
 				// try to register as overwrite service
-				err := api.RegisterOverwriteService(props, router)
+				err := api.RegisterOverwriteService(props, config, router)
 				if err != nil {
 					println(err.Error())
 				}
