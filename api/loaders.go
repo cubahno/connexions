@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/cubahno/xs"
-	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"os"
@@ -38,7 +37,7 @@ func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWri
 	return false
 }
 
-func LoadServices(router *chi.Mux) error {
+func LoadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	config, err := xs.NewConfigFromFile()
@@ -48,6 +47,7 @@ func LoadServices(router *chi.Mux) error {
 	}
 	possibleOpenAPIFiles := make([]*FileProperties, 0)
 	overwriteFiles := make([]*FileProperties, 0)
+	serviceRoutes := make(map[string][]*RouteDescription)
 
 	err = filepath.Walk(xs.ServicePath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -69,6 +69,8 @@ func LoadServices(router *chi.Mux) error {
 		return nil
 	})
 
+	services := map[string]*ServiceItem{}
+
 	// these are more specific and should be registered first
 	println("Registering overwrite services...")
 	for _, fileProps := range overwriteFiles {
@@ -76,9 +78,18 @@ func LoadServices(router *chi.Mux) error {
 
 		go func(props *FileProperties) {
 			defer wg.Done()
-			err := RegisterOverwriteService(props, config, router)
+			rs, err := RegisterOverwriteService(props, config, router)
 			if err != nil {
 				println(err.Error())
+			} else {
+				services[props.ServiceName] = &ServiceItem{
+					Name: props.ServiceName,
+					Type: "overwrite",
+				}
+				if _, ok := serviceRoutes[props.ServiceName]; !ok {
+					serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
+				}
+				serviceRoutes[props.ServiceName] = append(serviceRoutes[props.ServiceName], rs...)
 			}
 		}(fileProps)
 	}
@@ -92,19 +103,40 @@ func LoadServices(router *chi.Mux) error {
 		go func(props *FileProperties) {
 			defer wg.Done()
 
-			err := RegisterOpenAPIService(props, config, router)
+			rs, err := RegisterOpenAPIService(props, config, router)
 			if err != nil {
 				println(err.Error())
 				// try to register as overwrite service
-				err := RegisterOverwriteService(props, config, router)
+				rs, err = RegisterOverwriteService(props, config, router)
 				if err != nil {
 					println(err.Error())
+				} else {
+					services[props.ServiceName] = &ServiceItem{
+						Name: props.ServiceName,
+						Type: "overwrite",
+					}
+				}
+			} else {
+				services[props.ServiceName] = &ServiceItem{
+					Name:             props.ServiceName,
+					Type:             "openapi",
+					HasOpenAPISchema: true,
 				}
 			}
+			if _, ok := serviceRoutes[props.ServiceName]; !ok {
+				serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
+			}
+			serviceRoutes[props.ServiceName] = append(serviceRoutes[props.ServiceName], rs...)
 		}(fileProps)
 	}
 
 	wg.Wait()
+
+	for _, service := range services {
+		service.Routes = serviceRoutes[service.Name]
+	}
+
+	router.Services = services
 
 	return err
 }

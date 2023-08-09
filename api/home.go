@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func CreateHomeRoutes(router *chi.Mux) error {
+func CreateHomeRoutes(router *Router) error {
 	router.Get("/", homeHandler)
 
 	homeRedirect := http.RedirectHandler("/", http.StatusMovedPermanently).ServeHTTP

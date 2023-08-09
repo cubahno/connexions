@@ -42,23 +42,23 @@ const showServices = () => {
             const services = data['items'];
 
             let i = 0;
-            for (const [serviceName, props] of Object.entries(services)) {
+            for (const { name, type, hasOpenAPISchema } of services) {
                 const num = i + 1;
                 const row = document.createElement('tr');
-                row.id = `service-${serviceName}`;
+                row.id = `service-${name}`;
 
                 const cell1 = document.createElement('td');
                 cell1.textContent = `${num}`;
                 row.appendChild(cell1);
 
                 const svcNameCell = document.createElement('td');
-                svcNameCell.innerHTML = `<a href="#/services/${serviceName}">${serviceName}</a>`;
+                svcNameCell.innerHTML = `<a href="#/services/${name}">${name}</a>`;
                 row.appendChild(svcNameCell);
 
                 const swaggerCell = document.createElement('td');
                 let swaggerLink = '&nbsp;';
-                if (props["has_swagger_ui"]) {
-                    swaggerLink = `<a href="#/services/${serviceName}/ui"><img class="swagger-icon" src="/static/icons/swagger.svg"></a>`;
+                if (hasOpenAPISchema) {
+                    swaggerLink = `<a href="#/services/${name}/ui"><img class="swagger-icon" src="/ui/icons/swagger.svg"></a>`;
                 }
                 swaggerCell.innerHTML = swaggerLink;
 
@@ -102,42 +102,44 @@ const serviceHome = match => {
             applySelection(`service-${service}`, 'selected-service');
 
             const endpoints = data['endpoints'];
-            const isOpenApi = data['is_openapi'];
 
             contentTitleEl.innerHTML = `${service} resources`;
 
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
 
-            for (const path in endpoints) {
-                for (const method of endpoints[path]) {
-                    const num = i + 1;
-                    const row = document.createElement('tr');
-                    row.id = `resource-${num}`;
-
-                    const cell1 = document.createElement('td');
-                    cell1.textContent = `${num}`;
-                    cell1.className = 'fixed-resource-num';
-                    row.appendChild(cell1);
-
-                    const methodCell = document.createElement('td');
-                    methodCell.innerHTML = `${method.toUpperCase()}`;
-                    methodCell.className = `fixed-resource-method ${method}`;
-                    row.appendChild(methodCell);
-
-                    const pathCell = document.createElement('td');
-                    pathCell.innerHTML = `${path}`;
-                    pathCell.className = `fixed-resource-path`;
-                    row.appendChild(pathCell);
-
-                    pathCell.onclick = () => {
-                        applySelection(`resource-${num}`, 'selected-resource');
-                        loadResource(service, path, method, isOpenApi);
-                    }
-
-                    table.appendChild(row);
-                    i += 1;
+            for (const { method, path, type } of endpoints) {
+                const num = i + 1;
+                let icon = ``;
+                if (type === `overwrite`) {
+                    // icon = ` <span title="overwrites" style="text-decoration: none;">🔁</span>`;
                 }
+
+                const row = document.createElement('tr');
+                row.id = `resource-${num}`;
+
+                const cell1 = document.createElement('td');
+                cell1.textContent = `${num}`;
+                cell1.className = 'fixed-resource-num';
+                row.appendChild(cell1);
+
+                const methodCell = document.createElement('td');
+                methodCell.innerHTML = `${method.toUpperCase()} ${icon}`;
+                methodCell.className = `fixed-resource-method ${method}`;
+                row.appendChild(methodCell);
+
+                const pathCell = document.createElement('td');
+                pathCell.innerHTML = `${path}`;
+                pathCell.className = `fixed-resource-path`;
+                row.appendChild(pathCell);
+
+                pathCell.onclick = () => {
+                    applySelection(`resource-${num}`, 'selected-resource');
+                    loadResource(service, path, method, type === `openapi`);
+                }
+
+                table.appendChild(row);
+                i += 1;
             }
             fixedServiceContainer.style.display = 'block';
         });

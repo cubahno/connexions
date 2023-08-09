@@ -15,6 +15,10 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
+	router := &api.Router{
+		Mux: r,
+	}
+
 	bluePrints := []api.RouteRegister{
 		api.CreateHomeRoutes,
 		api.LoadServices,
@@ -23,7 +27,7 @@ func main() {
 	}
 
 	for _, bluePrint := range bluePrints {
-		err := bluePrint(r)
+		err := bluePrint(router)
 		if err != nil {
 			panic(err)
 		}

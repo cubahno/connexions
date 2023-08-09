@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/xs"
-	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"os"
@@ -12,7 +11,7 @@ import (
 type SettingsHandler struct {
 }
 
-func CreateSettingsRoutes(router *chi.Mux) error {
+func CreateSettingsRoutes(router *Router) error {
 	handler := &SettingsHandler{}
 
 	router.Get("/settings", handler.get)

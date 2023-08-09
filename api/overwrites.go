@@ -3,28 +3,38 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/xs"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strings"
 )
 
-func RegisterOverwriteService(fileProps *FileProperties, config *xs.Config, router *chi.Mux) error {
+func RegisterOverwriteService(fileProps *FileProperties, config *xs.Config, router *Router) ([]*RouteDescription, error) {
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
 	resources := []string{fileProps.Resource}
+	res := make([]*RouteDescription, 0)
 
+	var indexName string
 	if fileProps.FileName == "index"+fileProps.Extension && fileProps.Extension == ".html" || fileProps.Extension == ".json" {
-		indexName := strings.Replace(fileProps.Resource, "/index"+fileProps.Extension, "", 1)
+		indexName = strings.Replace(fileProps.Resource, "/index"+fileProps.Extension, "", 1)
 		resources = append(resources, indexName)
 		resources = append(resources, indexName+"/")
 	}
+
+	if indexName == "" {
+		indexName = fileProps.Resource
+	}
+	res = append(res, &RouteDescription{
+		Method: fileProps.Method,
+		Path:   indexName,
+		Type:   "overwrite",
+	})
 
 	for _, resource := range resources {
 		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, config))
 	}
 
-	return nil
+	return res, nil
 }
 
 func createOverwriteResponseHandler(fileProps *FileProperties, config *xs.Config) http.HandlerFunc {

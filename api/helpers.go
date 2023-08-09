@@ -11,7 +11,12 @@ import (
 	"strings"
 )
 
-type RouteRegister func(router *chi.Mux) error
+type RouteRegister func(router *Router) error
+
+type Router struct {
+	*chi.Mux
+	Services map[string]*ServiceItem
+}
 
 type ErrorMessage struct {
 	Message string `json:"message"`
