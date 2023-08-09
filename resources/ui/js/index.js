@@ -165,6 +165,7 @@ const loadResource = (service, path, method, isOpenApi) => {
             resource: path,
             method: method,
             replacements: replacements,
+            isOpenApi: isOpenApi,
         }),
     })
         .then(getResponseJson)

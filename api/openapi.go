@@ -13,15 +13,16 @@ type ResourceGeneratePayload struct {
 	Resource     string         `json:"resource"`
 	Method       string         `json:"method"`
 	Replacements map[string]any `json:"replacements"`
+	IsOpenAPI    bool           `json:"isOpenApi"`
 }
 
 // RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
-func RegisterOpenAPIService(fileProps *FileProperties, config *xs.Config, router *Router) ([]*RouteDescription, error) {
+func RegisterOpenAPIService(fileProps *FileProperties, config *xs.Config, router *Router) (*openapi3.T, []*RouteDescription, error) {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(fileProps.FilePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	res := make([]*RouteDescription, 0)
@@ -37,6 +38,7 @@ func RegisterOpenAPIService(fileProps *FileProperties, config *xs.Config, router
 		for method, _ := range pathItem.Operations() {
 			// register route
 			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, config))
+
 			res = append(res, &RouteDescription{
 				Method: method,
 				Path:   resName,
@@ -45,37 +47,7 @@ func RegisterOpenAPIService(fileProps *FileProperties, config *xs.Config, router
 		}
 	}
 
-	// register resource generator
-	router.Method(http.MethodPost, "/services"+prefix, createGenerateOpenAPIResourceHandler(prefix, doc, valueMaker))
-
-	return res, nil
-}
-
-func createGenerateOpenAPIResourceHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		payload, err := GetPayload[ResourceGeneratePayload](r)
-		if err != nil {
-			NewJSONResponse(http.StatusBadRequest, GetErrorResponse(err), w)
-			return
-		}
-
-		pathItem := doc.Paths[payload.Resource]
-		if pathItem == nil {
-			NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
-			return
-		}
-
-		operation := pathItem.GetOperation(strings.ToUpper(payload.Method))
-		if operation == nil {
-			NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
-		}
-
-		res := map[string]any{}
-		res["request"] = xs.NewRequest(prefix, payload.Resource, payload.Method, operation, valueMaker)
-		res["response"] = xs.NewResponse(operation, valueMaker)
-
-		NewJSONResponse(http.StatusOK, res, w)
-	}
+	return doc, res, nil
 }
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
@@ -113,7 +85,7 @@ func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.
 			return
 		}
 
-		response := xs.NewResponse(operation, valueMaker)
+		response := xs.NewResponseFromOperation(operation, valueMaker)
 
 		if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
 			return

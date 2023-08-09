@@ -25,7 +25,10 @@ func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWri
 	svcConfig := config.GetServiceConfig(service)
 	if svcConfig.Latency > 0 {
 		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)
-		time.Sleep(svcConfig.Latency)
+
+		select {
+		case <-time.After(svcConfig.Latency):
+		}
 	}
 
 	err := svcConfig.Errors.GetError()
@@ -103,7 +106,7 @@ func LoadServices(router *Router) error {
 		go func(props *FileProperties) {
 			defer wg.Done()
 
-			rs, err := RegisterOpenAPIService(props, config, router)
+			spec, rs, err := RegisterOpenAPIService(props, config, router)
 			if err != nil {
 				println(err.Error())
 				// try to register as overwrite service
@@ -121,6 +124,7 @@ func LoadServices(router *Router) error {
 					Name:             props.ServiceName,
 					Type:             "openapi",
 					HasOpenAPISchema: true,
+					Spec:             spec,
 				}
 			}
 			if _, ok := serviceRoutes[props.ServiceName]; !ok {

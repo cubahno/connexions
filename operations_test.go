@@ -108,7 +108,7 @@ func TestNewRequest(t *testing.T) {
   }
 }
 		`)
-		req := NewRequest("/foo", "/users/{userId}", "POST", operation, valueResolver)
+		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
 
 		expectedBody := map[string]any{
 			"username": "john_doe",
@@ -217,7 +217,7 @@ func TestNewResponse(t *testing.T) {
   }
 }
 		`)
-		res := NewResponse(operation, valueResolver)
+		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := map[string]any{
 			"location":     "https://example.com/users/123",
@@ -281,7 +281,7 @@ func TestNewResponse(t *testing.T) {
   }
 }
 		`)
-		res := NewResponse(operation, valueResolver)
+		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := map[string]any{
 			"location": "https://example.com/users/123",

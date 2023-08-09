@@ -25,7 +25,7 @@ type Response struct {
 	StatusCode  int         `json:"statusCode,omitempty"`
 }
 
-func NewRequest(pathPrefix, path, method string, operation *openapi3.Operation, valueResolver ValueResolver) *Request {
+func NewRequestFromOperation(pathPrefix, path, method string, operation *openapi3.Operation, valueResolver ValueResolver) *Request {
 	body, contentType := GenerateRequestBody(operation.RequestBody, valueResolver, nil)
 
 	return &Request{
@@ -38,7 +38,7 @@ func NewRequest(pathPrefix, path, method string, operation *openapi3.Operation, 
 	}
 }
 
-func NewResponse(operation *openapi3.Operation, valueResolver ValueResolver) *Response {
+func NewResponseFromOperation(operation *openapi3.Operation, valueResolver ValueResolver) *Response {
 	response, statusCode := ExtractResponse(operation)
 
 	headers := GenerateResponseHeaders(response.Headers, valueResolver)
