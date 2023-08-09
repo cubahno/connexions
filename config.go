@@ -5,6 +5,7 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/rawbytes"
 	"log"
 	"math/rand"
 	"strconv"
@@ -78,19 +79,43 @@ func (s *ServiceError) GetError() int {
 	return 0
 }
 
-func MustConfig() *Config {
+func NewConfigFromFile() (*Config, error) {
 	k := koanf.New(".")
 	filePath := fmt.Sprintf("%s/config.yml", ResourcePath)
-	f := file.Provider(filePath)
-	if err := k.Load(f, yaml.Parser()); err != nil {
-		panic(err)
+	provider := file.Provider(filePath)
+	if err := k.Load(provider, yaml.Parser()); err != nil {
+		return nil, err
 	}
 
 	cfg := &Config{}
 	if err := k.Unmarshal("", cfg); err != nil {
-		panic(err)
+		return nil, err
 	}
 
+	createConfigWatcher(provider, cfg)
+	return cfg, nil
+}
+
+func NewConfigFromContent(content []byte) (*Config, error) {
+	k := koanf.New(".")
+	provider := rawbytes.Provider(content)
+	if err := k.Load(provider, yaml.Parser()); err != nil {
+		return nil, err
+	}
+
+	cfg := &Config{}
+	if err := k.Unmarshal("", cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func NewDefaultConfig() *Config {
+	return &Config{}
+}
+
+func createConfigWatcher(f *file.File, cfg *Config) {
 	f.Watch(func(event interface{}, err error) {
 		if err != nil {
 			log.Printf("watch error: %v", err)
@@ -99,7 +124,7 @@ func MustConfig() *Config {
 
 		// Throw away the old config and load a fresh copy.
 		log.Println("config changed. Reloading ...")
-		k = koanf.New(".")
+		k := koanf.New(".")
 		if err := k.Load(f, yaml.Parser()); err != nil {
 			log.Printf("error loading config: %v\n", err)
 			return
@@ -112,10 +137,9 @@ func MustConfig() *Config {
 		k.Print()
 
 		fmt.Println("Configuration reloaded")
+		// TODO(igor): replace Sleep
 		time.Sleep(1 * time.Second)
 	})
-
-	return cfg
 }
 
 func ParseWeight(weightStr string) (int, error) {

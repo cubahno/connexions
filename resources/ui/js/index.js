@@ -276,8 +276,7 @@ const settingsEdit = () => {
     fetch(`${url}/settings`)
         .then(getResponseText)
         .then(res => {
-            const yamlContent = res.slice(1, -1).replace(/\\n/g, '\n');
-            editor.setValue(yamlContent);
+            editor.setValue(res);
             editor.clearSelection();
         })
 

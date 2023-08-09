@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cubahno/xs"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
 )
+
+type RouteRegister func(router *chi.Mux) error
 
 type ErrorMessage struct {
 	Message string `json:"message"`
