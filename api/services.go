@@ -1,11 +1,15 @@
 package api
 
 import (
+	"bufio"
+	"bytes"
 	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -82,35 +86,113 @@ func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
 	method := r.FormValue("method")
 	isOpenAPI := r.FormValue("isOpenApi") == "true"
 	path := r.FormValue("path")
-	response := r.FormValue("response")
+	content := []byte(r.FormValue("response"))
 
 	// Get the uploaded file
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "Error retrieving the file", http.StatusInternalServerError)
+	file, handler, _ := r.FormFile("file")
+	if file != nil {
+		defer file.Close()
+	}
+
+	if !xs.IsValidHTTPVerb(method) {
+		http.Error(w, "Invalid HTTP verb", http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
+	method = strings.ToUpper(method)
 
-	println(handler.Filename, response, service, method, isOpenAPI, path)
+	path = "/" + strings.Trim(path, "/")
+	if !xs.IsValidURLResource(path) {
+		http.Error(w, "Invalid URL resource", http.StatusBadRequest)
+		return
+	}
 
-	// // Create a destination file on the server
-	// destinationPath := filepath.Join("uploads", handler.Filename)
-	// dst, err := os.Create(destinationPath)
-	// if err != nil {
-	// 	http.Error(w, "Error creating the file on the server", http.StatusInternalServerError)
-	// 	return
-	// }
-	// defer dst.Close()
-	//
-	// // Copy the uploaded file to the destination file
-	// _, err = io.Copy(dst, file)
-	// if err != nil {
-	// 	http.Error(w, "Error copying the file", http.StatusInternalServerError)
-	// 	return
-	// }
+	// get uploaded file
+	ext := ""
+	if handler != nil {
+		file, err = handler.Open()
+		if err != nil {
+			http.Error(w, "Error retrieving the file", http.StatusInternalServerError)
+			return
+		}
+		defer file.Close()
+		reader := bufio.NewReader(file)
+		buff := bytes.NewBuffer(make([]byte, 0))
+		part := make([]byte, 1024)
+		count := 0
 
-	NewJSONResponse(http.StatusCreated, nil, w)
+		for {
+			if count, err = reader.Read(part); err != nil {
+				break
+			}
+			buff.Write(part[:count])
+		}
+		if err != io.EOF {
+			http.Error(w, "Error reading the file", http.StatusInternalServerError)
+		} else {
+			err = nil
+		}
+		content = buff.Bytes()
+		ext = filepath.Ext(handler.Filename)
+	}
+
+	filePath := xs.ServicePath
+	if service != "" {
+		filePath += "/" + service
+	}
+
+	var doc *openapi3.T
+	if isOpenAPI {
+		if len(content) == 0 {
+			http.Error(w, "OpenAPI spec is empty", http.StatusBadRequest)
+			return
+		}
+		loader := openapi3.NewLoader()
+		doc, err = loader.LoadFromData(content)
+		if err != nil {
+			http.Error(w, "Invalid OpenAPI spec: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		filePath += ext
+	} else {
+		filePath += "/" + strings.ToLower(method)
+		if path != "" {
+			filePath += path
+		}
+
+		pathExt := filepath.Ext(path)
+		if pathExt == "" {
+			pathExt = ext
+		}
+		if pathExt == "" {
+			filePath += "/index.json"
+		}
+	}
+
+	dirPath := filepath.Dir(filePath)
+	// Create directories recursively
+	err = os.MkdirAll(dirPath, os.ModePerm)
+	if err != nil {
+		http.Error(w, "Error creating directories", http.StatusInternalServerError)
+		return
+	}
+
+	dest, err := os.Create(filePath)
+	if err != nil {
+		http.Error(w, "Error creating file", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = dest.Write(content)
+	if err != nil {
+		http.Error(w, "Error writing file", http.StatusInternalServerError)
+		return
+	}
+
+	fileProps := xs.GetPropertiesFromFilePath(filePath)
+	println(doc)
+	println(fileProps.ContentType)
+	NewJSONResponse(http.StatusCreated, map[string]any{"success": true, "message": "Service saved!"}, w)
 }
 
 func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {

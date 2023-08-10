@@ -114,7 +114,7 @@ func LoadServices(router *Router) error {
 					Type:             "openapi",
 					HasOpenAPISchema: true,
 					Spec:             spec,
-					SpecFile: 		  props,
+					SpecFile:         props,
 				}
 			}
 			if _, ok := serviceRoutes[props.ServiceName]; !ok {

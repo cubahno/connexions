@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-var PlaceholderRegex = regexp.MustCompile( `\{[^\}]+\}`)
+var PlaceholderRegex = regexp.MustCompile(`\{[^\}]*\}`)
 
 func IsValidHTTPVerb(verb string) bool {
 	validVerbs := map[string]bool{
@@ -37,6 +37,9 @@ func IsValidURLResource(urlPattern string) bool {
 	for _, match := range matches {
 		// Extract content within curly brackets
 		content := match[1 : len(match)-1]
+		if content == "" {
+			return false
+		}
 
 		// Regular expression to match invalid characters within curly brackets
 		invalidContentPattern := `[^a-zA-Z0-9_\-/]`
