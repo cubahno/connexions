@@ -16,6 +16,7 @@ func CreateServiceRoutes(router *Router) error {
 	}
 
 	router.Get("/services", handler.list)
+	router.Post("/services", handler.create)
 	router.Get("/services/{name}", handler.home)
 	router.Get("/services/{name}/spec", handler.spec)
 	router.Post("/services/{name}", handler.generate)
@@ -68,6 +69,48 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 
 	NewJSONResponse(http.StatusOK, res, w)
+}
+
+func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(256 * 1024 * 1024) // Limit form size to 256 MB
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	service := r.FormValue("name")
+	method := r.FormValue("method")
+	isOpenAPI := r.FormValue("isOpenApi") == "true"
+	path := r.FormValue("path")
+	response := r.FormValue("response")
+
+	// Get the uploaded file
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Error retrieving the file", http.StatusInternalServerError)
+		return
+	}
+	defer file.Close()
+
+	println(handler.Filename, response, service, method, isOpenAPI, path)
+
+	// // Create a destination file on the server
+	// destinationPath := filepath.Join("uploads", handler.Filename)
+	// dst, err := os.Create(destinationPath)
+	// if err != nil {
+	// 	http.Error(w, "Error creating the file on the server", http.StatusInternalServerError)
+	// 	return
+	// }
+	// defer dst.Close()
+	//
+	// // Copy the uploaded file to the destination file
+	// _, err = io.Copy(dst, file)
+	// if err != nil {
+	// 	http.Error(w, "Error copying the file", http.StatusInternalServerError)
+	// 	return
+	// }
+
+	NewJSONResponse(http.StatusCreated, nil, w)
 }
 
 func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {

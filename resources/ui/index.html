@@ -116,18 +116,21 @@
 
         <form id="services-upload" action="/services/upload" method="POST" enctype="multipart/form-data" style="display: none;">
             <div class="services-upload-container">
-                <label for="fileupload" class="upload-button">
-                    Select File
-                </label>
-                <input id="fileupload" type="file" name="file" class=""/>
-                <div id="selected-filename" style="display: inline;"></div>
-                <br/><br/>
-
                 Service Name: <input type="text" name="name" id="endpoint-service-name" value="" style="width: 160px;"><br/>
                 <small>
                     This will be used as prefix with the endpoint paths and displayed in the left menu.
                     If omitted - the name from the file will be used.
                 </small><br/><br/>
+
+                <label for="fileupload" class="upload-button">
+                    Select File
+                </label>
+                <input id="fileupload" type="file" name="file" class=""/>
+                <div id="selected-filename" style="display: inline;"></div>
+                <div style="display: inline;">Or <a href="/#/services/upload" id="show-new-response-area">click to paste</a> response contents</div>
+                <div style="display: none;width: 500px; height: 300px;margin-top: 20px;" id="selected-text-response">
+                </div>
+                <br/><br/>
 
                 This is an OpenAPI / Swagger configuration:
                 <b>Yes</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-yes" name="is_openapi" value="1" checked>
@@ -141,11 +144,11 @@
                         <option value="PATCH">PATCH</option>
                         <option value="DELETE">DELETE</option>
                     </select><br/>
-                    Path: <input type="text" name="path" id="endpoint-path" value="" placeholder="/users/1/files/2"><br/>
-                    <small>You need to set concrete values for the path parameters, no placeholders available at this time.</small><br/><br/>
+                    Path: <input type="text" name="path" id="endpoint-path" value="" placeholder="/users/{userId}/files/{fileId}"><br/>
+
                 </div>
 
-                <button id="upload-button" onclick="uploadServiceFile(); return false;" class="button blue-bg"> Upload </button>
+                <button id="upload-button" onclick="uploadServiceFile(); return false;" class="button blue-bg"> Save </button>
                 <br/><br/>
                 Service can be of 2 types:<br/><br/>
                 1. <b>A valid OpenAPI / Swagger</b> configuration file.<br/>
@@ -157,17 +160,26 @@
                 2. <b>Everything else</b>.<br/>
                 In this case the urls must be provided upfront together with the corresponding response file.<br/>
                 The response file can be any file, usually with the <b>json</b> extension.<br/>
-                The contents of this file will be returned as the response.<br/><br/>
+                The contents of this file will be returned as the response.<br/>
+                If the path collates with the existing one - it will <b>overwrite</b> it.<br/>
+                The urls of these type have higher priority than the ones from the OpenAPI / Swagger configuration.<br/>
+                <br/>
 
-                For example:<br/>
-                <b>URL:</b> /api/v1/users/1<br/>
-                <b>Response file:</b> will be saved under /api/v1/users/1/index.json<br/>
+                <b>For example:</b><br/><br/>
+                <b>URL:</b> /api/v1/users/{userId}<br/>
+                <b>Method:</b> POST<br/>
+
+                <b>Response file:</b> will be saved under /api/post/v1/users/{userId}/index.json<br/>
                 Trailing slash works as well:<br/>
                 So, <i>/api/v1/users/1/</i> will return the same file.<br/><br/>
 
                 <b>URL:</b> /api/v1/users/1/details.html<br/>
-                <b>Response file:</b> will be saved under /api/v1/users/1/details.html<br/>
+                <b>Method:</b> GET<br/>
+                <b>Response file:</b> will be saved under /api/get/v1/users/1/details.html<br/>
                 No trailing slash will be added as alias.<br/>
+
+                <br/>
+                In both examples, the URLs will be shown under <b>api</b> service in the menu on the left.<br/>
             </div>
         </form>
 

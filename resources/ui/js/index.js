@@ -11,6 +11,7 @@ const fileUploadBtn = document.getElementById('fileupload');
 const settingsEditor = document.getElementById('settings-editor');
 const fixedServiceContainer = document.getElementById('fixed-service-container');
 const resourceRefreshBtn = document.getElementById('refresh');
+const responseEditContainer =  document.getElementById(`selected-text-response`);
 
 const resetContents = () => {
     console.log(`reset contents`);
@@ -220,11 +221,14 @@ async function uploadServiceFile() {
     if (!isOpenApi) {
         path = document.getElementById('endpoint-path').value.trim();
     }
+    const response = getCodeEditor(`selected-text-response`, `json`).getValue();
+    console.log(`response: ${response}`);
 
     formData.append("file", fileUploadBtn.files[0]);
+    formData.append("response", response);
     formData.append("name", name);
     formData.append("method", method);
-    formData.append("is_openapi", isOpenApi.toString());
+    formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
 
     messageCont.textContent = '';
@@ -314,6 +318,17 @@ const settingsRestore = () => {
         showServices();
         settingsEdit();
     });
+}
+
+const responseEdit = () => {
+    console.log(`response edit`);
+    applySelection(`n/a`, 'selected-service');
+
+    const editor = getCodeEditor(`selected-text-response`, `json`);
+    editor.setValue(``);
+    editor.clearSelection();
+
+    responseEditContainer.style.display = 'block';
 }
 
 const getCodeEditor = (htmlID, mode) => {
@@ -472,6 +487,13 @@ const onLoad = () => {
 
     document.getElementById('settings-save-button').addEventListener('click', settingsSave);
     document.getElementById('settings-default-save-button').addEventListener('click', settingsRestore);
+    document.getElementById('show-new-response-area').addEventListener('click', () => {
+        if (responseEditContainer.style.display === 'block') {
+            responseEditContainer.style.display = 'none';
+            return;
+        }
+        responseEdit();
+    });
 
     document.getElementById("endpoint-is-openapi-yes").addEventListener("change", () => document.getElementById('non-openapi-upload').style.display = 'none');
     document.getElementById("endpoint-is-openapi-no").addEventListener("change", () => document.getElementById('non-openapi-upload').style.display = 'block');
