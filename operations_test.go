@@ -479,7 +479,7 @@ func TestGenerateURL(t *testing.T) {
 				},
 			},
 		}
-		res := GenerateURL(path, valueResolver, params)
+		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
 		assert.Equal(t, "/users/123/foo", res)
 	})
 }
@@ -681,7 +681,7 @@ func TestGenerateContent(t *testing.T) {
                 }
             }
         }`)
-		res := GenerateContent(schema, valueResolver, nil)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
 			"user": map[string]any{"id": 21, "score": 11.5},
@@ -759,7 +759,7 @@ func TestGenerateContent(t *testing.T) {
         }`)
 		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
 
-		res := GenerateContent(schema, valueResolver, nil)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
 		assert.Equal(t, expected, res)
 	})
 
@@ -794,7 +794,7 @@ func TestGenerateContent(t *testing.T) {
                 }
             }
         }`)
-		res := GenerateContent(schema, valueResolver, nil)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{"dice": dice}
 		assert.Equal(t, expected, res)
@@ -874,7 +874,7 @@ func TestGenerateContent(t *testing.T) {
 }
 `)
 		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
-		res := GenerateContent(schema, valueResolver, nil)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
 			"id":   123,
@@ -964,7 +964,7 @@ func TestGenerateContent(t *testing.T) {
 }
 `)
 		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
-		res := GenerateContent(schema, valueResolver, nil)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
 			"id":   123,
@@ -990,7 +990,7 @@ func TestGenerateContent(t *testing.T) {
                 }
             }
         }`)
-		res := GenerateContent(schema, nil, nil)
+		res := GenerateContentFromSchema(schema, nil, nil)
 		assert.Nil(t, res)
 	})
 }

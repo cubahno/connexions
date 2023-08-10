@@ -1,10 +1,13 @@
 package xs
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -23,6 +26,7 @@ type Response struct {
 	Content     interface{} `json:"content,omitempty"`
 	ContentType string      `json:"contentType,omitempty"`
 	StatusCode  int         `json:"statusCode,omitempty"`
+	IsBase64    bool        `json:"isBase64,omitempty"`
 }
 
 func NewRequestFromOperation(pathPrefix, path, method string, operation *openapi3.Operation, valueResolver ValueResolver) *Request {
@@ -31,10 +35,18 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation *openapi
 	return &Request{
 		Headers:     GenerateRequestHeaders(operation.Parameters, valueResolver),
 		Method:      method,
-		Path:        pathPrefix + GenerateURL(path, valueResolver, operation.Parameters),
+		Path:        pathPrefix + GenerateURLFromSchemaParameters(path, valueResolver, operation.Parameters),
 		Query:       GenerateQuery(valueResolver, operation.Parameters),
 		Body:        body,
 		ContentType: contentType,
+	}
+}
+
+func NewRequestFromFileProperties(fileProps *FileProperties, valueResolver ContentResolver) *Request {
+	return &Request{
+		Method:      fileProps.Method,
+		Path:        GenerateURLFromFileProperties(fileProps.Resource, valueResolver),
+		ContentType: fileProps.ContentType,
 	}
 }
 
@@ -55,9 +67,20 @@ func NewResponseFromOperation(operation *openapi3.Operation, valueResolver Value
 
 	return &Response{
 		Headers:     headers,
-		Content:     GenerateContent(contentSchema, valueResolver, nil),
+		Content:     GenerateContentFromSchema(contentSchema, valueResolver, nil),
 		ContentType: contentType,
 		StatusCode:  statusCode,
+	}
+}
+
+func NewResponseFromFileProperties(fileProps *FileProperties, valueResolver ContentResolver) *Response {
+	content, isBase64 := GenerateContentFromFileProperties(fileProps, valueResolver)
+	return &Response{
+		Headers:     map[string]string{"content-type": fileProps.ContentType},
+		Content:     content,
+		ContentType: fileProps.ContentType,
+		IsBase64:    isBase64,
+		StatusCode:  http.StatusOK,
 	}
 }
 
@@ -119,7 +142,7 @@ func GetContentType(content openapi3.Content) (string, *openapi3.Schema) {
 	return "", nil
 }
 
-func GenerateURL(path string, valueMaker ValueResolver, params openapi3.Parameters) string {
+func GenerateURLFromSchemaParameters(path string, valueResolver ValueResolver, params openapi3.Parameters) string {
 	for _, paramRef := range params {
 		param := paramRef.Value
 		if param == nil || param.In != openapi3.ParameterInPath {
@@ -128,11 +151,25 @@ func GenerateURL(path string, valueMaker ValueResolver, params openapi3.Paramete
 
 		name := param.Name
 		state := &ResolveState{NamePath: []string{name}}
-		replaced := valueMaker(param.Schema.Value, state)
+		replaced := valueResolver(param.Schema.Value, state)
 		path = strings.Replace(path, "{"+name+"}", fmt.Sprintf("%v", replaced), -1)
 	}
 
 	return path
+}
+
+func GenerateURLFromFileProperties(path string, valueResolver ContentResolver) string {
+	parts := strings.Split(path, "/")
+	for i, part := range parts {
+		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
+			placeholder := part[1 : len(part)-1]
+			res := valueResolver("", (&ResolveState{}).WithName(placeholder).WithURLParam())
+			if res != nil {
+				parts[i] = fmt.Sprintf("%v", res)
+			}
+		}
+	}
+	return strings.Join(parts, "/")
 }
 
 func GenerateQuery(valueMaker ValueResolver, params openapi3.Parameters) string {
@@ -158,7 +195,7 @@ func GenerateQuery(valueMaker ValueResolver, params openapi3.Parameters) string 
 
 		name := param.Name
 		state := &ResolveState{NamePath: []string{name}}
-		replaced := GenerateContent(param.Schema.Value, valueMaker, state)
+		replaced := GenerateContentFromSchema(param.Schema.Value, valueMaker, state)
 		if replaced == nil {
 			replaced = ""
 		}
@@ -174,7 +211,7 @@ func GenerateQuery(valueMaker ValueResolver, params openapi3.Parameters) string 
 	return encode(queryValues)
 }
 
-func GenerateContent(schema *openapi3.Schema, valueResolver ValueResolver, state *ResolveState) any {
+func GenerateContentFromSchema(schema *openapi3.Schema, valueResolver ValueResolver, state *ResolveState) any {
 	if state == nil {
 		state = &ResolveState{}
 	}
@@ -219,7 +256,7 @@ func GenerateContentObject(schema *openapi3.Schema, valueMaker ValueResolver, st
 	}
 
 	for name, schemaRef := range schema.Properties {
-		item := GenerateContent(schemaRef.Value, valueMaker, state.NewFrom(state).WithName(name))
+		item := GenerateContentFromSchema(schemaRef.Value, valueMaker, state.NewFrom(state).WithName(name))
 		if item == nil {
 			continue
 		}
@@ -249,7 +286,7 @@ func GenerateContentArray(schema *openapi3.Schema, valueMaker ValueResolver, sta
 		if state.IsCircularArrayTrip(i) {
 			return nil
 		}
-		item := GenerateContent(schema.Items.Value, valueMaker, state.NewFrom(state).WithElementIndex(i))
+		item := GenerateContentFromSchema(schema.Items.Value, valueMaker, state.NewFrom(state).WithElementIndex(i))
 		if item == nil {
 			continue
 		}
@@ -367,7 +404,7 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueRe
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			// TODO(igor): handle correctly content types
-			return GenerateContent(
+			return GenerateContentFromSchema(
 					contentTypes[contentType].Schema.Value, valueResolver, state.WithContentType(contentType)),
 				contentType
 		}
@@ -379,7 +416,7 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueRe
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		typ = contentType
-		res = GenerateContent(mediaType.Schema.Value, valueResolver, state.WithContentType(contentType))
+		res = GenerateContentFromSchema(mediaType.Schema.Value, valueResolver, state.WithContentType(contentType))
 		break
 	}
 
@@ -411,7 +448,7 @@ func GenerateRequestHeaders(parameters openapi3.Parameters, valueMaker ValueReso
 		}
 
 		name := strings.ToLower(param.Name)
-		res[name] = GenerateContent(schema, valueMaker, &ResolveState{NamePath: []string{name}, IsHeader: true})
+		res[name] = GenerateContentFromSchema(schema, valueMaker, &ResolveState{NamePath: []string{name}, IsHeader: true})
 	}
 
 	if len(res) == 0 {
@@ -429,7 +466,92 @@ func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueResolver)
 		state := &ResolveState{NamePath: []string{name}, IsHeader: true}
 		header := headerRef.Value
 		params := header.Parameter
-		res[name] = GenerateContent(params.Schema.Value, valueMaker, state)
+		res[name] = GenerateContentFromSchema(params.Schema.Value, valueMaker, state)
 	}
 	return res
+}
+
+func GenerateContentFromFileProperties(fileProps *FileProperties, valueResolver ContentResolver) (any, bool) {
+	if fileProps == nil {
+		return nil, false
+	}
+
+	payload, err := os.ReadFile(fileProps.FilePath)
+	if err != nil {
+		return nil, false
+	}
+
+	if fileProps.ContentType == "application/octet-stream" {
+		return base64.StdEncoding.EncodeToString(payload), true
+	}
+
+	return GenerateContentFromBytes(payload, fileProps.ContentType, valueResolver), false
+}
+
+func GenerateContentFromBytes(payload []byte, contentType string, valueResolver ContentResolver) any {
+	if len(payload) == 0 {
+		return ""
+	}
+
+	if valueResolver == nil {
+		return string(payload)
+	}
+
+	switch contentType {
+	case "application/json":
+		var data any
+		err := json.Unmarshal(payload, &data)
+		if err != nil {
+			return ""
+		}
+		return GenerateContentFromJSON(data, valueResolver, nil)
+	default:
+		return string(payload)
+	}
+}
+
+func GenerateContentFromJSON(data any, valueResolver ContentResolver, state *ResolveState) any {
+	if state == nil {
+		state = &ResolveState{}
+	}
+
+	switch v := data.(type) {
+	case map[string]interface{}:
+		result := make(map[string]interface{})
+		for key, val := range v {
+			resolved := valueResolver(val, state.NewFrom(state).WithName(key))
+			if resolved != nil {
+				result[key] = resolved
+			} else {
+				result[key] = GenerateContentFromJSON(val, valueResolver, state.NewFrom(state).WithName(key))
+			}
+		}
+		return result
+
+	case map[interface{}]interface{}:
+		result := make(map[interface{}]interface{})
+		for key, val := range v {
+			resolved := valueResolver(val, state.NewFrom(state).WithName(key.(string)))
+			if resolved != nil {
+				result[key] = resolved
+			} else {
+				result[key] = GenerateContentFromJSON(val, valueResolver, state.NewFrom(state).WithName(key.(string)))
+			}
+		}
+		return result
+
+	case []interface{}:
+		result := make([]interface{}, len(v))
+		for i, val := range v {
+			resolved := valueResolver(val, state.NewFrom(state).WithName(fmt.Sprintf("%v", i)))
+			if resolved != nil {
+				result[i] = resolved
+			} else {
+				result[i] = GenerateContentFromJSON(val, valueResolver, state.NewFrom(state).WithName(fmt.Sprintf("%v", i)))
+			}
+		}
+		return result
+	default:
+		return data
+	}
 }

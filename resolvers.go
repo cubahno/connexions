@@ -9,11 +9,13 @@ import (
 )
 
 type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
+type ContentResolver func(content any, state *ResolveState) any
 
 type ResolveState struct {
 	NamePath                 []string
 	ElementIndex             int
 	IsHeader                 bool
+	IsURLParam               bool
 	ContentType              string
 	stopCircularArrayTripOn  int
 	stopCircularObjectTripOn string
@@ -60,6 +62,13 @@ func (s *ResolveState) WithHeader() *ResolveState {
 	return s
 }
 
+func (s *ResolveState) WithURLParam() *ResolveState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.IsURLParam = true
+	return s
+}
+
 func (s *ResolveState) WithContentType(value string) *ResolveState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -95,6 +104,20 @@ func CreateValueResolver() ValueResolver {
 		}
 
 		return nil
+	}
+}
+
+func CreateJSONResolver() ContentResolver {
+	faker := gofakeit.New(0)
+
+	return func(content any, state *ResolveState) any {
+		switch content.(type) {
+		case string:
+			if state.IsURLParam {
+				return faker.Uint8()
+			}
+		}
+		return content
 	}
 }
 

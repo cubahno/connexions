@@ -5,6 +5,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 )
@@ -16,8 +17,34 @@ func CreateServiceRoutes(router *Router) error {
 
 	router.Get("/services", handler.list)
 	router.Get("/services/{name}", handler.home)
+	router.Get("/services/{name}/spec", handler.spec)
 	router.Post("/services/{name}", handler.generate)
+
 	return nil
+}
+
+type ServiceItem struct {
+	Name             string              `json:"name"`
+	Type             string              `json:"type"`
+	HasOpenAPISchema bool                `json:"hasOpenAPISchema"`
+	Routes           []*RouteDescription `json:"routes"`
+	Spec             *openapi3.T         `json:"-"`
+	SpecFile         *xs.FileProperties  `json:"-"`
+}
+
+type RouteDescription struct {
+	Method string             `json:"method"`
+	Path   string             `json:"path"`
+	Type   string             `json:"type"`
+	File   *xs.FileProperties `json:"-"`
+}
+
+type ServiceListResponse struct {
+	Items []*ServiceItem `json:"items"`
+}
+
+type ServiceHomeResponse struct {
+	Endpoints []*RouteDescription `json:"endpoints"`
 }
 
 type ServiceHandler struct {
@@ -81,6 +108,29 @@ func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 	NewJSONResponse(http.StatusOK, res, w)
 }
 
+func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	service := h.router.Services[name]
+	if service == nil {
+		NewJSONResponse(http.StatusNotFound, "Service not found", w)
+		return
+	}
+
+	fileProps := service.SpecFile
+	if fileProps == nil {
+		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
+		return
+	}
+
+	content, err := os.ReadFile(fileProps.FilePath)
+	if err != nil {
+		NewJSONResponse(http.StatusInternalServerError, GetErrorResponse(err), w)
+		return
+	}
+
+	NewResponse(http.StatusOK, content, w, WithContentType("text/plain"))
+}
+
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	payload, err := GetPayload[ResourceGeneratePayload](r)
 	if err != nil {
@@ -96,21 +146,27 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	prefix := "/" + name
-	// TODO(igor): move valueMaker to router
-	valueMaker := xs.CreateValueResolver()
+	// TODO(igor): move valueResolver to router
+	valueResolver := xs.CreateValueResolver()
+	jsonResolver := xs.CreateJSONResolver()
 	res := map[string]any{}
 
 	if !payload.IsOpenAPI {
-		res["request"] = &xs.Request{
-			Method: payload.Method,
-			Path:   payload.Resource,
+		var fileProps *xs.FileProperties
+		for _, r := range service.Routes {
+			if r.Method == payload.Method && r.Path == payload.Resource {
+				fileProps = r.File
+				break
+			}
 		}
-		// ... find corresponding fileProps
-		res["response"] = &xs.Response{
-			StatusCode:  http.StatusOK,
-			Content:     "",
-			ContentType: "",
+
+		if fileProps == nil {
+			NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
+			return
 		}
+
+		res["request"] = xs.NewRequestFromFileProperties(fileProps, jsonResolver)
+		res["response"] = xs.NewResponseFromFileProperties(fileProps, jsonResolver)
 		NewJSONResponse(http.StatusOK, res, w)
 		return
 	}
@@ -133,30 +189,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 	}
 
-	res["request"] = xs.NewRequestFromOperation(prefix, payload.Resource, payload.Method, operation, valueMaker)
-	res["response"] = xs.NewResponseFromOperation(operation, valueMaker)
+	res["request"] = xs.NewRequestFromOperation(prefix, payload.Resource, payload.Method, operation, valueResolver)
+	res["response"] = xs.NewResponseFromOperation(operation, valueResolver)
 
 	NewJSONResponse(http.StatusOK, res, w)
-}
-
-type ServiceItem struct {
-	Name             string              `json:"name"`
-	Type             string              `json:"type"`
-	HasOpenAPISchema bool                `json:"hasOpenAPISchema"`
-	Routes           []*RouteDescription `json:"routes"`
-	Spec             *openapi3.T         `json:"-"`
-}
-
-type RouteDescription struct {
-	Method string `json:"method"`
-	Path   string `json:"path"`
-	Type   string `json:"type"`
-}
-
-type ServiceListResponse struct {
-	Items []*ServiceItem `json:"items"`
-}
-
-type ServiceHomeResponse struct {
-	Endpoints []*RouteDescription `json:"endpoints"`
 }

@@ -197,7 +197,7 @@ const serviceSwagger = match => {
 
     contentTitleEl.innerHTML = `${service} Swagger / OpenAPI`;
 
-    iframeContents.src = `${url}/${service}/ui`;
+    iframeContents.src = `${url}/ui/swaggerui?specUrl=/services/${service}/spec`;
     iframeContents.style.display = 'block';
 }
 

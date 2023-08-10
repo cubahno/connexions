@@ -10,17 +10,6 @@ import (
 	"time"
 )
 
-// FileProperties contains inferred properties of a file that is being loaded from service directory.
-type FileProperties struct {
-	ServiceName       string
-	IsPossibleOpenAPI bool
-	Method            string
-	Resource          string
-	FilePath          string
-	FileName          string
-	Extension         string
-}
-
 func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWriter) bool {
 	svcConfig := config.GetServiceConfig(service)
 	if svcConfig.Latency > 0 {
@@ -48,8 +37,8 @@ func LoadServices(router *Router) error {
 		log.Printf("Failed to load config file: %s\n", err.Error())
 		config = xs.NewDefaultConfig()
 	}
-	possibleOpenAPIFiles := make([]*FileProperties, 0)
-	overwriteFiles := make([]*FileProperties, 0)
+	possibleOpenAPIFiles := make([]*xs.FileProperties, 0)
+	overwriteFiles := make([]*xs.FileProperties, 0)
 	serviceRoutes := make(map[string][]*RouteDescription)
 
 	err = filepath.Walk(xs.ServicePath, func(filePath string, info os.FileInfo, err error) error {
@@ -62,7 +51,7 @@ func LoadServices(router *Router) error {
 			return nil
 		}
 
-		fileProps := GetPropertiesFromFilePath(filePath)
+		fileProps := xs.GetPropertiesFromFilePath(filePath)
 		if fileProps.IsPossibleOpenAPI {
 			possibleOpenAPIFiles = append(possibleOpenAPIFiles, fileProps)
 		} else {
@@ -79,7 +68,7 @@ func LoadServices(router *Router) error {
 	for _, fileProps := range overwriteFiles {
 		wg.Add(1)
 
-		go func(props *FileProperties) {
+		go func(props *xs.FileProperties) {
 			defer wg.Done()
 			rs, err := RegisterOverwriteService(props, config, router)
 			if err != nil {
@@ -103,7 +92,7 @@ func LoadServices(router *Router) error {
 	for _, fileProps := range possibleOpenAPIFiles {
 		wg.Add(1)
 
-		go func(props *FileProperties) {
+		go func(props *xs.FileProperties) {
 			defer wg.Done()
 
 			spec, rs, err := RegisterOpenAPIService(props, config, router)
@@ -125,6 +114,7 @@ func LoadServices(router *Router) error {
 					Type:             "openapi",
 					HasOpenAPISchema: true,
 					Spec:             spec,
+					SpecFile: 		  props,
 				}
 			}
 			if _, ok := serviceRoutes[props.ServiceName]; !ok {
