@@ -17,7 +17,7 @@ type ResourceGeneratePayload struct {
 }
 
 // RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
-func RegisterOpenAPIService(fileProps *xs.FileProperties, config *xs.Config, router *Router) (*openapi3.T, []*RouteDescription, error) {
+func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi3.T, []*RouteDescription, error) {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(fileProps.FilePath)
@@ -37,7 +37,7 @@ func RegisterOpenAPIService(fileProps *xs.FileProperties, config *xs.Config, rou
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
 			// register route
-			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, config))
+			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, router.Config))
 
 			res = append(res, &RouteDescription{
 				Method: method,

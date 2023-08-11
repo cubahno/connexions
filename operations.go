@@ -42,11 +42,11 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation *openapi
 	}
 }
 
-func NewRequestFromFileProperties(fileProps *FileProperties, valueResolver ContentResolver) *Request {
+func NewRequestFromFileProperties(path, method, contentType string, valueResolver ContentResolver) *Request {
 	return &Request{
-		Method:      fileProps.Method,
-		Path:        GenerateURLFromFileProperties(fileProps.Resource, valueResolver),
-		ContentType: fileProps.ContentType,
+		Method:      method,
+		Path:        GenerateURLFromFileProperties(path, valueResolver),
+		ContentType: contentType,
 	}
 }
 
@@ -73,12 +73,12 @@ func NewResponseFromOperation(operation *openapi3.Operation, valueResolver Value
 	}
 }
 
-func NewResponseFromFileProperties(fileProps *FileProperties, valueResolver ContentResolver) *Response {
-	content, isBase64 := GenerateContentFromFileProperties(fileProps, valueResolver)
+func NewResponseFromFileProperties(filePath, contentType string, valueResolver ContentResolver) *Response {
+	content, isBase64 := GenerateContentFromFileProperties(filePath, contentType, valueResolver)
 	return &Response{
-		Headers:     map[string]string{"content-type": fileProps.ContentType},
+		Headers:     map[string]string{"content-type": contentType},
 		Content:     content,
-		ContentType: fileProps.ContentType,
+		ContentType: contentType,
 		IsBase64:    isBase64,
 		StatusCode:  http.StatusOK,
 	}
@@ -471,21 +471,21 @@ func GenerateResponseHeaders(headers openapi3.Headers, valueMaker ValueResolver)
 	return res
 }
 
-func GenerateContentFromFileProperties(fileProps *FileProperties, valueResolver ContentResolver) (any, bool) {
-	if fileProps == nil {
+func GenerateContentFromFileProperties(filePath, contentType string, valueResolver ContentResolver) (any, bool) {
+	if filePath == "" {
 		return nil, false
 	}
 
-	payload, err := os.ReadFile(fileProps.FilePath)
+	payload, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, false
 	}
 
-	if fileProps.ContentType == "application/octet-stream" {
+	if contentType == "application/octet-stream" {
 		return base64.StdEncoding.EncodeToString(payload), true
 	}
 
-	return GenerateContentFromBytes(payload, fileProps.ContentType, valueResolver), false
+	return GenerateContentFromBytes(payload, contentType, valueResolver), false
 }
 
 func GenerateContentFromBytes(payload []byte, contentType string, valueResolver ContentResolver) any {

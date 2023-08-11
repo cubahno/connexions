@@ -43,7 +43,7 @@ const showServices = () => {
             const services = data['items'];
 
             let i = 0;
-            for (const { name, type, hasOpenAPISchema } of services) {
+            for (const { name, isOpenApi } of services) {
                 const num = i + 1;
                 const row = document.createElement('tr');
                 row.id = `service-${name}`;
@@ -58,7 +58,7 @@ const showServices = () => {
 
                 const swaggerCell = document.createElement('td');
                 let swaggerLink = '&nbsp;';
-                if (hasOpenAPISchema) {
+                if (isOpenApi) {
                     swaggerLink = `<a href="#/services/${name}/ui"><img class="swagger-icon" src="/ui/icons/swagger.svg"></a>`;
                 }
                 swaggerCell.innerHTML = swaggerLink;

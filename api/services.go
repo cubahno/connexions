@@ -1,12 +1,9 @@
 package api
 
 import (
-	"bufio"
-	"bytes"
 	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,23 +26,35 @@ func CreateServiceRoutes(router *Router) error {
 }
 
 type ServiceItem struct {
-	Name             string              `json:"name"`
-	Type             string              `json:"type"`
-	HasOpenAPISchema bool                `json:"hasOpenAPISchema"`
-	Routes           []*RouteDescription `json:"routes"`
-	Spec             *openapi3.T         `json:"-"`
-	SpecFile         *xs.FileProperties  `json:"-"`
+	Name   string              `json:"name"`
+	Routes []*RouteDescription `json:"routes"`
+	Spec   *openapi3.T         `json:"-"`
+	File   *FileProperties     `json:"-"`
+}
+
+type ServiceItemResponse struct {
+	Name      string `json:"name"`
+	IsOpenAPI bool   `json:"isOpenApi"`
+}
+
+type ServicePayload struct {
+	Name      string        `json:"name"`
+	IsOpenAPI bool          `json:"isOpenApi"`
+	Method    string        `json:"method"`
+	Path      string        `json:"path"`
+	Response  []byte        `json:"response"`
+	File      *UploadedFile `json:"file"`
 }
 
 type RouteDescription struct {
-	Method string             `json:"method"`
-	Path   string             `json:"path"`
-	Type   string             `json:"type"`
-	File   *xs.FileProperties `json:"-"`
+	Method string          `json:"method"`
+	Path   string          `json:"path"`
+	Type   string          `json:"type"`
+	File   *FileProperties `json:"-"`
 }
 
 type ServiceListResponse struct {
-	Items []*ServiceItem `json:"items"`
+	Items []*ServiceItemResponse `json:"items"`
 }
 
 type ServiceHomeResponse struct {
@@ -53,6 +62,7 @@ type ServiceHomeResponse struct {
 }
 
 type ServiceHandler struct {
+	*BaseHandler
 	router *Router
 }
 
@@ -64,9 +74,13 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Strings(keys)
 
-	items := make([]*ServiceItem, 0)
+	items := make([]*ServiceItemResponse, 0)
 	for _, key := range keys {
-		items = append(items, services[key])
+		svcItem := services[key]
+		items = append(items, &ServiceItemResponse{
+			Name:      key,
+			IsOpenAPI: svcItem.Spec != nil,
+		})
 	}
 	res := &ServiceListResponse{
 		Items: items,
@@ -78,121 +92,44 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(256 * 1024 * 1024) // Limit form size to 256 MB
 	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
-	service := r.FormValue("name")
-	method := r.FormValue("method")
-	isOpenAPI := r.FormValue("isOpenApi") == "true"
-	path := r.FormValue("path")
-	content := []byte(r.FormValue("response"))
-
-	// Get the uploaded file
-	file, handler, _ := r.FormFile("file")
-	if file != nil {
-		defer file.Close()
-	}
-
-	if !xs.IsValidHTTPVerb(method) {
-		http.Error(w, "Invalid HTTP verb", http.StatusBadRequest)
-		return
-	}
-	method = strings.ToUpper(method)
-
-	path = "/" + strings.Trim(path, "/")
-	if !xs.IsValidURLResource(path) {
-		http.Error(w, "Invalid URL resource", http.StatusBadRequest)
-		return
-	}
-
-	// get uploaded file
-	ext := ""
-	if handler != nil {
-		file, err = handler.Open()
-		if err != nil {
-			http.Error(w, "Error retrieving the file", http.StatusInternalServerError)
-			return
-		}
-		defer file.Close()
-		reader := bufio.NewReader(file)
-		buff := bytes.NewBuffer(make([]byte, 0))
-		part := make([]byte, 1024)
-		count := 0
-
-		for {
-			if count, err = reader.Read(part); err != nil {
-				break
-			}
-			buff.Write(part[:count])
-		}
-		if err != io.EOF {
-			http.Error(w, "Error reading the file", http.StatusInternalServerError)
-		} else {
-			err = nil
-		}
-		content = buff.Bytes()
-		ext = filepath.Ext(handler.Filename)
-	}
-
-	filePath := xs.ServicePath
-	if service != "" {
-		filePath += "/" + service
-	}
-
-	var doc *openapi3.T
-	if isOpenAPI {
-		if len(content) == 0 {
-			http.Error(w, "OpenAPI spec is empty", http.StatusBadRequest)
-			return
-		}
-		loader := openapi3.NewLoader()
-		doc, err = loader.LoadFromData(content)
-		if err != nil {
-			http.Error(w, "Invalid OpenAPI spec: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		filePath += ext
-	} else {
-		filePath += "/" + strings.ToLower(method)
-		if path != "" {
-			filePath += path
-		}
-
-		pathExt := filepath.Ext(path)
-		if pathExt == "" {
-			pathExt = ext
-		}
-		if pathExt == "" {
-			filePath += "/index.json"
-		}
-	}
-
-	dirPath := filepath.Dir(filePath)
-	// Create directories recursively
-	err = os.MkdirAll(dirPath, os.ModePerm)
+	uploadedFile, err := GetRequestFile(r, "file")
 	if err != nil {
-		http.Error(w, "Error creating directories", http.StatusInternalServerError)
+		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
-	dest, err := os.Create(filePath)
+	payload := &ServicePayload{
+		Name:      r.FormValue("name"),
+		IsOpenAPI: r.FormValue("isOpenApi") == "true",
+		Method:    r.FormValue("method"),
+		Path:      r.FormValue("path"),
+		Response:  []byte(r.FormValue("response")),
+		File:      uploadedFile,
+	}
+
+	fileProps, err := saveService(payload)
 	if err != nil {
-		http.Error(w, "Error creating file", http.StatusInternalServerError)
+		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
-	_, err = dest.Write(content)
+	doc, routes, err := RegisterOpenAPIService(fileProps, h.router)
 	if err != nil {
-		http.Error(w, "Error writing file", http.StatusInternalServerError)
+		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
+	h.router.Services[fileProps.ServiceName] = &ServiceItem{
+		Name:   fileProps.ServiceName,
+		Routes: routes,
+		Spec:   doc,
+		File:   fileProps,
+	}
 
-	fileProps := xs.GetPropertiesFromFilePath(filePath)
-	println(doc)
-	println(fileProps.ContentType)
-	NewJSONResponse(http.StatusCreated, map[string]any{"success": true, "message": "Service saved!"}, w)
+	h.success("Service created", w)
 }
 
 func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
@@ -241,7 +178,7 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileProps := service.SpecFile
+	fileProps := service.File
 	if fileProps == nil {
 		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
 		return
@@ -277,7 +214,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res := map[string]any{}
 
 	if !payload.IsOpenAPI {
-		var fileProps *xs.FileProperties
+		var fileProps *FileProperties
 		for _, r := range service.Routes {
 			if r.Method == payload.Method && r.Path == payload.Resource {
 				fileProps = r.File
@@ -290,8 +227,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		res["request"] = xs.NewRequestFromFileProperties(fileProps, jsonResolver)
-		res["response"] = xs.NewResponseFromFileProperties(fileProps, jsonResolver)
+		res["request"] = xs.NewRequestFromFileProperties(
+			fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
+		res["response"] = xs.NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
 		NewJSONResponse(http.StatusOK, res, w)
 		return
 	}
@@ -318,4 +256,99 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res["response"] = xs.NewResponseFromOperation(operation, valueResolver)
 
 	NewJSONResponse(http.StatusOK, res, w)
+}
+
+func saveService(payload *ServicePayload) (*FileProperties, error) {
+	uploadedFile := payload.File
+	service := payload.Name
+	content := payload.Response
+	method := strings.ToUpper(payload.Method)
+	path := payload.Path
+
+	if !xs.IsValidHTTPVerb(method) {
+		return nil, ErrInvalidHTTPVerb
+	}
+
+	if !xs.IsValidURLResource(path) {
+		return nil, ErrInvalidURLResource
+	}
+
+	ext := ""
+	if uploadedFile != nil {
+		ext = uploadedFile.Extension
+		content = uploadedFile.Content
+	}
+
+	if ext == "" && len(content) > 0 {
+		if IsJsonType(content) {
+			ext = ".json"
+		} else if IsYamlType(content) {
+			ext = ".yaml"
+		}
+	}
+
+	filePath := composeFileSavePath(service, method, path, ext, payload.IsOpenAPI)
+
+	if payload.IsOpenAPI && len(content) == 0 {
+		return nil, ErrOpenAPISpecIsEmpty
+	}
+
+	dirPath := filepath.Dir(filePath)
+	// Create directories recursively
+	err := os.MkdirAll(dirPath, os.ModePerm)
+	if err != nil {
+		return nil, ErrCreatingDirectories
+	}
+
+	dest, err := os.Create(filePath)
+	if err != nil {
+		return nil, ErrCreatingFile
+	}
+
+	_, err = dest.Write(content)
+	if err != nil {
+		return nil, err
+	}
+
+	fileProps := GetPropertiesFromFilePath(filePath)
+	return fileProps, nil
+}
+
+func composeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
+	res := xs.ServicePath
+	if isOpenAPI {
+		res += "/.openapi"
+	}
+
+	if service != "" {
+		res += "/" + service
+	}
+
+	if method == "" {
+		method = "get"
+	}
+
+	if !isOpenAPI {
+		res += "/" + strings.ToLower(method)
+	}
+
+	res += "/" + strings.Trim(resource, "/")
+	res = strings.TrimSuffix(res, "/")
+
+	if !isOpenAPI {
+		pathExt := filepath.Ext(res)
+		if pathExt == "" {
+			res += "/index" + ext
+			if ext == "" {
+				res += ".json"
+			}
+		}
+	} else {
+		if service == "" && resource == "" {
+			res += "/index"
+		}
+		res += ext
+	}
+
+	return res
 }

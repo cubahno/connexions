@@ -9,6 +9,7 @@ import (
 )
 
 type SettingsHandler struct {
+	*BaseHandler
 }
 
 func CreateSettingsRoutes(router *Router) error {
@@ -60,17 +61,9 @@ func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 	src := fmt.Sprintf("%s/config.yml.dist", xs.ResourcePath)
 	dest := fmt.Sprintf("%s/config.yml", xs.ResourcePath)
 
-	if err := xs.CopyFile(src, dest); err != nil {
+	if err := CopyFile(src, dest); err != nil {
 		h.error(http.StatusInternalServerError, "Failed to copy file contents", w)
 		return
 	}
 	h.success("Settings restored and reloaded!", w)
-}
-
-func (h *SettingsHandler) success(message string, w http.ResponseWriter) {
-	NewJSONResponse(http.StatusOK, map[string]any{"success": true, "message": message}, w)
-}
-
-func (h *SettingsHandler) error(code int, message string, w http.ResponseWriter) {
-	NewJSONResponse(code, map[string]any{"success": false, "message": message}, w)
 }

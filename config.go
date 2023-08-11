@@ -31,7 +31,9 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 	if res, ok := c.Services[service]; ok {
 		return res
 	}
-	return &ServiceConfig{}
+	return &ServiceConfig{
+		Errors: &ServiceError{},
+	}
 }
 
 func (s *ServiceError) GetError() int {

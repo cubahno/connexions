@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/cubahno/xs"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
@@ -11,6 +12,7 @@ type RouteRegister func(router *Router) error
 type Router struct {
 	*chi.Mux
 	Services map[string]*ServiceItem
+	Config   *xs.Config
 }
 
 type ErrorMessage struct {

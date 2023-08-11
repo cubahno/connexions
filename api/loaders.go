@@ -32,16 +32,11 @@ func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWri
 func LoadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
 
-	config, err := xs.NewConfigFromFile()
-	if err != nil {
-		log.Printf("Failed to load config file: %s\n", err.Error())
-		config = xs.NewDefaultConfig()
-	}
-	possibleOpenAPIFiles := make([]*xs.FileProperties, 0)
-	overwriteFiles := make([]*xs.FileProperties, 0)
+	openAPIFiles := make([]*FileProperties, 0)
+	overwriteFiles := make([]*FileProperties, 0)
 	serviceRoutes := make(map[string][]*RouteDescription)
 
-	err = filepath.Walk(xs.ServicePath, func(filePath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(xs.ServicePath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -51,9 +46,9 @@ func LoadServices(router *Router) error {
 			return nil
 		}
 
-		fileProps := xs.GetPropertiesFromFilePath(filePath)
-		if fileProps.IsPossibleOpenAPI {
-			possibleOpenAPIFiles = append(possibleOpenAPIFiles, fileProps)
+		fileProps := GetPropertiesFromFilePath(filePath)
+		if fileProps.IsOpenAPI {
+			openAPIFiles = append(openAPIFiles, fileProps)
 		} else {
 			overwriteFiles = append(overwriteFiles, fileProps)
 		}
@@ -68,55 +63,44 @@ func LoadServices(router *Router) error {
 	for _, fileProps := range overwriteFiles {
 		wg.Add(1)
 
-		go func(props *xs.FileProperties) {
+		go func(props *FileProperties) {
 			defer wg.Done()
-			rs, err := RegisterOverwriteService(props, config, router)
+			rs, err := RegisterOverwriteService(props, router)
 			if err != nil {
 				println(err.Error())
-			} else {
-				services[props.ServiceName] = &ServiceItem{
-					Name: props.ServiceName,
-					Type: "overwrite",
-				}
-				if _, ok := serviceRoutes[props.ServiceName]; !ok {
-					serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
-				}
-				serviceRoutes[props.ServiceName] = append(serviceRoutes[props.ServiceName], rs...)
+				return
 			}
+			services[props.ServiceName] = &ServiceItem{
+				Name: props.ServiceName,
+			}
+			if _, ok := serviceRoutes[props.ServiceName]; !ok {
+				serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
+			}
+			serviceRoutes[props.ServiceName] = append(serviceRoutes[props.ServiceName], rs...)
 		}(fileProps)
 	}
 
 	wg.Wait()
 
 	println("Registering OpenAPI services...")
-	for _, fileProps := range possibleOpenAPIFiles {
+	for _, fileProps := range openAPIFiles {
 		wg.Add(1)
 
-		go func(props *xs.FileProperties) {
+		go func(props *FileProperties) {
 			defer wg.Done()
 
-			spec, rs, err := RegisterOpenAPIService(props, config, router)
+			spec, rs, err := RegisterOpenAPIService(props, router)
 			if err != nil {
 				println(err.Error())
-				// try to register as overwrite service
-				rs, err = RegisterOverwriteService(props, config, router)
-				if err != nil {
-					println(err.Error())
-				} else {
-					services[props.ServiceName] = &ServiceItem{
-						Name: props.ServiceName,
-						Type: "overwrite",
-					}
-				}
-			} else {
-				services[props.ServiceName] = &ServiceItem{
-					Name:             props.ServiceName,
-					Type:             "openapi",
-					HasOpenAPISchema: true,
-					Spec:             spec,
-					SpecFile:         props,
-				}
+				return
 			}
+
+			services[props.ServiceName] = &ServiceItem{
+				Name: props.ServiceName,
+				Spec: spec,
+				File: props,
+			}
+
 			if _, ok := serviceRoutes[props.ServiceName]; !ok {
 				serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
 			}

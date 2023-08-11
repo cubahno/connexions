@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func RegisterOverwriteService(fileProps *xs.FileProperties, config *xs.Config, router *Router) ([]*RouteDescription, error) {
+func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
@@ -32,13 +32,13 @@ func RegisterOverwriteService(fileProps *xs.FileProperties, config *xs.Config, r
 	})
 
 	for _, resource := range resources {
-		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, config))
+		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, router.Config))
 	}
 
 	return res, nil
 }
 
-func createOverwriteResponseHandler(fileProps *xs.FileProperties, config *xs.Config) http.HandlerFunc {
+func createOverwriteResponseHandler(fileProps *FileProperties, config *xs.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if handled := handleErrorAndLatency(fileProps.ServiceName, config, w); handled {
 			return
