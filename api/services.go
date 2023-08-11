@@ -117,7 +117,15 @@ func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	doc, routes, err := RegisterOpenAPIService(fileProps, h.router)
+	var doc *openapi3.T
+	var routes []*RouteDescription
+
+	if payload.IsOpenAPI {
+		doc, routes, err = RegisterOpenAPIService(fileProps, h.router)
+	} else {
+		routes, err = RegisterOverwriteService(fileProps, h.router)
+	}
+
 	if err != nil {
 		h.error(http.StatusBadRequest, err.Error(), w)
 		return

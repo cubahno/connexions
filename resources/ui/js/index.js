@@ -235,7 +235,7 @@ async function uploadServiceFile() {
     await fetch('/services', {
         method: "POST",
         body: formData,
-    }).then(getResponseJson).then(res => {
+    }).then(res => res.json()).then(res => {
         showSuccessOrError(res.message, res.success);
 
         if (res.success) {
@@ -257,6 +257,7 @@ const showError = text => {
 }
 
 const showSuccessOrError = (text, success) => {
+    console.log(text);
     showMessage(text, success ? 'success' : 'error')
 }
 

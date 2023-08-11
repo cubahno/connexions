@@ -40,9 +40,7 @@ func GetRequestFile(r *http.Request, name string) (*UploadedFile, error) {
 	file, handler, _ := r.FormFile(name)
 	if file != nil {
 		defer file.Close()
-	}
-
-	if handler == nil {
+	} else {
 		return nil, nil
 	}
 
