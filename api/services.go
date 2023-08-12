@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const RootServiceName = "--"
+
 func CreateServiceRoutes(router *Router) error {
 	handler := &ServiceHandler{
 		router: router,
@@ -142,6 +144,9 @@ func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
 
 func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
+	if name == RootServiceName {
+		name = ""
+	}
 	service := h.router.Services[name]
 	if service == nil {
 		NewJSONResponse(http.StatusNotFound, "Service not found", w)
@@ -181,6 +186,10 @@ func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	service := h.router.Services[name]
+	if name == RootServiceName {
+		name = ""
+	}
+
 	if service == nil {
 		NewJSONResponse(http.StatusNotFound, "Service not found", w)
 		return
@@ -209,6 +218,10 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := chi.URLParam(r, "name")
+	if name == RootServiceName {
+		name = ""
+	}
+
 	service := h.router.Services[name]
 	if service == nil {
 		NewJSONResponse(http.StatusNotFound, "Service not found", w)
@@ -274,8 +287,11 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 	method := strings.ToUpper(payload.Method)
 	path := payload.Path
 
-	if !xs.IsValidHTTPVerb(method) {
+	if method != "" && !xs.IsValidHTTPVerb(method) {
 		return nil, ErrInvalidHTTPVerb
+	}
+	if method == "" {
+		method = http.MethodGet
 	}
 
 	if !xs.IsValidURLResource(path) {

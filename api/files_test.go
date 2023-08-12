@@ -85,6 +85,22 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			ContentType: "text/xml; charset=utf-8",
 		}, props)
 	})
+
+	t.Run("root-service", func(t *testing.T) {
+		filePath := xs.ServicePath + "/get/users.json"
+		props := GetPropertiesFromFilePath(filePath)
+
+		assert.Equal(t, &FileProperties{
+			ServiceName: "",
+			Method:      http.MethodGet,
+			Prefix:      "",
+			Resource:    "/users.json",
+			FilePath:    filePath,
+			FileName:    "users.json",
+			Extension:   ".json",
+			ContentType: "application/json",
+		}, props)
+	})
 }
 
 func TestComposeFileSavePath(t *testing.T) {

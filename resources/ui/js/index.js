@@ -52,11 +52,13 @@ const showServices = () => {
                 cell1.textContent = `${num}`;
                 row.appendChild(cell1);
 
+                let nameLink = name;
                 if (name === ``) {
-                    name = `.Root`
+                    name = "/"
+                    nameLink = `--`
                 }
                 const svcNameCell = document.createElement('td');
-                svcNameCell.innerHTML = `<a href="#/services/${name}">${name}</a>`;
+                svcNameCell.innerHTML = `<a href="#/services/${nameLink}">${name}</a>`;
                 row.appendChild(svcNameCell);
 
                 const swaggerCell = document.createElement('td');
@@ -81,6 +83,11 @@ const applySelection = (targetEl, selectionClassName) => {
     if (!targetEl) {
         return;
     }
+
+    if (targetEl === `service---`) {
+        targetEl = `service-`;
+    }
+
     const collection = document.getElementsByClassName(selectionClassName);
     for (let i = 0; i < collection.length; i++) {
         collection[i].classList.remove(selectionClassName);
@@ -106,8 +113,11 @@ const serviceHome = match => {
             applySelection(`service-${service}`, 'selected-service');
 
             const endpoints = data['endpoints'];
-
-            contentTitleEl.innerHTML = `${service} resources`;
+            let name = service;
+            if (name === `--`) {
+                name = `Root level`
+            }
+            contentTitleEl.innerHTML = `${name} resources`;
 
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
@@ -209,6 +219,7 @@ const uploadNewServices = () => {
     console.log(`add new service`);
     applySelection(`n/a`, 'selected-service');
     resetContents();
+    showResponseEditForm();
     contentTitleEl.innerHTML = `Add new service to the list`;
 
     servicesUploadForm.style.display = 'block';
@@ -217,7 +228,7 @@ const uploadNewServices = () => {
 async function uploadServiceFile() {
     let formData = new FormData();
 
-    const name = document.getElementById('endpoint-service-name').value.trim();
+    //const name = document.getElementById('endpoint-service-name').value.trim();
     const isOpenApi = document.querySelector('input[name="is_openapi"]:checked').value === '1';
     const method = document.getElementById('endpoint-method').value.trim();
     let path = '';
@@ -229,7 +240,7 @@ async function uploadServiceFile() {
 
     formData.append("file", fileUploadBtn.files[0]);
     formData.append("response", response);
-    formData.append("name", name);
+    //formData.append("name", name);
     formData.append("method", method);
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
@@ -324,7 +335,7 @@ const settingsRestore = () => {
     });
 }
 
-const responseEdit = () => {
+const showResponseEditForm = () => {
     console.log(`response edit`);
     applySelection(`n/a`, 'selected-service');
 
@@ -491,16 +502,6 @@ const onLoad = () => {
 
     document.getElementById('settings-save-button').addEventListener('click', settingsSave);
     document.getElementById('settings-default-save-button').addEventListener('click', settingsRestore);
-    document.getElementById('show-new-response-area').addEventListener('click', () => {
-        if (responseEditContainer.style.display === 'block') {
-            responseEditContainer.style.display = 'none';
-            return;
-        }
-        responseEdit();
-    });
-
-    document.getElementById("endpoint-is-openapi-yes").addEventListener("change", () => document.getElementById('non-openapi-upload').style.display = 'none');
-    document.getElementById("endpoint-is-openapi-no").addEventListener("change", () => document.getElementById('non-openapi-upload').style.display = 'block');
 
     document.getElementById('fileupload').addEventListener('change', () => {
         const file = document.getElementById('fileupload').files[0];

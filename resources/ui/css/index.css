@@ -223,9 +223,10 @@ textarea#replacements {
 
 .upload-button {
     display: inline-block;
-    background-color: #007bff;
+    background-color: #88b2e0;
     color: #fff;
-    padding: 6px 10px;
+    padding: 2px 10px;
+    font-size: 14px;
     border-radius: 5px;
     cursor: pointer;
 }
@@ -357,4 +358,23 @@ a.service-settings-link {
 
 .fixed-resource-method.options {
     color: #b53fd5;
+}
+
+.upload-table td:nth-child(1) {
+    width: 10%;
+    text-align: left;
+    font-weight: 500;
+}
+.upload-table td:nth-child(2) {
+    width: 50%;
+    text-align: left;
+}
+
+.upload-table small {
+    font-size: 12px;
+}
+
+.upload-table select {
+    border-radius: 4px;
+    padding: 6px;
 }

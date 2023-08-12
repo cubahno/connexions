@@ -111,6 +111,12 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	method := http.MethodGet
 	prefix := ""
 
+	// root service
+	if xs.IsValidHTTPVerb(serviceName) {
+		method = strings.ToUpper(serviceName)
+		serviceName = ""
+	}
+
 	if len(parts) == 1 {
 		serviceName = ""
 		resource = fmt.Sprintf("/%s", parts[0])
@@ -123,6 +129,7 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
 	}
+	prefix = strings.TrimSuffix(prefix, "/")
 
 	if fileName == "index.json" {
 		resource = strings.TrimSuffix(resource, "/"+fileName)
@@ -154,7 +161,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 	}
 
 	if method == "" {
-		method = "get"
+		method = http.MethodGet
 	}
 
 	if !isOpenAPI {

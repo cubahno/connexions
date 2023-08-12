@@ -116,39 +116,70 @@
 
         <form id="services-upload" action="/services/upload" method="POST" enctype="multipart/form-data" style="display: none;">
             <div class="services-upload-container">
-                Service Name: <input type="text" name="name" id="endpoint-service-name" value="" style="width: 160px;"><br/>
-                <small>
-                    This will be used as prefix with the endpoint paths and displayed in the left menu.
-                    If omitted - the name from the file will be used.
-                </small><br/><br/>
+                <table class="upload-table">
+                    <tr>
+                        <td>Path or prefix:</td>
+                        <td>
+                            <input type="text" name="path" id="endpoint-path" value="" placeholder="/users/{userId}/files/{fileId}"><br/>
+                            <small>
+                                First part of it will be used as prefix with the endpoint paths and displayed in the left menu.
+                            </small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Method:</td>
+                        <td>
+                            <select name="method" id="endpoint-method">
+                                <option value=""></option>
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                            <br/>
+                            <small>Only for non-OpenAPI files. GET is default.</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Response:
+                        </td>
+                        <td>
+                            <label for="fileupload" class="upload-button">
+                                Select File
+                            </label>
+                            <input id="fileupload" type="file" name="file" class=""/>
+                            <div id="selected-filename" style="display: inline;"></div>
+                            <div style="padding-top: 20px;">Or input response contents directly:</div>
+                            <div>
+                                Content-Type:
+                                <select id="response-content-type">
+                                    <option value="application/json">application/json</option>
+                                    <option value="application/x-yaml">application/x-yaml</option>
+                                    <option value="application/xml">application/xml</option>
+                                    <option value="text/html">text/html</option>
+                                    <option value="text/plain">text/plain</option>
+                            </select>
+                            </div>
+                            <div style="width: 500px; height: 300px;margin-top: 20px;" id="selected-text-response">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>This is an OpenAPI configuration:</td>
+                        <td>
+                            <b>Yes</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-yes" name="is_openapi" value="1">
+                            <b>No</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-no" name="is_openapi" value="0" checked><br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <button id="upload-button" onclick="uploadServiceFile(); return false;" class="button blue-bg"> Save </button>
+                        </td>
+                    </tr>
+                </table>
 
-                <label for="fileupload" class="upload-button">
-                    Select File
-                </label>
-                <input id="fileupload" type="file" name="file" class=""/>
-                <div id="selected-filename" style="display: inline;"></div>
-                <div style="display: inline;">Or <a href="/#/services/upload" id="show-new-response-area">click to paste</a> response contents</div>
-                <div style="display: none;width: 500px; height: 300px;margin-top: 20px;" id="selected-text-response">
-                </div>
-                <br/><br/>
-
-                This is an OpenAPI / Swagger configuration:
-                <b>Yes</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-yes" name="is_openapi" value="1" checked>
-                <b>No</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-no" name="is_openapi" value="0"><br/>
-                <br/>
-                <div style="display: none;" id="non-openapi-upload">
-                    Method: <select name="method" id="endpoint-method">
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                        <option value="PUT">PUT</option>
-                        <option value="PATCH">PATCH</option>
-                        <option value="DELETE">DELETE</option>
-                    </select><br/>
-                    Path: <input type="text" name="path" id="endpoint-path" value="" placeholder="/users/{userId}/files/{fileId}"><br/>
-
-                </div>
-
-                <button id="upload-button" onclick="uploadServiceFile(); return false;" class="button blue-bg"> Save </button>
                 <br/><br/>
                 Service can be of 2 types:<br/><br/>
                 1. <b>A valid OpenAPI / Swagger</b> configuration file.<br/>
