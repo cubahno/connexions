@@ -25,7 +25,8 @@ func CreateServiceRoutes(router *Router) error {
 	router.Get("/services/{name}", handler.home)
 	router.Get("/services/{name}/spec", handler.spec)
 	router.Post("/services/{name}", handler.generate)
-	router.Delete("/services/{name}", handler.delete)
+	router.Delete("/services/{name}", handler.deleteService)
+	router.Delete("/services/{name}/resources/{method}", handler.deleteResource)
 
 	return nil
 }
@@ -299,7 +300,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	NewJSONResponse(http.StatusOK, res, w)
 }
 
-func (h *ServiceHandler) delete(w http.ResponseWriter, r *http.Request) {
+func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -322,6 +323,49 @@ func (h *ServiceHandler) delete(w http.ResponseWriter, r *http.Request) {
 	delete(h.router.Services, name)
 
 	h.success(fmt.Sprintf("Service %s deleted!", name), w)
+}
+
+func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	name := chi.URLParam(r, "name")
+	if name == RootServiceName {
+		name = ""
+	}
+
+	service := h.router.Services[name]
+	if service == nil {
+		h.error(404, "Service not found", w)
+		return
+	}
+
+	method := chi.URLParam(r, "method")
+	if method == "" || !xs.IsValidHTTPVerb(method) {
+		h.error(400, "Invalid method", w)
+		return
+	}
+	method = strings.ToUpper(method)
+
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		h.error(400, "Invalid path", w)
+		return
+	}
+
+	for i, route := range service.Routes {
+		if route.Method == method && route.Path == path {
+			if err := os.Remove(route.File.FilePath); err != nil {
+				h.error(500, err.Error(), w)
+				return
+			}
+			xs.SliceDeleteAtIndex[*RouteDescription](service.Routes, i)
+			break
+		}
+	}
+	RemoveEmptyDirs(xs.ServicePath)
+
+	h.success(fmt.Sprintf("Resource %s deleted!", path), w)
 }
 
 func saveService(payload *ServicePayload) (*FileProperties, error) {

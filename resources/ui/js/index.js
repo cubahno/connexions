@@ -165,6 +165,31 @@ const serviceHome = match => {
                 pathCell.className = `fixed-resource-path`;
                 row.appendChild(pathCell);
 
+                const rmCell = document.createElement('td');
+                if (type === `overwrite`) {
+                    //rmCell.innerHTML = `🔁`;
+                    rmCell.innerHTML = `✖`;
+                    rmCell.className = 'remove-resource';
+                    rmCell.title = `Remove resource ${method} ${path}`;
+                    rmCell.onclick = () => {
+                        if (confirm(`Are you sure you want to remove resource ${method} ${path}?\nAll files will be deleted!`)) {
+                            fetch(`${url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`, {
+                                method: 'DELETE'
+                            })
+                                .then(res => res.json())
+                                .then(res => {
+                                    showSuccessOrError(res.message, res.success)
+                                    serviceHome(match);
+                                });
+                        }
+                    }
+                } else {
+                    rmCell.innerHTML = `&nbsp`;
+                }
+
+
+                row.appendChild(rmCell);
+
                 pathCell.onclick = () => {
                     applySelection(`resource-${num}`, 'selected-resource');
                     loadResource(service, path, method, type === `openapi`);
