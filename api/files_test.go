@@ -13,8 +13,8 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		props := GetPropertiesFromFilePath(filePath)
 
 		assert.Equal(t, &FileProperties{
-			ServiceName: "index",
-			Prefix:      "/index",
+			ServiceName: "",
+			Prefix:      "",
 			IsOpenAPI:   true,
 			FilePath:    filePath,
 			FileName:    "index.yml",
@@ -38,33 +38,66 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		}, props)
 	})
 
-	t.Run("service-index-with-method", func(t *testing.T) {
-		filePath := xs.ServicePath + "/users/get/index.json"
+	t.Run("service-root-direct", func(t *testing.T) {
+		filePath := xs.ServicePath + "/.root/users.html"
 		props := GetPropertiesFromFilePath(filePath)
 
 		assert.Equal(t, &FileProperties{
-			ServiceName: "users",
-			Prefix:      "/users",
-			Resource:    "/",
+			ServiceName: "",
+			Prefix:      "",
+			Resource:    "/users.html",
 			Method:      http.MethodGet,
 			FilePath:    filePath,
-			FileName:    "index.json",
-			Extension:   ".json",
-			ContentType: "application/json",
+			FileName:    "users.html",
+			Extension:   ".html",
+			ContentType: "text/html; charset=utf-8",
 		}, props)
 	})
 
-	t.Run("service-non-index-with-method", func(t *testing.T) {
-		filePath := xs.ServicePath + "/users/get/index.html"
+	// result should as above, in the .root
+	t.Run("service-direct", func(t *testing.T) {
+		filePath := xs.ServicePath + "/users.html"
 		props := GetPropertiesFromFilePath(filePath)
 
 		assert.Equal(t, &FileProperties{
-			ServiceName: "users",
+			ServiceName: "",
+			Prefix:      "",
+			Resource:    "/users.html",
 			Method:      http.MethodGet,
-			Prefix:      "/users",
-			Resource:    "/index.html",
 			FilePath:    filePath,
-			FileName:    "index.html",
+			FileName:    "users.html",
+			Extension:   ".html",
+			ContentType: "text/html; charset=utf-8",
+		}, props)
+	})
+
+	t.Run("service-root-with-method", func(t *testing.T) {
+		filePath := xs.ServicePath + "/.root/patch/users.html"
+		props := GetPropertiesFromFilePath(filePath)
+
+		assert.Equal(t, &FileProperties{
+			ServiceName: "",
+			Method:      http.MethodPatch,
+			Prefix:      "",
+			Resource:    "/users.html",
+			FilePath:    filePath,
+			FileName:    "users.html",
+			Extension:   ".html",
+			ContentType: "text/html; charset=utf-8",
+		}, props)
+	})
+
+	t.Run("service-non-root-will-have-method-as-service", func(t *testing.T) {
+		filePath := xs.ServicePath + "/patch/users.html"
+		props := GetPropertiesFromFilePath(filePath)
+
+		assert.Equal(t, &FileProperties{
+			ServiceName: "patch",
+			Method:      http.MethodGet,
+			Prefix:      "/patch",
+			Resource:    "/users.html",
+			FilePath:    filePath,
+			FileName:    "users.html",
 			Extension:   ".html",
 			ContentType: "text/html; charset=utf-8",
 		}, props)
@@ -85,22 +118,6 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			ContentType: "text/xml; charset=utf-8",
 		}, props)
 	})
-
-	t.Run("root-service", func(t *testing.T) {
-		filePath := xs.ServicePath + "/get/users.json"
-		props := GetPropertiesFromFilePath(filePath)
-
-		assert.Equal(t, &FileProperties{
-			ServiceName: "",
-			Method:      http.MethodGet,
-			Prefix:      "",
-			Resource:    "/users.json",
-			FilePath:    filePath,
-			FileName:    "users.json",
-			Extension:   ".json",
-			ContentType: "application/json",
-		}, props)
-	})
 }
 
 func TestComposeFileSavePath(t *testing.T) {
@@ -113,9 +130,25 @@ func TestComposeFileSavePath(t *testing.T) {
 	}
 
 	testCases := []struct {
-		params   params
-		expected string
+		description string
+		params      params
+		expected    string
 	}{
+		{
+			description: "root file",
+			params: params{
+				resource: "/foo.html",
+			},
+			expected: xs.ServicePath + "/.root/get/foo.html",
+		},
+		{
+			description: "root patch file",
+			params: params{
+				method:   "patch",
+				resource: "/foo.html",
+			},
+			expected: xs.ServicePath + "/.root/patch/foo.html",
+		},
 		{
 			params: params{
 				service:   "test",
@@ -130,14 +163,14 @@ func TestComposeFileSavePath(t *testing.T) {
 			params: params{
 				resource: "/foo/bar",
 			},
-			expected: xs.ServicePath + "/get/foo/bar/index.json",
+			expected: xs.ServicePath + "/get/foo/bar/index.txt",
 		},
 		{
 			params: params{
 				service: "nice",
 				method:  "patch",
 			},
-			expected: xs.ServicePath + "/nice/patch/index.json",
+			expected: xs.ServicePath + "/nice/patch/index.txt",
 		},
 		{
 			params: params{
@@ -169,7 +202,8 @@ func TestComposeFileSavePath(t *testing.T) {
 			actual := ComposeFileSavePath(
 				tc.params.service, tc.params.method, tc.params.resource, tc.params.ext, tc.params.isOpenAPI)
 			if actual != tc.expected {
-				t.Errorf("ComposeFileSavePath(%v) - Expected: %v, Got: %v", tc.params, tc.expected, actual)
+				t.Errorf("ComposeFileSavePath(%v): %v - Expected: %v, Got: %v",
+					tc.params, tc.description, tc.expected, actual)
 			}
 		})
 	}

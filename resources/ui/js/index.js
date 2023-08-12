@@ -12,6 +12,7 @@ const settingsEditor = document.getElementById('settings-editor');
 const fixedServiceContainer = document.getElementById('fixed-service-container');
 const resourceRefreshBtn = document.getElementById('refresh');
 const responseEditContainer =  document.getElementById(`selected-text-response`);
+const responseContentTypeEl = document.getElementById(`response-content-type`);
 
 const resetContents = () => {
     console.log(`reset contents`);
@@ -55,7 +56,7 @@ const showServices = () => {
                 let nameLink = name;
                 if (name === ``) {
                     name = "/"
-                    nameLink = `--`
+                    nameLink = `.root`
                 }
                 const svcNameCell = document.createElement('td');
                 svcNameCell.innerHTML = `<a href="#/services/${nameLink}">${name}</a>`;
@@ -84,7 +85,7 @@ const applySelection = (targetEl, selectionClassName) => {
         return;
     }
 
-    if (targetEl === `service---`) {
+    if (targetEl === `service-.root`) {
         targetEl = `service-`;
     }
 
@@ -114,7 +115,7 @@ const serviceHome = match => {
 
             const endpoints = data['endpoints'];
             let name = service;
-            if (name === `--`) {
+            if (name === `.root`) {
                 name = `Root level`
             }
             contentTitleEl.innerHTML = `${name} resources`;
@@ -228,7 +229,6 @@ const uploadNewServices = () => {
 async function uploadServiceFile() {
     let formData = new FormData();
 
-    //const name = document.getElementById('endpoint-service-name').value.trim();
     const isOpenApi = document.querySelector('input[name="is_openapi"]:checked').value === '1';
     const method = document.getElementById('endpoint-method').value.trim();
     let path = '';
@@ -240,7 +240,7 @@ async function uploadServiceFile() {
 
     formData.append("file", fileUploadBtn.files[0]);
     formData.append("response", response);
-    //formData.append("name", name);
+    formData.append("contentType", responseContentTypeEl.value);
     formData.append("method", method);
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);

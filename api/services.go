@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-const RootServiceName = "--"
+const RootServiceName = ".root"
 
 func CreateServiceRoutes(router *Router) error {
 	handler := &ServiceHandler{
@@ -46,6 +46,7 @@ type ServicePayload struct {
 	Method    string        `json:"method"`
 	Path      string        `json:"path"`
 	Response  []byte        `json:"response"`
+	ContentType string      `json:"contentType"`
 	File      *UploadedFile `json:"file"`
 }
 
@@ -67,7 +68,7 @@ type ServiceHomeResponse struct {
 type ServiceHandler struct {
 	*BaseHandler
 	router *Router
-	mu    sync.Mutex
+	mu     sync.Mutex
 }
 
 func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -115,6 +116,7 @@ func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
 		Method:    r.FormValue("method"),
 		Path:      r.FormValue("path"),
 		Response:  []byte(r.FormValue("response")),
+		ContentType: r.FormValue("contentType"),
 		File:      uploadedFile,
 	}
 
@@ -299,6 +301,7 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 	uploadedFile := payload.File
 	service := payload.Name
 	content := payload.Response
+	contentType := payload.ContentType
 	method := strings.ToUpper(payload.Method)
 	path := payload.Path
 
@@ -318,6 +321,10 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 	}
 
 	ext := ""
+	if len(contentType) > 0 {
+		ext = "." + contentType
+	}
+
 	if uploadedFile != nil {
 		ext = uploadedFile.Extension
 		content = uploadedFile.Content

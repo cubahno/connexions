@@ -86,17 +86,22 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	serviceName := parts[0]
 
 	if serviceName == ".openapi" {
-		serviceName = strings.TrimSuffix(fileName, ext)
-		prefix := "/" + serviceName
 		parts = parts[1:]
+		serviceName = parts[0]
+		prefix := ""
 
-		if len(parts) > 1 {
+		// root level service
+		if len(parts) == 1 {
+			serviceName = ""
+			prefix = ""
+		} else {
 			// if dirs are present, service name is the first dir
 			serviceName = parts[0]
 			prefix = "/" + strings.Join(parts, "/")
 			prefix = strings.TrimSuffix(prefix, "/"+fileName)
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
+
 		return &FileProperties{
 			ServiceName: serviceName,
 			Prefix:      prefix,
@@ -111,24 +116,35 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	method := http.MethodGet
 	prefix := ""
 
-	// root service
-	if xs.IsValidHTTPVerb(serviceName) {
-		method = strings.ToUpper(serviceName)
-		serviceName = ""
+	if serviceName == ".root" {
+		parts = parts[1:]
+		serviceName = parts[0]
+		prefix = ""
+
+		// root service
+		if xs.IsValidHTTPVerb(serviceName) {
+			method = strings.ToUpper(serviceName)
+			serviceName = ""
+			parts = parts[1:]
+		}
 	}
 
+	// root level service
 	if len(parts) == 1 {
 		serviceName = ""
+		prefix = ""
 		resource = fmt.Sprintf("/%s", parts[0])
 	} else {
-		prefix = "/" + serviceName
+		serviceName = parts[0]
 		method_ := strings.ToUpper(parts[1])
 		if xs.IsValidHTTPVerb(method_) {
 			method = method_
 			parts = xs.SliceDeleteAtIndex[string](parts, 1)
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
+		prefix = "/" + serviceName
 	}
+
 	prefix = strings.TrimSuffix(prefix, "/")
 
 	if fileName == "index.json" {
@@ -151,6 +167,9 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 }
 
 func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
+	resource = strings.Trim(resource, "/")
+	parts := strings.Split(resource, "/")
+
 	res := xs.ServicePath
 	if isOpenAPI {
 		res += "/.openapi"
@@ -158,6 +177,9 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 
 	if service != "" {
 		res += "/" + service
+	}
+	if service == "" && !isOpenAPI && len(parts) == 1 {
+		res += "/.root"
 	}
 
 	if method == "" {
@@ -176,7 +198,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 		if pathExt == "" {
 			res += "/index" + ext
 			if ext == "" {
-				res += ".json"
+				res += ".txt"
 			}
 		}
 	} else {
