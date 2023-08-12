@@ -215,7 +215,6 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	prefix := "/" + name
 	// TODO(igor): move valueResolver to router
 	valueResolver := xs.CreateValueResolver()
 	jsonResolver := xs.CreateJSONResolver()
@@ -236,7 +235,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		res["request"] = xs.NewRequestFromFileProperties(
-			prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
+			fileProps.Prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
 		res["response"] = xs.NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
 		NewJSONResponse(http.StatusOK, res, w)
 		return
@@ -247,6 +246,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
 		return
 	}
+	fileProps := service.File
 
 	// handle openapi resource
 	pathItem := spec.Paths[payload.Resource]
@@ -260,7 +260,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 	}
 
-	res["request"] = xs.NewRequestFromOperation(prefix, payload.Resource, payload.Method, operation, valueResolver)
+	res["request"] = xs.NewRequestFromOperation(
+		fileProps.Prefix, payload.Resource, payload.Method, operation, valueResolver)
 	res["response"] = xs.NewResponseFromOperation(operation, valueResolver)
 
 	NewJSONResponse(http.StatusOK, res, w)

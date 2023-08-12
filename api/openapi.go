@@ -26,21 +26,14 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi
 	}
 
 	res := make([]*RouteDescription, 0)
-
-	prefix := ""
-	if fileProps.ServiceName != "" {
-		prefix = "/" + fileProps.ServiceName
-	}
-	if fileProps.Resource != "" {
-		prefix += fileProps.Resource
-	}
-
 	valueMaker := xs.CreateValueResolver()
 
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
 			// register route
-			router.Method(method, prefix+resName, createOpenAPIResponseHandler(prefix, doc, valueMaker, router.Config))
+			router.Method(method,
+				fileProps.Prefix+resName, createOpenAPIResponseHandler(
+					fileProps.Prefix, doc, valueMaker, router.Config))
 
 			res = append(res, &RouteDescription{
 				Method: method,

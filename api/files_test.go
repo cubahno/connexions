@@ -14,9 +14,8 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 		assert.Equal(t, &FileProperties{
 			ServiceName: "index",
+			Prefix:      "/index",
 			IsOpenAPI:   true,
-			Method:      "",
-			Resource:    "",
 			FilePath:    filePath,
 			FileName:    "index.yml",
 			Extension:   ".yml",
@@ -31,8 +30,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		assert.Equal(t, &FileProperties{
 			ServiceName: "nice",
 			IsOpenAPI:   true,
-			Method:      "",
-			Resource:    "/dice/rice",
+			Prefix:      "/nice/dice/rice",
 			FilePath:    filePath,
 			FileName:    "index.yml",
 			Extension:   ".yml",
@@ -46,8 +44,9 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 		assert.Equal(t, &FileProperties{
 			ServiceName: "users",
+			Prefix:      "/users",
+			Resource:    "/",
 			Method:      http.MethodGet,
-			Resource:    "",
 			FilePath:    filePath,
 			FileName:    "index.json",
 			Extension:   ".json",
@@ -62,6 +61,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		assert.Equal(t, &FileProperties{
 			ServiceName: "users",
 			Method:      http.MethodGet,
+			Prefix:      "/users",
 			Resource:    "/index.html",
 			FilePath:    filePath,
 			FileName:    "index.html",
@@ -77,6 +77,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		assert.Equal(t, &FileProperties{
 			ServiceName: "users",
 			Method:      http.MethodGet,
+			Prefix:      "/users",
 			Resource:    "/all/index.xml",
 			FilePath:    filePath,
 			FileName:    "index.xml",

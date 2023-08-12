@@ -4,38 +4,30 @@ import (
 	"fmt"
 	"github.com/cubahno/xs"
 	"net/http"
-	"strings"
 )
 
 func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
+	res := []*RouteDescription{
+		{
+			Method: fileProps.Method,
+			Path:   fileProps.Resource,
+			Type:   "overwrite",
+			File:   fileProps,
+		},
+	}
+
 	baseResource := fileProps.Resource
-	if fileProps.ServiceName != "" {
-		baseResource = "/" + fileProps.ServiceName + baseResource
-	}
-
 	resources := []string{baseResource}
-	res := make([]*RouteDescription, 0)
-
-	var indexName string
 	if fileProps.FileName == "index.json" {
-		indexName = strings.Replace(baseResource, "/"+fileProps.FileName, "", 1)
-		resources = append(resources, indexName)
-		resources = append(resources, indexName+"/")
+		// add trailing slash and direct access to index.json
+		resources = append(resources, baseResource+"/")
+		resources = append(resources, baseResource+"/index.json")
 	}
 
-	if indexName == "" {
-		indexName = baseResource
-	}
-	res = append(res, &RouteDescription{
-		Method: fileProps.Method,
-		Path:   indexName,
-		Type:   "overwrite",
-		File:   fileProps,
-	})
-
+	// register all routes
 	for _, resource := range resources {
 		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, router.Config))
 	}

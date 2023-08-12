@@ -21,6 +21,7 @@ type FileProperties struct {
 	ServiceName string
 	IsOpenAPI   bool
 	Method      string
+	Prefix      string
 	Resource    string
 	FilePath    string
 	FileName    string
@@ -86,18 +87,20 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 
 	if serviceName == ".openapi" {
 		serviceName = strings.TrimSuffix(fileName, ext)
+		prefix := "/" + serviceName
 		parts = parts[1:]
 
 		if len(parts) > 1 {
+			// if dirs are present, service name is the first dir
 			serviceName = parts[0]
-			resource = "/" + strings.Join(parts[1:], "/")
-			resource = strings.TrimSuffix(resource, "/"+fileName)
-			resource = strings.TrimSuffix(resource, "/")
+			prefix = "/" + strings.Join(parts, "/")
+			prefix = strings.TrimSuffix(prefix, "/"+fileName)
+			prefix = strings.TrimSuffix(prefix, "/")
 		}
 		return &FileProperties{
 			ServiceName: serviceName,
+			Prefix:      prefix,
 			IsOpenAPI:   true,
-			Resource:    resource,
 			FilePath:    filePath,
 			FileName:    fileName,
 			Extension:   ext,
@@ -106,24 +109,31 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	}
 
 	method := http.MethodGet
+	prefix := ""
 
 	if len(parts) == 1 {
 		serviceName = ""
 		resource = fmt.Sprintf("/%s", parts[0])
 	} else {
+		prefix = "/" + serviceName
 		method_ := strings.ToUpper(parts[1])
 		if xs.IsValidHTTPVerb(method_) {
 			method = method_
-			parts = parts[1:]
+			parts = xs.SliceDeleteAtIndex[string](parts, 1)
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
 	}
+
 	if fileName == "index.json" {
 		resource = strings.TrimSuffix(resource, "/"+fileName)
+	}
+	if resource == "" {
+		resource = "/"
 	}
 
 	return &FileProperties{
 		ServiceName: serviceName,
+		Prefix:      prefix,
 		Method:      method,
 		Resource:    resource,
 		FilePath:    filePath,
