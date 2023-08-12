@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,7 @@ func CreateServiceRoutes(router *Router) error {
 	router.Get("/services/{name}", handler.home)
 	router.Get("/services/{name}/spec", handler.spec)
 	router.Post("/services/{name}", handler.generate)
+	router.Delete("/services/{name}", handler.delete)
 
 	return nil
 }
@@ -297,6 +299,31 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	NewJSONResponse(http.StatusOK, res, w)
 }
 
+func (h *ServiceHandler) delete(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	name := chi.URLParam(r, "name")
+	if name == RootServiceName {
+		name = ""
+	}
+
+	service := h.router.Services[name]
+	if service == nil {
+		h.error(404, "Service not found", w)
+		return
+	}
+
+	if err := deleteService(service); err != nil {
+		h.error(500, err.Error(), w)
+		return
+	}
+
+	delete(h.router.Services, name)
+
+	h.success(fmt.Sprintf("Service %s deleted!", name), w)
+}
+
 func saveService(payload *ServicePayload) (*FileProperties, error) {
 	uploadedFile := payload.File
 	service := payload.Name
@@ -363,4 +390,32 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 
 	fileProps := GetPropertiesFromFilePath(filePath)
 	return fileProps, nil
+}
+
+
+func deleteService(service *ServiceItem) error {
+	var targets []string
+
+	name := service.Name
+	if name == "" && service.Spec == nil {
+		targets = append(targets, xs.ServicePath + "/.root")
+	}
+
+	if service.Spec != nil {
+		targets = append(targets, service.File.FilePath)
+	} else {
+		// we have multiple routes for non-api services
+		for _, route := range service.Routes {
+			targets = append(targets, route.File.FilePath)
+		}
+	}
+
+	for _, targetDir := range targets {
+		err := os.RemoveAll(targetDir)
+		if err != nil {
+			return err
+		}
+	}
+
+	return RemoveEmptyDirs(xs.ServicePath)
 }

@@ -68,8 +68,25 @@ const showServices = () => {
                     swaggerLink = `<a href="#/services/${name}/ui"><img class="swagger-icon" src="/ui/icons/swagger.svg"></a>`;
                 }
                 swaggerCell.innerHTML = swaggerLink;
-
                 row.appendChild(swaggerCell);
+
+                const rmCell = document.createElement('td');
+                rmCell.innerHTML = `✖`;
+                rmCell.className = 'remove-service';
+                rmCell.title = `Remove service ${name}`;
+                rmCell.onclick = () => {
+                    if (confirm(`Are you sure you want to remove service ${name}?\nAll files will be deleted!`)) {
+                        fetch(`${url}/services/${name}`, {
+                            method: 'DELETE'
+                        })
+                            .then(getResponseJson)
+                            .then(res => {
+                                showSuccessOrError(res.message, res.success)
+                                showServices();
+                            });
+                    }
+                }
+                row.appendChild(rmCell);
 
                 serviceTable.appendChild(row);
                 i += 1;
@@ -236,11 +253,17 @@ async function uploadServiceFile() {
         path = document.getElementById('endpoint-path').value.trim();
     }
     const response = getCodeEditor(`selected-text-response`, `json`).getValue();
-    console.log(`response: ${response}`);
+
+    const contentMap = {
+        markdown: `md`,
+        text: `txt`,
+    }
+    const ctValue = responseContentTypeEl.value;
+    const contentType = contentMap.hasOwnProperty(ctValue) ? contentMap[ctValue] : ctValue;
 
     formData.append("file", fileUploadBtn.files[0]);
     formData.append("response", response);
-    formData.append("contentType", responseContentTypeEl.value);
+    formData.append("contentType", contentType);
     formData.append("method", method);
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
@@ -342,6 +365,14 @@ const showResponseEditForm = () => {
     const editor = getCodeEditor(`selected-text-response`, `json`);
     editor.setValue(``);
     editor.clearSelection();
+
+    document.getElementById('response-content-type').addEventListener(`change`, el => {
+        const value = el.target.value;
+        console.log(value);
+        editor.setOptions({
+            mode: `ace/mode/${value}`,
+        })
+    })
 
     responseEditContainer.style.display = 'block';
 }
@@ -510,6 +541,7 @@ const onLoad = () => {
         if (file) {
             // Display the filename in the element
             selectedFilenameElement.textContent = file.name;
+            getCodeEditor(`selected-text-response`, `yaml`).setValue(``);
         }
     });
 }

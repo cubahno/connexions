@@ -10,27 +10,9 @@ import (
 	"time"
 )
 
-func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWriter) bool {
-	svcConfig := config.GetServiceConfig(service)
-	if svcConfig.Latency > 0 {
-		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)
-
-		select {
-		case <-time.After(svcConfig.Latency):
-		}
-	}
-
-	err := svcConfig.Errors.GetError()
-	if err != 0 {
-		NewResponse(err, []byte("Random config error"), w)
-		return true
-	}
-
-	return false
-}
-
 func LoadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
+	var mu sync.Mutex
 
 	openAPIFiles := make([]*FileProperties, 0)
 	overwriteFiles := make([]*FileProperties, 0)
@@ -65,6 +47,9 @@ func LoadServices(router *Router) error {
 
 		go func(props *FileProperties) {
 			defer wg.Done()
+			mu.Lock()
+			defer mu.Unlock()
+
 			rs, err := RegisterOverwriteService(props, router)
 			if err != nil {
 				println(err.Error())
@@ -88,6 +73,9 @@ func LoadServices(router *Router) error {
 
 		go func(props *FileProperties) {
 			defer wg.Done()
+
+			mu.Lock()
+			defer mu.Unlock()
 
 			spec, rs, err := RegisterOpenAPIService(props, router)
 			if err != nil {
@@ -117,4 +105,23 @@ func LoadServices(router *Router) error {
 	router.Services = services
 
 	return err
+}
+
+func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWriter) bool {
+	svcConfig := config.GetServiceConfig(service)
+	if svcConfig.Latency > 0 {
+		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)
+
+		select {
+		case <-time.After(svcConfig.Latency):
+		}
+	}
+
+	err := svcConfig.Errors.GetError()
+	if err != 0 {
+		NewResponse(err, []byte("Random config error"), w)
+		return true
+	}
+
+	return false
 }

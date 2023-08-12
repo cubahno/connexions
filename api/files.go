@@ -248,3 +248,46 @@ func IsYamlType(content []byte) bool {
 	}
 	return false
 }
+
+func RemoveEmptyDirs(rootPath string) error {
+	return filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() && path != rootPath {
+			isEmpty, err := IsEmptyDir(path)
+			if err != nil {
+				return err
+			}
+
+			if isEmpty {
+				fmt.Printf("Removing empty directory: %s\n", path)
+				if err := os.Remove(path); err != nil {
+					return err
+				}
+				parentDir := filepath.Dir(path)
+				return RemoveEmptyDirs(parentDir)
+			}
+		}
+
+		return nil
+	})
+}
+
+func IsEmptyDir(name string) (bool, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	// read in ONLY one file
+	_, err = f.Readdir(1)
+
+	// and if the file is EOF... well, the dir is empty.
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
+}
