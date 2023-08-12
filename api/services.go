@@ -298,6 +298,10 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 		return nil, ErrInvalidURLResource
 	}
 
+	if service == "" && path == "" {
+		return nil, ErrInvalidURLResource
+	}
+
 	ext := ""
 	if uploadedFile != nil {
 		ext = uploadedFile.Extension
