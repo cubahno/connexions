@@ -236,7 +236,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		res["request"] = xs.NewRequestFromFileProperties(
-			fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
+			prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
 		res["response"] = xs.NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
 		NewJSONResponse(http.StatusOK, res, w)
 		return
@@ -295,7 +295,7 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 		}
 	}
 
-	filePath := composeFileSavePath(service, method, path, ext, payload.IsOpenAPI)
+	filePath := ComposeFileSavePath(service, method, path, ext, payload.IsOpenAPI)
 
 	if payload.IsOpenAPI && len(content) == 0 {
 		return nil, ErrOpenAPISpecIsEmpty
@@ -320,43 +320,4 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 
 	fileProps := GetPropertiesFromFilePath(filePath)
 	return fileProps, nil
-}
-
-func composeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
-	res := xs.ServicePath
-	if isOpenAPI {
-		res += "/.openapi"
-	}
-
-	if service != "" {
-		res += "/" + service
-	}
-
-	if method == "" {
-		method = "get"
-	}
-
-	if !isOpenAPI {
-		res += "/" + strings.ToLower(method)
-	}
-
-	res += "/" + strings.Trim(resource, "/")
-	res = strings.TrimSuffix(res, "/")
-
-	if !isOpenAPI {
-		pathExt := filepath.Ext(res)
-		if pathExt == "" {
-			res += "/index" + ext
-			if ext == "" {
-				res += ".json"
-			}
-		}
-	} else {
-		if service == "" && resource == "" {
-			res += "/index"
-		}
-		res += ext
-	}
-
-	return res
 }

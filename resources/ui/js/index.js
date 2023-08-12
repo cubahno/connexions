@@ -43,7 +43,7 @@ const showServices = () => {
             const services = data['items'];
 
             let i = 0;
-            for (const { name, isOpenApi } of services) {
+            for (let { name, isOpenApi } of services) {
                 const num = i + 1;
                 const row = document.createElement('tr');
                 row.id = `service-${name}`;
@@ -52,6 +52,9 @@ const showServices = () => {
                 cell1.textContent = `${num}`;
                 row.appendChild(cell1);
 
+                if (name === ``) {
+                    name = `.Root`
+                }
                 const svcNameCell = document.createElement('td');
                 svcNameCell.innerHTML = `<a href="#/services/${name}">${name}</a>`;
                 row.appendChild(svcNameCell);
@@ -177,7 +180,7 @@ const loadResource = (service, path, method, isOpenApi) => {
                 document.getElementById('request-path-container').style.display = 'block';
             }
 
-            if (method === 'get') {
+            if (method.toLowerCase() === 'get') {
                 document.getElementById('request-body-container').style.display = 'none';
             } else {
                 document.getElementById('request-body').textContent = JSON.stringify(payload["request"]["body"], null, 2);

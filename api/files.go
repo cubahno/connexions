@@ -77,45 +77,99 @@ func GetRequestFile(r *http.Request, name string) (*UploadedFile, error) {
 func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
-	isOpenAPI := false
+	contentType := mime.TypeByExtension(ext)
+	resource := ""
 
 	s := strings.TrimPrefix(strings.Replace(filePath, xs.ServicePath, "", 1), "/")
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
+
 	if serviceName == ".openapi" {
-		isOpenAPI = true
-		if len(parts) > 1 {
-			parts = parts[1:]
-			// serviceName = parts[0]
-		}
 		serviceName = strings.TrimSuffix(fileName, ext)
+		parts = parts[1:]
+
+		if len(parts) > 1 {
+			serviceName = parts[0]
+			resource = "/" + strings.Join(parts[1:], "/")
+			resource = strings.TrimSuffix(resource, "/"+fileName)
+			resource = strings.TrimSuffix(resource, "/")
+		}
+		return &FileProperties{
+			ServiceName: serviceName,
+			IsOpenAPI:   true,
+			Resource:    resource,
+			FilePath:    filePath,
+			FileName:    fileName,
+			Extension:   ext,
+			ContentType: contentType,
+		}
 	}
 
 	method := http.MethodGet
-	resource := ""
 
 	if len(parts) == 1 {
+		serviceName = ""
 		resource = fmt.Sprintf("/%s", parts[0])
-	}
-
-	if len(parts) > 1 {
+	} else {
 		method_ := strings.ToUpper(parts[1])
 		if xs.IsValidHTTPVerb(method_) {
 			method = method_
+			parts = parts[1:]
 		}
-		resource = fmt.Sprintf("/%s/%s", serviceName, strings.Join(parts[2:], "/"))
+		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
+	}
+	if fileName == "index.json" {
+		resource = strings.TrimSuffix(resource, "/"+fileName)
 	}
 
 	return &FileProperties{
 		ServiceName: serviceName,
-		IsOpenAPI:   isOpenAPI,
 		Method:      method,
 		Resource:    resource,
 		FilePath:    filePath,
 		FileName:    fileName,
 		Extension:   ext,
-		ContentType: mime.TypeByExtension(ext),
+		ContentType: contentType,
 	}
+}
+
+func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
+	res := xs.ServicePath
+	if isOpenAPI {
+		res += "/.openapi"
+	}
+
+	if service != "" {
+		res += "/" + service
+	}
+
+	if method == "" {
+		method = "get"
+	}
+
+	if !isOpenAPI {
+		res += "/" + strings.ToLower(method)
+	}
+
+	res += "/" + strings.Trim(resource, "/")
+	res = strings.TrimSuffix(res, "/")
+
+	if !isOpenAPI {
+		pathExt := filepath.Ext(res)
+		if pathExt == "" {
+			res += "/index" + ext
+			if ext == "" {
+				res += ".json"
+			}
+		}
+	} else {
+		if service == "" && resource == "" {
+			res += "/index"
+		}
+		res += ext
+	}
+
+	return res
 }
 
 func CopyFile(srcPath, destPath string) error {

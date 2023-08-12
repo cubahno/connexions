@@ -11,18 +11,23 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
-	resources := []string{fileProps.Resource}
+	baseResource := fileProps.Resource
+	if fileProps.ServiceName != "" {
+		baseResource = "/" + fileProps.ServiceName + baseResource
+	}
+
+	resources := []string{baseResource}
 	res := make([]*RouteDescription, 0)
 
 	var indexName string
-	if fileProps.FileName == "index"+fileProps.Extension && fileProps.Extension == ".html" || fileProps.Extension == ".json" {
-		indexName = strings.Replace(fileProps.Resource, "/index"+fileProps.Extension, "", 1)
+	if fileProps.FileName == "index.json" {
+		indexName = strings.Replace(baseResource, "/"+fileProps.FileName, "", 1)
 		resources = append(resources, indexName)
 		resources = append(resources, indexName+"/")
 	}
 
 	if indexName == "" {
-		indexName = fileProps.Resource
+		indexName = baseResource
 	}
 	res = append(res, &RouteDescription{
 		Method: fileProps.Method,

@@ -159,17 +159,15 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueResolver, p
 }
 
 func GenerateURLFromFileProperties(path string, valueResolver ContentResolver) string {
-	parts := strings.Split(path, "/")
-	for i, part := range parts {
-		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
-			placeholder := part[1 : len(part)-1]
-			res := valueResolver("", (&ResolveState{}).WithName(placeholder).WithURLParam())
-			if res != nil {
-				parts[i] = fmt.Sprintf("%v", res)
-			}
+	placeHolders := ExtractPlaceholders(path)
+	for _, placeholder := range placeHolders {
+		name := placeholder[1 : len(placeholder)-1]
+		res := valueResolver("", (&ResolveState{}).WithName(name).WithURLParam())
+		if res != nil {
+			path = strings.Replace(path, placeholder, fmt.Sprintf("%v", res), -1)
 		}
 	}
-	return strings.Join(parts, "/")
+	return path
 }
 
 func GenerateQuery(valueMaker ValueResolver, params openapi3.Parameters) string {

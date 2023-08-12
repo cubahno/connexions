@@ -31,6 +31,9 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi
 	if fileProps.ServiceName != "" {
 		prefix = "/" + fileProps.ServiceName
 	}
+	if fileProps.Resource != "" {
+		prefix += fileProps.Resource
+	}
 
 	valueMaker := xs.CreateValueResolver()
 
