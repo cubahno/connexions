@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 )
 
 const RootServiceName = "--"
@@ -66,6 +67,7 @@ type ServiceHomeResponse struct {
 type ServiceHandler struct {
 	*BaseHandler
 	router *Router
+	mu    sync.Mutex
 }
 
 func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -92,6 +94,9 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := r.ParseMultipartForm(256 * 1024 * 1024) // Limit form size to 256 MB
 	if err != nil {
 		h.error(http.StatusBadRequest, err.Error(), w)
@@ -132,11 +137,21 @@ func (h *ServiceHandler) create(w http.ResponseWriter, r *http.Request) {
 		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
-	h.router.Services[fileProps.ServiceName] = &ServiceItem{
-		Name:   fileProps.ServiceName,
-		Routes: routes,
-		Spec:   doc,
-		File:   fileProps,
+
+	service, ok := h.router.Services[fileProps.ServiceName]
+	if !ok {
+		service = &ServiceItem{
+			Name:   fileProps.ServiceName,
+			Routes: routes,
+			Spec:   doc,
+			File:   fileProps,
+		}
+		h.router.Services[fileProps.ServiceName] = service
+	} else {
+		h.router.Services[fileProps.ServiceName].Routes = append(h.router.Services[fileProps.ServiceName].Routes, routes...)
+		if doc != nil {
+			h.router.Services[fileProps.ServiceName].Spec = doc
+		}
 	}
 
 	h.success("Service created", w)
