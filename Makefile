@@ -34,10 +34,12 @@ docker-build:
 		--tag $(IMAGE_NAME):latest \
 		--tag $(IMAGE_NAME):$(VERSION)
 
+.PHONY: docker-push
 docker-push:
 	@docker push $(IMAGE_NAME):$(VERSION)
 	@docker push $(IMAGE_NAME):latest
 
+.PHONY: docker-run
 docker-run:
 	@docker run -it --rm \
 		-p 2200:2200 \
