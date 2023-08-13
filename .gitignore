@@ -1,6 +1,7 @@
 .idea
 *.iml
 .data
+.build
 .testCoverage.txt
 resources/services/
 !resources/services/.gitkeep

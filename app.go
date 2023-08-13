@@ -19,6 +19,7 @@ type App struct {
 
 func NewApp() *App {
     res := &App{}
+    log.Printf("Initing Application. ResourcePath is: %v\n", ResourcePath)
 
     r := chi.NewRouter()
     r.Use(middleware.RequestID)

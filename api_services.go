@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ func CreateServiceRoutes(router *Router) error {
 
 	url := router.Config.App.ServiceURL
 	url = "/" + strings.Trim(url, "/")
+	log.Printf("Mounting service URLs at %s\n", url)
 
 	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)
