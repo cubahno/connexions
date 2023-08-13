@@ -23,4 +23,4 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           VERSION=${{ steps.extract_tag.outputs.TAG_NAME }} make docker-build
-          VERSION=:${{ steps.extract_tag.outputs.TAG_NAME }} make docker-push
+          VERSION=${{ steps.extract_tag.outputs.TAG_NAME }} make docker-push
