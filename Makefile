@@ -28,6 +28,7 @@ build: clean
 	cp -r ./resources/* ${build_dir}/server/resources/
 	cp ./resources/config.yml.dist ${build_dir}/server/resources/config.yml
 
+.PHONY: docker-build
 docker-build:
 	@docker build . \
 		--tag $(IMAGE_NAME):latest \
@@ -48,3 +49,12 @@ docker-shell:
 	@docker run -it --rm \
 		-v connexions:/app/resources \
 		$(IMAGE_NAME) bash
+
+@PHONY: tag-next
+tag-next:
+	@git fetch --tags
+	@TAG=$$(git describe --abbrev=0 --tags)
+	@NEXT_TAG=$$(echo $${TAG%.*}.$$(($${TAG##*.} + 1)))
+	@echo "Tagging and pushing $$NEXT_TAG"
+	@git tag $$NEXT_TAG
+	@git push origin $$NEXT_TAG
