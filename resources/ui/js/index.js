@@ -11,7 +11,6 @@ const fileUploadBtn = document.getElementById('fileupload');
 const settingsEditor = document.getElementById('settings-editor');
 const fixedServiceContainer = document.getElementById('fixed-service-container');
 const resourceRefreshBtn = document.getElementById('refresh');
-const responseEditContainer =  document.getElementById(`selected-text-response`);
 const responseContentTypeEl = document.getElementById(`response-content-type`);
 
 const resetContents = () => {
@@ -278,11 +277,15 @@ const editResourceLoad = (service, method, path) => {
     fetch(`${url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`)
         .then(res => res.json())
         .then(res => {
-            console.log(res);
             document.getElementById(`res-endpoint-path`).value = res.path;
             document.getElementById(`res-endpoint-method`).value = res.method;
             document.getElementById(`res-response-content-type`).value = res.contentType;
+
+            const mode = getEditorMode(res.contentType);
             editor.setValue(res.content);
+            editor.setOptions({
+                mode: `ace/mode/${mode}`,
+            })
             editor.clearSelection();
         });
 }
@@ -322,6 +325,7 @@ async function saveResource() {
     const response = getCodeEditor(`selected-text-response`, `json`).getValue();
 
     const contentMap = {
+        yml: `yaml`,
         markdown: `md`,
         text: `txt`,
     }
@@ -338,6 +342,15 @@ async function saveResource() {
     await updateResource(formData)
 }
 
+const getEditorMode = value => {
+    const contentMap = {
+        yml: `yaml`,
+        md: `markdown`,
+        txt: `text`,
+    }
+    return contentMap.hasOwnProperty(value) ? contentMap[value] : value;
+}
+
 async function updateResource() {
     let formData = new FormData();
 
@@ -346,6 +359,7 @@ async function updateResource() {
     const response = getCodeEditor(`res-selected-text-response`, `json`).getValue();
 
     const contentMap = {
+        yml: `yaml`,
         markdown: `md`,
         text: `txt`,
     }
@@ -393,7 +407,6 @@ const showError = text => {
 }
 
 const showSuccessOrError = (text, success) => {
-    console.log(text);
     showMessage(text, success ? 'success' : 'error')
 }
 
@@ -629,17 +642,6 @@ const onLoad = () => {
             getCodeEditor(`selected-text-response`, `yaml`).setValue(``);
         }
     });
-    //
-    // document.getElementById('overwrite-resource-edit').addEventListener('submit', event => {
-    //     event.preventDefault();
-    //     const formData = new FormData(event.target);
-    //     console.log(formData);
-    //     const formValues = {};
-    //     formData.forEach(function(value, key) {
-    //         formValues[key] = value;
-    //     });
-    //     console.log(formValues);
-    // })
 }
 
 window.addEventListener('hashchange', _ => {
