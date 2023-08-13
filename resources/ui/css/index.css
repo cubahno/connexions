@@ -392,3 +392,43 @@ a.service-settings-link {
     cursor: pointer;
     color: #850000;
 }
+
+.edit-resource{
+    font-size: 16px;
+    cursor: pointer;
+    color: #000085;
+}
+.edit-resource a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.resource-edit-table {
+
+}
+
+.resource-edit-table td {
+    font-size: 15px;
+    vertical-align: baseline;
+}
+
+.resource-edit-table td:nth-child(1) {
+    width: 33%;
+    text-align: left;
+    font-weight: 500;
+}
+.resource-edit-table td:nth-child(2) {
+    width: 60%;
+    text-align: left;
+}
+.resource-edit-table select {
+    border-radius: 4px;
+    padding: 6px;
+}
+.resource-edit-table input {
+    width: 100%;
+    padding: 6px 6px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border-radius: 4px;
+}

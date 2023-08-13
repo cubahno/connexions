@@ -10,17 +10,16 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
-	baseResource := fileProps.Prefix+fileProps.Resource
 	res := []*RouteDescription{
 		{
 			Method: fileProps.Method,
-			Path:   baseResource,
+			Path:   fileProps.Resource,
 			Type:   "overwrite",
 			File:   fileProps,
 		},
 	}
 
-
+	baseResource := fileProps.Prefix + fileProps.Resource
 	resources := []string{baseResource}
 	if fileProps.FileName == "index.json" {
 		// add trailing slash and direct access to index.json

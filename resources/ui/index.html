@@ -60,13 +60,64 @@
                         <th>Method</th>
                         <th>Path</th>
                         <th></th>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody id="fixed-service-table-body"></tbody>
                 </table>
             </div>
             <div class="service-resources-results-container">
-                <div id="generator-container">
+                <div id="resource-edit-container" style="display: none;">
+                    <form id="overwrite-resource-edit">
+                        <table class="resource-edit-table">
+                            <tr>
+                                <td>Path or prefix:</td>
+                                <td>
+                                    <input type="text" name="path" id="res-endpoint-path" value="">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Method:</td>
+                                <td>
+                                    <select name="method" id="res-endpoint-method">
+                                        <option value=""></option>
+                                        <option value="GET">GET</option>
+                                        <option value="POST">POST</option>
+                                        <option value="PUT">PUT</option>
+                                        <option value="PATCH">PATCH</option>
+                                        <option value="DELETE">DELETE</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Response:
+                                </td>
+                                <td>
+                                    <div>
+                                        Content-Type:
+                                        <select id="res-response-content-type">
+                                            <option value="json">json</option>
+                                            <option value="yaml">yaml</option>
+                                            <option value="xml">xml</option>
+                                            <option value="html">html</option>
+                                            <option value="text">text</option>
+                                            <option value="markdown">markdown</option>
+                                        </select>
+                                    </div>
+                                    <div style="width: 500px; height: 300px;margin-top: 20px;" id="res-selected-text-response">
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <button id="res-upload-button" onclick="updateResource();return false;" class="button blue-bg"> Save </button>
+                                </td>
+                            </tr>
+                        </table>
+                    </form>
+                </div>
+                <div id="generator-container" style="display: none;">
                     <div class="accordion">
                         <div class="accordion-header"><span class="accordion-icon">↪</span> Provide Replacements [Optional]</div>
                         <div class="accordion-content">
@@ -101,7 +152,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="resource-result" style="height: 300px;"></div>
             </div>
         </div>
@@ -170,7 +220,7 @@
                     </tr>
                     <tr>
                         <td colspan="2">
-                            <button id="upload-button" onclick="uploadServiceFile(); return false;" class="button blue-bg"> Save </button>
+                            <button id="upload-button" onclick="saveResource(); return false;" class="button blue-bg"> Save </button>
                         </td>
                     </tr>
                 </table>

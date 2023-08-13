@@ -119,11 +119,15 @@ const applySelection = (targetEl, selectionClassName) => {
 }
 
 const serviceHome = match => {
-    const service = match.params.name;
+    const {name, ix, action} = match.params;
+    const service = name;
+
     resetContents();
     const editor = getCodeEditor(`replacements2`, `json`);
     editor.setValue(`{\n\t\n}`);
     editor.clearSelection();
+
+    console.log(`service home ${service} ix=${ix} action=${action}`);
 
     fetch(`${url}/services/${service}`)
         .then(getResponseJson)
@@ -134,6 +138,8 @@ const serviceHome = match => {
             let name = service;
             if (name === `.root`) {
                 name = `Root level`
+            } else {
+                name = `/${name}`
             }
             contentTitleEl.innerHTML = `${name} resources`;
 
@@ -161,9 +167,20 @@ const serviceHome = match => {
                 row.appendChild(methodCell);
 
                 const pathCell = document.createElement('td');
-                pathCell.innerHTML = `${path}`;
+                pathCell.innerHTML = `<a href="#/services/${service}/${num}/result">${path}</a>`;
                 pathCell.className = `fixed-resource-path`;
                 row.appendChild(pathCell);
+
+                const editCell = document.createElement('td');
+                if (type === `overwrite`) {
+                    editCell.innerHTML =`<a href="#/services/${service}/${num}/edit">✎</a>`;
+                    editCell.className = 'edit-resource';
+                    editCell.title = `Edit resource ${method} ${path}`;
+                } else {
+                    editCell.innerHTML = `&nbsp`;
+                }
+
+                row.appendChild(editCell);
 
                 const rmCell = document.createElement('td');
                 if (type === `overwrite`) {
@@ -187,18 +204,22 @@ const serviceHome = match => {
                     rmCell.innerHTML = `&nbsp`;
                 }
 
-
                 row.appendChild(rmCell);
-
-                pathCell.onclick = () => {
-                    applySelection(`resource-${num}`, 'selected-resource');
-                    loadResource(service, path, method, type === `openapi`);
-                }
 
                 table.appendChild(row);
                 i += 1;
             }
             fixedServiceContainer.style.display = 'block';
+
+            // onLoad
+            if (ix !== undefined) {
+                applySelection(`resource-${ix}`, 'selected-resource');
+                if (action === `edit`) {
+                    editResourceLoad(service, endpoints[ix - 1].method, endpoints[ix - 1].path);
+                } else if (action === `result`) {
+                    loadResource(service, endpoints[ix - 1].path, endpoints[ix - 1].method, endpoints[ix - 1].type === `openapi`);
+                }
+            }
         });
 }
 
@@ -211,6 +232,7 @@ const loadResource = (service, path, method, isOpenApi) => {
         resourceRefreshBtn.style.display = 'block';
     }
     hideMessage();
+    document.getElementById(`resource-edit-container`).style.display = 'none';
 
     let replacements = fixAndValidateJSON(document.getElementById('replacements').value.trim());
     fetch(`${url}/services/${service}`, {
@@ -245,6 +267,26 @@ const loadResource = (service, path, method, isOpenApi) => {
         }).then(onDone);
 }
 
+const editResourceLoad = (service, method, path) => {
+    console.log(`editResource: ${method} /${service}${path}`);
+    const cont = document.getElementById('resource-edit-container');
+
+    document.getElementById(`generator-container`).style.display = 'none';
+    const editor = showResponseEditForm(`res-selected-text-response`, `res-response-content-type`);
+
+    cont.style.display = 'block';
+    fetch(`${url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`)
+        .then(res => res.json())
+        .then(res => {
+            console.log(res);
+            document.getElementById(`res-endpoint-path`).value = res.path;
+            document.getElementById(`res-endpoint-method`).value = res.method;
+            document.getElementById(`res-response-content-type`).value = res.contentType;
+            editor.setValue(res.content);
+            editor.clearSelection();
+        });
+}
+
 const serviceSwagger = match => {
     const service = match.params.name;
     applySelection(`service-${service}`, 'selected-service');
@@ -262,13 +304,13 @@ const uploadNewServices = () => {
     console.log(`add new service`);
     applySelection(`n/a`, 'selected-service');
     resetContents();
-    showResponseEditForm();
+    showResponseEditForm('selected-text-response', 'response-content-type');
     contentTitleEl.innerHTML = `Add new service to the list`;
 
     servicesUploadForm.style.display = 'block';
 }
 
-async function uploadServiceFile() {
+async function saveResource() {
     let formData = new FormData();
 
     const isOpenApi = document.querySelector('input[name="is_openapi"]:checked').value === '1';
@@ -293,6 +335,37 @@ async function uploadServiceFile() {
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
 
+    await updateResource(formData)
+}
+
+async function updateResource() {
+    let formData = new FormData();
+
+    const method = document.getElementById('res-endpoint-method').value.trim();
+    const path = document.getElementById('res-endpoint-path').value.trim();
+    const response = getCodeEditor(`res-selected-text-response`, `json`).getValue();
+
+    const contentMap = {
+        markdown: `md`,
+        text: `txt`,
+    }
+    const ctValue = responseContentTypeEl.value;
+    const contentType = contentMap.hasOwnProperty(ctValue) ? contentMap[ctValue] : ctValue;
+
+    formData.append("response", response);
+    formData.append("contentType", contentType);
+    formData.append("method", method);
+    formData.append("path", path);
+
+    await submitResourceSave(formData);
+    const hashParams = location.hash.split(`/`);
+    const service = hashParams[2];
+    const ix = hashParams[3];
+    console.log(`reloading service ${service} resources`);
+    serviceHome({params: {name: service, ix: ix, action: `edit`}});
+}
+
+async function submitResourceSave(formData) {
     messageCont.textContent = '';
     await fetch('/services', {
         method: "POST",
@@ -302,6 +375,7 @@ async function uploadServiceFile() {
 
         if (res.success) {
             showServices();
+
         }
     });
 }
@@ -322,7 +396,6 @@ const showSuccessOrError = (text, success) => {
     console.log(text);
     showMessage(text, success ? 'success' : 'error')
 }
-
 
 const showMessage = (text, alertType) => {
     messageCont.textContent = text;
@@ -383,23 +456,21 @@ const settingsRestore = () => {
     });
 }
 
-const showResponseEditForm = () => {
-    console.log(`response edit`);
+const showResponseEditForm = (editorId, typeId) => {
+    console.log(`response edit in ${editorId}`);
     applySelection(`n/a`, 'selected-service');
 
-    const editor = getCodeEditor(`selected-text-response`, `json`);
+    const editor = getCodeEditor(editorId, `json`);
     editor.setValue(``);
     editor.clearSelection();
 
-    document.getElementById('response-content-type').addEventListener(`change`, el => {
+    document.getElementById(typeId).addEventListener(`change`, el => {
         const value = el.target.value;
-        console.log(value);
         editor.setOptions({
             mode: `ace/mode/${value}`,
         })
     })
-
-    responseEditContainer.style.display = 'block';
+    return editor;
 }
 
 const getCodeEditor = (htmlID, mode) => {
@@ -523,23 +594,12 @@ const getResponseText = res => {
     return res.text()
 }
 
-const getResponseAuto = (async res => {
-    if (!res.ok) {
-        showError(res.statusText || 'Network response was not ok');
-        throw new Error('Network response was not ok');
-    }
-    const contentType = res.headers.get('Content-Type');
-    if (contentType && contentType.includes('application/json')) {
-        return [JSON.stringify(await res.json(), null, 2), `json`];
-    }
-    return [await res.text(), `text`];
-})
-
 const pageMap = new Map([
     ["#/settings", settingsEdit],
     ['#/services/upload', uploadNewServices],
     ['#/services/:name/ui', serviceSwagger],
     ['#/services/:name', serviceHome],
+    ['#/services/:name/:ix/:action', serviceHome],
     ['#/services', () => showServices],
 
 ]);
@@ -569,6 +629,17 @@ const onLoad = () => {
             getCodeEditor(`selected-text-response`, `yaml`).setValue(``);
         }
     });
+    //
+    // document.getElementById('overwrite-resource-edit').addEventListener('submit', event => {
+    //     event.preventDefault();
+    //     const formData = new FormData(event.target);
+    //     console.log(formData);
+    //     const formValues = {};
+    //     formData.forEach(function(value, key) {
+    //         formValues[key] = value;
+    //     });
+    //     console.log(formValues);
+    // })
 }
 
 window.addEventListener('hashchange', _ => {

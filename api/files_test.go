@@ -163,7 +163,7 @@ func TestComposeFileSavePath(t *testing.T) {
 			params: params{
 				resource: "/foo/bar",
 			},
-			expected: xs.ServicePath + "/get/foo/bar/index.txt",
+			expected: xs.ServicePath + "/foo/get/bar/index.txt",
 		},
 		{
 			params: params{

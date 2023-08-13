@@ -175,9 +175,15 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 		res += "/.openapi"
 	}
 
+	if service == "" && len(parts) > 1 {
+		service = parts[0]
+		parts = parts[1:]
+	}
+
 	if service != "" {
 		res += "/" + service
 	}
+
 	if service == "" && !isOpenAPI && len(parts) == 1 {
 		res += "/.root"
 	}
@@ -190,7 +196,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 		res += "/" + strings.ToLower(method)
 	}
 
-	res += "/" + strings.Trim(resource, "/")
+	res += "/" + strings.Join(parts, "/")
 	res = strings.TrimSuffix(res, "/")
 
 	if !isOpenAPI {
