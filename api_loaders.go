@@ -1,7 +1,6 @@
-package api
+package xs
 
 import (
-	"github.com/cubahno/xs"
 	"log"
 	"net/http"
 	"os"
@@ -18,7 +17,7 @@ func LoadServices(router *Router) error {
 	overwriteFiles := make([]*FileProperties, 0)
 	serviceRoutes := make(map[string][]*RouteDescription)
 
-	err := filepath.Walk(xs.ServicePath, func(filePath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(ServicePath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -106,7 +105,7 @@ func LoadServices(router *Router) error {
 	return err
 }
 
-func handleErrorAndLatency(service string, config *xs.Config, w http.ResponseWriter) bool {
+func handleErrorAndLatency(service string, config *Config, w http.ResponseWriter) bool {
 	svcConfig := config.GetServiceConfig(service)
 	if svcConfig.Latency > 0 {
 		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)

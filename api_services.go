@@ -1,8 +1,7 @@
-package api
+package xs
 
 import (
 	"fmt"
-	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -185,7 +184,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	if name == xs.RootServiceName {
+	if name == RootServiceName {
 		name = ""
 	}
 	service := h.router.Services[name]
@@ -227,7 +226,7 @@ func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	service := h.router.Services[name]
-	if name == xs.RootServiceName {
+	if name == RootServiceName {
 		name = ""
 	}
 
@@ -267,7 +266,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := chi.URLParam(r, "name")
-	if name == xs.RootServiceName {
+	if name == RootServiceName {
 		name = ""
 	}
 
@@ -278,8 +277,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO(igor): move valueResolver to router
-	valueResolver := xs.CreateValueResolver()
-	jsonResolver := xs.CreateJSONResolver()
+	valueResolver := CreateValueResolver()
+	jsonResolver := CreateJSONResolver()
 	res := map[string]any{}
 
 	var fileProps *FileProperties
@@ -296,9 +295,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !payload.IsOpenAPI {
-		res["request"] = xs.NewRequestFromFileProperties(
+		res["request"] = NewRequestFromFileProperties(
 			fileProps.Prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
-		res["response"] = xs.NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
+		res["response"] = NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
 		NewJSONResponse(http.StatusOK, res, w)
 		return
 	}
@@ -325,9 +324,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 	}
 
-	res["request"] = xs.NewRequestFromOperation(
+	res["request"] = NewRequestFromOperation(
 		fileProps.Prefix, payload.Resource, payload.Method, operation, valueResolver)
-	res["response"] = xs.NewResponseFromOperation(operation, valueResolver)
+	res["response"] = NewResponseFromOperation(operation, valueResolver)
 
 	NewJSONResponse(http.StatusOK, res, w)
 }
@@ -337,7 +336,7 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == xs.RootServiceName {
+	if name == RootServiceName {
 		name = ""
 	}
 
@@ -362,7 +361,7 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == xs.RootServiceName {
+	if name == RootServiceName {
 		name = ""
 	}
 
@@ -373,7 +372,7 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	method := chi.URLParam(r, "method")
-	if method == "" || !xs.IsValidHTTPVerb(method) {
+	if method == "" || !IsValidHTTPVerb(method) {
 		h.error(400, "Invalid method", w)
 		return
 	}
@@ -422,7 +421,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == xs.RootServiceName {
+	if name == RootServiceName {
 		name = ""
 	}
 
@@ -433,7 +432,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	}
 
 	method := chi.URLParam(r, "method")
-	if method == "" || !xs.IsValidHTTPVerb(method) {
+	if method == "" || !IsValidHTTPVerb(method) {
 		h.error(400, "Invalid method", w)
 		return
 	}
@@ -451,7 +450,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 				h.error(500, err.Error(), w)
 				return
 			}
-			service.Routes = xs.SliceDeleteAtIndex[*RouteDescription](service.Routes, i)
+			service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, i)
 			break
 		}
 	}
@@ -467,14 +466,14 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 	method := strings.ToUpper(payload.Method)
 	path := "/" + strings.Trim(payload.Path, "/")
 
-	if method != "" && !xs.IsValidHTTPVerb(method) {
+	if method != "" && !IsValidHTTPVerb(method) {
 		return nil, ErrInvalidHTTPVerb
 	}
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	if !xs.IsValidURLResource(path) {
+	if !IsValidURLResource(path) {
 		return nil, ErrInvalidURLResource
 	}
 
@@ -538,8 +537,8 @@ func deleteService(service *ServiceItem) error {
 
 	name := service.Name
 	if name == "" {
-		targets = append(targets, xs.ServiceOpenAPIPath)
-		targets = append(targets, xs.ServiceRootPath)
+		targets = append(targets, ServiceOpenAPIPath)
+		targets = append(targets, ServiceRootPath)
 	}
 
 	for _, route := range service.Routes {

@@ -1,8 +1,8 @@
 package main
 
-import "github.com/cubahno/xs/app"
+import "github.com/cubahno/xs"
 
 func main() {
-	application := app.NewApp()
-	application.Run()
+	app := xs.NewApp()
+	app.Run()
 }

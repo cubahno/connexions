@@ -1,11 +1,10 @@
-package api
+package xs
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/cubahno/xs"
 	"gopkg.in/yaml.v3"
 	"io"
 	"mime"
@@ -81,11 +80,11 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	contentType := mime.TypeByExtension(ext)
 	resource := ""
 
-	s := strings.TrimPrefix(strings.Replace(filePath, xs.ServicePath, "", 1), "/")
+	s := strings.TrimPrefix(strings.Replace(filePath, ServicePath, "", 1), "/")
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
 
-	if serviceName == xs.RootOpenAPIName {
+	if serviceName == RootOpenAPIName {
 		parts = parts[1:]
 		serviceName = parts[0]
 		prefix := ""
@@ -116,13 +115,13 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	method := http.MethodGet
 	prefix := ""
 
-	if serviceName == xs.RootServiceName {
+	if serviceName == RootServiceName {
 		parts = parts[1:]
 		serviceName = parts[0]
 		prefix = ""
 
 		// root service
-		if xs.IsValidHTTPVerb(serviceName) {
+		if IsValidHTTPVerb(serviceName) {
 			method = strings.ToUpper(serviceName)
 			serviceName = ""
 			parts = parts[1:]
@@ -142,9 +141,9 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	} else {
 		serviceName = parts[0]
 		method_ := strings.ToUpper(parts[1])
-		if xs.IsValidHTTPVerb(method_) {
+		if IsValidHTTPVerb(method_) {
 			method = method_
-			parts = xs.SliceDeleteAtIndex[string](parts, 1)
+			parts = SliceDeleteAtIndex[string](parts, 1)
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
 		prefix = "/" + serviceName
@@ -176,7 +175,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 	resource = strings.Trim(resource, "/")
 	parts := strings.Split(resource, "/")
 
-	res := xs.ServicePath
+	res := ServicePath
 
 	if service == "" && len(parts) > 1 {
 		service = parts[0]
@@ -188,7 +187,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 	}
 
 	if service == "" && len(parts) == 1 {
-		res += "/" + xs.RootServiceName
+		res += "/" + RootServiceName
 	}
 
 	if method == "" {
@@ -214,7 +213,7 @@ func ComposeOpenAPISavePath(service, resource, ext string) string {
 	resource = strings.Trim(resource, "/")
 	parts := strings.Split(resource, "/")
 
-	res := xs.ServiceOpenAPIPath
+	res := ServiceOpenAPIPath
 
 	if service == "" && len(parts) > 0 {
 		service = parts[0]

@@ -1,9 +1,8 @@
-package api
+package xs
 
 import (
 	"fmt"
-	"github.com/cubahno/xs"
-	"net/http"
+    "net/http"
 )
 
 func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
@@ -35,7 +34,7 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 	}, nil
 }
 
-func createOverwriteResponseHandler(fileProps *FileProperties, config *xs.Config) http.HandlerFunc {
+func createOverwriteResponseHandler(fileProps *FileProperties, config *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if handled := handleErrorAndLatency(fileProps.ServiceName, config, w); handled {
 			return

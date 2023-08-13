@@ -1,8 +1,7 @@
-package api
+package xs
 
 import (
 	"fmt"
-	"github.com/cubahno/xs"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -26,7 +25,7 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi
 	}
 
 	res := make([]*RouteDescription, 0)
-	valueMaker := xs.CreateValueResolver()
+	valueMaker := CreateValueResolver()
 
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
@@ -48,7 +47,7 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi
 }
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
-func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.ValueResolver, config *xs.Config) http.HandlerFunc {
+func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker ValueResolver, config *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := chi.RouteContext(r.Context())
 		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
@@ -82,7 +81,7 @@ func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker xs.
 			return
 		}
 
-		response := xs.NewResponseFromOperation(operation, valueMaker)
+		response := NewResponseFromOperation(operation, valueMaker)
 
 		if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
 			return

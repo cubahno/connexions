@@ -1,8 +1,7 @@
-package api
+package xs
 
 import (
 	"fmt"
-	"github.com/cubahno/xs"
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"net/http"
@@ -24,7 +23,7 @@ func CreateHomeRoutes(router *Router) error {
 func createHomeHandler(router *Router) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//http.ServeFile(w, r, fmt.Sprintf("%s/index.html", xs.UIPath))
-		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", xs.UIPath)))
+		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", UIPath)))
 		config := router.Config.App
 		err := tmpl.Execute(w, config)
 		if err != nil {
@@ -40,7 +39,7 @@ func fileServer(url string, r chi.Router) {
 	r.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(xs.UIPath)))
+		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(UIPath)))
 		fs.ServeHTTP(w, r)
 	})
 }

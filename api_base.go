@@ -1,4 +1,4 @@
-package api
+package xs
 
 import (
 	"net/http"

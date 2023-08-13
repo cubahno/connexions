@@ -1,9 +1,7 @@
-package app
+package xs
 
 import (
     "fmt"
-    "github.com/cubahno/xs"
-    "github.com/cubahno/xs/api"
     "github.com/go-chi/chi/v5"
     "github.com/go-chi/chi/v5/middleware"
     "log"
@@ -14,8 +12,8 @@ import (
 )
 
 type App struct {
-    Router *api.Router
-    BluePrints []api.RouteRegister
+    Router *Router
+    BluePrints []RouteRegister
     mu sync.Mutex
 }
 
@@ -28,23 +26,23 @@ func NewApp() *App {
     r.Use(middleware.Recoverer)
     r.Use(middleware.Timeout(60 * time.Second))
 
-    config, err := xs.NewConfigFromFile()
+    config, err := NewConfigFromFile()
     if err != nil {
         log.Printf("Failed to load config file: %s\n", err.Error())
-        config = xs.NewDefaultConfig()
+        config = NewDefaultConfig()
     }
 
-    router := &api.Router{
+    router := &Router{
         Mux: r,
         Config: config,
     }
     res.Router = router
 
-    bluePrints := []api.RouteRegister{
-        api.CreateHomeRoutes,
-        api.LoadServices,
-        api.CreateServiceRoutes,
-        api.CreateSettingsRoutes,
+    bluePrints := []RouteRegister{
+        CreateHomeRoutes,
+        LoadServices,
+        CreateServiceRoutes,
+        CreateSettingsRoutes,
     }
     res.BluePrints = bluePrints
 
@@ -58,7 +56,7 @@ func NewApp() *App {
     return res
 }
 
-func (a *App) AddBluePrint(bluePrint api.RouteRegister) error {
+func (a *App) AddBluePrint(bluePrint RouteRegister) error {
     a.mu.Lock()
     defer a.mu.Unlock()
 
