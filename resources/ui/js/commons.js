@@ -57,3 +57,19 @@ export const getCodeEditorMode = value => {
     }
     return contentMap.hasOwnProperty(value) ? contentMap[value] : value;
 }
+
+export const getEditorForm = (editorId, typeId) => {
+    console.log(`response edit in ${editorId}`);
+
+    const editor = getCodeEditor(editorId, `json`);
+    editor.setValue(``);
+    editor.clearSelection();
+
+    document.getElementById(typeId).addEventListener(`change`, el => {
+        const value = el.target.value;
+        editor.setOptions({
+            mode: `ace/mode/${value}`,
+        })
+    })
+    return editor;
+}

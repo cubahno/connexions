@@ -1,4 +1,26 @@
 import * as commons from './commons.js';
+import * as navi from "./navi.js";
+import * as config from "./config.js";
+import * as services from "./services.js";
+
+
+export const editForm = () => {
+    console.log(`settings edit`);
+    navi.applySelection(`n/a`, 'selected-service');
+    navi.resetContents();
+    config.contentTitleEl.innerHTML = `Edit Settings`;
+
+    const editor = commons.getCodeEditor(`code-editor`, `yaml`);
+
+    fetch(`${config.url}/settings`)
+        .then(res => res.text())
+        .then(res => {
+            editor.setValue(res);
+            editor.clearSelection();
+        })
+
+    config.settingsEditor.style.display = 'block';
+}
 
 export const save = () => {
     const editor = commons.getCodeEditor(`code-editor`, `yaml`);
@@ -13,6 +35,19 @@ export const save = () => {
         body: yaml,
     }).then(res => res.json()).then(res => {
         commons.showSuccessOrError(res.message, res.success);
-        showServices();
+        services.show();
+    });
+}
+
+export const restore = () => {
+    fetch('/settings', {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+    }).then(res => res.json()).then(res => {
+        commons.showSuccessOrError(res.message, res.success);
+        services.show();
+        editForm();
     });
 }
