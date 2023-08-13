@@ -63,7 +63,7 @@ const showServices = () => {
 
                 const swaggerCell = document.createElement('td');
                 let swaggerLink = '&nbsp;';
-                if (isOpenApi) {
+                if (isOpenApi && name !==`/`) {
                     swaggerLink = `<a href="#/services/${name}/ui"><img class="swagger-icon" src="/ui/icons/swagger.svg"></a>`;
                 }
                 swaggerCell.innerHTML = swaggerLink;
