@@ -86,7 +86,6 @@ func LoadServices(router *Router) error {
 			services[props.ServiceName] = &ServiceItem{
 				Name: props.ServiceName,
 				Spec: spec,
-				File: props,
 			}
 
 			if _, ok := serviceRoutes[props.ServiceName]; !ok {

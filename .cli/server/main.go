@@ -42,7 +42,7 @@ func main() {
 		}
 	}
 
-	log.Print("Server started on port 2200. Press Ctrl+C to quit")
+	log.Print("\nServer started on port 2200. Press Ctrl+C to quit")
 	log.Print("Visit http://localhost:2200/ui to view the home page")
 
 	err = http.ListenAndServe(":2200", r)

@@ -169,13 +169,14 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 }
 
 func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
+	if isOpenAPI {
+		return ComposeOpenAPISavePath(service, resource, ext)
+	}
+
 	resource = strings.Trim(resource, "/")
 	parts := strings.Split(resource, "/")
 
 	res := xs.ServicePath
-	if isOpenAPI {
-		res += "/.openapi"
-	}
 
 	if service == "" && len(parts) > 1 {
 		service = parts[0]
@@ -186,7 +187,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 		res += "/" + service
 	}
 
-	if service == "" && !isOpenAPI && len(parts) == 1 {
+	if service == "" && len(parts) == 1 {
 		res += "/.root"
 	}
 
@@ -194,27 +195,44 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 		method = http.MethodGet
 	}
 
-	if !isOpenAPI {
-		res += "/" + strings.ToLower(method)
-	}
-
+	res += "/" + strings.ToLower(method)
 	res += "/" + strings.Join(parts, "/")
 	res = strings.TrimSuffix(res, "/")
 
-	if !isOpenAPI {
-		pathExt := filepath.Ext(res)
-		if pathExt == "" {
-			res += "/index" + ext
-			if ext == "" {
-				res += ".txt"
-			}
+	pathExt := filepath.Ext(res)
+	if pathExt == "" {
+		res += "/index" + ext
+		if ext == "" {
+			res += ".txt"
 		}
-	} else {
-		if service == "" && resource == "" {
-			res += "/index"
-		}
-		res += ext
 	}
+
+	return res
+}
+
+func ComposeOpenAPISavePath(service, resource, ext string) string {
+	resource = strings.Trim(resource, "/")
+	parts := strings.Split(resource, "/")
+
+	res := xs.ServicePath
+	res += "/.openapi"
+
+	if service == "" && len(parts) > 0 {
+		service = parts[0]
+		parts = parts[1:]
+	}
+
+	if service != "" {
+		res += "/" + service
+	}
+
+	resPart := "/" + strings.Join(parts, "/")
+	resPart = strings.TrimSuffix(resPart, "/")
+
+	if resPart == "" {
+		resPart = "/index"
+	}
+	res += resPart + ext
 
 	return res
 }
@@ -255,47 +273,4 @@ func IsYamlType(content []byte) bool {
 		return true
 	}
 	return false
-}
-
-func RemoveEmptyDirs(rootPath string) error {
-	return filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() && path != rootPath {
-			isEmpty, err := IsEmptyDir(path)
-			if err != nil {
-				return err
-			}
-
-			if isEmpty {
-				fmt.Printf("Removing empty directory: %s\n", path)
-				if err := os.Remove(path); err != nil {
-					return err
-				}
-				parentDir := filepath.Dir(path)
-				return RemoveEmptyDirs(parentDir)
-			}
-		}
-
-		return nil
-	})
-}
-
-func IsEmptyDir(name string) (bool, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return false, err
-	}
-	defer f.Close()
-
-	// read in ONLY one file
-	_, err = f.Readdir(1)
-
-	// and if the file is EOF... well, the dir is empty.
-	if err == io.EOF {
-		return true, nil
-	}
-	return false, err
 }

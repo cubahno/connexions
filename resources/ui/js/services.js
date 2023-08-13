@@ -94,10 +94,7 @@ export async function saveWithFile(event) {
 
     const isOpenApi = document.querySelector('input[name="is_openapi"]:checked').value === '1';
     const method = document.getElementById('endpoint-method').value.trim();
-    let path = '';
-    if (!isOpenApi) {
-        path = document.getElementById('endpoint-path').value.trim();
-    }
+    const path = document.getElementById('endpoint-path').value.trim();
     const response = commons.getCodeEditor(`selected-text-response`, `json`).getValue();
 
     const contentMap = {

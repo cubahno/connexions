@@ -152,7 +152,6 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 			Name:   fileProps.ServiceName,
 			Routes: routes,
 			Spec:   doc,
-			File:   fileProps,
 		}
 		h.router.Services[fileProps.ServiceName] = service
 	} else {
@@ -172,6 +171,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 		h.router.Services[fileProps.ServiceName].Routes = append(
 			h.router.Services[fileProps.ServiceName].Routes, addRoutes...)
+
 		if doc != nil {
 			h.router.Services[fileProps.ServiceName].Spec = doc
 		}
@@ -233,7 +233,15 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fileProps := service.File
+	// find first route with spec
+	var fileProps *FileProperties
+	for _, r := range service.Routes {
+		if r.File != nil && r.File.IsOpenAPI {
+			fileProps = r.File
+			break
+		}
+	}
+
 	if fileProps == nil {
 		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
 		return
@@ -271,20 +279,20 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	jsonResolver := xs.CreateJSONResolver()
 	res := map[string]any{}
 
+	var fileProps *FileProperties
+	for _, r := range service.Routes {
+		if r.Method == payload.Method && r.Path == payload.Resource {
+			fileProps = r.File
+			break
+		}
+	}
+
+	if fileProps == nil {
+		NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
+		return
+	}
+
 	if !payload.IsOpenAPI {
-		var fileProps *FileProperties
-		for _, r := range service.Routes {
-			if r.Method == payload.Method && r.Path == payload.Resource {
-				fileProps = r.File
-				break
-			}
-		}
-
-		if fileProps == nil {
-			NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
-			return
-		}
-
 		res["request"] = xs.NewRequestFromFileProperties(
 			fileProps.Prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
 		res["response"] = xs.NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
@@ -297,7 +305,10 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
 		return
 	}
-	fileProps := service.File
+
+	if !fileProps.IsOpenAPI {
+		h.error(500, "OpenAPI spec not found", w)
+	}
 
 	// handle openapi resource
 	pathItem := spec.Paths[payload.Resource]
@@ -441,7 +452,6 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 			break
 		}
 	}
-	_ = RemoveEmptyDirs(xs.ServicePath)
 
 	h.success(fmt.Sprintf("Resource %s deleted!", path), w)
 }
@@ -465,6 +475,7 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 		return nil, ErrInvalidURLResource
 	}
 
+	// TODO(igor): check if doesn't match ui route
 	if service == "" && path == "" {
 		return nil, ErrInvalidURLResource
 	}
@@ -479,7 +490,8 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 		content = uploadedFile.Content
 	}
 
-	if ext == "" && len(content) > 0 {
+	// ignore supplied extension and check whether its json / yaml type
+	if len(content) > 0 {
 		if IsJsonType(content) {
 			ext = ".json"
 		} else if IsYamlType(content) {
@@ -523,13 +535,8 @@ func deleteService(service *ServiceItem) error {
 		targets = append(targets, xs.ServicePath+"/.root")
 	}
 
-	if service.Spec != nil {
-		targets = append(targets, service.File.FilePath)
-	} else {
-		// we have multiple routes for non-api services
-		for _, route := range service.Routes {
-			targets = append(targets, route.File.FilePath)
-		}
+	for _, route := range service.Routes {
+		targets = append(targets, route.File.FilePath)
 	}
 
 	for _, targetDir := range targets {
@@ -539,5 +546,5 @@ func deleteService(service *ServiceItem) error {
 		}
 	}
 
-	return RemoveEmptyDirs(xs.ServicePath)
+	return nil
 }
