@@ -55,9 +55,4 @@ docker-shell:
 
 @PHONY: tag-next
 tag-next:
-	@git fetch --tags
-	@TAG=$$(git describe --abbrev=0 --tags)
-	@NEXT_TAG=$$(echo $${TAG%.*}.$$(($${TAG##*.} + 1)))
-	@echo "Tagging and pushing $$NEXT_TAG"
-	@git tag $$NEXT_TAG
-	@git push origin $$NEXT_TAG
+	@./.cli/tag-next.sh
