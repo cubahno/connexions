@@ -226,6 +226,6 @@ func TestComposeFileSavePath(t *testing.T) {
 
 	t.Run("openapi-with-prefix", func(t *testing.T) {
 		res := ComposeFileSavePath("", "", "petstore", ".yml", true)
-		assert.Equal(t, xs.ServicePath + "/.openapi/petstore/index.yml", res)
+		assert.Equal(t, xs.ServicePath+"/.openapi/petstore/index.yml", res)
 	})
 }

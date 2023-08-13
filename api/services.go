@@ -13,21 +13,21 @@ import (
 	"sync"
 )
 
-const RootServiceName = ".root"
-
 func CreateServiceRoutes(router *Router) error {
 	handler := &ServiceHandler{
 		router: router,
 	}
 
-	router.Get("/services", handler.list)
-	router.Post("/services", handler.save)
-	router.Get("/services/{name}", handler.home)
-	router.Get("/services/{name}/spec", handler.spec)
-	router.Post("/services/{name}", handler.generate)
-	router.Delete("/services/{name}", handler.deleteService)
-	router.Get("/services/{name}/resources/{method}", handler.getResource)
-	router.Delete("/services/{name}/resources/{method}", handler.deleteResource)
+	router.Route("/services", func(r chi.Router) {
+		r.Get("/", handler.list)
+		r.Post("/", handler.save)
+		r.Get("/{name}", handler.home)
+		r.Get("/{name}/spec", handler.spec)
+		r.Post("/{name}", handler.generate)
+		r.Delete("/{name}", handler.deleteService)
+		r.Get("/{name}/resources/{method}", handler.getResource)
+		r.Delete("/{name}/resources/{method}", handler.deleteResource)
+	})
 
 	return nil
 }
@@ -182,7 +182,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
+	if name == xs.RootServiceName {
 		name = ""
 	}
 	service := h.router.Services[name]
@@ -224,7 +224,7 @@ func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	service := h.router.Services[name]
-	if name == RootServiceName {
+	if name == xs.RootServiceName {
 		name = ""
 	}
 
@@ -264,7 +264,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
+	if name == xs.RootServiceName {
 		name = ""
 	}
 
@@ -334,7 +334,7 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
+	if name == xs.RootServiceName {
 		name = ""
 	}
 
@@ -359,7 +359,7 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
+	if name == xs.RootServiceName {
 		name = ""
 	}
 
@@ -419,7 +419,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
+	if name == xs.RootServiceName {
 		name = ""
 	}
 
@@ -531,8 +531,8 @@ func deleteService(service *ServiceItem) error {
 
 	name := service.Name
 	if name == "" {
-		targets = append(targets, xs.ServicePath+"/.openapi")
-		targets = append(targets, xs.ServicePath+"/.root")
+		targets = append(targets, xs.ServiceOpenAPIPath)
+		targets = append(targets, xs.ServiceRootPath)
 	}
 
 	for _, route := range service.Routes {

@@ -85,7 +85,7 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
 
-	if serviceName == ".openapi" {
+	if serviceName == xs.RootOpenAPIName {
 		parts = parts[1:]
 		serviceName = parts[0]
 		prefix := ""
@@ -116,7 +116,7 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 	method := http.MethodGet
 	prefix := ""
 
-	if serviceName == ".root" {
+	if serviceName == xs.RootServiceName {
 		parts = parts[1:]
 		serviceName = parts[0]
 		prefix = ""
@@ -188,7 +188,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 	}
 
 	if service == "" && len(parts) == 1 {
-		res += "/.root"
+		res += "/" + xs.RootServiceName
 	}
 
 	if method == "" {
@@ -214,8 +214,7 @@ func ComposeOpenAPISavePath(service, resource, ext string) string {
 	resource = strings.Trim(resource, "/")
 	parts := strings.Split(resource, "/")
 
-	res := xs.ServicePath
-	res += "/.openapi"
+	res := xs.ServiceOpenAPIPath
 
 	if service == "" && len(parts) > 0 {
 		service = parts[0]

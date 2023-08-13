@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"github.com/cubahno/xs"
 	"github.com/cubahno/xs/api"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -42,10 +44,13 @@ func main() {
 		}
 	}
 
-	log.Print("\nServer started on port 2200. Press Ctrl+C to quit")
-	log.Print("Visit http://localhost:2200/ui to view the home page")
+	port := config.App.Port
+	homeURL := strings.TrimPrefix(config.App.HomeURL, "/")
 
-	err = http.ListenAndServe(":2200", r)
+	log.Printf("\n\nServer started on port %d. Press Ctrl+C to quit", port)
+	log.Printf("Visit http://localhost:%d/%s to view the home page", port, homeURL)
+
+	err = http.ListenAndServe(fmt.Sprintf(":%v", port), r)
 	if err != nil {
 		panic(err)
 	}

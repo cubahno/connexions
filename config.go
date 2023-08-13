@@ -14,6 +14,7 @@ import (
 )
 
 type Config struct {
+	App      *AppConfig                `koanf:"app"`
 	Services map[string]*ServiceConfig `koanf:"services"`
 }
 
@@ -25,6 +26,17 @@ type ServiceConfig struct {
 type ServiceError struct {
 	Chance string         `koanf:"chance"`
 	Codes  map[int]string `koanf:"codes"`
+}
+
+const (
+	RootServiceName = ".root"
+	RootOpenAPIName = ".openapi"
+)
+
+type AppConfig struct {
+	Port 	int    `json:"port" koanf:"port"`
+	HomeURL    string `json:"homeUrl" koanf:"homeUrl"`
+	ServiceURL string `json:"serviceUrl" koanf:"serviceUrl"`
 }
 
 func (c *Config) GetServiceConfig(service string) *ServiceConfig {
