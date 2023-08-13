@@ -2,9 +2,12 @@
 <head>
     <title>Connexions</title>
     <script>
-        // Set the base URL as a global variable for other scripts to use
-        //window.baseUrl = window.location.href;
-        //console.log(`Base URL: ${baseUrl}`);
+        const appConfig = {
+            homeUrl: "{{.HomeURL}}",
+            serviceUrl: "{{.ServiceURL}}",
+            settingsUrl: "{{.SettingsURL}}"
+        }
+        console.log(appConfig)
     </script>
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
     <link type="text/css" rel="stylesheet" href="css/global.css"/>

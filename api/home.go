@@ -4,24 +4,34 @@ import (
 	"fmt"
 	"github.com/cubahno/xs"
 	"github.com/go-chi/chi/v5"
+	"html/template"
 	"net/http"
 	"strings"
 )
 
 func CreateHomeRoutes(router *Router) error {
 	homeURL := router.Config.App.HomeURL
-	url := "/"+strings.Trim(homeURL, "/") + "/"
+	url := "/" + strings.Trim(homeURL, "/") + "/"
 
 	homeRedirect := http.RedirectHandler(url, http.StatusMovedPermanently).ServeHTTP
 	router.Get(strings.TrimSuffix(url, "/"), homeRedirect)
 
-	router.Get(url, homeHandler)
+	router.Get(url, createHomeHandler(router))
 	fileServer(fmt.Sprintf("/%s/*", strings.Trim(url, "/")), router)
 	return nil
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, fmt.Sprintf("%s/index.html", xs.UIPath))
+func createHomeHandler(router *Router) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//http.ServeFile(w, r, fmt.Sprintf("%s/index.html", xs.UIPath))
+		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", xs.UIPath)))
+		config := router.Config.App
+		err := tmpl.Execute(w, config)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
 }
 
 // fileServer conveniently sets up a http.FileServer handler to serve

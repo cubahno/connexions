@@ -1,4 +1,6 @@
 export const url = window.location.origin;
+export const serviceUrl = `${url}${appConfig.serviceUrl}`;
+export const settingsUrl = `${url}${appConfig.settingsUrl}`;
 export const serviceTable = document.getElementById('service-table');
 export const generatorCont = document.getElementById('generator-container');
 export const serviceResourcesEl = document.getElementById('service-resources');

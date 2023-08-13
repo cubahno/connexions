@@ -3,9 +3,11 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/xs"
+	"github.com/go-chi/chi/v5"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type SettingsHandler struct {
@@ -15,9 +17,14 @@ type SettingsHandler struct {
 func CreateSettingsRoutes(router *Router) error {
 	handler := &SettingsHandler{}
 
-	router.Get("/settings", handler.get)
-	router.Put("/settings", handler.put)
-	router.Post("/settings", handler.post)
+	url := router.Config.App.SettingsURL
+	url = "/" + strings.Trim(url, "/")
+
+	router.Route(url, func(r chi.Router) {
+		r.Get("/", handler.get)
+		r.Put("/", handler.put)
+		r.Post("/", handler.post)
+	})
 
 	return nil
 }

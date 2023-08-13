@@ -105,6 +105,6 @@ export const resetContents = () => {
 
     document.getElementById('fixed-service-table-body').innerHTML = '';
     document.getElementById('resource-result').innerHTML = '';
-
+    document.getElementById('resource-edit-container').style.display = 'none';
     config.resourceRefreshBtn.style.display = 'none';
 }

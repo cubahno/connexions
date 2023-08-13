@@ -17,7 +17,7 @@ export const show = () => {
     config.serviceTable.innerHTML = '';
     console.log("loading service list");
 
-    fetch(`${config.url}/services`)
+    fetch(config.serviceUrl)
         .then(res => res.json())
         .then(data => {
             const services = data['items'];
@@ -55,7 +55,7 @@ export const show = () => {
                 rmCell.title = `Remove service ${name}`;
                 rmCell.onclick = () => {
                     if (confirm(`Are you sure you want to remove service ${name}?\nAll files will be deleted!`)) {
-                        fetch(`${config.url}/services/${nameLink}`, {
+                        fetch(`${config.serviceUrl}/${nameLink}`, {
                             method: 'DELETE'
                         })
                             .then(res => res.json())
@@ -137,7 +137,6 @@ export async function saveWithoutFile(event) {
     formData.append("path", path);
 
     await save(formData).then(res => {
-        console.log(res);
         if (res.success) {
             const hashParams = location.hash.split(`/`);
             const service = hashParams[2];
@@ -151,7 +150,7 @@ export async function saveWithoutFile(event) {
 
 async function save(formData) {
     config.messageCont.textContent = '';
-    return fetch('/services', {
+    return fetch(config.serviceUrl, {
         method: "POST",
         body: formData,
     }).then(res => res.json()).then(res => {

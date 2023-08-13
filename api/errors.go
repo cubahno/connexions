@@ -10,4 +10,5 @@ var (
 	ErrInvalidURLResource     = errors.New("invalid URL resource")
 	ErrCreatingDirectories    = errors.New("error creating directories")
 	ErrCreatingFile           = errors.New("error creating file")
+	ErrReservedPrefix         = errors.New("reserved prefix")
 )

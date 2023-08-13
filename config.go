@@ -34,9 +34,17 @@ const (
 )
 
 type AppConfig struct {
-	Port 	int    `json:"port" koanf:"port"`
-	HomeURL    string `json:"homeUrl" koanf:"homeUrl"`
-	ServiceURL string `json:"serviceUrl" koanf:"serviceUrl"`
+	Port        int    `json:"port" koanf:"port"`
+	HomeURL     string `json:"homeUrl" koanf:"homeUrl"`
+	ServiceURL  string `json:"serviceUrl" koanf:"serviceUrl"`
+	SettingsURL string `json:"settingsUrl" koanf:"settingsUrl"`
+}
+
+func (a *AppConfig) IsValidPrefix(prefix string) bool {
+	if prefix == a.HomeURL || prefix == a.ServiceURL || prefix == a.SettingsURL {
+		return false
+	}
+	return true
 }
 
 func (c *Config) GetServiceConfig(service string) *ServiceConfig {

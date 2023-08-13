@@ -14,7 +14,7 @@ const pageMap = new Map([
 
 ]);
 
-const onLoad = () => {
+async function onLoad() {
     navi.resetContents();
     services.show();
     navi.loadPage(pageMap);

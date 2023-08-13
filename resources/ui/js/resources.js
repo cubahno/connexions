@@ -15,7 +15,7 @@ export const show = match => {
 
     console.log(`service home ${service} ix=${ix} action=${action}`);
 
-    fetch(`${config.url}/services/${service}`)
+    fetch(`${config.serviceUrl}/${service}`)
         .then(res => res.json())
         .then(data => {
             navi.applySelection(`service-${service}`, 'selected-service');
@@ -76,7 +76,7 @@ export const show = match => {
                     rmCell.title = `Remove resource ${method} ${path}`;
                     rmCell.onclick = () => {
                         if (confirm(`Are you sure you want to remove resource ${method} ${path}?\nAll files will be deleted!`)) {
-                            fetch(`${config.url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`, {
+                            fetch(`${config.serviceUrl}/${service}/resources/${method.toLowerCase()}?path=${path}`, {
                                 method: 'DELETE'
                             })
                                 .then(res => res.json())
@@ -122,7 +122,7 @@ export const generateResult = (service, path, method, isOpenApi) => {
     document.getElementById(`resource-edit-container`).style.display = 'none';
 
     let replacements = validators.fixAndValidateJSON(document.getElementById('replacements').value.trim());
-    fetch(`${config.url}/services/${service}`, {
+    fetch(`${config.serviceUrl}/${service}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ const edit = (service, method, path) => {
     const editor = commons.getEditorForm(`res-selected-text-response`, `res-response-content-type`);
 
     cont.style.display = 'block';
-    fetch(`${config.url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`)
+    fetch(`${config.serviceUrl}/${service}/resources/${method.toLowerCase()}?path=${path}`)
         .then(res => res.json())
         .then(res => {
             document.getElementById(`res-endpoint-path`).value = res.path;

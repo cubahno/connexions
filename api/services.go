@@ -18,7 +18,10 @@ func CreateServiceRoutes(router *Router) error {
 		router: router,
 	}
 
-	router.Route("/services", func(r chi.Router) {
+	url := router.Config.App.ServiceURL
+	url = "/" + strings.Trim(url, "/")
+
+	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)
 		r.Post("/", handler.save)
 		r.Get("/{name}", handler.home)
@@ -126,7 +129,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		File:        uploadedFile,
 	}
 
-	fileProps, err := saveService(payload)
+	fileProps, err := saveService(payload, h.router.Config.App.IsValidPrefix)
 	if err != nil {
 		h.error(http.StatusBadRequest, err.Error(), w)
 		return
@@ -456,13 +459,13 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	h.success(fmt.Sprintf("Resource %s deleted!", path), w)
 }
 
-func saveService(payload *ServicePayload) (*FileProperties, error) {
+func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*FileProperties, error) {
 	uploadedFile := payload.File
 	service := payload.Name
 	content := payload.Response
 	contentType := payload.ContentType
 	method := strings.ToUpper(payload.Method)
-	path := payload.Path
+	path := "/" + strings.Trim(payload.Path, "/")
 
 	if method != "" && !xs.IsValidHTTPVerb(method) {
 		return nil, ErrInvalidHTTPVerb
@@ -505,6 +508,11 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
+	fileProps := GetPropertiesFromFilePath(filePath)
+	if !prefixValidator(fileProps.Prefix) || !prefixValidator(path) {
+		return nil, ErrReservedPrefix
+	}
+
 	dirPath := filepath.Dir(filePath)
 	// Create directories recursively
 	err := os.MkdirAll(dirPath, os.ModePerm)
@@ -522,7 +530,6 @@ func saveService(payload *ServicePayload) (*FileProperties, error) {
 		return nil, err
 	}
 
-	fileProps := GetPropertiesFromFilePath(filePath)
 	return fileProps, nil
 }
 

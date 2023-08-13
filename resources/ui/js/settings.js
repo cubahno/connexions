@@ -12,7 +12,7 @@ export const editForm = () => {
 
     const editor = commons.getCodeEditor(`code-editor`, `yaml`);
 
-    fetch(`${config.url}/settings`)
+    fetch(config.settingsUrl)
         .then(res => res.text())
         .then(res => {
             editor.setValue(res);
@@ -27,7 +27,7 @@ export const save = () => {
     const yaml = editor.getValue();
     commons.showWarning("Reloading settings...")
 
-    fetch('/settings', {
+    fetch(config.settingsUrl, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json"
@@ -40,7 +40,7 @@ export const save = () => {
 }
 
 export const restore = () => {
-    fetch('/settings', {
+    fetch(config.settingsUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
