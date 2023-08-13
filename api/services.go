@@ -437,7 +437,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 				h.error(500, err.Error(), w)
 				return
 			}
-			xs.SliceDeleteAtIndex[*RouteDescription](service.Routes, i)
+			service.Routes = xs.SliceDeleteAtIndex[*RouteDescription](service.Routes, i)
 			break
 		}
 	}
@@ -518,7 +518,8 @@ func deleteService(service *ServiceItem) error {
 	var targets []string
 
 	name := service.Name
-	if name == "" && service.Spec == nil {
+	if name == "" {
+		targets = append(targets, xs.ServicePath+"/.openapi")
 		targets = append(targets, xs.ServicePath+"/.root")
 	}
 

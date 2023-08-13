@@ -1,5 +1,12 @@
 package xs
 
 func SliceDeleteAtIndex[T any](slice []T, index int) []T {
-	return append(slice[:index], slice[index+1:]...)
+	sliceLen := len(slice)
+	sliceLastIndex := sliceLen - 1
+
+	if index != sliceLastIndex {
+		slice[index] = slice[sliceLastIndex]
+	}
+
+	return slice[:sliceLastIndex]
 }

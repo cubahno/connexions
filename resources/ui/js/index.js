@@ -75,10 +75,10 @@ const showServices = () => {
                 rmCell.title = `Remove service ${name}`;
                 rmCell.onclick = () => {
                     if (confirm(`Are you sure you want to remove service ${name}?\nAll files will be deleted!`)) {
-                        fetch(`${url}/services/${name}`, {
+                        fetch(`${url}/services/${nameLink}`, {
                             method: 'DELETE'
                         })
-                            .then(getResponseJson)
+                            .then(res => res.json())
                             .then(res => {
                                 showSuccessOrError(res.message, res.success)
                                 showServices();
@@ -129,7 +129,7 @@ const serviceHome = match => {
     console.log(`service home ${service} ix=${ix} action=${action}`);
 
     fetch(`${url}/services/${service}`)
-        .then(getResponseJson)
+        .then(res => res.json())
         .then(data => {
             applySelection(`service-${service}`, 'selected-service');
 
@@ -246,7 +246,7 @@ const loadResource = (service, path, method, isOpenApi) => {
             isOpenApi: isOpenApi,
         }),
     })
-        .then(getResponseJson)
+        .then(res => res.json())
         .then(payload => {
             const reqPath = payload["request"]["path"];
             if (reqPath) {
@@ -450,7 +450,7 @@ const settingsSave = () => {
             "Content-Type": "application/json"
         },
         body: yaml,
-    }).then(getResponseJson).then(res => {
+    }).then(res => res.json()).then(res => {
         showSuccessOrError(res.message, res.success);
         showServices();
     });
