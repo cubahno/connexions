@@ -4,7 +4,11 @@
     <link rel="icon" type="image/x-icon" href="/ui/icons/favicon.ico">
     <link type="text/css" rel="stylesheet" href="/ui/css/global.css"/>
     <link type="text/css" rel="stylesheet" href="/ui/css/index.css"/>
-    <script src="/ui/js/index.js" defer=""></script>
+    <script type="module" src="/ui/js/config.js"></script>
+    <script type="module" src="/ui/js/commons.js"></script>
+    <script type="module" src="/ui/js/navi.js"></script>
+    <script type="module" src="/ui/js/settings.js" defer=""></script>
+    <script type="module" src="/ui/js/index.js" defer=""></script>
 </head>
 <body>
 <div class="holy-grail-grid">
@@ -68,54 +72,52 @@
             </div>
             <div class="service-resources-results-container">
                 <div id="resource-edit-container" style="display: none;">
-                    <form id="overwrite-resource-edit">
-                        <table class="resource-edit-table">
-                            <tr>
-                                <td>Path or prefix:</td>
-                                <td>
-                                    <input type="text" name="path" id="res-endpoint-path" value="">
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Method:</td>
-                                <td>
-                                    <select name="method" id="res-endpoint-method">
-                                        <option value=""></option>
-                                        <option value="GET">GET</option>
-                                        <option value="POST">POST</option>
-                                        <option value="PUT">PUT</option>
-                                        <option value="PATCH">PATCH</option>
-                                        <option value="DELETE">DELETE</option>
+                    <table class="resource-edit-table">
+                        <tr>
+                            <td>Path or prefix:</td>
+                            <td>
+                                <input type="text" name="path" id="res-endpoint-path" value="">
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Method:</td>
+                            <td>
+                                <select name="method" id="res-endpoint-method">
+                                    <option value=""></option>
+                                    <option value="GET">GET</option>
+                                    <option value="POST">POST</option>
+                                    <option value="PUT">PUT</option>
+                                    <option value="PATCH">PATCH</option>
+                                    <option value="DELETE">DELETE</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Response:
+                            </td>
+                            <td>
+                                <div>
+                                    Content-Type:
+                                    <select id="res-response-content-type">
+                                        <option value="json">json</option>
+                                        <option value="yml">yaml</option>
+                                        <option value="xml">xml</option>
+                                        <option value="html">html</option>
+                                        <option value="text">text</option>
+                                        <option value="markdown">markdown</option>
                                     </select>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    Response:
-                                </td>
-                                <td>
-                                    <div>
-                                        Content-Type:
-                                        <select id="res-response-content-type">
-                                            <option value="json">json</option>
-                                            <option value="yml">yaml</option>
-                                            <option value="xml">xml</option>
-                                            <option value="html">html</option>
-                                            <option value="text">text</option>
-                                            <option value="markdown">markdown</option>
-                                        </select>
-                                    </div>
-                                    <div style="width: 500px; height: 300px;margin-top: 20px;" id="res-selected-text-response">
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="2">
-                                    <button id="res-upload-button" onclick="updateResource();return false;" class="button blue-bg"> Save </button>
-                                </td>
-                            </tr>
-                        </table>
-                    </form>
+                                </div>
+                                <div style="width: 500px; height: 300px;margin-top: 20px;" id="res-selected-text-response">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <button id="res-upload-button" class="button blue-bg"> Save </button>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
                 <div id="generator-container" style="display: none;">
                     <div class="accordion">
@@ -220,7 +222,7 @@
                     </tr>
                     <tr>
                         <td colspan="2">
-                            <button id="upload-button" onclick="saveResource(); return false;" class="button blue-bg"> Save </button>
+                            <button id="upload-button" class="button blue-bg"> Save </button>
                         </td>
                     </tr>
                 </table>

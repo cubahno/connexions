@@ -1,43 +1,13 @@
-const url = window.location.origin;
-
-const serviceTable = document.getElementById('service-table');
-const generatorCont = document.getElementById('generator-container');
-const serviceResourcesEl = document.getElementById('service-resources');
-const contentTitleEl = document.getElementById('container-title');
-const iframeContents = document.getElementById('iframe-contents');
-const servicesUploadForm = document.getElementById('services-upload');
-const messageCont = document.getElementById('message');
-const fileUploadBtn = document.getElementById('fileupload');
-const settingsEditor = document.getElementById('settings-editor');
-const fixedServiceContainer = document.getElementById('fixed-service-container');
-const resourceRefreshBtn = document.getElementById('refresh');
-const responseContentTypeEl = document.getElementById(`response-content-type`);
-
-const resetContents = () => {
-    console.log(`reset contents`);
-    iframeContents.src = '';
-    iframeContents.style.display = 'none';
-
-    serviceResourcesEl.innerHTML = '';
-    serviceResourcesEl.style.display = 'none';
-
-    generatorCont.style.display = 'none';
-
-    servicesUploadForm.style.display = 'none';
-    settingsEditor.style.display = 'none';
-    fixedServiceContainer.style.display = 'none';
-
-    document.getElementById('fixed-service-table-body').innerHTML = '';
-    document.getElementById('resource-result').innerHTML = '';
-
-    resourceRefreshBtn.style.display = 'none';
-}
+import * as config from './config.js';
+import * as settings from './settings.js';
+import * as commons from './commons.js';
+import * as navi from './navi.js';
 
 const showServices = () => {
-    serviceTable.innerHTML = '';
+    config.serviceTable.innerHTML = '';
     console.log("loading service list");
 
-    fetch(`${url}/services`)
+    fetch(`${config.url}/services`)
         .then(getResponseJson)
         .then(data => {
             const services = data['items'];
@@ -75,63 +45,41 @@ const showServices = () => {
                 rmCell.title = `Remove service ${name}`;
                 rmCell.onclick = () => {
                     if (confirm(`Are you sure you want to remove service ${name}?\nAll files will be deleted!`)) {
-                        fetch(`${url}/services/${nameLink}`, {
+                        fetch(`${config.url}/services/${nameLink}`, {
                             method: 'DELETE'
                         })
                             .then(res => res.json())
                             .then(res => {
-                                showSuccessOrError(res.message, res.success)
+                                commons.showSuccessOrError(res.message, res.success)
                                 showServices();
                             });
                     }
                 }
                 row.appendChild(rmCell);
 
-                serviceTable.appendChild(row);
+                config.serviceTable.appendChild(row);
                 i += 1;
             }
 
-            serviceTable.style.display = 'block';
+            config.serviceTable.style.display = 'block';
         });
-}
-
-const applySelection = (targetEl, selectionClassName) => {
-    console.log(`applying selection for ${targetEl}`);
-    if (!targetEl) {
-        return;
-    }
-
-    if (targetEl === `service-.root`) {
-        targetEl = `service-`;
-    }
-
-    const collection = document.getElementsByClassName(selectionClassName);
-    for (let i = 0; i < collection.length; i++) {
-        collection[i].classList.remove(selectionClassName);
-    }
-    const row = document.getElementById(targetEl);
-    if (!row) {
-        console.log(`no row found for ${targetEl}`);
-        return;
-    }
-    row.classList.add(selectionClassName);
 }
 
 const serviceHome = match => {
     const {name, ix, action} = match.params;
     const service = name;
 
-    resetContents();
-    const editor = getCodeEditor(`replacements2`, `json`);
+    navi.resetContents();
+    const editor = commons.getCodeEditor(`replacements2`, `json`);
     editor.setValue(`{\n\t\n}`);
     editor.clearSelection();
 
     console.log(`service home ${service} ix=${ix} action=${action}`);
 
-    fetch(`${url}/services/${service}`)
+    fetch(`${config.url}/services/${service}`)
         .then(res => res.json())
         .then(data => {
-            applySelection(`service-${service}`, 'selected-service');
+            navi.applySelection(`service-${service}`, 'selected-service');
 
             const endpoints = data['endpoints'];
             let name = service;
@@ -140,7 +88,7 @@ const serviceHome = match => {
             } else {
                 name = `/${name}`
             }
-            contentTitleEl.innerHTML = `${name} resources`;
+            config.contentTitleEl.innerHTML = `${name} resources`;
 
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
@@ -189,12 +137,12 @@ const serviceHome = match => {
                     rmCell.title = `Remove resource ${method} ${path}`;
                     rmCell.onclick = () => {
                         if (confirm(`Are you sure you want to remove resource ${method} ${path}?\nAll files will be deleted!`)) {
-                            fetch(`${url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`, {
+                            fetch(`${config.url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`, {
                                 method: 'DELETE'
                             })
                                 .then(res => res.json())
                                 .then(res => {
-                                    showSuccessOrError(res.message, res.success)
+                                    commons.showSuccessOrError(res.message, res.success)
                                     serviceHome(match);
                                 });
                         }
@@ -208,12 +156,12 @@ const serviceHome = match => {
                 table.appendChild(row);
                 i += 1;
             }
-            fixedServiceContainer.style.display = 'block';
+            config.fixedServiceContainer.style.display = 'block';
 
             // onLoad
 
             if (ix !== undefined) {
-                applySelection(`resource-${ix}`, 'selected-resource');
+                navi.applySelection(`resource-${ix}`, 'selected-resource');
                 if (action === `edit`) {
                     editResourceLoad(service, endpoints[ix - 1].method, endpoints[ix - 1].path);
                 } else if (action === `result`) {
@@ -227,15 +175,15 @@ const loadResource = (service, path, method, isOpenApi) => {
     console.log(`loadResource: ${method} /${service}${path}`);
 
     const onDone = () => {
-        generatorCont.style.display = 'block';
-        resourceRefreshBtn.onclick = () => loadResource(service, path, method, isOpenApi);
-        resourceRefreshBtn.style.display = 'block';
+        config.generatorCont.style.display = 'block';
+        config.resourceRefreshBtn.onclick = () => loadResource(service, path, method, isOpenApi);
+        config.resourceRefreshBtn.style.display = 'block';
     }
-    hideMessage();
+    commons.hideMessage();
     document.getElementById(`resource-edit-container`).style.display = 'none';
 
     let replacements = fixAndValidateJSON(document.getElementById('replacements').value.trim());
-    fetch(`${url}/services/${service}`, {
+    fetch(`${config.url}/services/${service}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -270,19 +218,19 @@ const loadResource = (service, path, method, isOpenApi) => {
 const editResourceLoad = (service, method, path) => {
     console.log(`editResource: ${method} /${service}${path}`);
     const cont = document.getElementById('resource-edit-container');
-    applySelection(`service-${service}`, 'selected-service');
+    navi.applySelection(`service-${service}`, 'selected-service');
     document.getElementById(`generator-container`).style.display = 'none';
     const editor = showResponseEditForm(`res-selected-text-response`, `res-response-content-type`);
 
     cont.style.display = 'block';
-    fetch(`${url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`)
+    fetch(`${config.url}/services/${service}/resources/${method.toLowerCase()}?path=${path}`)
         .then(res => res.json())
         .then(res => {
             document.getElementById(`res-endpoint-path`).value = res.path;
             document.getElementById(`res-endpoint-method`).value = res.method;
             document.getElementById(`res-response-content-type`).value = res.contentType;
 
-            const mode = getEditorMode(res.contentType);
+            const mode = commons.getCodeEditorMode(res.contentType);
             editor.setValue(res.content);
             editor.setOptions({
                 mode: `ace/mode/${mode}`,
@@ -293,28 +241,29 @@ const editResourceLoad = (service, method, path) => {
 
 const serviceSwagger = match => {
     const service = match.params.name;
-    applySelection(`service-${service}`, 'selected-service');
-    resetContents();
+    navi.applySelection(`service-${service}`, 'selected-service');
+    navi.resetContents();
 
     console.log(`Show swagger for ${service}`);
 
-    contentTitleEl.innerHTML = `${service} Swagger / OpenAPI`;
+    config.contentTitleEl.innerHTML = `${service} Swagger / OpenAPI`;
 
-    iframeContents.src = `${url}/ui/swaggerui?specUrl=/services/${service}/spec`;
-    iframeContents.style.display = 'block';
+    config.iframeContents.src = `${config.url}/ui/swaggerui?specUrl=/services/${service}/spec`;
+    config.iframeContents.style.display = 'block';
 }
 
 const uploadNewServices = () => {
     console.log(`add new service`);
-    applySelection(`n/a`, 'selected-service');
-    resetContents();
+    navi.applySelection(`n/a`, 'selected-service');
+    navi.resetContents();
     showResponseEditForm('selected-text-response', 'response-content-type');
-    contentTitleEl.innerHTML = `Add new service to the list`;
+    config.contentTitleEl.innerHTML = `Add new service to the list`;
 
-    servicesUploadForm.style.display = 'block';
+    config.servicesUploadForm.style.display = 'block';
 }
 
-async function saveResource() {
+export async function saveResource(event) {
+    event.preventDefault();
     let formData = new FormData();
 
     const isOpenApi = document.querySelector('input[name="is_openapi"]:checked').value === '1';
@@ -323,48 +272,40 @@ async function saveResource() {
     if (!isOpenApi) {
         path = document.getElementById('endpoint-path').value.trim();
     }
-    const response = getCodeEditor(`selected-text-response`, `json`).getValue();
+    const response = commons.getCodeEditor(`selected-text-response`, `json`).getValue();
 
     const contentMap = {
         yml: `yaml`,
         markdown: `md`,
         text: `txt`,
     }
-    const ctValue = responseContentTypeEl.value;
+    const ctValue = config.responseContentTypeEl.value;
     const contentType = contentMap.hasOwnProperty(ctValue) ? contentMap[ctValue] : ctValue;
 
-    formData.append("file", fileUploadBtn.files[0]);
+    formData.append("file", config.fileUploadBtn.files[0]);
     formData.append("response", response);
     formData.append("contentType", contentType);
     formData.append("method", method);
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
 
-    await updateResource(formData)
+    await submitResourceSave(formData);
 }
 
-const getEditorMode = value => {
-    const contentMap = {
-        yml: `yaml`,
-        md: `markdown`,
-        txt: `text`,
-    }
-    return contentMap.hasOwnProperty(value) ? contentMap[value] : value;
-}
-
-async function updateResource() {
+export async function updateResource(event) {
+    event.preventDefault();
     let formData = new FormData();
 
     const method = document.getElementById('res-endpoint-method').value.trim();
     const path = document.getElementById('res-endpoint-path').value.trim();
-    const response = getCodeEditor(`res-selected-text-response`, `json`).getValue();
+    const response = commons.getCodeEditor(`res-selected-text-response`, `json`).getValue();
 
     const contentMap = {
         yml: `yaml`,
         markdown: `md`,
         text: `txt`,
     }
-    const ctValue = responseContentTypeEl.value;
+    const ctValue = config.responseContentTypeEl.value;
     const contentType = contentMap.hasOwnProperty(ctValue) ? contentMap[ctValue] : ctValue;
 
     formData.append("response", response);
@@ -372,78 +313,56 @@ async function updateResource() {
     formData.append("method", method);
     formData.append("path", path);
 
-    await submitResourceSave(formData);
-    const hashParams = location.hash.split(`/`);
-    const service = hashParams[2];
-    const ix = hashParams[3];
-    console.log(`reloading service ${service} resources`);
-    serviceHome({params: {name: service, ix: ix, action: `edit`}});
-}
-
-async function submitResourceSave(formData) {
-    messageCont.textContent = '';
-    await fetch('/services', {
-        method: "POST",
-        body: formData,
-    }).then(res => res.json()).then(res => {
-        showSuccessOrError(res.message, res.success);
-
+    await submitResourceSave(formData).then(res => {
+        console.log(res);
         if (res.success) {
-            showServices();
-
+            const hashParams = location.hash.split(`/`);
+            const service = hashParams[2];
+            const ix = hashParams[3];
+            alert(service);
+            console.log(`reloading service ${service} resources`);
+            serviceHome({params: {name: service, ix: ix, action: `edit`}});
         }
     });
 }
 
-const showSuccess = text => {
-    showMessage(text, 'success')
-}
+async function submitResourceSave(formData) {
+    config.messageCont.textContent = '';
+    return fetch('/services', {
+        method: "POST",
+        body: formData,
+    }).then(res => res.json()).then(res => {
+        commons.showSuccessOrError(res.message, res.success);
 
-const showWarning = text => {
-    showMessage(text, 'warning')
-}
-
-const showError = text => {
-    showMessage(text, 'error')
-}
-
-const showSuccessOrError = (text, success) => {
-    showMessage(text, success ? 'success' : 'error')
-}
-
-const showMessage = (text, alertType) => {
-    messageCont.textContent = text;
-    messageCont.className = `alert-${alertType}`
-    messageCont.style.display = 'block';
-    messageCont.style.opacity = '1';
-}
-
-const hideMessage = () => {
-    messageCont.style.display = 'none';
+        if (res.success) {
+            showServices();
+        }
+        return res;
+    });
 }
 
 const settingsEdit = () => {
     console.log(`settings edit`);
-    applySelection(`n/a`, 'selected-service');
-    resetContents();
-    contentTitleEl.innerHTML = `Edit Settings`;
+    navi.applySelection(`n/a`, 'selected-service');
+    navi.resetContents();
+    config.contentTitleEl.innerHTML = `Edit Settings`;
 
-    const editor = getCodeEditor(`code-editor`, `yaml`);
+    const editor = commons.getCodeEditor(`code-editor`, `yaml`);
 
-    fetch(`${url}/settings`)
+    fetch(`${config.url}/settings`)
         .then(getResponseText)
         .then(res => {
             editor.setValue(res);
             editor.clearSelection();
         })
 
-    settingsEditor.style.display = 'block';
+    config.settingsEditor.style.display = 'block';
 }
 
 const settingsSave = () => {
-    const editor = getCodeEditor(`code-editor`, `yaml`);
+    const editor = commons.getCodeEditor(`code-editor`, `yaml`);
     const yaml = editor.getValue();
-    showWarning("Reloading settings...")
+    commons.showWarning("Reloading settings...")
 
     fetch('/settings', {
         method: "PUT",
@@ -452,7 +371,7 @@ const settingsSave = () => {
         },
         body: yaml,
     }).then(res => res.json()).then(res => {
-        showSuccessOrError(res.message, res.success);
+        commons.showSuccessOrError(res.message, res.success);
         showServices();
     });
 }
@@ -464,7 +383,7 @@ const settingsRestore = () => {
             "Content-Type": "application/json"
         },
     }).then(res => res.json()).then(res => {
-        showSuccessOrError(res.message, res.success);
+        commons.showSuccessOrError(res.message, res.success);
         showServices();
         settingsEdit();
     });
@@ -473,7 +392,7 @@ const settingsRestore = () => {
 const showResponseEditForm = (editorId, typeId) => {
     console.log(`response edit in ${editorId}`);
 
-    const editor = getCodeEditor(editorId, `json`);
+    const editor = commons.getCodeEditor(editorId, `json`);
     editor.setValue(``);
     editor.clearSelection();
 
@@ -484,95 +403,6 @@ const showResponseEditForm = (editorId, typeId) => {
         })
     })
     return editor;
-}
-
-const getCodeEditor = (htmlID, mode) => {
-    // Get the code editor container element
-    const codeEditorContainer = document.getElementById(htmlID);
-
-    // Create the Ace Editor instance
-    const editor = ace.edit(codeEditorContainer);
-
-    // Set the editor options
-    editor.setOptions({
-        // Enable line numbers
-        showLineNumbers: true,
-        mode: `ace/mode/${mode}`,
-        showPrintMargin: false,
-    });
-
-    editor.setTheme("ace/theme/xcode");
-    editor.setFontSize("14px");
-    editor.resize();
-
-    return editor;
-}
-
-// Helper function to check if a placeholder pattern matches the current hash
-const isPlaceholderMatch = (placeholderPattern, currentHash) => {
-    const patternParts = placeholderPattern.split('/');
-    const hashParts = currentHash.split('/');
-
-    if (patternParts.length !== hashParts.length) {
-        return false;
-    }
-
-    for (let i = 0; i < patternParts.length; i++) {
-        const patternPart = patternParts[i];
-        if (patternPart.startsWith(':')) {
-            continue; // Skip placeholder parts
-        }
-
-        if (patternPart !== hashParts[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-// Helper function to extract the placeholder values from the current hash
-const getPlaceholderMatch = (placeholderPattern, currentHash) => {
-    const patternParts = placeholderPattern.split('/');
-    const hashParts = currentHash.split('/');
-
-    const match = {
-        params: {}
-    };
-
-    for (let i = 0; i < patternParts.length; i++) {
-        const patternPart = patternParts[i];
-        if (patternPart.startsWith(':')) {
-            const paramName = patternPart.substring(1);
-            match.params[paramName] = decodeURI(hashParts[i]);
-        }
-    }
-
-    return match;
-}
-
-const loadPage = pageMap => {
-    const currentHash = window.location.hash;
-    console.log(`currentHash ${currentHash}`);
-
-    // Check if the current hash matches any exact matches in the map
-    if (pageMap.has(currentHash)) {
-        console.log("page exact match");
-        const pageFunction = pageMap.get(currentHash);
-        pageFunction();
-        return;
-    }
-
-    // Check if the current hash matches any placeholders in the map
-    for (const [key, pageFunction] of pageMap) {
-        if (isPlaceholderMatch(key, currentHash)) {
-            console.log("page matched by pattern");
-            const match = getPlaceholderMatch(key, currentHash);
-            pageFunction(match);
-            return;
-        }
-    }
-    console.log("no page matched");
 }
 
 const fixAndValidateJSON = str => {
@@ -593,7 +423,7 @@ const fixAndValidateJSON = str => {
 
 const getResponseJson = res => {
     if (!res.ok) {
-        showError(res.statusText || 'Network response was not ok');
+        commons.showError(res.statusText || 'Network response was not ok');
         throw new Error('Network response was not ok');
     }
     return res.json()
@@ -601,7 +431,7 @@ const getResponseJson = res => {
 
 const getResponseText = res => {
     if (!res.ok) {
-        showError(res.text() || res.statusText || 'Network response was not ok');
+        commons.showError(res.text() || res.statusText || 'Network response was not ok');
         throw new Error('Network response was not ok');
     }
     return res.text()
@@ -618,9 +448,9 @@ const pageMap = new Map([
 ]);
 
 const onLoad = () => {
-    resetContents();
+    navi.resetContents();
     showServices();
-    loadPage(pageMap);
+    navi.loadPage(pageMap);
 
     // Get the accordion header and content elements
     const accordionHeader = document.querySelector('.accordion-header');
@@ -639,13 +469,15 @@ const onLoad = () => {
         if (file) {
             // Display the filename in the element
             selectedFilenameElement.textContent = file.name;
-            getCodeEditor(`selected-text-response`, `yaml`).setValue(``);
+            commons.getCodeEditor(`selected-text-response`, `yaml`).setValue(``);
         }
     });
+    document.getElementById('upload-button').addEventListener('click', saveResource);
+    document.getElementById('res-upload-button').addEventListener('click', updateResource);
 }
 
 window.addEventListener('hashchange', _ => {
-    hideMessage();
-    loadPage(pageMap);
+    commons.hideMessage();
+    navi.loadPage(pageMap);
 })
 window.addEventListener("DOMContentLoaded", _ => onLoad())
