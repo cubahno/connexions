@@ -23,7 +23,7 @@ export const show = () => {
             const services = data['items'];
 
             let i = 0;
-            for (let { name, isOpenApi } of services) {
+            for (let { name, openApiResources } of services) {
                 const num = i + 1;
                 const row = document.createElement('tr');
                 row.id = `service-${name}`;
@@ -43,8 +43,9 @@ export const show = () => {
 
                 const swaggerCell = document.createElement('td');
                 let swaggerLink = '&nbsp;';
-                if (isOpenApi && name !==`/`) {
-                    swaggerLink = `<a href="#/services/${name}/ui"><img class="swagger-icon" src="icons/swagger.svg"></a>`;
+                const hasOpenApi = openApiResources && openApiResources.length > 0;
+                if (hasOpenApi) {
+                    swaggerLink = `<a href="#/services/${nameLink}/ui"><img class="swagger-icon" src="icons/swagger.svg"></a>`;
                 }
                 swaggerCell.innerHTML = swaggerLink;
                 row.appendChild(swaggerCell);
@@ -84,7 +85,7 @@ export const showSwagger = match => {
 
     config.contentTitleEl.innerHTML = `${service} Swagger / OpenAPI`;
 
-    config.iframeContents.src = `${config.url}/ui/swaggerui?specUrl=/services/${service}/spec`;
+    config.iframeContents.src = `${config.homeUrl}/swaggerui?specUrl=${appConfig.serviceUrl}/${service}/spec`;
     config.iframeContents.style.display = 'block';
 }
 

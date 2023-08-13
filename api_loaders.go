@@ -15,7 +15,6 @@ func LoadServices(router *Router) error {
 
 	openAPIFiles := make([]*FileProperties, 0)
 	overwriteFiles := make([]*FileProperties, 0)
-	serviceRoutes := make(map[string][]*RouteDescription)
 
 	err := filepath.Walk(ServicePath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -27,7 +26,7 @@ func LoadServices(router *Router) error {
 			return nil
 		}
 
-		fileProps := GetPropertiesFromFilePath(filePath)
+		fileProps, err := GetPropertiesFromFilePath(filePath)
 		if fileProps.IsOpenAPI {
 			openAPIFiles = append(openAPIFiles, fileProps)
 		} else {
@@ -54,13 +53,15 @@ func LoadServices(router *Router) error {
 				println(err.Error())
 				return
 			}
-			services[props.ServiceName] = &ServiceItem{
-				Name: props.ServiceName,
+
+			svc, ok := services[props.ServiceName]
+			if !ok {
+				svc = &ServiceItem{
+					Name: props.ServiceName,
+				}
+				services[props.ServiceName] = svc
 			}
-			if _, ok := serviceRoutes[props.ServiceName]; !ok {
-				serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
-			}
-			serviceRoutes[props.ServiceName] = append(serviceRoutes[props.ServiceName], rs...)
+			svc.AddRoutes(rs)
 		}(fileProps)
 	}
 
@@ -76,29 +77,25 @@ func LoadServices(router *Router) error {
 			mu.Lock()
 			defer mu.Unlock()
 
-			spec, rs, err := RegisterOpenAPIService(props, router)
+			rs, err := RegisterOpenAPIService(props, router)
 			if err != nil {
 				println(err.Error())
 				return
 			}
 
-			services[props.ServiceName] = &ServiceItem{
-				Name: props.ServiceName,
-				Spec: spec,
+			svc, ok := services[props.ServiceName]
+			if !ok {
+				svc = &ServiceItem{
+					Name: props.ServiceName,
+				}
+				services[props.ServiceName] = svc
 			}
-
-			if _, ok := serviceRoutes[props.ServiceName]; !ok {
-				serviceRoutes[props.ServiceName] = make([]*RouteDescription, 0)
-			}
-			serviceRoutes[props.ServiceName] = append(serviceRoutes[props.ServiceName], rs...)
+			svc.AddOpenAPIFile(props)
+			svc.AddRoutes(rs)
 		}(fileProps)
 	}
 
 	wg.Wait()
-
-	for _, service := range services {
-		service.Routes = serviceRoutes[service.Name]
-	}
 
 	router.Services = services
 

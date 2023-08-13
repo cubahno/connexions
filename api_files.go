@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	"gopkg.in/yaml.v3"
 	"io"
 	"mime"
@@ -19,6 +20,7 @@ import (
 type FileProperties struct {
 	ServiceName string
 	IsOpenAPI   bool
+	Spec        *openapi3.T
 	Method      string
 	Prefix      string
 	Resource    string
@@ -26,6 +28,18 @@ type FileProperties struct {
 	FileName    string
 	Extension   string
 	ContentType string
+}
+
+func (f *FileProperties) IsEqual(other *FileProperties) bool {
+	return f.ServiceName == other.ServiceName &&
+		f.IsOpenAPI == other.IsOpenAPI &&
+		f.Method == other.Method &&
+		f.Prefix == other.Prefix &&
+		f.Resource == other.Resource &&
+		f.FilePath == other.FilePath &&
+		f.FileName == other.FileName &&
+		f.Extension == other.Extension &&
+		f.ContentType == other.ContentType
 }
 
 type UploadedFile struct {
@@ -74,7 +88,7 @@ func GetRequestFile(r *http.Request, name string) (*UploadedFile, error) {
 	}, nil
 }
 
-func GetPropertiesFromFilePath(filePath string) *FileProperties {
+func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
 	contentType := mime.TypeByExtension(ext)
@@ -101,15 +115,22 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
 
+		loader := openapi3.NewLoader()
+		doc, err := loader.LoadFromFile(filePath)
+		if err != nil {
+			return nil, err
+		}
+
 		return &FileProperties{
 			ServiceName: serviceName,
 			Prefix:      prefix,
 			IsOpenAPI:   true,
+			Spec:        doc,
 			FilePath:    filePath,
 			FileName:    fileName,
 			Extension:   ext,
 			ContentType: contentType,
-		}
+		}, nil
 	}
 
 	method := http.MethodGet
@@ -164,7 +185,7 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 		FileName:    fileName,
 		Extension:   ext,
 		ContentType: contentType,
-	}
+	}, nil
 }
 
 func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {

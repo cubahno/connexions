@@ -1,4 +1,5 @@
 export const url = window.location.origin;
+export const homeUrl = `${url}${appConfig.homeUrl}`;
 export const serviceUrl = `${url}${appConfig.serviceUrl}`;
 export const settingsUrl = `${url}${appConfig.settingsUrl}`;
 export const serviceTable = document.getElementById('service-table');

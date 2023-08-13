@@ -2,7 +2,6 @@ package xs
 
 import (
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -25,7 +24,7 @@ func CreateServiceRoutes(router *Router) error {
 	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)
 		r.Post("/", handler.save)
-		r.Get("/{name}", handler.home)
+		r.Get("/{name}", handler.resources)
 		r.Get("/{name}/spec", handler.spec)
 		r.Post("/{name}", handler.generate)
 		r.Delete("/{name}", handler.deleteService)
@@ -37,15 +36,42 @@ func CreateServiceRoutes(router *Router) error {
 }
 
 type ServiceItem struct {
-	Name   string              `json:"name"`
-	Routes []*RouteDescription `json:"routes"`
-	Spec   *openapi3.T         `json:"-"`
-	File   *FileProperties     `json:"-"`
+	Name         string              `json:"name"`
+	Routes       []*RouteDescription `json:"routes"`
+	OpenAPIFiles []*FileProperties   `json:"-"`
+	mu           sync.Mutex
+}
+
+func (i *ServiceItem) AddOpenAPIFile(file *FileProperties) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if len(i.OpenAPIFiles) == 0 {
+		i.OpenAPIFiles = make([]*FileProperties, 0)
+	}
+
+	for _, f := range i.OpenAPIFiles {
+		if file.IsEqual(f) {
+			return
+		}
+	}
+
+	i.OpenAPIFiles = append(i.OpenAPIFiles, file)
+}
+
+func (i *ServiceItem) AddRoutes(routes []*RouteDescription) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	if len(i.Routes) == 0 {
+		i.Routes = make([]*RouteDescription, 0)
+	}
+	i.Routes = append(i.Routes, routes...)
 }
 
 type ServiceItemResponse struct {
-	Name      string `json:"name"`
-	IsOpenAPI bool   `json:"isOpenApi"`
+	Name             string   `json:"name"`
+	OpenAPIResources []string `json:"openApiResources"`
 }
 
 type ServicePayload struct {
@@ -57,6 +83,11 @@ type ServicePayload struct {
 	ContentType string        `json:"contentType"`
 	File        *UploadedFile `json:"file"`
 }
+
+const (
+	OpenAPIRoute   = "openapi"
+	OverwriteRoute = "overwrite"
+)
 
 // RouteDescription describes a route for the UI Application.
 // Path is relative to the service prefix.
@@ -71,8 +102,14 @@ type ServiceListResponse struct {
 	Items []*ServiceItemResponse `json:"items"`
 }
 
-type ServiceHomeResponse struct {
-	Endpoints []*RouteDescription `json:"endpoints"`
+type ServiceEmbedded struct {
+	Name string `json:"name"`
+}
+
+type ServiceResourcesResponse struct {
+	Service          *ServiceEmbedded    `json:"service"`
+	Endpoints        []*RouteDescription `json:"endpoints"`
+	OpenAPISpecNames []string            `json:"openapiSpecNames"`
 }
 
 type ServiceHandler struct {
@@ -92,9 +129,14 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 	items := make([]*ServiceItemResponse, 0)
 	for _, key := range keys {
 		svcItem := services[key]
+		var openApiNames []string
+		for _, file := range svcItem.OpenAPIFiles {
+			openApiNames = append(openApiNames, file.Prefix)
+		}
+
 		items = append(items, &ServiceItemResponse{
-			Name:      key,
-			IsOpenAPI: svcItem.Spec != nil,
+			Name:             key,
+			OpenAPIResources: openApiNames,
 		})
 	}
 	res := &ServiceListResponse{
@@ -136,11 +178,10 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var doc *openapi3.T
 	var routes []*RouteDescription
 
 	if payload.IsOpenAPI {
-		doc, routes, err = RegisterOpenAPIService(fileProps, h.router)
+		routes, err = RegisterOpenAPIService(fileProps, h.router)
 	} else {
 		routes, err = RegisterOverwriteService(fileProps, h.router)
 	}
@@ -155,7 +196,6 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		service = &ServiceItem{
 			Name:   fileProps.ServiceName,
 			Routes: routes,
-			Spec:   doc,
 		}
 		h.router.Services[fileProps.ServiceName] = service
 	} else {
@@ -175,16 +215,12 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 		h.router.Services[fileProps.ServiceName].Routes = append(
 			h.router.Services[fileProps.ServiceName].Routes, addRoutes...)
-
-		if doc != nil {
-			h.router.Services[fileProps.ServiceName].Spec = doc
-		}
 	}
 
 	h.success("Resource saved!", w)
 }
 
-func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
+func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if name == RootServiceName {
 		name = ""
@@ -198,28 +234,41 @@ func (h *ServiceHandler) home(w http.ResponseWriter, r *http.Request) {
 	routes := service.Routes
 
 	sort.SliceStable(routes, func(i, j int) bool {
-		if routes[i].Path != routes[j].Path {
-			return routes[i].Path < routes[j].Path
+		a := routes[i]
+		b := routes[j]
+
+		if a.Path != b.Path {
+			return a.Path < b.Path
 		}
 		methodOrder := map[string]int{
 			"GET":     1,
 			"POST":    2,
 			"default": 3,
 		}
-		m1 := methodOrder[routes[i].Method]
+		m1 := methodOrder[a.Method]
 		if m1 == 0 {
 			m1 = methodOrder["default"]
 		}
 
-		m2 := methodOrder[routes[j].Method]
+		m2 := methodOrder[b.Method]
 		if m2 == 0 {
 			m2 = methodOrder["default"]
 		}
 
 		return m1 < m2
 	})
-	res := &ServiceHomeResponse{
-		Endpoints: routes,
+
+	names := make([]string, 0, len(service.OpenAPIFiles))
+	for _, f := range service.OpenAPIFiles {
+		names = append(names, f.Prefix)
+	}
+
+	res := &ServiceResourcesResponse{
+		Endpoints:        routes,
+		OpenAPISpecNames: names,
+		Service: &ServiceEmbedded{
+			Name: service.Name,
+		},
 	}
 
 	NewJSONResponse(http.StatusOK, res, w)
@@ -237,15 +286,14 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// find first route with spec
-	var fileProps *FileProperties
-	for _, r := range service.Routes {
-		if r.File != nil && r.File.IsOpenAPI {
-			fileProps = r.File
-			break
-		}
+	openAPIFiles := service.OpenAPIFiles
+	if len(openAPIFiles) == 0 {
+		NewJSONResponse(http.StatusNotFound, "No Spec files attached", w)
+		return
 	}
 
+	// TODO(igor): handle multiple spec files in the UI
+	fileProps := openAPIFiles[0]
 	if fileProps == nil {
 		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
 		return
@@ -304,15 +352,17 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spec := service.Spec
-	if spec == nil {
-		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
-		return
-	}
+	// spec := service.Spec
+	// if spec == nil {
+	// 	NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
+	// 	return
+	// }
 
 	if !fileProps.IsOpenAPI {
 		h.error(500, "OpenAPI spec not found", w)
 	}
+
+	spec := fileProps.Spec
 
 	// handle openapi resource
 	pathItem := spec.Paths[payload.Resource]
@@ -509,14 +559,14 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
-	fileProps := GetPropertiesFromFilePath(filePath)
+	fileProps, err := GetPropertiesFromFilePath(filePath)
 	if !prefixValidator(fileProps.Prefix) || !prefixValidator(path) {
 		return nil, ErrReservedPrefix
 	}
 
 	dirPath := filepath.Dir(filePath)
 	// Create directories recursively
-	err := os.MkdirAll(dirPath, os.ModePerm)
+	err = os.MkdirAll(dirPath, os.ModePerm)
 	if err != nil {
 		return nil, ErrCreatingDirectories
 	}

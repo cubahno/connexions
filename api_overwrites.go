@@ -2,7 +2,7 @@ package xs
 
 import (
 	"fmt"
-    "net/http"
+	"net/http"
 )
 
 func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
@@ -28,7 +28,7 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 			Method: fileProps.Method,
 			// add only resource to the RouteDescription, it's used only for UI purposes
 			Path: fileProps.Resource,
-			Type: "overwrite",
+			Type: OverwriteRoute,
 			File: fileProps,
 		},
 	}, nil

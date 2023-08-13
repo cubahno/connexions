@@ -16,16 +16,16 @@ type ResourceGeneratePayload struct {
 }
 
 // RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
-func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi3.T, []*RouteDescription, error) {
+func RegisterOpenAPIService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
-	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromFile(fileProps.FilePath)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	res := make([]*RouteDescription, 0)
 	valueMaker := CreateValueResolver()
+
+	doc := fileProps.Spec
+	if doc == nil {
+		return nil, ErrOpenAPISpecIsEmpty
+	}
 
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
@@ -37,13 +37,13 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) (*openapi
 			res = append(res, &RouteDescription{
 				Method: method,
 				Path:   resName,
-				Type:   "openapi",
+				Type:   OpenAPIRoute,
 				File:   fileProps,
 			})
 		}
 	}
 
-	return doc, res, nil
+	return res, nil
 }
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
