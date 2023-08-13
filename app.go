@@ -50,7 +50,7 @@ func NewApp() *App {
 	for _, bluePrint := range bluePrints {
 		err := bluePrint(router)
 		if err != nil {
-			panic(err)
+			log.Printf("Failed to load blue print: %s\n", err.Error())
 		}
 	}
 

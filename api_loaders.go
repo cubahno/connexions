@@ -27,6 +27,10 @@ func LoadServices(router *Router) error {
 		}
 
 		fileProps, err := GetPropertiesFromFilePath(filePath)
+		if err != nil {
+			log.Printf("Failed to get file properties: %s\n", err.Error())
+			return err
+		}
 		if fileProps.IsOpenAPI {
 			openAPIFiles = append(openAPIFiles, fileProps)
 		} else {

@@ -559,14 +559,9 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
-	fileProps, err := GetPropertiesFromFilePath(filePath)
-	if !prefixValidator(fileProps.Prefix) || !prefixValidator(path) {
-		return nil, ErrReservedPrefix
-	}
-
 	dirPath := filepath.Dir(filePath)
 	// Create directories recursively
-	err = os.MkdirAll(dirPath, os.ModePerm)
+	err := os.MkdirAll(dirPath, os.ModePerm)
 	if err != nil {
 		return nil, ErrCreatingDirectories
 	}
@@ -579,6 +574,12 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 	_, err = dest.Write(content)
 	if err != nil {
 		return nil, err
+	}
+
+	fileProps, err := GetPropertiesFromFilePath(filePath)
+	if !prefixValidator(fileProps.Prefix) || !prefixValidator(path) {
+		_ = os.RemoveAll(filePath)
+		return nil, ErrReservedPrefix
 	}
 
 	return fileProps, nil
