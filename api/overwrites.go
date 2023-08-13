@@ -10,17 +10,9 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
-	res := []*RouteDescription{
-		{
-			Method: fileProps.Method,
-			Path:   fileProps.Resource,
-			Type:   "overwrite",
-			File:   fileProps,
-		},
-	}
-
 	baseResource := fileProps.Prefix + fileProps.Resource
 	resources := []string{baseResource}
+
 	if fileProps.FileName == "index.json" {
 		// add trailing slash and direct access to index.json
 		resources = append(resources, baseResource+"/")
@@ -32,7 +24,15 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, router.Config))
 	}
 
-	return res, nil
+	return []*RouteDescription{
+		{
+			Method: fileProps.Method,
+			// add only resource to the RouteDescription, it's used only for UI purposes
+			Path:   fileProps.Resource,
+			Type:   "overwrite",
+			File:   fileProps,
+		},
+	}, nil
 }
 
 func createOverwriteResponseHandler(fileProps *FileProperties, config *xs.Config) http.HandlerFunc {

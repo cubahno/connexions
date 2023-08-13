@@ -129,6 +129,11 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 		}
 	}
 
+	// remove from resource parts
+	if fileName == "index.json" {
+		parts = parts[:len(parts)-1]
+	}
+
 	// root level service
 	if len(parts) == 1 {
 		serviceName = ""
@@ -147,9 +152,6 @@ func GetPropertiesFromFilePath(filePath string) *FileProperties {
 
 	prefix = strings.TrimSuffix(prefix, "/")
 
-	if fileName == "index.json" {
-		resource = strings.TrimSuffix(resource, "/"+fileName)
-	}
 	if resource == "" {
 		resource = "/"
 	}

@@ -1,12 +1,6 @@
 package xs
 
+// SliceDeleteAtIndex deletes an element from a slice at the given index and preserves the order of the slice.
 func SliceDeleteAtIndex[T any](slice []T, index int) []T {
-	sliceLen := len(slice)
-	sliceLastIndex := sliceLen - 1
-
-	if index != sliceLastIndex {
-		slice[index] = slice[sliceLastIndex]
-	}
-
-	return slice[:sliceLastIndex]
+	return append(slice[:index], slice[index+1:]...)
 }

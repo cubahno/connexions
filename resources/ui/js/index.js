@@ -211,6 +211,7 @@ const serviceHome = match => {
             fixedServiceContainer.style.display = 'block';
 
             // onLoad
+
             if (ix !== undefined) {
                 applySelection(`resource-${ix}`, 'selected-resource');
                 if (action === `edit`) {
@@ -269,7 +270,7 @@ const loadResource = (service, path, method, isOpenApi) => {
 const editResourceLoad = (service, method, path) => {
     console.log(`editResource: ${method} /${service}${path}`);
     const cont = document.getElementById('resource-edit-container');
-
+    applySelection(`service-${service}`, 'selected-service');
     document.getElementById(`generator-container`).style.display = 'none';
     const editor = showResponseEditForm(`res-selected-text-response`, `res-response-content-type`);
 
@@ -471,7 +472,6 @@ const settingsRestore = () => {
 
 const showResponseEditForm = (editorId, typeId) => {
     console.log(`response edit in ${editorId}`);
-    applySelection(`n/a`, 'selected-service');
 
     const editor = getCodeEditor(editorId, `json`);
     editor.setValue(``);

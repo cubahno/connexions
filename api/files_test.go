@@ -118,6 +118,22 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			ContentType: "text/xml; charset=utf-8",
 		}, props)
 	})
+
+	t.Run("service-with-index-file", func(t *testing.T) {
+		filePath := xs.ServicePath + "/users/patch/id/{userId}/index.json"
+		props := GetPropertiesFromFilePath(filePath)
+
+		assert.Equal(t, &FileProperties{
+			ServiceName: "users",
+			Method:      http.MethodPatch,
+			Prefix:      "/users",
+			Resource:    "/id/{userId}",
+			FilePath:    filePath,
+			FileName:    "index.json",
+			Extension:   ".json",
+			ContentType: "application/json",
+		}, props)
+	})
 }
 
 func TestComposeFileSavePath(t *testing.T) {
