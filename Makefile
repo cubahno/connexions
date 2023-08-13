@@ -45,6 +45,7 @@ docker-run:
 		--name $(IMAGE_NAME) \
 		$(IMAGE_NAME) api
 
+@PHONY: docker-shell
 docker-shell:
 	@docker run -it --rm \
 		-v connexions:/app/resources \
