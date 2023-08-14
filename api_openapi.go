@@ -12,7 +12,6 @@ type ResourceGeneratePayload struct {
 	Resource     string         `json:"resource"`
 	Method       string         `json:"method"`
 	Replacements map[string]any `json:"replacements"`
-	IsOpenAPI    bool           `json:"isOpenApi"`
 }
 
 // RegisterOpenAPIRoutes adds spec routes to the router and

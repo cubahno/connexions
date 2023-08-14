@@ -216,6 +216,7 @@ func GenerateContentFromSchema(schema *openapi3.Schema, valueResolver ValueRepla
 	}
 	// fast track with value and correctly resolved type
 	if valueResolver != nil && len(state.NamePath) > 0 {
+		// TODO(igor): remove IsCorrectlyReplacedType, resolver should do it.
 		if res := valueResolver(schema, state); res != nil && IsCorrectlyReplacedType(res, schema.Type) {
 			return res
 		}

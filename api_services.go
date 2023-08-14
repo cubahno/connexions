@@ -320,6 +320,12 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		name = ""
 	}
 
+	method := strings.ToUpper(payload.Method)
+	if !IsValidHTTPVerb(method) {
+		NewJSONResponse(http.StatusBadRequest, "Invalid method", w)
+		return
+	}
+
 	service := h.router.Services[name]
 	if service == nil {
 		NewJSONResponse(http.StatusNotFound, "Service not found", w)
@@ -330,7 +336,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 
 	var fileProps *FileProperties
 	for _, r := range service.Routes {
-		if r.Method == payload.Method && r.Path == payload.Resource {
+		if r.Method == method && r.Path == payload.Resource {
 			fileProps = r.File
 			break
 		}
@@ -348,7 +354,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	valueReplacer := fileProps.ValueReplacerFactory(replaceResource)
 
-	if !payload.IsOpenAPI {
+	if !fileProps.IsOpenAPI {
 		res["request"] = NewRequestFromFileProperties(
 			fileProps.Prefix+fileProps.Resource,
 			fileProps.Method,

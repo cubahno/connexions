@@ -104,18 +104,18 @@ export const show = match => {
                 if (action === `edit`) {
                     edit(service, endpoints[ix - 1].method, endpoints[ix - 1].path);
                 } else if (action === `result`) {
-                    generateResult(service, endpoints[ix - 1].path, endpoints[ix - 1].method, endpoints[ix - 1].type === `openapi`);
+                    generateResult(service, endpoints[ix - 1].path, endpoints[ix - 1].method);
                 }
             }
         });
 }
 
-export const generateResult = (service, path, method, isOpenApi) => {
+export const generateResult = (service, path, method) => {
     console.log(`loadResource: ${method} /${service}${path}`);
 
     const onDone = () => {
         config.generatorCont.style.display = 'block';
-        config.resourceRefreshBtn.onclick = () => generateResult(service, path, method, isOpenApi);
+        config.resourceRefreshBtn.onclick = () => generateResult(service, path, method);
         config.resourceRefreshBtn.style.display = 'block';
     }
     commons.hideMessage();
@@ -131,7 +131,6 @@ export const generateResult = (service, path, method, isOpenApi) => {
             resource: path,
             method: method,
             replacements: replacements,
-            isOpenApi: isOpenApi,
         }),
     })
         .then(res => res.json())

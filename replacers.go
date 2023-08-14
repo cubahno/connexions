@@ -1,92 +1,113 @@
 package xs
 
 import (
-	"github.com/brianvoe/gofakeit/v6"
-	"github.com/getkin/kin-openapi/openapi3"
-	"log"
-	"reflect"
+    "github.com/getkin/kin-openapi/openapi3"
 )
 
-type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
-type ValueReplacerFactory func(resource *Resource) ValueReplacer
+type Replacer func(ctx *ReplaceContext) any
 
-type ReplaceContext struct {
-	State        *ReplaceState
-	Resource     *Resource
-	Name         string
-	OriginalName string
-	Faker        *gofakeit.Faker
+// NULL is used to force resolve to None
+const (
+    NULL = "__null__"
+    NONAME = "__noname__"
+)
+
+func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
+    schema, ok := ctx.Schema.(*openapi3.Schema)
+    if !ok {
+        // TODO(igor): check how to handle with other content schemas
+        return true
+    }
+    return IsCorrectlyReplacedType(value, schema.Type)
 }
 
-type Resource struct {
-	Service          string
-	Path             string
-	UserReplacements map[string]any
+func ExtractNames(names []string) (string, string) {
+    if len(names) == 0 {
+        return NONAME, NONAME
+    }
+    original := names[len(names)-1]
+    normalized := original
+
+    return normalized, original
 }
 
-func CreateValueSchemaReplacerFactory() func(resource *Resource) ValueReplacer {
-	faker := gofakeit.New(0)
-	return func(resource *Resource) ValueReplacer {
-		return func(content any, state *ReplaceState) any {
-			schema, ok := content.(*openapi3.Schema)
-			if !ok {
-				log.Printf("content is not *openapi3.Schema, but %s", reflect.TypeOf(content))
-				return nil
-			}
-
-			if schema.Example != nil {
-				return schema.Example
-			}
-
-			switch schema.Type {
-			case openapi3.TypeString:
-				return faker.Word()
-			case openapi3.TypeInteger:
-				return faker.Uint32()
-			case openapi3.TypeNumber:
-				return faker.Uint32()
-			case openapi3.TypeBoolean:
-				return faker.Bool()
-			}
-
-			return nil
-		}
-	}
+func ReplaceInHeaders(ctx *ReplaceContext) any {
+    if !ctx.State.IsHeader {
+        return nil
+    }
+    return nil
 }
 
-func CreateValueContentReplacerFactory() ValueReplacerFactory {
-	faker := gofakeit.New(0)
-	return func(resource *Resource) ValueReplacer {
-		return func(content any, state *ReplaceState) any {
-			switch content.(type) {
-			case string:
-				if state.IsURLParam {
-					return faker.Uint8()
-				}
-			}
-			return content
-		}
-	}
+func ReplaceFromPredefined(ctx *ReplaceContext) any {
+    userData := ctx.Resource.UserReplacements
+    if userData == nil {
+        return nil
+    }
+
+    if res, ok := userData[ctx.Name]; ok {
+        return res
+    }
+    return nil
 }
 
-func IsCorrectlyReplacedType(value any, needed string) bool {
-	switch needed {
-	case openapi3.TypeString:
-		_, ok := value.(string)
-		return ok
-	case openapi3.TypeInteger:
-		return IsInteger(value)
-	case openapi3.TypeNumber:
-		return IsNumber(value)
-	case openapi3.TypeBoolean:
-		_, ok := value.(bool)
-		return ok
-	case openapi3.TypeObject:
-		return reflect.TypeOf(value).Kind() == reflect.Map
-	case openapi3.TypeArray:
-		val := reflect.ValueOf(value)
-		return val.Kind() == reflect.Slice || val.Kind() == reflect.Array
-	default:
-		return false
-	}
+func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
+    schema, ok := ctx.Schema.(*openapi3.Schema)
+    if !ok {
+        return nil
+    }
+
+    switch schema.Format {
+    case "date":
+        return ctx.Faker.Date().Format("2006-01-02")
+    case "date-time":
+        return ctx.Faker.Date().Format("2006-01-02T15:04:05.000Z")
+    case "email":
+        return ctx.Faker.Email()
+    case "uuid":
+        return ctx.Faker.UUID()
+    case "password":
+        return ctx.Faker.Password(true, true, true, true, true, 12)
+    case "hostname":
+        return ctx.Faker.DomainName()
+    case "ipv4", "ipv6":
+        return ctx.Faker.IPv4Address()
+    case "uri", "url":
+        return ctx.Faker.URL()
+    }
+    return nil
+}
+
+func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
+    schema, ok := ctx.Schema.(*openapi3.Schema)
+    if !ok {
+        return nil
+    }
+    faker := ctx.Faker
+
+    switch schema.Type {
+    case openapi3.TypeString:
+        return faker.Word()
+    case openapi3.TypeInteger:
+        return faker.Uint32()
+    case openapi3.TypeNumber:
+        return faker.Uint32()
+    case openapi3.TypeBoolean:
+        return faker.Bool()
+    case openapi3.TypeObject:
+        // empty object with no response
+        return map[string]any{}
+    }
+    return nil
+}
+
+func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
+    schema, ok := ctx.Schema.(*openapi3.Schema)
+    if !ok {
+        return nil
+    }
+    return schema.Example
+}
+
+func ReplaceFallback(ctx *ReplaceContext) any {
+    return ctx.Faker.Word()
 }
