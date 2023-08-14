@@ -161,7 +161,7 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 		serviceName = ""
 		prefix = ""
 		resource = fmt.Sprintf("/%s", parts[0])
-	} else {
+	} else if len(parts) > 1 {
 		serviceName = parts[0]
 		method_ := strings.ToUpper(parts[1])
 		if IsValidHTTPVerb(method_) {
@@ -170,6 +170,9 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
 		prefix = "/" + serviceName
+	} else {
+		serviceName = ""
+		prefix = ""
 	}
 
 	prefix = strings.TrimSuffix(prefix, "/")

@@ -13,7 +13,7 @@ type ReplaceContext struct {
 	Schema any
 	State        *ReplaceState
 	Resource     *Resource
-	Name         string
+	Name         PropertyName
 	OriginalName string
 	Faker        *gofakeit.Faker
 }
@@ -48,11 +48,8 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 				state = &ReplaceState{}
 			}
 
-			name, original := ExtractNames(state.NamePath)
-
 			ctx := &ReplaceContext{
-				Name: name,
-				OriginalName: original,
+				Name: ExtractNames(state.NamePath),
 				Schema: content,
 				State:        state,
 				Resource:     resource,

@@ -2,6 +2,9 @@ package xs
 
 import (
     "github.com/getkin/kin-openapi/openapi3"
+    "golang.org/x/text/cases"
+    "golang.org/x/text/language"
+    "strings"
 )
 
 type Replacer func(ctx *ReplaceContext) any
@@ -12,6 +15,15 @@ const (
     NONAME = "__noname__"
 )
 
+type PropertyName struct {
+    // Name in camel case
+    Normalized string
+    // Original name from schema
+    Original   string
+    // Normalized parts joined with dot
+    DottedPath string
+}
+
 func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
     schema, ok := ctx.Schema.(*openapi3.Schema)
     if !ok {
@@ -21,14 +33,40 @@ func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
     return IsCorrectlyReplacedType(value, schema.Type)
 }
 
-func ExtractNames(names []string) (string, string) {
+func ExtractNames(names []string) PropertyName {
     if len(names) == 0 {
-        return NONAME, NONAME
+        return PropertyName{
+            Normalized: NONAME,
+            Original:   NONAME,
+            DottedPath: NONAME,
+        }
     }
     original := names[len(names)-1]
-    normalized := original
+    normalized := ToCamelCase(original)
 
-    return normalized, original
+    parts := make([]string, 0, len(names)-1)
+    for _, name := range names[:len(names)-1] {
+        parts = append(parts, ToCamelCase(name))
+    }
+
+    return PropertyName{
+        Normalized: normalized,
+        Original:   original,
+        DottedPath: strings.Join(parts, "."),
+    }
+}
+
+func ToCamelCase(s string) string {
+    words := strings.Fields(strings.ReplaceAll(s, "_", " "))
+    for i, word := range words {
+        if i > 0 {
+            caser := cases.Title(language.English)
+            words[i] = caser.String(word)
+        } else {
+            words[i] = strings.ToLower(word)
+        }
+    }
+    return strings.Join(words, "")
 }
 
 func ReplaceInHeaders(ctx *ReplaceContext) any {
@@ -44,7 +82,7 @@ func ReplaceFromPredefined(ctx *ReplaceContext) any {
         return nil
     }
 
-    if res, ok := userData[ctx.Name]; ok {
+    if res, ok := userData[ctx.Name.Normalized]; ok {
         return res
     }
     return nil
