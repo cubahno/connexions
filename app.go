@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +28,11 @@ func NewApp() *App {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
+
+	err := MustFileStructure()
+	if err != nil {
+		panic(err)
+	}
 
 	config, err := NewConfigFromFile()
 	if err != nil {
@@ -55,6 +62,33 @@ func NewApp() *App {
 	}
 
 	return res
+}
+
+// MustFileStructure creates the necessary directories and files
+func MustFileStructure() error {
+	if _, err := os.Stat(ServicePath); os.IsNotExist(err) {
+		log.Print("Creating service directory and configuration for the first time")
+		if err := os.Mkdir(ServicePath, os.ModePerm); err != nil {
+			return err
+		}
+	} else {
+		return nil
+	}
+
+	log.Print("Copying sample content to service directory")
+	if err := CopyDirectory(SamplesPath, ServicePath); err != nil {
+		return err
+	}
+
+	log.Print("Copying sample config file")
+	srcPath := filepath.Join(ResourcePath, "config.yml.dist")
+	destPath := filepath.Join(ResourcePath, "config.yml")
+	if err := CopyFile(srcPath, destPath); err != nil {
+		return err
+	}
+
+	log.Print("Done!")
+	return nil
 }
 
 func (a *App) AddBluePrint(bluePrint RouteRegister) error {

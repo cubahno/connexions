@@ -2,13 +2,13 @@ app:
   port: 2200
   homeUrl: /.ui
   serviceUrl: /.services
+  settingsUrl: /.settings
 
 services:
-  petstore1:
-    active: true
-    latency: 0.350
+  petstore:
+    latency: 0s
     errors:
-      chance: 50%
+      chance: 0%
       codes:
         400: 50%
         500: 50%

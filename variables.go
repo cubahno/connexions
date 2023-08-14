@@ -12,6 +12,7 @@ var (
 	RootPath           = filepath.Dir(b)
 	ResourcePath       = fmt.Sprintf("%s/resources", RootPath)
 	ServicePath        = fmt.Sprintf("%s/services", ResourcePath)
+	SamplesPath        = fmt.Sprintf("%s/samples", ResourcePath)
 	ServiceOpenAPIPath = fmt.Sprintf("%s/services/.openapi", ResourcePath)
 	ServiceRootPath    = fmt.Sprintf("%s/services/.root", ResourcePath)
 	UIPath             = fmt.Sprintf("%s/ui", ResourcePath)

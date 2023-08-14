@@ -2,6 +2,7 @@ build_dir := ./.build
 package_dir := ${build_dir}
 IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
+VERSION ?= "latest"
 
 define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
@@ -22,11 +23,6 @@ clean:
 .PHONY: build
 build: clean
 	@GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./.cli/server/main.go
-
-	mkdir -p ${build_dir}/server/resources
-
-	cp -r ./resources/* ${build_dir}/server/resources/
-	cp ./resources/config.yml.dist ${build_dir}/server/resources/config.yml
 
 .PHONY: docker-build
 docker-build:

@@ -280,6 +280,26 @@ func CopyFile(srcPath, destPath string) error {
 	return nil
 }
 
+func CopyDirectory(src, dest string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+
+		destPath := filepath.Join(dest, relPath)
+		if info.IsDir() {
+			return os.MkdirAll(destPath, os.ModePerm)
+		}
+
+		return CopyFile(path, destPath)
+	})
+}
+
 func IsJsonType(content []byte) bool {
 	var jsonData map[string]interface{}
 	if err := json.Unmarshal(content, &jsonData); err == nil {
