@@ -81,7 +81,7 @@ func LoadServices(router *Router) error {
 			mu.Lock()
 			defer mu.Unlock()
 
-			rs, err := RegisterOpenAPIService(props, router)
+			rs, err := RegisterOpenAPIRoutes(props, router)
 			if err != nil {
 				println(err.Error())
 				return

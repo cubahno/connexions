@@ -181,7 +181,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	var routes []*RouteDescription
 
 	if payload.IsOpenAPI {
-		routes, err = RegisterOpenAPIService(fileProps, h.router)
+		routes, err = RegisterOpenAPIRoutes(fileProps, h.router)
 	} else {
 		routes, err = RegisterOverwriteService(fileProps, h.router)
 	}
@@ -326,9 +326,6 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO(igor): move valueResolver to router
-	valueResolver := CreateValueResolver()
-	jsonResolver := CreateJSONResolver()
 	res := map[string]any{}
 
 	var fileProps *FileProperties
@@ -346,17 +343,13 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 
 	if !payload.IsOpenAPI {
 		res["request"] = NewRequestFromFileProperties(
-			fileProps.Prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, jsonResolver)
-		res["response"] = NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, jsonResolver)
+			fileProps.Prefix+fileProps.Resource, fileProps.Method, fileProps.ContentType, fileProps.ValueReplacer)
+		res["response"] = NewResponseFromFileProperties(
+			fileProps.FilePath, fileProps.ContentType, fileProps.ValueReplacer)
+
 		NewJSONResponse(http.StatusOK, res, w)
 		return
 	}
-
-	// spec := service.Spec
-	// if spec == nil {
-	// 	NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
-	// 	return
-	// }
 
 	if !fileProps.IsOpenAPI {
 		h.error(500, "OpenAPI spec not found", w)
@@ -377,8 +370,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res["request"] = NewRequestFromOperation(
-		fileProps.Prefix, payload.Resource, payload.Method, operation, valueResolver)
-	res["response"] = NewResponseFromOperation(operation, valueResolver)
+		fileProps.Prefix, payload.Resource, payload.Method, operation, fileProps.ValueReplacer)
+	res["response"] = NewResponseFromOperation(operation, fileProps.ValueReplacer)
 
 	NewJSONResponse(http.StatusOK, res, w)
 }

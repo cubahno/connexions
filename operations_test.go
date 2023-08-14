@@ -9,7 +9,8 @@ import (
 
 func TestNewRequest(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(content any, state *ReplaceState) any {
+			schema, _ := content.(*openapi3.Schema)
 			if state.NamePath[0] == "userId" {
 				return "123"
 			}
@@ -128,7 +129,8 @@ func TestNewRequest(t *testing.T) {
 
 func TestNewResponse(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(content any, state *ReplaceState) any {
+			schema, _ := content.(*openapi3.Schema)
 			if state.NamePath[0] == "userId" {
 				return 123
 			}
@@ -235,7 +237,8 @@ func TestNewResponse(t *testing.T) {
 	})
 
 	t.Run("no-content-type", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(content any, state *ReplaceState) any {
+			schema, _ := content.(*openapi3.Schema)
 			if state.NamePath[0] == "userId" {
 				return 123
 			}
@@ -435,7 +438,7 @@ func TestGetContentType(t *testing.T) {
 func TestGenerateURL(t *testing.T) {
 	t.Run("params correctly replaced in path", func(t *testing.T) {
 		path := "/users/{id}/{file-id}"
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(content any, state *ReplaceState) any {
 			if state.NamePath[0] == "id" {
 				return 123
 			}
@@ -486,7 +489,7 @@ func TestGenerateURL(t *testing.T) {
 
 func TestGenerateQuery(t *testing.T) {
 	t.Run("params correctly replaced in query", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			if state.NamePath[0] == "id" {
 				return 123
 			}
@@ -526,7 +529,7 @@ func TestGenerateQuery(t *testing.T) {
 	})
 
 	t.Run("arrays in url", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(content any, state *ReplaceState) any {
 			return "foo bar"
 		}
 		params := openapi3.Parameters{
@@ -554,7 +557,7 @@ func TestGenerateQuery(t *testing.T) {
 	})
 
 	t.Run("no-resolved-values", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			return nil
 		}
 		params := openapi3.Parameters{
@@ -579,7 +582,7 @@ func TestGenerateQuery(t *testing.T) {
 
 func TestGenerateContent(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(content any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "id":
 				return 21
@@ -698,7 +701,7 @@ func TestGenerateContent(t *testing.T) {
 	})
 
 	t.Run("with-nested-all-of", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "name":
 				return "Jane Doe"
@@ -766,7 +769,7 @@ func TestGenerateContent(t *testing.T) {
 	t.Run("fast-track-used-with-object", func(t *testing.T) {
 		dice := map[string]string{"nice": "very nice", "rice": "good rice"}
 
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[0] {
 			case "nice":
 				return "not so nice"
@@ -801,7 +804,7 @@ func TestGenerateContent(t *testing.T) {
 	})
 
 	t.Run("with-circular-array-references", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "id":
 				return 123
@@ -894,7 +897,7 @@ func TestGenerateContent(t *testing.T) {
 	})
 
 	t.Run("with-circular-object-references", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "id":
 				return 123
@@ -1018,7 +1021,7 @@ func TestGenerateContentObject(t *testing.T) {
             }
         }`)
 
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			namePath := state.NamePath
 			for _, name := range namePath {
 				if name == "first" {
@@ -1071,7 +1074,7 @@ func TestGenerateContentArray(t *testing.T) {
             }
         }`)
 
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			return "foo"
 		}
 
@@ -1090,7 +1093,7 @@ func TestGenerateContentArray(t *testing.T) {
 
 		callNum := -1
 
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			callNum++
 			items := []string{"a", "b", "c", "d"}
 			return items[callNum]
@@ -1113,7 +1116,7 @@ func TestGenerateContentArray(t *testing.T) {
 
 func TestGenerateRequestBody(t *testing.T) {
 	t.Run("GenerateRequestBody", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			namePath := state.NamePath
 			for _, name := range namePath {
 				if name == "foo" {
@@ -1142,7 +1145,7 @@ func TestGenerateRequestBody(t *testing.T) {
 	})
 
 	t.Run("GenerateRequestBody-first-from-encountered", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			namePath := state.NamePath
 			for _, name := range namePath {
 				if name == "foo" {
@@ -1201,7 +1204,7 @@ func TestGenerateRequestBody(t *testing.T) {
 
 func TestGenerateRequestHeaders(t *testing.T) {
 	t.Run("GenerateRequestHeaders", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "mode":
 				return "dark"
@@ -1289,7 +1292,7 @@ func TestGenerateRequestHeaders(t *testing.T) {
 
 func TestGenerateResponseHeaders(t *testing.T) {
 	t.Run("GenerateResponseHeaders", func(t *testing.T) {
-		valueResolver := func(schema *openapi3.Schema, state *ResolveState) any {
+		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "x-rate-limit-limit":
 				return 100

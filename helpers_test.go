@@ -3,6 +3,7 @@ package xs
 import (
 	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -34,4 +35,12 @@ func CreateOperationFromString(t *testing.T, src string) *openapi3.Operation {
 		t.FailNow()
 	}
 	return res
+}
+
+func AssertJSONEqual(t *testing.T, expected, actual any) {
+	expectedJSON, _ := json.Marshal(expected)
+	actualJSON, _ := json.Marshal(actual)
+
+	// Compare JSON representations
+	assert.Equal(t, string(expectedJSON), string(actualJSON), "JSON representations should match")
 }

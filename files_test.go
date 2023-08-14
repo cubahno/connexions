@@ -43,7 +43,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/.root/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "",
 			Prefix:      "",
 			Resource:    "/users.html",
@@ -60,7 +60,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "",
 			Prefix:      "",
 			Resource:    "/users.html",
@@ -76,7 +76,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/.root/patch/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "",
 			Method:      http.MethodPatch,
 			Prefix:      "",
@@ -92,7 +92,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/patch/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "patch",
 			Method:      http.MethodGet,
 			Prefix:      "/patch",
@@ -108,7 +108,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/users/all/index.xml"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "users",
 			Method:      http.MethodGet,
 			Prefix:      "/users",
@@ -124,7 +124,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/users/patch/id/{userId}/index.json"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "users",
 			Method:      http.MethodPatch,
 			Prefix:      "/users",

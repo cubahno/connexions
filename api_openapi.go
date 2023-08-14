@@ -15,12 +15,12 @@ type ResourceGeneratePayload struct {
 	IsOpenAPI    bool           `json:"isOpenApi"`
 }
 
-// RegisterOpenAPIService loads an OpenAPI specification from a file and adds the routes to the router.
-func RegisterOpenAPIService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
+// RegisterOpenAPIRoutes adds spec routes to the router and
+// creates necessary closure to serve routes.
+func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
 	res := make([]*RouteDescription, 0)
-	valueMaker := CreateValueResolver()
 
 	doc := fileProps.Spec
 	if doc == nil {
@@ -31,8 +31,8 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) ([]*Route
 		for method, _ := range pathItem.Operations() {
 			// register route
 			router.Method(method,
-				fileProps.Prefix+resName, createOpenAPIResponseHandler(
-					fileProps.Prefix, doc, valueMaker, router.Config))
+				fileProps.Prefix+resName,
+				createOpenAPIResponseHandler(fileProps.Prefix, doc, fileProps.ValueReplacer, router.Config))
 
 			res = append(res, &RouteDescription{
 				Method: method,
@@ -47,7 +47,8 @@ func RegisterOpenAPIService(fileProps *FileProperties, router *Router) ([]*Route
 }
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
-func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker ValueResolver, config *Config) http.HandlerFunc {
+func createOpenAPIResponseHandler(
+	prefix string, doc *openapi3.T, valueReplacer ValueReplacer, config *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := chi.RouteContext(r.Context())
 		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
@@ -81,7 +82,7 @@ func createOpenAPIResponseHandler(prefix string, doc *openapi3.T, valueMaker Val
 			return
 		}
 
-		response := NewResponseFromOperation(operation, valueMaker)
+		response := NewResponseFromOperation(operation, valueReplacer)
 
 		if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
 			return

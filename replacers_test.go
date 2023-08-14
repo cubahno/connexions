@@ -8,12 +8,12 @@ import (
 	"testing"
 )
 
-func TestResolveState(t *testing.T) {
+func TestReplaceState(t *testing.T) {
 	t.Run("NewFrom", func(t *testing.T) {
-		src := &ResolveState{
+		src := &ReplaceState{
 			NamePath: []string{"foo", "bar"},
 		}
-		wanted := &ResolveState{
+		wanted := &ReplaceState{
 			NamePath:                 []string{"foo", "bar"},
 			IsHeader:                 false,
 			ContentType:              "",
@@ -26,7 +26,7 @@ func TestResolveState(t *testing.T) {
 	})
 
 	t.Run("WithName", func(t *testing.T) {
-		src := &ResolveState{
+		src := &ReplaceState{
 			NamePath: []string{"dice", "nice"},
 		}
 
@@ -35,7 +35,7 @@ func TestResolveState(t *testing.T) {
 	})
 
 	t.Run("WithElementIndex", func(t *testing.T) {
-		src := &ResolveState{}
+		src := &ReplaceState{}
 
 		res := src.WithElementIndex(10)
 		assert.Equal(t, 10, res.ElementIndex)
@@ -45,8 +45,8 @@ func TestResolveState(t *testing.T) {
 		const numGoroutines = 1000
 		const targetValue = 42
 
-		// Create a shared ResolveState
-		state := &ResolveState{}
+		// Create a shared ReplaceState
+		state := &ReplaceState{}
 
 		// Use a WaitGroup to wait for all goroutines to finish
 		var wg sync.WaitGroup
@@ -69,36 +69,36 @@ func TestResolveState(t *testing.T) {
 	})
 
 	t.Run("WithHeader", func(t *testing.T) {
-		src := &ResolveState{}
+		src := &ReplaceState{}
 
 		res := src.WithHeader()
 		assert.True(t, res.IsHeader)
 	})
 
 	t.Run("WithContentType", func(t *testing.T) {
-		src := &ResolveState{}
+		src := &ReplaceState{}
 
 		res := src.WithContentType("application/json")
 		assert.Equal(t, "application/json", res.ContentType)
 	})
 
 	t.Run("IsCircularObjectTrip", func(t *testing.T) {
-		src := &ResolveState{}
+		src := &ReplaceState{}
 
 		res := src.WithName("foo").WithName("bar")
 		assert.True(t, res.IsCircularObjectTrip())
 	})
 
 	t.Run("IsCircularArrayTrip", func(t *testing.T) {
-		src := &ResolveState{}
+		src := &ReplaceState{}
 
 		res := src.WithElementIndex(10)
 		assert.True(t, res.IsCircularArrayTrip(10))
 	})
 }
 
-func TestCreateValueResolver(t *testing.T) {
-	fn := CreateValueResolver()
+func TestCreateValueSchemaReplacer(t *testing.T) {
+	fn := CreateValueSchemaReplacer()
 
 	t.Run("from-example", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{"type": "string", "example": "foo"}`)
@@ -148,7 +148,7 @@ func TestCreateValueResolver(t *testing.T) {
 	})
 }
 
-func TestIsCorrectlyResolvedType(t *testing.T) {
+func TestIsCorrectlyReplacedType(t *testing.T) {
 	type testCase struct {
 		value    any
 		needed   string
@@ -178,7 +178,7 @@ func TestIsCorrectlyResolvedType(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			assert.Equal(t, tc.expected, IsCorrectlyResolvedType(tc.value, tc.needed))
+			assert.Equal(t, tc.expected, IsCorrectlyReplacedType(tc.value, tc.needed))
 		})
 	}
 }

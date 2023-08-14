@@ -3,15 +3,15 @@ package xs
 import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/getkin/kin-openapi/openapi3"
+	"log"
 	"reflect"
 	"strings"
 	"sync"
 )
 
-type ValueResolver func(schema *openapi3.Schema, state *ResolveState) any
-type ContentResolver func(content any, state *ResolveState) any
+type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
 
-type ResolveState struct {
+type ReplaceState struct {
 	NamePath                 []string
 	ElementIndex             int
 	IsHeader                 bool
@@ -22,8 +22,8 @@ type ResolveState struct {
 	mu                       sync.Mutex
 }
 
-func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
-	return &ResolveState{
+func (s *ReplaceState) NewFrom(src *ReplaceState) *ReplaceState {
+	return &ReplaceState{
 		NamePath:                 src.NamePath,
 		IsHeader:                 src.IsHeader,
 		ContentType:              src.ContentType,
@@ -32,7 +32,7 @@ func (s *ResolveState) NewFrom(src *ResolveState) *ResolveState {
 	}
 }
 
-func (s *ResolveState) WithName(name string) *ResolveState {
+func (s *ReplaceState) WithName(name string) *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -47,7 +47,7 @@ func (s *ResolveState) WithName(name string) *ResolveState {
 	return s
 }
 
-func (s *ResolveState) WithElementIndex(value int) *ResolveState {
+func (s *ReplaceState) WithElementIndex(value int) *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.stopCircularArrayTripOn = value + 1
@@ -55,39 +55,45 @@ func (s *ResolveState) WithElementIndex(value int) *ResolveState {
 	return s
 }
 
-func (s *ResolveState) WithHeader() *ResolveState {
+func (s *ReplaceState) WithHeader() *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.IsHeader = true
 	return s
 }
 
-func (s *ResolveState) WithURLParam() *ResolveState {
+func (s *ReplaceState) WithURLParam() *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.IsURLParam = true
 	return s
 }
 
-func (s *ResolveState) WithContentType(value string) *ResolveState {
+func (s *ReplaceState) WithContentType(value string) *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.ContentType = value
 	return s
 }
 
-func (s *ResolveState) IsCircularObjectTrip() bool {
+func (s *ReplaceState) IsCircularObjectTrip() bool {
 	return len(s.NamePath) > 0 && s.stopCircularObjectTripOn == strings.Join(s.NamePath, ".")
 }
 
-func (s *ResolveState) IsCircularArrayTrip(index int) bool {
+func (s *ReplaceState) IsCircularArrayTrip(index int) bool {
 	return index+1 == s.stopCircularArrayTripOn
 }
 
-func CreateValueResolver() ValueResolver {
+func CreateValueSchemaReplacer() ValueReplacer {
 	faker := gofakeit.New(0)
 
-	return func(schema *openapi3.Schema, state *ResolveState) any {
+	return func(content any, state *ReplaceState) any {
+		schema, ok := content.(*openapi3.Schema)
+		if !ok {
+			log.Printf("content is not *openapi3.Schema, but %s", reflect.TypeOf(content))
+			return nil
+		}
+
 		if schema.Example != nil {
 			return schema.Example
 		}
@@ -107,10 +113,10 @@ func CreateValueResolver() ValueResolver {
 	}
 }
 
-func CreateJSONResolver() ContentResolver {
+func CreateValueContentReplacer() ValueReplacer {
 	faker := gofakeit.New(0)
 
-	return func(content any, state *ResolveState) any {
+	return func(content any, state *ReplaceState) any {
 		switch content.(type) {
 		case string:
 			if state.IsURLParam {
@@ -121,7 +127,7 @@ func CreateJSONResolver() ContentResolver {
 	}
 }
 
-func IsCorrectlyResolvedType(value any, needed string) bool {
+func IsCorrectlyReplacedType(value any, needed string) bool {
 	switch needed {
 	case openapi3.TypeString:
 		_, ok := value.(string)
