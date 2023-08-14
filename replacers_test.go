@@ -98,7 +98,7 @@ func TestReplaceState(t *testing.T) {
 }
 
 func TestCreateValueSchemaReplacer(t *testing.T) {
-	fn := CreateValueSchemaReplacer()
+	fn := CreateValueSchemaReplacerFactory()(&Resource{})
 
 	t.Run("from-example", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{"type": "string", "example": "foo"}`)

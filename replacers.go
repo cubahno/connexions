@@ -5,125 +5,67 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"log"
 	"reflect"
-	"strings"
-	"sync"
 )
 
 type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
+type ValueReplacerFactory func(resource *Resource) ValueReplacer
 
-type ReplaceState struct {
-	NamePath                 []string
-	ElementIndex             int
-	IsHeader                 bool
-	IsURLParam               bool
-	ContentType              string
-	stopCircularArrayTripOn  int
-	stopCircularObjectTripOn string
-	mu                       sync.Mutex
+type ReplaceContext struct {
+	State        *ReplaceState
+	Resource     *Resource
+	Name         string
+	OriginalName string
+	Faker        *gofakeit.Faker
 }
 
-func (s *ReplaceState) NewFrom(src *ReplaceState) *ReplaceState {
-	return &ReplaceState{
-		NamePath:                 src.NamePath,
-		IsHeader:                 src.IsHeader,
-		ContentType:              src.ContentType,
-		stopCircularArrayTripOn:  src.stopCircularArrayTripOn,
-		stopCircularObjectTripOn: src.stopCircularObjectTripOn,
-	}
+type Resource struct {
+	Service          string
+	Path             string
+	UserReplacements map[string]any
 }
 
-func (s *ReplaceState) WithName(name string) *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	namePath := s.NamePath
-	if len(namePath) == 0 {
-		namePath = []string{}
-	}
-	s.stopCircularObjectTripOn = strings.Join(namePath, ".") + "." + name
-	namePath = append(namePath, name)
-
-	s.NamePath = namePath
-	return s
-}
-
-func (s *ReplaceState) WithElementIndex(value int) *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.stopCircularArrayTripOn = value + 1
-	s.ElementIndex = value
-	return s
-}
-
-func (s *ReplaceState) WithHeader() *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.IsHeader = true
-	return s
-}
-
-func (s *ReplaceState) WithURLParam() *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.IsURLParam = true
-	return s
-}
-
-func (s *ReplaceState) WithContentType(value string) *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.ContentType = value
-	return s
-}
-
-func (s *ReplaceState) IsCircularObjectTrip() bool {
-	return len(s.NamePath) > 0 && s.stopCircularObjectTripOn == strings.Join(s.NamePath, ".")
-}
-
-func (s *ReplaceState) IsCircularArrayTrip(index int) bool {
-	return index+1 == s.stopCircularArrayTripOn
-}
-
-func CreateValueSchemaReplacer() ValueReplacer {
+func CreateValueSchemaReplacerFactory() func(resource *Resource) ValueReplacer {
 	faker := gofakeit.New(0)
+	return func(resource *Resource) ValueReplacer {
+		return func(content any, state *ReplaceState) any {
+			schema, ok := content.(*openapi3.Schema)
+			if !ok {
+				log.Printf("content is not *openapi3.Schema, but %s", reflect.TypeOf(content))
+				return nil
+			}
 
-	return func(content any, state *ReplaceState) any {
-		schema, ok := content.(*openapi3.Schema)
-		if !ok {
-			log.Printf("content is not *openapi3.Schema, but %s", reflect.TypeOf(content))
+			if schema.Example != nil {
+				return schema.Example
+			}
+
+			switch schema.Type {
+			case openapi3.TypeString:
+				return faker.Word()
+			case openapi3.TypeInteger:
+				return faker.Uint32()
+			case openapi3.TypeNumber:
+				return faker.Uint32()
+			case openapi3.TypeBoolean:
+				return faker.Bool()
+			}
+
 			return nil
 		}
-
-		if schema.Example != nil {
-			return schema.Example
-		}
-
-		switch schema.Type {
-		case openapi3.TypeString:
-			return faker.Word()
-		case openapi3.TypeInteger:
-			return faker.Uint32()
-		case openapi3.TypeNumber:
-			return faker.Uint32()
-		case openapi3.TypeBoolean:
-			return faker.Bool()
-		}
-
-		return nil
 	}
 }
 
-func CreateValueContentReplacer() ValueReplacer {
+func CreateValueContentReplacerFactory() ValueReplacerFactory {
 	faker := gofakeit.New(0)
-
-	return func(content any, state *ReplaceState) any {
-		switch content.(type) {
-		case string:
-			if state.IsURLParam {
-				return faker.Uint8()
+	return func(resource *Resource) ValueReplacer {
+		return func(content any, state *ReplaceState) any {
+			switch content.(type) {
+			case string:
+				if state.IsURLParam {
+					return faker.Uint8()
+				}
 			}
+			return content
 		}
-		return content
 	}
 }
 

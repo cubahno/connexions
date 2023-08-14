@@ -73,7 +73,8 @@ func NewResponseFromOperation(operation *openapi3.Operation, valueReplacer Value
 	}
 }
 
-func NewResponseFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) *Response {
+func NewResponseFromFileProperties(
+	filePath, contentType string, valueReplacer ValueReplacer) *Response {
 	content, isBase64 := GenerateContentFromFileProperties(filePath, contentType, valueReplacer)
 	return &Response{
 		Headers:     map[string]string{"content-type": contentType},
@@ -470,7 +471,8 @@ func GenerateResponseHeaders(headers openapi3.Headers, valueReplacer ValueReplac
 	return res
 }
 
-func GenerateContentFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) (any, bool) {
+func GenerateContentFromFileProperties(
+	filePath, contentType string, valueReplacer ValueReplacer) (any, bool) {
 	if filePath == "" {
 		return nil, false
 	}

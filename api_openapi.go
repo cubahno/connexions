@@ -32,7 +32,7 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 			// register route
 			router.Method(method,
 				fileProps.Prefix+resName,
-				createOpenAPIResponseHandler(fileProps.Prefix, doc, fileProps.ValueReplacer, router.Config))
+				createOpenAPIResponseHandler(fileProps.Prefix, doc, fileProps.ValueReplacerFactory, router.Config))
 
 			res = append(res, &RouteDescription{
 				Method: method,
@@ -48,7 +48,7 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
 func createOpenAPIResponseHandler(
-	prefix string, doc *openapi3.T, valueReplacer ValueReplacer, config *Config) http.HandlerFunc {
+	prefix string, doc *openapi3.T, valueReplacerFactory ValueReplacerFactory, config *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := chi.RouteContext(r.Context())
 		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
@@ -82,6 +82,10 @@ func createOpenAPIResponseHandler(
 			return
 		}
 
+		valueReplacer := valueReplacerFactory(&Resource{
+			Service: strings.Trim(prefix, "/"),
+			Path:    resourceName,
+		})
 		response := NewResponseFromOperation(operation, valueReplacer)
 
 		if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {

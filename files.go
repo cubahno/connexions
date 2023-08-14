@@ -18,17 +18,17 @@ import (
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
 type FileProperties struct {
-	ServiceName   string
-	IsOpenAPI     bool
-	Method        string
-	Prefix        string
-	Resource      string
-	FilePath      string
-	FileName      string
-	Extension     string
-	ContentType   string
-	Spec          *openapi3.T `json:"-"`
-	ValueReplacer ValueReplacer `json:"-"`
+	ServiceName          string
+	IsOpenAPI            bool
+	Method               string
+	Prefix               string
+	Resource             string
+	FilePath             string
+	FileName             string
+	Extension            string
+	ContentType          string
+	Spec                 *openapi3.T          `json:"-"`
+	ValueReplacerFactory ValueReplacerFactory `json:"-"`
 }
 
 func (f *FileProperties) IsEqual(other *FileProperties) bool {
@@ -123,15 +123,15 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 		}
 
 		return &FileProperties{
-			ServiceName: serviceName,
-			Prefix:      prefix,
-			IsOpenAPI:   true,
-			FilePath:    filePath,
-			FileName:    fileName,
-			Extension:   ext,
-			ContentType: contentType,
-			Spec:        doc,
-			ValueReplacer: CreateValueSchemaReplacer(),
+			ServiceName:          serviceName,
+			Prefix:               prefix,
+			IsOpenAPI:            true,
+			FilePath:             filePath,
+			FileName:             fileName,
+			Extension:            ext,
+			ContentType:          contentType,
+			Spec:                 doc,
+			ValueReplacerFactory: CreateValueSchemaReplacerFactory(),
 		}, nil
 	}
 
@@ -179,15 +179,15 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 	}
 
 	return &FileProperties{
-		ServiceName: serviceName,
-		Prefix:      prefix,
-		Method:      method,
-		Resource:    resource,
-		FilePath:    filePath,
-		FileName:    fileName,
-		Extension:   ext,
-		ContentType: contentType,
-		ValueReplacer: CreateValueContentReplacer(),
+		ServiceName:          serviceName,
+		Prefix:               prefix,
+		Method:               method,
+		Resource:             resource,
+		FilePath:             filePath,
+		FileName:             fileName,
+		Extension:            ext,
+		ContentType:          contentType,
+		ValueReplacerFactory: CreateValueContentReplacerFactory(),
 	}, nil
 }
 
