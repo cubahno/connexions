@@ -147,5 +147,5 @@ func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
 }
 
 func ReplaceFallback(ctx *ReplaceContext) any {
-    return ctx.Faker.Word()
+    return nil
 }
