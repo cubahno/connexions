@@ -586,6 +586,9 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 	}
 
 	fileProps, err := GetPropertiesFromFilePath(filePath)
+	if err != nil {
+		return nil, err
+	}
 	if !prefixValidator(fileProps.Prefix) || !prefixValidator(path) {
 		_ = os.RemoveAll(filePath)
 		return nil, ErrReservedPrefix

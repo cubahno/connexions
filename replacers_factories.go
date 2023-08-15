@@ -10,10 +10,9 @@ type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
 type ValueReplacerFactory func(resource *Resource) ValueReplacer
 
 type ReplaceContext struct {
-	Schema any
+	Schema       any
 	State        *ReplaceState
 	Resource     *Resource
-	Name         PropertyName
 	OriginalName string
 	Faker        *gofakeit.Faker
 }
@@ -29,7 +28,7 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 
 	fns := []Replacer{
 		ReplaceInHeaders,
-		ReplaceFromPredefined,
+		ReplaceFromContext,
 		// from contexts
 		// from alias, maybe not needed
 		ReplaceFromSchemaFormat,
@@ -49,11 +48,10 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 			}
 
 			ctx := &ReplaceContext{
-				Name: ExtractNames(state.NamePath),
-				Schema: content,
-				State:        state,
-				Resource:     resource,
-				Faker: faker,
+				Schema:   content,
+				State:    state,
+				Resource: resource,
+				Faker:    faker,
 			}
 
 			for _, fn := range fns {

@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,6 +29,9 @@ func NewApp() *App {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
+
+	// Seed the random number generator
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	err := MustFileStructure()
 	if err != nil {
