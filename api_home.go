@@ -9,6 +9,9 @@ import (
 )
 
 func CreateHomeRoutes(router *Router) error {
+	if !router.Config.App.ServeUI {
+		return nil
+	}
 	homeURL := router.Config.App.HomeURL
 	url := "/" + strings.Trim(homeURL, "/") + "/"
 
@@ -22,7 +25,6 @@ func CreateHomeRoutes(router *Router) error {
 
 func createHomeHandler(router *Router) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//http.ServeFile(w, r, fmt.Sprintf("%s/index.html", xs.UIPath))
 		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", UIPath)))
 		config := router.Config.App
 		err := tmpl.Execute(w, config)

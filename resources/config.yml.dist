@@ -3,8 +3,15 @@ app:
   homeUrl: /.ui
   serviceUrl: /.services
   settingsUrl: /.settings
+  # disable UI if not needed. the settings from above won't have any effect
+  serveUI: true
+  # adds swagger-ui to each service
+  serveSpec: true
 
 services:
+  # service name is the first part of the path.
+  # e.g. /petstore/v1/pets -> petstore
+  # in case, there's no service name, use the name ".root"
   petstore:
     latency: 0s
     errors:

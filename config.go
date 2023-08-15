@@ -38,6 +38,8 @@ type AppConfig struct {
 	HomeURL     string `json:"homeUrl" koanf:"homeUrl"`
 	ServiceURL  string `json:"serviceUrl" koanf:"serviceUrl"`
 	SettingsURL string `json:"settingsUrl" koanf:"settingsUrl"`
+	ServeUI     bool   `json:"serveUI" koanf:"serveUI"`
+	ServeSpec   bool   `json:"serveSpec" koanf:"serveSpec"`
 }
 
 func (a *AppConfig) IsValidPrefix(prefix string) bool {

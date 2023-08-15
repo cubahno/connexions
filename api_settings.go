@@ -14,6 +14,10 @@ type SettingsHandler struct {
 }
 
 func CreateSettingsRoutes(router *Router) error {
+	if !router.Config.App.ServeUI || router.Config.App.SettingsURL == "" {
+		return nil
+	}
+
 	handler := &SettingsHandler{}
 
 	url := router.Config.App.SettingsURL

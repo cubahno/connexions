@@ -13,6 +13,10 @@ import (
 )
 
 func CreateServiceRoutes(router *Router) error {
+	if !router.Config.App.ServeUI || router.Config.App.ServiceURL == "" {
+		return nil
+	}
+
 	handler := &ServiceHandler{
 		router: router,
 	}
@@ -25,7 +29,9 @@ func CreateServiceRoutes(router *Router) error {
 		r.Get("/", handler.list)
 		r.Post("/", handler.save)
 		r.Get("/{name}", handler.resources)
-		r.Get("/{name}/spec", handler.spec)
+		if router.Config.App.ServeSpec {
+			r.Get("/{name}/spec", handler.spec)
+		}
 		r.Post("/{name}", handler.generate)
 		r.Delete("/{name}", handler.deleteService)
 		r.Get("/{name}/resources/{method}", handler.getResource)
