@@ -2,7 +2,6 @@ package xs
 
 import (
 	"github.com/brianvoe/gofakeit/v6"
-	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
 )
 
@@ -74,19 +73,19 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 
 func IsCorrectlyReplacedType(value any, needed string) bool {
 	switch needed {
-	case openapi3.TypeString:
+	case TypeString:
 		_, ok := value.(string)
 		return ok
-	case openapi3.TypeInteger:
+	case TypeInteger:
 		return IsInteger(value)
-	case openapi3.TypeNumber:
+	case TypeNumber:
 		return IsNumber(value)
-	case openapi3.TypeBoolean:
+	case TypeBoolean:
 		_, ok := value.(bool)
 		return ok
-	case openapi3.TypeObject:
+	case TypeObject:
 		return reflect.TypeOf(value).Kind() == reflect.Map
-	case openapi3.TypeArray:
+	case TypeArray:
 		val := reflect.ValueOf(value)
 		return val.Kind() == reflect.Slice || val.Kind() == reflect.Array
 	default:

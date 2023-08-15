@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
 	"gopkg.in/yaml.v3"
 	"io"
 	"mime"
@@ -27,7 +26,7 @@ type FileProperties struct {
 	FileName             string
 	Extension            string
 	ContentType          string
-	Spec                 *openapi3.T          `json:"-"`
+	Spec                 *Document            `json:"-"`
 	ValueReplacerFactory ValueReplacerFactory `json:"-"`
 }
 
@@ -116,8 +115,7 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
 
-		loader := openapi3.NewLoader()
-		doc, err := loader.LoadFromFile(filePath)
+		doc, err := NewDocumentFromFile(filePath)
 		if err != nil {
 			return nil, err
 		}

@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +28,7 @@ type Response struct {
 	IsBase64    bool        `json:"isBase64,omitempty"`
 }
 
-func NewRequestFromOperation(pathPrefix, path, method string, operation *openapi3.Operation, valueReplacer ValueReplacer) *Request {
+func NewRequestFromOperation(pathPrefix, path, method string, operation *Operation, valueReplacer ValueReplacer) *Request {
 	body, contentType := GenerateRequestBody(operation.RequestBody, valueReplacer, nil)
 
 	return &Request{
@@ -50,7 +49,7 @@ func NewRequestFromFileProperties(path, method, contentType string, valueReplace
 	}
 }
 
-func NewResponseFromOperation(operation *openapi3.Operation, valueReplacer ValueReplacer) *Response {
+func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer) *Response {
 	response, statusCode := ExtractResponse(operation)
 
 	headers := GenerateResponseHeaders(response.Headers, valueReplacer)
@@ -85,10 +84,10 @@ func NewResponseFromFileProperties(
 	}
 }
 
-func ExtractResponse(operation *openapi3.Operation) (*openapi3.Response, int) {
+func ExtractResponse(operation *Operation) (*OpenAPIResponse, int) {
 	available := operation.Responses
 
-	var responseRef *openapi3.ResponseRef
+	var responseRef *ResponseRef
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
 		responseRef = available.Get(code)
 		if responseRef != nil {
@@ -128,7 +127,7 @@ func TransformHTTPCode(httpCode string) int {
 	return codeInt
 }
 
-func GetContentType(content openapi3.Content) (string, *openapi3.Schema) {
+func GetContentType(content OpenAPIContent) (string, *Schema) {
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := content[contentType]; ok {
@@ -143,10 +142,10 @@ func GetContentType(content openapi3.Content) (string, *openapi3.Schema) {
 	return "", nil
 }
 
-func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, params openapi3.Parameters) string {
+func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, params OpenAPIParameters) string {
 	for _, paramRef := range params {
 		param := paramRef.Value
-		if param == nil || param.In != openapi3.ParameterInPath {
+		if param == nil || param.In != ParameterInPath {
 			continue
 		}
 
@@ -171,7 +170,7 @@ func GenerateURLFromFileProperties(path string, valueReplacer ValueReplacer) str
 	return path
 }
 
-func GenerateQuery(valueReplacer ValueReplacer, params openapi3.Parameters) string {
+func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string {
 	queryValues := url.Values{}
 
 	// avoid encoding [] in the query
@@ -188,7 +187,7 @@ func GenerateQuery(valueReplacer ValueReplacer, params openapi3.Parameters) stri
 
 	for _, paramRef := range params {
 		param := paramRef.Value
-		if param == nil || param.In != openapi3.ParameterInQuery {
+		if param == nil || param.In != ParameterInQuery {
 			continue
 		}
 
@@ -210,7 +209,7 @@ func GenerateQuery(valueReplacer ValueReplacer, params openapi3.Parameters) stri
 	return encode(queryValues)
 }
 
-func GenerateContentFromSchema(schema *openapi3.Schema, valueResolver ValueReplacer, state *ReplaceState) any {
+func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, state *ReplaceState) any {
 	if state == nil {
 		state = &ReplaceState{}
 	}
@@ -224,11 +223,11 @@ func GenerateContentFromSchema(schema *openapi3.Schema, valueResolver ValueRepla
 
 	mergedSchema := MergeSubSchemas(schema)
 
-	if mergedSchema.Type == openapi3.TypeObject {
+	if mergedSchema.Type == TypeObject {
 		return GenerateContentObject(mergedSchema, valueResolver, state)
 	}
 
-	if mergedSchema.Type == openapi3.TypeArray {
+	if mergedSchema.Type == TypeArray {
 		return GenerateContentArray(mergedSchema, valueResolver, state)
 	}
 
@@ -240,7 +239,7 @@ func GenerateContentFromSchema(schema *openapi3.Schema, valueResolver ValueRepla
 	return nil
 }
 
-func GenerateContentObject(schema *openapi3.Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
+func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if state == nil {
 		state = &ReplaceState{}
 	}
@@ -270,7 +269,7 @@ func GenerateContentObject(schema *openapi3.Schema, valueReplacer ValueReplacer,
 	return res
 }
 
-func GenerateContentArray(schema *openapi3.Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
+func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if state == nil {
 		state = &ReplaceState{}
 	}
@@ -300,19 +299,19 @@ func GenerateContentArray(schema *openapi3.Schema, valueReplacer ValueReplacer, 
 	return res
 }
 
-func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
+func MergeSubSchemas(schema *Schema) *Schema {
 	allOf := schema.AllOf
 	anyOf := schema.AnyOf
 	oneOf := schema.OneOf
 	not := schema.Not
 
 	if len(schema.Properties) == 0 {
-		schema.Properties = make(map[string]*openapi3.SchemaRef)
+		schema.Properties = make(map[string]*SchemaRef)
 	}
 
-	schema.AllOf = make([]*openapi3.SchemaRef, 0)
-	schema.AnyOf = make([]*openapi3.SchemaRef, 0)
-	schema.OneOf = make([]*openapi3.SchemaRef, 0)
+	schema.AllOf = make([]*SchemaRef, 0)
+	schema.AnyOf = make([]*SchemaRef, 0)
+	schema.OneOf = make([]*SchemaRef, 0)
 	schema.Not = nil
 
 	for _, schemaRef := range allOf {
@@ -332,7 +331,7 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	}
 
 	// pick first from each if present
-	schemaRefs := []openapi3.SchemaRefs{anyOf, oneOf}
+	schemaRefs := []SchemaRefs{anyOf, oneOf}
 	for _, schemaRef := range schemaRefs {
 		if len(schemaRef) == 0 {
 			continue
@@ -381,7 +380,7 @@ func MergeSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	return schema
 }
 
-func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueReplacer, state *ReplaceState) (any, string) {
+func GenerateRequestBody(bodyRef *RequestBodyRef, valueResolver ValueReplacer, state *ReplaceState) (any, string) {
 	if state == nil {
 		state = &ReplaceState{}
 	}
@@ -423,7 +422,7 @@ func GenerateRequestBody(bodyRef *openapi3.RequestBodyRef, valueResolver ValueRe
 	return res, typ
 }
 
-func GenerateRequestHeaders(parameters openapi3.Parameters, valueReplacer ValueReplacer) any {
+func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueReplacer) any {
 	res := map[string]interface{}{}
 
 	for _, paramRef := range parameters {
@@ -433,7 +432,7 @@ func GenerateRequestHeaders(parameters openapi3.Parameters, valueReplacer ValueR
 		}
 
 		in := strings.ToLower(param.In)
-		if in != openapi3.ParameterInHeader {
+		if in != ParameterInHeader {
 			continue
 		}
 
@@ -459,7 +458,7 @@ func GenerateRequestHeaders(parameters openapi3.Parameters, valueReplacer ValueR
 	return res
 }
 
-func GenerateResponseHeaders(headers openapi3.Headers, valueReplacer ValueReplacer) map[string]any {
+func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer) map[string]any {
 	res := map[string]any{}
 
 	for name, headerRef := range headers {

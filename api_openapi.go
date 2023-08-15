@@ -2,7 +2,6 @@ package xs
 
 import (
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strings"
@@ -47,7 +46,7 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 
 // createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
 func createOpenAPIResponseHandler(
-	prefix string, doc *openapi3.T, valueReplacerFactory ValueReplacerFactory, config *Config) http.HandlerFunc {
+	prefix string, doc *Document, valueReplacerFactory ValueReplacerFactory, config *Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := chi.RouteContext(r.Context())
 		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
@@ -58,7 +57,7 @@ func createOpenAPIResponseHandler(
 		}
 
 		currentMethod := r.Method
-		var operation *openapi3.Operation
+		var operation *Operation
 
 		if currentMethod == http.MethodGet {
 			operation = paths.Get

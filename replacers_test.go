@@ -53,8 +53,7 @@ func TestReplaceValueWithContext(t *testing.T) {
 
 	t.Run("single-namepath-has-name-prefix", func(t *testing.T) {
 		context := map[string]interface{}{
-			"nameFull":  "Jane Doe",
-			"nameOther": "John Doe",
+			"nameFull": "Jane Doe",
 		}
 		namePath := []string{"name"}
 		res := ReplaceValueWithContext(namePath, context)
@@ -75,7 +74,6 @@ func TestReplaceValueWithContext(t *testing.T) {
 		assert.Contains(t, names, res)
 	})
 }
-
 
 func TestReplaceMapFunctionPlaceholders(t *testing.T) {
 	data := map[string]interface{}{

@@ -1,7 +1,6 @@
 package xs
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"sync"
@@ -156,23 +155,23 @@ func TestIsCorrectlyReplacedType(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{"foo", openapi3.TypeString, true},
-		{1, openapi3.TypeString, false},
-		{"foo", openapi3.TypeInteger, false},
-		{1, openapi3.TypeInteger, true},
-		{"1", openapi3.TypeNumber, false},
-		{1, openapi3.TypeNumber, true},
-		{1.12, openapi3.TypeNumber, true},
-		{"true", openapi3.TypeBoolean, false},
-		{true, openapi3.TypeBoolean, true},
-		{[]string{"foo", "bar"}, openapi3.TypeArray, true},
-		{[]int{1, 2}, openapi3.TypeArray, true},
-		{[]bool{true, false}, openapi3.TypeArray, true},
-		{map[string]string{"foo": "bar"}, openapi3.TypeObject, true},
-		{map[string]int{"foo": 1}, openapi3.TypeObject, true},
-		{map[string]bool{"foo": true}, openapi3.TypeObject, true},
-		{map[string]any{"foo": "bar"}, openapi3.TypeObject, true},
-		{"foo", openapi3.TypeObject, false},
+		{"foo", TypeString, true},
+		{1, TypeString, false},
+		{"foo", TypeInteger, false},
+		{1, TypeInteger, true},
+		{"1", TypeNumber, false},
+		{1, TypeNumber, true},
+		{1.12, TypeNumber, true},
+		{"true", TypeBoolean, false},
+		{true, TypeBoolean, true},
+		{[]string{"foo", "bar"}, TypeArray, true},
+		{[]int{1, 2}, TypeArray, true},
+		{[]bool{true, false}, TypeArray, true},
+		{map[string]string{"foo": "bar"}, TypeObject, true},
+		{map[string]int{"foo": 1}, TypeObject, true},
+		{map[string]bool{"foo": true}, TypeObject, true},
+		{map[string]any{"foo": "bar"}, TypeObject, true},
+		{"foo", TypeObject, false},
 		{"foo", "bar", false},
 	}
 

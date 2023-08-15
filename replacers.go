@@ -1,7 +1,6 @@
 package xs
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
 	"strings"
 )
 
@@ -17,7 +16,7 @@ const (
 )
 
 func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
-	schema, ok := ctx.Schema.(*openapi3.Schema)
+	schema, ok := ctx.Schema.(*Schema)
 	if !ok {
 		// TODO(igor): check how to handle with other content schemas
 		return true
@@ -115,7 +114,7 @@ func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
 }
 
 func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
-	schema, ok := ctx.Schema.(*openapi3.Schema)
+	schema, ok := ctx.Schema.(*Schema)
 	if !ok {
 		return nil
 	}
@@ -142,22 +141,22 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 }
 
 func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
-	schema, ok := ctx.Schema.(*openapi3.Schema)
+	schema, ok := ctx.Schema.(*Schema)
 	if !ok {
 		return nil
 	}
 	faker := ctx.Faker
 
 	switch schema.Type {
-	case openapi3.TypeString:
+	case TypeString:
 		return faker.Word()
-	case openapi3.TypeInteger:
+	case TypeInteger:
 		return faker.Uint32()
-	case openapi3.TypeNumber:
+	case TypeNumber:
 		return faker.Uint32()
-	case openapi3.TypeBoolean:
+	case TypeBoolean:
 		return faker.Bool()
-	case openapi3.TypeObject:
+	case TypeObject:
 		// empty object with no response
 		return map[string]any{}
 	}
@@ -165,7 +164,7 @@ func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 }
 
 func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
-	schema, ok := ctx.Schema.(*openapi3.Schema)
+	schema, ok := ctx.Schema.(*Schema)
 	if !ok {
 		return nil
 	}

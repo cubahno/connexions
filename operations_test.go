@@ -2,7 +2,6 @@ package xs
 
 import (
 	"encoding/json"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -10,7 +9,7 @@ import (
 func TestNewRequest(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
-			schema, _ := content.(*openapi3.Schema)
+			schema, _ := content.(*Schema)
 			if state.NamePath[0] == "userId" {
 				return "123"
 			}
@@ -130,7 +129,7 @@ func TestNewRequest(t *testing.T) {
 func TestNewResponse(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
-			schema, _ := content.(*openapi3.Schema)
+			schema, _ := content.(*Schema)
 			if state.NamePath[0] == "userId" {
 				return 123
 			}
@@ -238,7 +237,7 @@ func TestNewResponse(t *testing.T) {
 
 	t.Run("no-content-type", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
-			schema, _ := content.(*openapi3.Schema)
+			schema, _ := content.(*Schema)
 			if state.NamePath[0] == "userId" {
 				return 123
 			}
@@ -395,15 +394,15 @@ func TestTransformHTTPCode(t *testing.T) {
 
 func TestGetContentType(t *testing.T) {
 	t.Run("get-first-prioritized", func(t *testing.T) {
-		content := openapi3.Content{
+		content := OpenAPIContent{
 			"text/html": {
-				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}},
+				Schema: &SchemaRef{Value: &Schema{}},
 			},
 			"application/json": {
-				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}},
+				Schema: &SchemaRef{Value: &Schema{}},
 			},
 			"text/plain": {
-				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{}},
+				Schema: &SchemaRef{Value: &Schema{}},
 			},
 		}
 		contentType, schema := GetContentType(content)
@@ -413,12 +412,12 @@ func TestGetContentType(t *testing.T) {
 	})
 
 	t.Run("get-first-found", func(t *testing.T) {
-		content := openapi3.Content{
+		content := OpenAPIContent{
 			"multipart/form-data; boundary=something": {
-				Schema: &openapi3.SchemaRef{},
+				Schema: &SchemaRef{},
 			},
 			"application/xml": {
-				Schema: &openapi3.SchemaRef{},
+				Schema: &SchemaRef{},
 			},
 		}
 		contentType, _ := GetContentType(content)
@@ -427,7 +426,7 @@ func TestGetContentType(t *testing.T) {
 	})
 
 	t.Run("nothing-found", func(t *testing.T) {
-		content := openapi3.Content{}
+		content := OpenAPIContent{}
 		contentType, schema := GetContentType(content)
 
 		assert.Equal(t, "", contentType)
@@ -447,35 +446,35 @@ func TestGenerateURL(t *testing.T) {
 			}
 			return "something-else"
 		}
-		params := openapi3.Parameters{
+		params := OpenAPIParameters{
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "id",
 					In:   "path",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "integer",
 						},
 					},
 				},
 			},
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "file-id",
 					In:   "path",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "string",
 						},
 					},
 				},
 			},
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "file-id",
 					In:   "query",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "integer",
 						},
 					},
@@ -498,24 +497,24 @@ func TestGenerateQuery(t *testing.T) {
 			}
 			return "something-else"
 		}
-		params := openapi3.Parameters{
+		params := OpenAPIParameters{
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "id",
 					In:   "query",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "integer",
 						},
 					},
 				},
 			},
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "file-id",
 					In:   "query",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "foo",
 						},
 					},
@@ -532,16 +531,16 @@ func TestGenerateQuery(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
 			return "foo bar"
 		}
-		params := openapi3.Parameters{
+		params := OpenAPIParameters{
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "tags",
 					In:   "query",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "array",
-							Items: &openapi3.SchemaRef{
-								Value: &openapi3.Schema{
+							Items: &SchemaRef{
+								Value: &Schema{
 									Type: "string",
 								},
 							},
@@ -560,13 +559,13 @@ func TestGenerateQuery(t *testing.T) {
 		valueResolver := func(schema any, state *ReplaceState) any {
 			return nil
 		}
-		params := openapi3.Parameters{
+		params := OpenAPIParameters{
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "id",
 					In:   "query",
-					Schema: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{
+					Schema: &SchemaRef{
+						Value: &Schema{
 							Type: "integer",
 						},
 					},
@@ -1133,9 +1132,9 @@ func TestGenerateRequestBody(t *testing.T) {
 				}
 			}
 	    }`)
-		reqBodyRef := &openapi3.RequestBodyRef{
-			Value: &openapi3.RequestBody{
-				Content: openapi3.NewContentWithJSONSchema(schema),
+		reqBodyRef := &RequestBodyRef{
+			Value: &RequestBody{
+				Content: NewContentWithJSONSchema(schema),
 			},
 		}
 		payload, contentType := GenerateRequestBody(reqBodyRef, valueResolver, nil)
@@ -1163,11 +1162,11 @@ func TestGenerateRequestBody(t *testing.T) {
 				}
 			}
 	    }`)
-		reqBodyRef := &openapi3.RequestBodyRef{
-			Value: &openapi3.RequestBody{
-				Content: map[string]*openapi3.MediaType{
+		reqBodyRef := &RequestBodyRef{
+			Value: &RequestBody{
+				Content: map[string]*MediaType{
 					"application/xml": {
-						Schema: &openapi3.SchemaRef{Value: schema},
+						Schema: &SchemaRef{Value: schema},
 					},
 				},
 			},
@@ -1186,7 +1185,7 @@ func TestGenerateRequestBody(t *testing.T) {
 	})
 
 	t.Run("case-empty-schema", func(t *testing.T) {
-		reqBodyRef := &openapi3.RequestBodyRef{}
+		reqBodyRef := &RequestBodyRef{}
 		payload, contentType := GenerateRequestBody(reqBodyRef, nil, nil)
 
 		assert.Equal(t, "", contentType)
@@ -1194,7 +1193,7 @@ func TestGenerateRequestBody(t *testing.T) {
 	})
 
 	t.Run("case-empty-content-types", func(t *testing.T) {
-		reqBodyRef := &openapi3.RequestBodyRef{Value: &openapi3.RequestBody{Content: nil}}
+		reqBodyRef := &RequestBodyRef{Value: &RequestBody{Content: nil}}
 		payload, contentType := GenerateRequestBody(reqBodyRef, nil, nil)
 
 		assert.Equal(t, "", contentType)
@@ -1217,39 +1216,39 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			}
 			return nil
 		}
-		params := openapi3.Parameters{
+		params := OpenAPIParameters{
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name:   "X-Key",
-					In:     openapi3.ParameterInHeader,
-					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+					In:     ParameterInHeader,
+					Schema: &SchemaRef{Value: &Schema{Type: "string"}},
 				},
 			},
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name:   "Version",
-					In:     openapi3.ParameterInHeader,
-					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+					In:     ParameterInHeader,
+					Schema: &SchemaRef{Value: &Schema{Type: "string"}},
 				},
 			},
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name: "Preferences",
-					In:   openapi3.ParameterInHeader,
-					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+					In:   ParameterInHeader,
+					Schema: &SchemaRef{Value: &Schema{
 						Type: "object",
-						Properties: map[string]*openapi3.SchemaRef{
-							"mode": {Value: &openapi3.Schema{Type: "string"}},
-							"lang": {Value: &openapi3.Schema{Type: "string"}},
+						Properties: map[string]*SchemaRef{
+							"mode": {Value: &Schema{Type: "string"}},
+							"lang": {Value: &Schema{Type: "string"}},
 						},
 					}},
 				},
 			},
 			{
-				Value: &openapi3.Parameter{
+				Value: &OpenAPIParameter{
 					Name:   "id",
-					In:     openapi3.ParameterInPath,
-					Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+					In:     ParameterInPath,
+					Schema: &SchemaRef{Value: &Schema{Type: "string"}},
 				},
 			},
 		}
@@ -1265,23 +1264,23 @@ func TestGenerateRequestHeaders(t *testing.T) {
 	})
 
 	t.Run("param-is-nil", func(t *testing.T) {
-		params := openapi3.Parameters{{}}
+		params := OpenAPIParameters{{}}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
 	})
 
 	t.Run("schema-ref-is-nil", func(t *testing.T) {
-		params := openapi3.Parameters{{Value: &openapi3.Parameter{Schema: nil, In: openapi3.ParameterInHeader}}}
+		params := OpenAPIParameters{{Value: &OpenAPIParameter{Schema: nil, In: ParameterInHeader}}}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
 	})
 
 	t.Run("schema-is-nil", func(t *testing.T) {
-		params := openapi3.Parameters{
+		params := OpenAPIParameters{
 			{
-				Value: &openapi3.Parameter{
-					Schema: &openapi3.SchemaRef{Value: nil},
-					In:     openapi3.ParameterInHeader,
+				Value: &OpenAPIParameter{
+					Schema: &SchemaRef{Value: nil},
+					In:     ParameterInHeader,
 				},
 			},
 		}
@@ -1301,22 +1300,22 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			}
 			return nil
 		}
-		headers := openapi3.Headers{
+		headers := OpenAPIHeaders{
 			"X-Rate-Limit-Limit": {
-				Value: &openapi3.Header{
-					Parameter: openapi3.Parameter{
+				Value: &OpenAPIHeader{
+					Parameter: OpenAPIParameter{
 						Name:   "X-Key",
-						In:     openapi3.ParameterInHeader,
-						Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
+						In:     ParameterInHeader,
+						Schema: &SchemaRef{Value: &Schema{Type: "integer"}},
 					},
 				},
 			},
 			"X-Rate-Limit-Remaining": {
-				Value: &openapi3.Header{
-					Parameter: openapi3.Parameter{
+				Value: &OpenAPIHeader{
+					Parameter: OpenAPIParameter{
 						Name:   "X-Key",
-						In:     openapi3.ParameterInHeader,
-						Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
+						In:     ParameterInHeader,
+						Schema: &SchemaRef{Value: &Schema{Type: "integer"}},
 					},
 				},
 			},
@@ -1454,8 +1453,8 @@ func TestMergeSubSchemas(t *testing.T) {
 	})
 
 	t.Run("with-allof-nil-schema", func(t *testing.T) {
-		schema := &openapi3.Schema{
-			AllOf: openapi3.SchemaRefs{
+		schema := &Schema{
+			AllOf: SchemaRefs{
 				{
 					Value: nil,
 				},
@@ -1466,8 +1465,8 @@ func TestMergeSubSchemas(t *testing.T) {
 	})
 
 	t.Run("with-anyof-nil-schema", func(t *testing.T) {
-		schema := &openapi3.Schema{
-			AnyOf: openapi3.SchemaRefs{
+		schema := &Schema{
+			AnyOf: SchemaRefs{
 				{
 					Value: nil,
 				},
