@@ -28,6 +28,7 @@ func ReplaceInHeaders(ctx *ReplaceContext) any {
 	if !ctx.State.IsHeader {
 		return nil
 	}
+	// TODO(igor): implement it
 	return nil
 }
 
@@ -36,7 +37,7 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 	if userData == nil {
 		return nil
 	}
-
+	// TODO(igor): add aliases and list of other contexts to the ctx.
 	return ReplaceValueWithContext(ctx.State.NamePath, userData)
 }
 

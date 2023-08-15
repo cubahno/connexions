@@ -28,8 +28,6 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 	fns := []Replacer{
 		ReplaceInHeaders,
 		ReplaceFromContext,
-		// from contexts
-		// from alias, maybe not needed
 		ReplaceFromSchemaFormat,
 		ReplaceFromSchemaPrimitive,
 		ReplaceFromSchemaExample,
