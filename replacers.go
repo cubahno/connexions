@@ -93,6 +93,27 @@ func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 	return nil
 }
 
+func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
+	switch value := data.(type) {
+	case map[string]any:
+		newMap := make(map[string]any)
+		for key, val := range value {
+			newMap[key] = ReplaceMapFunctionPlaceholders(val, funcs)
+		}
+		return newMap
+	case string:
+		if strings.HasPrefix(value, "func:") {
+			funcName := value[5:]
+			if fn, exists := funcs[funcName]; exists {
+				return fn
+			}
+		}
+		return value
+	default:
+		return value
+	}
+}
+
 func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*openapi3.Schema)
 	if !ok {
