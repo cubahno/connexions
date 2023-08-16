@@ -14,7 +14,13 @@ export const newForm = () => {
 }
 
 export const show = () => {
+    config.servicesLink.className = `menu-link active`;
+    config.contextsLink.className = `menu-link inactive`;
+
+    const addNewCont = document.getElementById('add-new-service-cont').innerHTML;
     config.serviceTable.innerHTML = '';
+    const newRow = config.serviceTable.insertRow();
+    newRow.innerHTML = addNewCont;
     console.log("loading service list");
 
     fetch(config.serviceUrl)

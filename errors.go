@@ -11,4 +11,5 @@ var (
 	ErrCreatingDirectories    = errors.New("error creating directories")
 	ErrCreatingFile           = errors.New("error creating file")
 	ErrReservedPrefix         = errors.New("reserved prefix")
+	ErrNoPathsInSchema        = errors.New("no paths found in schema")
 )

@@ -1,3 +1,13 @@
+h3 {
+    display: block;
+    font-size: 1.17em;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+    font-weight: bold;
+}
+
 .holy-grail-grid {
     display: -ms-grid;
     display: grid;

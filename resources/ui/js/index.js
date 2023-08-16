@@ -1,22 +1,26 @@
 import * as commons from './commons.js';
+import * as config from './config.js';
 import * as navi from './navi.js';
 import * as settings from './settings.js';
 import * as services from './services.js';
+import * as home from './home.js';
+import * as contexts from './contexts.js';
 import * as resources from './resources.js';
 
 const pageMap = new Map([
+    ['', () => services.show()],
+    ['#/import', home.importForm],
     ["#/settings", settings.editForm],
-    ['#/services/upload', services.newForm],
+    ['#/services/add', services.newForm],
     ['#/services/:name/ui', services.showSwagger],
     ['#/services/:name', resources.show],
     ['#/services/:name/:ix/:action', resources.show],
     ['#/services', () => services.show()],
-
+    ['#/contexts', () => contexts.show()],
 ]);
 
 async function onLoad() {
     navi.resetContents();
-    services.show();
     navi.loadPage(pageMap);
 
     // Get the accordion header and content elements
@@ -41,6 +45,7 @@ async function onLoad() {
     });
     document.getElementById('upload-button').addEventListener('click', services.saveWithFile);
     document.getElementById('res-upload-button').addEventListener('click',services.saveWithoutFile);
+    document.getElementById('export-link').href = `${config.homeUrl}/export`;
 }
 
 window.addEventListener('hashchange', _ => {

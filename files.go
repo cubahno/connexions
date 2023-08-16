@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"io"
+	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -118,6 +119,10 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 		doc, err := NewDocumentFromFile(filePath)
 		if err != nil {
 			return nil, err
+		}
+
+		if len(doc.Paths) == 0 {
+			return nil, ErrNoPathsInSchema
 		}
 
 		return &FileProperties{
@@ -299,6 +304,39 @@ func CopyDirectory(src, dest string) error {
 
 		return CopyFile(path, destPath)
 	})
+}
+
+func CleanupFileStructure() error {
+	fmt.Println("Cleaning up file structure...")
+	return filepath.WalkDir(ServicePath, func(path string, info os.DirEntry, err error) error {
+		// Remove empty directories
+		if !info.IsDir() {
+			return nil
+		}
+
+		isEmpty, err := IsEmptyDir(path)
+		if err != nil {
+			return nil
+		}
+		if isEmpty {
+			if err := os.Remove(path); err != nil {
+				log.Printf("Error removing empty directory: %s\n", err.Error())
+				return nil
+			}
+			log.Printf("Removed empty directory: %s\n", path)
+			return nil
+		}
+
+		return nil
+	})
+}
+
+func IsEmptyDir(path string) (bool, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return false, err
+	}
+	return len(entries) == 0, nil
 }
 
 func IsJsonType(content []byte) bool {

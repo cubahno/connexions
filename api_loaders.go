@@ -28,9 +28,11 @@ func LoadServices(router *Router) error {
 
 		fileProps, err := GetPropertiesFromFilePath(filePath)
 		if err != nil {
-			log.Printf("Failed to get file properties: %s\n", err.Error())
-			return err
+			log.Printf("Failed to get file properties from %s: %s\n", filePath, err.Error())
+			// don't return error, as we have more files to process
+			return nil
 		}
+
 		if fileProps.IsOpenAPI {
 			openAPIFiles = append(openAPIFiles, fileProps)
 		} else {
@@ -54,7 +56,7 @@ func LoadServices(router *Router) error {
 
 			rs, err := RegisterOverwriteService(props, router)
 			if err != nil {
-				println(err.Error())
+				log.Println(err.Error())
 				return
 			}
 
@@ -83,7 +85,7 @@ func LoadServices(router *Router) error {
 
 			rs, err := RegisterOpenAPIRoutes(props, router)
 			if err != nil {
-				println(err.Error())
+				log.Println(err.Error())
 				return
 			}
 

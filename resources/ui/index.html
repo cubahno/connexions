@@ -27,9 +27,33 @@
 
     <div class="holy-grail-left">
         <div class="left-title-container">
-            <h3>Services <a class="services-add-link" href="#/services/upload" title="Add new service">➕</a></h3>
-            <h3 class="left-title-container-last"><a href="#/settings" title="Edit Settings">⚙️</a></h3>
+            <h3>
+                <div id="services-link" style="display: inline;" class="menu-link active">
+                    <a href="#/services" title="View Services">
+                        Services<span style="font-size: 1.3em; vertical-align: text-bottom;margin:0;"> / </span>
+                    </a>
+                </div>
+                <div id="contexts-link" style="display: inline;" class="menu-link inactive">
+                    <a href="#/contexts" title="Edit Contexts">
+                        Contexts<span style="font-size: 1.3em; vertical-align: text-bottom;margin:0;"> / </span>
+                    </a>
+                </div>
+            </h3>
+            <h3 class="left-title-container-last">
+                <a id="export-link" href="#/export" title="Export"><i class="fa-solid fa-cloud-arrow-down"></i></a>
+                <a href="#/import" title="Import"><i class="fa-solid fa-upload" style="color: #850000;padding-left:0.3em;"></i></a>
+                <a href="#/settings" title="Edit Settings"><i class="fa-solid fa-gear" style="color: #007bff; padding-left: 0.3em"></i></a>
+            </h3>
         </div>
+
+        <table style="display: none">
+            <tr id="add-new-service-cont">
+                <td colspan="4"><a class="services-add-link" href="#/services/add" title="Add new service">Add new Service ➕</a></td>
+            </tr>
+            <tr id="add-new-context-cont">
+                <td colspan="4"><a class="contexts-add-link" href="#/contexts/add" title="Add new context">Add new Context ➕</a></td>
+            </tr>
+        </table>
 
         <table id="service-table" style="display: none;">
             <thead>
@@ -38,7 +62,9 @@
                 <th>Service</th>
                 <th>Swagger</th>
             </tr>
+
             </thead>
+
             <tbody id="table-body">
             </tbody>
         </table>
@@ -284,4 +310,5 @@
 </div>
 
 </body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </html>

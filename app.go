@@ -33,6 +33,7 @@ func NewApp() *App {
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	_ = CleanupFileStructure()
 	err := MustFileStructure()
 	if err != nil {
 		panic(err)
@@ -61,7 +62,7 @@ func NewApp() *App {
 	for _, bluePrint := range bluePrints {
 		err := bluePrint(router)
 		if err != nil {
-			log.Printf("Failed to load blue print: %s\n", err.Error())
+			log.Printf("Failed to load blueprint: %s\n", err.Error())
 		}
 	}
 

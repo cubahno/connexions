@@ -8,7 +8,6 @@ import (
 	"github.com/knadh/koanf/providers/rawbytes"
 	"log"
 	"math/rand"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -24,8 +23,8 @@ type ServiceConfig struct {
 }
 
 type ServiceError struct {
-	Chance string         `koanf:"chance"`
-	Codes  map[int]string `koanf:"codes"`
+	Chance int         `koanf:"chance"`
+	Codes  map[int]int `koanf:"codes"`
 }
 
 const (
@@ -59,30 +58,19 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 }
 
 func (s *ServiceError) GetError() int {
-	chance, err := ParseWeight(s.Chance)
-	if err != nil {
-		fmt.Printf("Error parsing chance: %v\n", err)
-		return 0
-	}
-
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	randomNumber := rand.Intn(100) + 1
-	if randomNumber > chance {
+	if randomNumber > s.Chance {
 		return 0
 	}
 
-	fmt.Printf("Got lucky to throw an error with the %d%% chance\n", chance)
+	fmt.Printf("Got lucky to throw an error with the %d%% chance\n", s.Chance)
 
 	errorWeights := s.Codes
 
 	// Calculate the total weight
 	totalWeight := 0
-	for _, weightStr := range errorWeights {
-		weight, err := ParseWeight(weightStr)
-		if err != nil {
-			fmt.Printf("Error parsing weight: %v\n", err)
-			return 0
-		}
+	for _, weight := range errorWeights {
 		totalWeight += weight
 	}
 
@@ -90,19 +78,20 @@ func (s *ServiceError) GetError() int {
 	randomNumber = rand.Intn(totalWeight) + 1
 
 	// Select an error code based on the random number and weights
-	for code, weightStr := range errorWeights {
-		weight, _ := ParseWeight(weightStr)
+	for code, weight := range errorWeights {
 		randomNumber -= weight
 		if randomNumber <= 0 {
-			fmt.Printf("Selected Error Code: %d\n", code)
+			log.Printf("Selected Error Code: %d\n", code)
 			return code
 		}
 	}
 
-	fmt.Print("Failed to select Error Code\n")
+	log.Println("Failed to select Error Code")
 	return 0
 }
 
+// NewConfigFromFile creates a new config from a file path.
+// It also creates a watcher for the file and reloads the config on change.
 func NewConfigFromFile() (*Config, error) {
 	k := koanf.New(".")
 	filePath := fmt.Sprintf("%s/config.yml", ResourcePath)
@@ -112,12 +101,26 @@ func NewConfigFromFile() (*Config, error) {
 	}
 
 	cfg := &Config{}
-	if err := k.Unmarshal("", cfg); err != nil {
+	transformed := TransformConfig(k)
+	if err := transformed.Unmarshal("", cfg); err != nil {
 		return nil, err
 	}
 
 	createConfigWatcher(provider, cfg)
 	return cfg, nil
+}
+
+// TransformConfig applies transformations to the config.
+// Currently, it removes % from the chances.
+func TransformConfig(k *koanf.Koanf) *koanf.Koanf {
+	transformed := koanf.New(".")
+	for key, value := range k.All() {
+		if v, isString := value.(string); isString && strings.HasSuffix(v, "%") {
+			value = strings.TrimSuffix(v, "%")
+		}
+		_ = transformed.Set(key, value)
+	}
+	return transformed
 }
 
 func NewConfigFromContent(content []byte) (*Config, error) {
@@ -128,7 +131,8 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 	}
 
 	cfg := &Config{}
-	if err := k.Unmarshal("", cfg); err != nil {
+	transformed := TransformConfig(k)
+	if err := transformed.Unmarshal("", cfg); err != nil {
 		return nil, err
 	}
 
@@ -154,23 +158,15 @@ func createConfigWatcher(f *file.File, cfg *Config) {
 			return
 		}
 
-		if err := k.Unmarshal("", cfg); err != nil {
+		transformed := TransformConfig(k)
+		if err := transformed.Unmarshal("", cfg); err != nil {
 			log.Printf("error unmarshalling config: %v\n", err)
 			return
 		}
 		k.Print()
 
-		fmt.Println("Configuration reloaded")
+		log.Println("Configuration reloaded!")
 		// TODO(igor): replace Sleep
 		time.Sleep(1 * time.Second)
 	})
-}
-
-func ParseWeight(weightStr string) (int, error) {
-	weightStr = strings.TrimSuffix(weightStr, "%")
-	weight, err := strconv.Atoi(weightStr)
-	if err != nil {
-		return 0, err
-	}
-	return weight, nil
 }

@@ -123,6 +123,10 @@ tr.selected-resource {
     text-decoration: none;
 }
 
+.contexts-add-link {
+    text-decoration: none;
+}
+
 .services-upload-container {
 
 }
@@ -266,6 +270,16 @@ textarea#replacements {
 .left-title-container-last a {
     text-decoration: none;
     color: inherit;
+}
+
+.menu-link.active a{
+    text-decoration: none;
+    color: #3a3333;
+}
+
+.menu-link.inactive a{
+    text-decoration: underline;
+    color: #00449e;
 }
 
 h3.active {
