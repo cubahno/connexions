@@ -1,6 +1,8 @@
 package xs
 
 import (
+	"fmt"
+	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"os"
@@ -44,36 +46,7 @@ func LoadServices(router *Router) error {
 
 	services := map[string]*ServiceItem{}
 
-	// these are more specific and should be registered first
-	println("Registering overwrite services...")
-	for _, fileProps := range overwriteFiles {
-		wg.Add(1)
-
-		go func(props *FileProperties) {
-			defer wg.Done()
-			mu.Lock()
-			defer mu.Unlock()
-
-			rs, err := RegisterOverwriteService(props, router)
-			if err != nil {
-				log.Println(err.Error())
-				return
-			}
-
-			svc, ok := services[props.ServiceName]
-			if !ok {
-				svc = &ServiceItem{
-					Name: props.ServiceName,
-				}
-				services[props.ServiceName] = svc
-			}
-			svc.AddRoutes(rs)
-		}(fileProps)
-	}
-
-	wg.Wait()
-
-	println("Registering OpenAPI services...")
+	log.Println("Registering OpenAPI services...")
 	for _, fileProps := range openAPIFiles {
 		wg.Add(1)
 
@@ -103,7 +76,41 @@ func LoadServices(router *Router) error {
 
 	wg.Wait()
 
+	println("Registering overwrite services...")
+	for _, fileProps := range overwriteFiles {
+		wg.Add(1)
+
+		go func(props *FileProperties) {
+			defer wg.Done()
+			mu.Lock()
+			defer mu.Unlock()
+
+			rs, err := RegisterOverwriteService(props, router)
+			if err != nil {
+				log.Println(err.Error())
+				return
+			}
+
+			svc, ok := services[props.ServiceName]
+			if !ok {
+				svc = &ServiceItem{
+					Name: props.ServiceName,
+				}
+				services[props.ServiceName] = svc
+			}
+			svc.AddRoutes(rs)
+		}(fileProps)
+	}
+
+	wg.Wait()
 	router.Services = services
+
+	println("Registered routes:")
+	_ = chi.Walk(router, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		fmt.Printf("[%s]:\t%s\n", method, route)
+		return nil
+	})
+	println()
 
 	return err
 }
