@@ -1,3 +1,23 @@
+body {
+    font-family: sans-serif, Helvetica, Arial;
+}
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+body, h1, p {
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    text-decoration: none;
+    color: #00449e;
+}
+
+ul, ol {
+    list-style: none;
+}
+
 h3 {
     display: block;
     font-size: 1.17em;
@@ -15,7 +35,7 @@ h3 {
     grid-template-columns: 1fr 4fr;
     -ms-grid-rows: 1fr 8fr;
     grid-template-rows: 1fr 8fr;
-    grid-gap: 20px;
+    grid-gap: 1.25rem;
     height: 100vh;
 }
 
@@ -97,7 +117,7 @@ table {
 th, td {
     border: 0;
     padding: 8px;
-    font-size: 20px;
+    font-size: 1.25rem;
     background-color: #ededed;
 }
 

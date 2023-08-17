@@ -3,7 +3,6 @@ import * as navi from "./navi.js";
 import * as config from "./config.js";
 import * as services from "./services.js";
 
-
 export const editForm = () => {
     console.log(`settings edit`);
     navi.applySelection(`n/a`, 'selected-service');

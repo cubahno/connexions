@@ -21,6 +21,7 @@ const pageMap = new Map([
 
 async function onLoad() {
     navi.resetContents();
+    services.show();
     navi.loadPage(pageMap);
 
     // Get the accordion header and content elements

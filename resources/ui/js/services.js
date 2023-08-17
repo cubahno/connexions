@@ -13,7 +13,7 @@ export const newForm = () => {
     config.servicesUploadForm.style.display = 'block';
 }
 
-export const show = () => {
+export const show = (selected = '') => {
     config.servicesLink.className = `menu-link active`;
     config.contextsLink.className = `menu-link inactive`;
 
@@ -22,6 +22,8 @@ export const show = () => {
     const newRow = config.serviceTable.insertRow();
     newRow.innerHTML = addNewCont;
     console.log("loading service list");
+
+    const t = document.createElement(`table`);
 
     fetch(config.serviceUrl)
         .then(res => res.json())
@@ -74,17 +76,22 @@ export const show = () => {
                 }
                 row.appendChild(rmCell);
 
-                config.serviceTable.appendChild(row);
+                t.appendChild(row);
+                //config.serviceTable.appendChild(row);
                 i += 1;
             }
 
+            config.serviceTable.innerHTML = t.innerHTML;
             config.serviceTable.style.display = 'block';
+            if (selected !== ``) {
+                navi.applySelection(`service-${selected}`, 'selected-service');
+            }
         });
 }
 
 export const showSwagger = match => {
     const service = match.params.name;
-    navi.applySelection(`service-${service}`, 'selected-service');
+    show(service);
     navi.resetContents();
 
     console.log(`Show swagger for ${service}`);

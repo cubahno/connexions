@@ -4,8 +4,8 @@ ul {
 
 input {
     width: 100%;
-    padding: 12px 20px;
-    margin: 8px 0;
+    padding: 0.6rem 1.25rem;
+    margin: 0.6rem 0;
     box-sizing: border-box;
     border: 2px solid #cccccc;
     border-radius: 4px;
@@ -16,7 +16,7 @@ input[type=text]:focus {
 }
 
 table {
-    width: 100%;
+    width: 98%;
 }
 
 .fixed-service-table-body td:nth-child(1),
@@ -53,7 +53,7 @@ input[type=file] {
 select {
     padding: 5px;
     margin: 5px;
-    font-size: 14px;
+    font-size: 0.8rem;
 }
 
 .header-logo-container {
@@ -229,8 +229,8 @@ textarea#replacements {
     display: inline-block;
     background-color: #88b2e0;
     color: #fff;
-    padding: 2px 10px;
-    font-size: 14px;
+    padding: 6px 0.7rem;
+    font-size: 1rem;
     border-radius: 5px;
     cursor: pointer;
 }
@@ -245,8 +245,8 @@ textarea#replacements {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 16px;
-    padding: 10px 20px;
+    font-size: 1rem;
+    padding: 10px 1rem;
 }
 
 .save-alt-button {
@@ -341,7 +341,7 @@ a.service-settings-link {
     max-width: 50%;
     /*background-color: #ffffff;*/
     min-height: 30%;
-    padding: 10px;
+    padding: 0;
     margin: 6px;
     border-radius: 6px;
 }
