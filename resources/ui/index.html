@@ -188,7 +188,7 @@
 
         <iframe id="iframe-contents"  src="" style="display: none;"></iframe>
 
-        <form id="services-upload" action="/services/upload" method="POST" enctype="multipart/form-data" style="display: none;">
+        <form id="services-upload" method="POST" enctype="multipart/form-data" style="display: none;">
             <div class="services-upload-container">
                 <table class="upload-table">
                     <tr>
@@ -286,6 +286,28 @@
 
                 <br/>
                 In both examples, the URLs will be shown under <b>api</b> service in the menu on the left.<br/>
+            </div>
+        </form>
+
+        <form id="resources-import" method="POST" enctype="multipart/form-data" style="display: none;">
+            <div class="services-upload-container">
+                <table class="upload-table">
+                    <tr>
+                        <td>
+                        </td>
+                        <td>
+                            <label for="zip-fileupload" class="upload-button">
+                                Select File
+                            </label>
+                            <input id="zip-fileupload" type="file" name="file" class=""/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <button id="zip-upload-button" class="button blue-bg"> Import </button>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </form>
 

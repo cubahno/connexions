@@ -358,7 +358,7 @@ func IsYamlType(content []byte) bool {
 	return false
 }
 
-func ExtractZip(zipReader *zip.Reader, targetDir string) error {
+func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) error {
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(zipReader.File))
 
@@ -369,6 +369,14 @@ func ExtractZip(zipReader *zip.Reader, targetDir string) error {
 			defer wg.Done()
 
 			filePath := zipFile.Name
+
+			for _, prefix := range onlyPrefixes {
+				if !strings.HasPrefix(filePath, prefix) {
+					log.Printf("Skipping file %s\n", filePath)
+					return
+				}
+			}
+
 			// Ensure the directory exists
 			dir := filepath.Dir(filePath)
 			if err := os.MkdirAll(dir, 0755); err != nil {

@@ -9,14 +9,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 func CreateHomeRoutes(router *Router) error {
 	if !router.Config.App.ServeUI {
 		return nil
 	}
+
+	handler := &HomeHandler{
+		router: router,
+	}
+
 	homeURL := router.Config.App.HomeURL
 	url := "/" + strings.Trim(homeURL, "/") + "/"
 
@@ -25,10 +32,16 @@ func CreateHomeRoutes(router *Router) error {
 
 	router.Get(url, createHomeHandler(router))
 	router.Get(url+"export", exportHandler)
-	router.Get(url+"import", importHandler)
+	router.Post(url+"import", handler.importHandler)
 
 	fileServer(fmt.Sprintf("/%s/*", strings.Trim(url, "/")), router)
 	return nil
+}
+
+type HomeHandler struct {
+	*BaseHandler
+	router *Router
+	mu     sync.Mutex
 }
 
 func createHomeHandler(router *Router) http.HandlerFunc {
@@ -64,6 +77,10 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
 
+	only := []string{
+		path.Base(ServicePath),
+	}
+
 	err := filepath.WalkDir(resourcePath, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -90,10 +107,18 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		header.Name, err = filepath.Rel(resourcePath, path)
+		rel, err := filepath.Rel(resourcePath, path)
 		if err != nil {
 			return err
 		}
+
+		for _, include := range only {
+			if !strings.HasPrefix(rel, include) {
+				return nil
+			}
+		}
+
+		header.Name = rel
 
 		if info.IsDir() {
 			header.Name += "/"
@@ -126,7 +151,7 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func importHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(512 * 1024 * 1024) // Limit form size to 512 MB
 
 	file, _, err := r.FormFile("file")
@@ -142,11 +167,21 @@ func importHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ExtractZip(zipReader, ResourcePath)
+	only := []string{
+		path.Base(ServicePath),
+	}
+
+	err = ExtractZip(zipReader, ResourcePath, only)
 	if err != nil {
 		http.Error(w, "Error extracting and copying files", http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Fprintf(w, "Upload and extraction successful")
+	err = LoadServices(h.router)
+	if err != nil {
+		h.error(500, err.Error(), w)
+		return
+	}
+
+	h.success("Imported successfully!", w)
 }

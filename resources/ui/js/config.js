@@ -9,6 +9,7 @@ export const generatorCont = document.getElementById('generator-container');
 export const contentTitleEl = document.getElementById('container-title');
 export const iframeContents = document.getElementById('iframe-contents');
 export const servicesUploadForm = document.getElementById('services-upload');
+export const resourcesImportForm = document.getElementById('resources-import');
 export const messageCont = document.getElementById('message');
 export const fileUploadBtn = document.getElementById('fileupload');
 export const settingsEditor = document.getElementById('settings-editor');

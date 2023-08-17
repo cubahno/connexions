@@ -315,7 +315,7 @@ func TestExtractZip(t *testing.T) {
 
 	// Extract and copy the zip contents
 	targetDir := filepath.Join(tempDir, "target")
-	err = ExtractZip(&zipReader.Reader, targetDir)
+	err = ExtractZip(&zipReader.Reader, targetDir, nil)
 	if err != nil {
 		t.Fatalf("Error extracting and copying files: %v", err)
 	}

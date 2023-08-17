@@ -97,6 +97,7 @@ export const resetContents = () => {
     config.generatorCont.style.display = 'none';
 
     config.servicesUploadForm.style.display = 'none';
+    config.resourcesImportForm.style.display = 'none';
     config.settingsEditor.style.display = 'none';
     config.fixedServiceContainer.style.display = 'none';
 
