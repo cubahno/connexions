@@ -61,10 +61,33 @@ export const show = (selected = '') => {
 
                 const rmCell = document.createElement('td');
                 rmCell.innerHTML = `✖`;
-                rmCell.className = 'remove-service';
+                rmCell.id = `remove-service-${name}`;
+                rmCell.className = `remove-service ${name}`;
                 rmCell.title = `Remove service ${name}`;
-                rmCell.onclick = () => {
-                    if (confirm(`Are you sure you want to remove service ${name}?\nAll files will be deleted!`)) {
+
+                row.appendChild(rmCell);
+
+                t.appendChild(row);
+                i += 1;
+            }
+
+            config.serviceTable.innerHTML = t.innerHTML;
+            config.serviceTable.style.display = 'block';
+            if (selected !== ``) {
+                navi.applySelection(`service-${selected}`, 'selected-service');
+            }
+
+            const elements = document.querySelectorAll(`.remove-service`);
+            elements.forEach(element => {
+                element.addEventListener(`click`, event => {
+                    const serviceName = event.target.className.split(` `)[1];
+                    let nameLink = serviceName;
+                    if (serviceName === ``) {
+                        name = "/"
+                        nameLink = `.root`
+                    }
+
+                    if (confirm(`Are you sure you want to remove service ${serviceName}?\nAll files will be deleted!`)) {
                         fetch(`${config.serviceUrl}/${nameLink}`, {
                             method: 'DELETE'
                         })
@@ -74,19 +97,8 @@ export const show = (selected = '') => {
                                 show();
                             });
                     }
-                }
-                row.appendChild(rmCell);
-
-                t.appendChild(row);
-                //config.serviceTable.appendChild(row);
-                i += 1;
-            }
-
-            config.serviceTable.innerHTML = t.innerHTML;
-            config.serviceTable.style.display = 'block';
-            if (selected !== ``) {
-                navi.applySelection(`service-${selected}`, 'selected-service');
-            }
+                });
+            });
         });
 }
 
