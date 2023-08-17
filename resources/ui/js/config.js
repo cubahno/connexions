@@ -6,7 +6,6 @@ export const serviceTable = document.getElementById('service-table');
 export const servicesLink = document.getElementById('services-link');
 export const contextsLink = document.getElementById('contexts-link');
 export const generatorCont = document.getElementById('generator-container');
-export const serviceResourcesEl = document.getElementById('service-resources');
 export const contentTitleEl = document.getElementById('container-title');
 export const iframeContents = document.getElementById('iframe-contents');
 export const servicesUploadForm = document.getElementById('services-upload');

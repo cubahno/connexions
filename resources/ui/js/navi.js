@@ -94,9 +94,6 @@ export const resetContents = () => {
     config.iframeContents.src = '';
     config.iframeContents.style.display = 'none';
 
-    config.serviceResourcesEl.innerHTML = '';
-    config.serviceResourcesEl.style.display = 'none';
-
     config.generatorCont.style.display = 'none';
 
     config.servicesUploadForm.style.display = 'none';

@@ -19,11 +19,12 @@ export const show = (selected = '') => {
 
     const addNewCont = document.getElementById('add-new-service-cont').innerHTML;
     config.serviceTable.innerHTML = '';
-    const newRow = config.serviceTable.insertRow();
-    newRow.innerHTML = addNewCont;
+
     console.log("loading service list");
 
     const t = document.createElement(`table`);
+    const newRow = t.insertRow();
+    newRow.innerHTML = addNewCont;
 
     fetch(config.serviceUrl)
         .then(res => res.json())
