@@ -35,7 +35,7 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 			res = append(res, &RouteDescription{
 				Method: method,
 				Path:   resName,
-				Type:   OpenAPIRoute,
+				Type:   OpenAPIRouteType,
 				File:   fileProps,
 			})
 		}

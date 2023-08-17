@@ -91,8 +91,8 @@ type ServicePayload struct {
 }
 
 const (
-	OpenAPIRoute   = "openapi"
-	OverwriteRoute = "overwrite"
+	OpenAPIRouteType   = "openapi"
+	OverwriteRouteType = "overwrite"
 )
 
 // RouteDescription describes a route for the UI Application.
@@ -156,7 +156,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := r.ParseMultipartForm(256 * 1024 * 1024) // Limit form size to 256 MB
+	err := r.ParseMultipartForm(10 * 1024 * 1024) // Limit form size to 10 MB
 	if err != nil {
 		h.error(http.StatusBadRequest, err.Error(), w)
 		return

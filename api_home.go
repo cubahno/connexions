@@ -127,101 +127,24 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func importHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(10 << 20) // Set the maximum memory for uploaded files (10 MB)
+	err := r.ParseMultipartForm(512 * 1024 * 1024) // Limit form size to 512 MB
 
-	file, handler, err := r.FormFile("file")
+	file, _, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Error uploading file", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	// Create a temporary directory to extract files
-	tempDir := "temp_extracted"
-	err = os.Mkdir(tempDir, 0755)
-	if err != nil {
-		http.Error(w, "Error creating temporary directory", http.StatusInternalServerError)
-		return
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Extract the zip file
-	zipReader, err := zip.NewReader(file, handler.Size)
+	zipReader, err := zip.NewReader(file, r.ContentLength)
 	if err != nil {
 		http.Error(w, "Error reading zip file", http.StatusInternalServerError)
 		return
 	}
 
-	for _, zipFile := range zipReader.File {
-		filePath := filepath.Join(tempDir, zipFile.Name)
-
-		if zipFile.FileInfo().IsDir() {
-			os.MkdirAll(filePath, zipFile.FileInfo().Mode()) // Use zipFile.FileInfo().Mode() instead of zipFile.Mode()
-			continue
-		}
-
-		writer, err := os.Create(filePath)
-		if err != nil {
-			http.Error(w, "Error creating file", http.StatusInternalServerError)
-			return
-		}
-		defer writer.Close()
-
-		reader, err := zipFile.Open()
-		if err != nil {
-			http.Error(w, "Error opening zip file entry", http.StatusInternalServerError)
-			return
-		}
-		defer reader.Close()
-
-		_, err = io.Copy(writer, reader)
-		if err != nil {
-			http.Error(w, "Error extracting file", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	sourceDir := ResourcePath
-	err = filepath.WalkDir(tempDir, func(path string, info os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		fileInfo, err := info.Info() // Fetch the os.FileInfo for the entry
-		if err != nil {
-			return err
-		}
-
-		relPath, err := filepath.Rel(tempDir, path)
-		if err != nil {
-			return err
-		}
-
-		targetPath := filepath.Join(sourceDir, relPath)
-		if info.IsDir() {
-			os.MkdirAll(targetPath, fileInfo.Mode()) // Use fileInfo.Mode() instead of info.Mode()
-		} else {
-			source, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer source.Close()
-
-			target, err := os.Create(targetPath)
-			if err != nil {
-				return err
-			}
-			defer target.Close()
-
-			_, err = io.Copy(target, source)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	err = ExtractZip(zipReader, ResourcePath)
 	if err != nil {
-		http.Error(w, "Error moving extracted files", http.StatusInternalServerError)
+		http.Error(w, "Error extracting and copying files", http.StatusInternalServerError)
 		return
 	}
 

@@ -1,6 +1,7 @@
 package xs
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -14,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
@@ -354,4 +356,78 @@ func IsYamlType(content []byte) bool {
 		return true
 	}
 	return false
+}
+
+func ExtractZip(zipReader *zip.Reader, targetDir string) error {
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(zipReader.File))
+
+	for _, zipFile := range zipReader.File {
+		wg.Add(1)
+
+		go func(zipFile *zip.File) {
+			defer wg.Done()
+
+			filePath := zipFile.Name
+			// Ensure the directory exists
+			dir := filepath.Dir(filePath)
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				errCh <- err
+				return
+			}
+
+			targetPath := filepath.Join(targetDir, filePath)
+
+			if zipFile.FileInfo().IsDir() {
+				err := os.MkdirAll(targetPath, zipFile.FileInfo().Mode())
+				if err != nil {
+					errCh <- err
+					return
+				}
+				return
+			}
+
+			// Create the parent directory if it doesn't exist
+			parentDir := filepath.Dir(targetPath)
+			if err := os.MkdirAll(parentDir, 0755); err != nil {
+				errCh <- err
+				return
+			}
+
+			// Extract and copy the file
+			source, err := zipFile.Open()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer source.Close()
+
+			target, err := os.Create(targetPath)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer target.Close()
+
+			_, err = io.Copy(target, source)
+			if err != nil {
+				errCh <- err
+				return
+			}
+		}(zipFile)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	// Collect errors
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

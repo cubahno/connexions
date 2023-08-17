@@ -1,8 +1,12 @@
 package xs
 
 import (
+	"archive/zip"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -229,4 +233,104 @@ func TestComposeFileSavePath(t *testing.T) {
 		res := ComposeFileSavePath("", "", "petstore", ".yml", true)
 		assert.Equal(t, ServicePath+"/.openapi/petstore/index.yml", res)
 	})
+}
+
+func TestExtractZip(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir := t.TempDir()
+
+	getFilePaths := func(baseDir string) []string {
+		return []string{
+			filepath.Join(baseDir, "index.json"),
+			filepath.Join(baseDir, RootOpenAPIName, "svc-1", "index.yml"),
+			filepath.Join(baseDir, RootOpenAPIName, "svc-2", "index.yml"),
+			filepath.Join(baseDir, RootServiceName, "svc-1", "get", "users", "index.json"),
+			filepath.Join(baseDir, RootServiceName, "svc-2", "get", "users", "all", "index.json"),
+			filepath.Join(baseDir, "svc-3", "patch", "users", "{userID}", "index.json"),
+		}
+	}
+
+	var createdFiles []string
+	for _, filePath := range getFilePaths(filepath.Join(tempDir)) {
+		// Ensure the directory exists
+		dir := filepath.Dir(filePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.FailNow()
+		}
+
+		// Create the file
+		file, err := os.Create(filePath)
+		if err != nil {
+			t.FailNow()
+		}
+		file.Close()
+
+		createdFiles = append(createdFiles, filePath)
+	}
+
+	zipPath := filepath.Join(tempDir, "test.zip")
+	zipFile, err := os.Create(zipPath)
+	if err != nil {
+		t.Fatalf("Failed to create zip file: %v", err)
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+
+	for _, filePath := range createdFiles {
+		file, err := os.Open(filePath)
+		if err != nil {
+			t.Fatalf("Failed to open file: %v", err)
+		}
+		defer file.Close()
+
+		// Get the relative path for the zip entry
+		relPath, err := filepath.Rel(tempDir, filePath)
+		if err != nil {
+			t.Fatalf("Failed to get relative path: %v", err)
+		}
+
+		zipEntry, err := zipWriter.Create(relPath)
+		if err != nil {
+			t.Fatalf("Failed to create zip entry: %v", err)
+		}
+
+		// Copy the file contents to the zip entry
+		_, err = io.Copy(zipEntry, file)
+		if err != nil {
+			t.Fatalf("Failed to copy to zip entry: %v", err)
+		}
+	}
+
+	if err := zipWriter.Close(); err != nil {
+		t.Fatalf("Failed to close zip writer: %v", err)
+	}
+
+	// Open the mock zip file
+	zipReader, err := zip.OpenReader(zipPath)
+	if err != nil {
+		t.Fatalf("Failed to open zip filePath: %v", err)
+	}
+	defer zipReader.Close()
+
+	// Extract and copy the zip contents
+	targetDir := filepath.Join(tempDir, "target")
+	err = ExtractZip(&zipReader.Reader, targetDir)
+	if err != nil {
+		t.Fatalf("Error extracting and copying files: %v", err)
+	}
+
+	var extracted []string
+	filepath.WalkDir(targetDir, func(path string, info os.DirEntry, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		extracted = append(extracted, path)
+		return nil
+	})
+
+	// Check if the target directory contains the extracted file
+	expected := getFilePaths(targetDir)
+
+	assert.ElementsMatch(t, expected, extracted)
 }

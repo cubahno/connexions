@@ -28,7 +28,7 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 			Method: fileProps.Method,
 			// add only resource to the RouteDescription, it's used only for UI purposes
 			Path: fileProps.Resource,
-			Type: OverwriteRoute,
+			Type: OverwriteRouteType,
 			File: fileProps,
 		},
 	}, nil
