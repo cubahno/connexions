@@ -8,9 +8,7 @@ import (
 	"strings"
 )
 
-type ReplacementContext map[string]any
-
-func ParseContextFile(filePath string) (ReplacementContext, error) {
+func ParseContextFile(filePath string) (map[string]any, error) {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -20,7 +18,7 @@ func ParseContextFile(filePath string) (ReplacementContext, error) {
 	return parseContext(k)
 }
 
-func ParseContextFromBytes(content []byte) (ReplacementContext, error) {
+func ParseContextFromBytes(content []byte) (map[string]any, error) {
 	k := koanf.New(".")
 	provider := rawbytes.Provider(content)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -30,7 +28,7 @@ func ParseContextFromBytes(content []byte) (ReplacementContext, error) {
 	return parseContext(k)
 }
 
-func parseContext(k *koanf.Koanf) (ReplacementContext, error) {
+func parseContext(k *koanf.Koanf) (map[string]any, error) {
 	fakes := GetFakes()
 
 	transformed := koanf.New(".")
@@ -45,15 +43,25 @@ func parseContext(k *koanf.Koanf) (ReplacementContext, error) {
 				if fn, exists := fakes[funcName]; exists {
 					value = fn
 				}
+			} else if strings.HasPrefix(v, "alias:") {
+				alias := v[6:]
+				if aliasValue := transformed.Get(alias); aliasValue != nil {
+					value = aliasValue
+				}
+			} else if strings.HasPrefix(v, "botify:") {
+
 			}
 		}
 		_ = transformed.Set(key, value)
 	}
 
-	return transformed.All(), nil
+	target := make(map[string]any)
+	if err := transformed.Unmarshal("", &target); err != nil {
+		return nil, err
+	}
+
+	return target, nil
 }
-
-
 
 func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
 	switch value := data.(type) {

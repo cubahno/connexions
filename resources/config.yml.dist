@@ -23,4 +23,5 @@ services:
     # the name of the context to use when substituting the values in the request/response.
     # applied in the order of definition.
     contexts:
-      - fake
+      - fake: pet
+      - fake: gamer

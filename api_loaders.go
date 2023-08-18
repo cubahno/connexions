@@ -118,7 +118,7 @@ func LoadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	type parsed struct {
-		ctx      ReplacementContext
+		ctx      map[string]any
 		err      error
 		filePath string
 	}

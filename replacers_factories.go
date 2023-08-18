@@ -20,7 +20,7 @@ type Resource struct {
 	Service          string
 	Path             string
 	ContextOrder     []string
-	Contexts         map[string]ReplacementContext
+	Contexts         map[string]map[string]any
 	UserReplacements map[string]any
 }
 

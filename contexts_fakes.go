@@ -35,10 +35,13 @@ func AsString(f func() string) FakeFunc {
 
 func GetFakes() map[string]FakeFunc {
 	fake := faker.New()
+	gamer := fake.Gamer()
 	person := fake.Person()
 	pet := fake.Pet()
 
 	return map[string]FakeFunc{
+		"gamer.tag": AsString(gamer.Tag),
+
 		"person.name":              AsString(person.Name),
 		"person.first_name":        AsString(person.FirstName),
 		"person.last_name":         AsString(person.LastName),

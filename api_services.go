@@ -355,10 +355,26 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contexts := make(map[string]ReplacementContext)
-	for _, contextName := range serviceCfg.Contexts {
-		if ctx, exists := h.router.Contexts[contextName]; exists {
-			contexts[contextName] = ctx
+	contexts := make(map[string]map[string]any)
+	var ordered []string
+	for _, contextProps := range serviceCfg.Contexts {
+		for key, value := range contextProps {
+			keyPath := key
+			if ctx, exists := h.router.Contexts[key]; exists {
+				// child key passed. there's no need to pass complete context
+				if value != "" {
+					if subCtx, subExists := ctx[value]; subExists {
+						if subCtxMap, ok := subCtx.(map[string]any); ok {
+							keyPath += "." + value
+							ordered = append(ordered, keyPath)
+							ctx = subCtxMap
+						}
+					}
+				} else {
+					ordered = append(ordered, key)
+				}
+				contexts[keyPath] = ctx
+			}
 		}
 	}
 
@@ -366,7 +382,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		Service:          name,
 		Path:             payload.Resource,
 		UserReplacements: payload.Replacements,
-		ContextOrder:     serviceCfg.Contexts,
+		ContextOrder:     ordered,
 		Contexts:         contexts,
 	}
 	valueReplacer := CreateValueReplacerFactory()(replaceResource)

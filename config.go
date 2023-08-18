@@ -18,9 +18,9 @@ type Config struct {
 }
 
 type ServiceConfig struct {
-	Latency  time.Duration `koanf:"latency"`
-	Errors   *ServiceError `koanf:"errors"`
-	Contexts []string      `koanf:"contexts"`
+	Latency  time.Duration       `koanf:"latency"`
+	Errors   *ServiceError       `koanf:"errors"`
+	Contexts []map[string]string `koanf:"contexts"`
 }
 
 type ServiceError struct {
@@ -151,7 +151,6 @@ func NewDefaultConfig() *Config {
 			ContextURL:  "/.contexts",
 			ServeUI:     true,
 			ServeSpec:   true,
-
 		},
 	}
 }

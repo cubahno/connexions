@@ -93,7 +93,7 @@ food:
   fruit: "fake:Fruit"
   vegetable: "fake:Vegetable"
 gamer:
-  tag: "fake:Tag"
+  tag: "fake:"
 gender:
   name: "fake:Name"
   abbr: "fake:Abbr"
