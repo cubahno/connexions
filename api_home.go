@@ -79,6 +79,7 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 
 	only := []string{
 		path.Base(ServicePath),
+		path.Base(ContextPath),
 	}
 
 	err := filepath.WalkDir(resourcePath, func(path string, info os.DirEntry, err error) error {
@@ -112,10 +113,15 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
+		take := false
 		for _, include := range only {
-			if !strings.HasPrefix(rel, include) {
-				return nil
+			if strings.HasPrefix(rel, include) {
+				take = true
+				break
 			}
+		}
+		if !take {
+			return nil
 		}
 
 		header.Name = rel
@@ -169,6 +175,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 
 	only := []string{
 		path.Base(ServicePath),
+		path.Base(ContextPath),
 	}
 
 	err = ExtractZip(zipReader, ResourcePath, only)

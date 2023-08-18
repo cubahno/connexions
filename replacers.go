@@ -60,8 +60,7 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 		return ReplaceValueWithMapContext[float64](path, valueType)
 	case map[string]any:
 		return ReplaceValueWithMapContext[any](path, valueType)
-	// case map[string]map[string]any:
-	// 	return ReplaceValueWithMapContext[ReplacementContext](path, valueType)
+
 	// base cases below:
 	case FakeFunc:
 		v := valueType().Get()
