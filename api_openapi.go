@@ -25,12 +25,16 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
+	handler := &OpenAPIHandler{
+		router:    router,
+		spec:      doc,
+		fileProps: fileProps,
+	}
+
 	for resName, pathItem := range doc.Paths {
 		for method, _ := range pathItem.Operations() {
 			// register route
-			router.Method(method,
-				fileProps.Prefix+resName,
-				createOpenAPIResponseHandler(fileProps.Prefix, doc, router.Config))
+			router.MethodFunc(method, fileProps.Prefix+resName, handler.serve)
 
 			res = append(res, &RouteDescription{
 				Method: method,
@@ -44,52 +48,63 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 	return res, nil
 }
 
-// createOpenAPIResponseHandler creates a handler function for an OpenAPI route.
-func createOpenAPIResponseHandler(
-	prefix string, doc *Document, config *Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := chi.RouteContext(r.Context())
-		resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
-		paths := doc.Paths[resourceName]
-		if paths == nil {
-			NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
-			return
-		}
+type OpenAPIHandler struct {
+	router    *Router
+	spec      *Document
+	fileProps *FileProperties
+}
 
-		currentMethod := r.Method
-		var operation *Operation
+func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
+	prefix := h.fileProps.Prefix
+	doc := h.spec
+	config := h.router.Config
 
-		if currentMethod == http.MethodGet {
-			operation = paths.Get
-		} else if currentMethod == http.MethodPost {
-			operation = paths.Post
-		} else if currentMethod == http.MethodPut {
-			operation = paths.Put
-		} else if currentMethod == http.MethodDelete {
-			operation = paths.Delete
-		} else if currentMethod == http.MethodOptions {
-			operation = paths.Options
-		} else if currentMethod == http.MethodHead {
-			operation = paths.Head
-		} else if currentMethod == http.MethodPatch {
-			operation = paths.Patch
-		} else if currentMethod == http.MethodTrace {
-			operation = paths.Trace
-		} else {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		valueReplacer := CreateValueReplacerFactory()(&Resource{
-			Service: strings.Trim(prefix, "/"),
-			Path:    resourceName,
-		})
-		response := NewResponseFromOperation(operation, valueReplacer)
-
-		if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
-			return
-		}
-
-		NewJSONResponse(response.StatusCode, response.Content, w)
+	ctx := chi.RouteContext(r.Context())
+	resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
+	paths := doc.Paths[resourceName]
+	if paths == nil {
+		NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
+		return
 	}
+
+	currentMethod := r.Method
+	var operation *Operation
+
+	if currentMethod == http.MethodGet {
+		operation = paths.Get
+	} else if currentMethod == http.MethodPost {
+		operation = paths.Post
+	} else if currentMethod == http.MethodPut {
+		operation = paths.Put
+	} else if currentMethod == http.MethodDelete {
+		operation = paths.Delete
+	} else if currentMethod == http.MethodOptions {
+		operation = paths.Options
+	} else if currentMethod == http.MethodHead {
+		operation = paths.Head
+	} else if currentMethod == http.MethodPatch {
+		operation = paths.Patch
+	} else if currentMethod == http.MethodTrace {
+		operation = paths.Trace
+	} else {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
+	contexts, ordered := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
+
+	valueReplacer := CreateValueReplacerFactory()(&Resource{
+		Service:      strings.Trim(prefix, "/"),
+		Path:         resourceName,
+		Contexts:     contexts,
+		ContextOrder: ordered,
+	})
+	response := NewResponseFromOperation(operation, valueReplacer)
+
+	if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
+		return
+	}
+
+	NewJSONResponse(response.StatusCode, response.Content, w)
 }

@@ -55,6 +55,7 @@ func LoadServices(router *Router) error {
 			mu.Lock()
 			defer mu.Unlock()
 
+			// TODO(igor): collect first, then register
 			rs, err := RegisterOpenAPIRoutes(props, router)
 			if err != nil {
 				log.Println(err.Error())

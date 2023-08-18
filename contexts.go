@@ -63,6 +63,33 @@ func parseContext(k *koanf.Koanf) (map[string]any, error) {
 	return target, nil
 }
 
+func CollectContexts(names []map[string]string, available map[string]map[string]any) (
+	map[string]map[string]any, []string) {
+	res := make(map[string]map[string]any)
+	var ordered []string
+	for _, contextProps := range names {
+		for key, value := range contextProps {
+			keyPath := key
+			if ctx, exists := available[key]; exists {
+				// child key passed. there's no need to pass complete context
+				if value != "" {
+					if subCtx, subExists := ctx[value]; subExists {
+						if subCtxMap, ok := subCtx.(map[string]any); ok {
+							keyPath += "." + value
+							ordered = append(ordered, keyPath)
+							ctx = subCtxMap
+						}
+					}
+				} else {
+					ordered = append(ordered, key)
+				}
+				res[keyPath] = ctx
+			}
+		}
+	}
+	return res, ordered
+}
+
 func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
 	switch value := data.(type) {
 	case map[string]any:
