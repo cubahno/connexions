@@ -52,9 +52,12 @@ func NewApp() *App {
 	res.Router = router
 
 	bluePrints := []RouteRegister{
-		CreateHomeRoutes,
 		LoadServices,
+		LoadContexts,
+
+		CreateHomeRoutes,
 		CreateServiceRoutes,
+		CreateContextRoutes,
 		CreateSettingsRoutes,
 	}
 	res.BluePrints = bluePrints

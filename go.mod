@@ -20,6 +20,7 @@ require (
 	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect
+	github.com/jaswdr/faker v1.19.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/labstack/gommon v0.4.0 // indirect

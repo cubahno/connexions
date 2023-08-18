@@ -2,6 +2,7 @@ app:
   port: 2200
   homeUrl: /.ui
   serviceUrl: /.services
+  contextUrl: /.contexts
   settingsUrl: /.settings
   # disable UI if not needed. the settings from above won't have any effect
   serveUI: true
@@ -19,3 +20,7 @@ services:
       codes:
         400: 50%
         500: 50%
+    # the name of the context to use when substituting the values in the request/response.
+    # applied in the order of definition.
+    contexts:
+      - fake

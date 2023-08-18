@@ -18,8 +18,9 @@ type Config struct {
 }
 
 type ServiceConfig struct {
-	Latency time.Duration `koanf:"latency"`
-	Errors  *ServiceError `koanf:"errors"`
+	Latency  time.Duration `koanf:"latency"`
+	Errors   *ServiceError `koanf:"errors"`
+	Contexts []string      `koanf:"contexts"`
 }
 
 type ServiceError struct {
@@ -37,6 +38,7 @@ type AppConfig struct {
 	HomeURL     string `json:"homeUrl" koanf:"homeUrl"`
 	ServiceURL  string `json:"serviceUrl" koanf:"serviceUrl"`
 	SettingsURL string `json:"settingsUrl" koanf:"settingsUrl"`
+	ContextURL  string `json:"contextUrl" koanf:"contextUrl"`
 	ServeUI     bool   `json:"serveUI" koanf:"serveUI"`
 	ServeSpec   bool   `json:"serveSpec" koanf:"serveSpec"`
 }
@@ -140,7 +142,18 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 }
 
 func NewDefaultConfig() *Config {
-	return &Config{}
+	return &Config{
+		App: &AppConfig{
+			Port:        2200,
+			HomeURL:     "/.ui",
+			ServiceURL:  "/.services",
+			SettingsURL: "/.settings",
+			ContextURL:  "/.contexts",
+			ServeUI:     true,
+			ServeSpec:   true,
+
+		},
+	}
 }
 
 func createConfigWatcher(f *file.File, cfg *Config) {

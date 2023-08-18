@@ -3,6 +3,7 @@ package xs
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
@@ -14,8 +15,9 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 
 	if fileProps.FileName == "index.json" {
 		// add trailing slash and direct access to index.json
-		resources = append(resources, baseResource+"/")
-		resources = append(resources, baseResource+"/index.json")
+		br := strings.TrimSuffix(baseResource, "/")
+		resources = append(resources, br+"/")
+		resources = append(resources, br+"/index.json")
 	}
 
 	// register all routes

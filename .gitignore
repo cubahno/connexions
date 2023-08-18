@@ -3,6 +3,5 @@
 .data
 .build
 .testCoverage.txt
-resources/services/
-!resources/services/.gitkeep
+resources/services
 resources/config.yml

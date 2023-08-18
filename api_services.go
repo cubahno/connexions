@@ -247,9 +247,9 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 			return a.Path < b.Path
 		}
 		methodOrder := map[string]int{
-			"GET":     1,
-			"POST":    2,
-			"default": 3,
+			http.MethodGet:  1,
+			http.MethodPost: 2,
+			"default":       3,
 		}
 		m1 := methodOrder[a.Method]
 		if m1 == 0 {
@@ -338,6 +338,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	serviceCfg := h.router.Config.GetServiceConfig(name)
+	println(serviceCfg)
+
 	res := map[string]any{}
 
 	var fileProps *FileProperties
@@ -353,12 +356,21 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	contexts := make(map[string]*ReplacementContext)
+	for _, contextName := range serviceCfg.Contexts {
+		if ctx, exists := h.router.Contexts[contextName]; exists {
+			contexts[contextName] = ctx
+		}
+	}
+
 	replaceResource := &Resource{
 		Service:          name,
 		Path:             payload.Resource,
 		UserReplacements: payload.Replacements,
+		ContextOrder:     serviceCfg.Contexts,
+		Contexts:         contexts,
 	}
-	valueReplacer := fileProps.ValueReplacerFactory(replaceResource)
+	valueReplacer := CreateValueReplacerFactory()(replaceResource)
 
 	if !fileProps.IsOpenAPI {
 		res["request"] = NewRequestFromFileProperties(

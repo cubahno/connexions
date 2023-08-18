@@ -38,7 +38,15 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 		return nil
 	}
 	// TODO(igor): add aliases and list of other contexts to the ctx.
-	return ReplaceValueWithContext(ctx.State.NamePath, userData)
+
+	for _, name := range ctx.Resource.ContextOrder {
+		replacements := ctx.Resource.Contexts[name]
+		if res := ReplaceValueWithContext(ctx.State.NamePath, replacements); res != nil {
+			return res
+		}
+	}
+
+	return nil
 }
 
 func ReplaceValueWithContext(path []string, contextData any) interface{} {
@@ -54,6 +62,10 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	case map[string]any:
 		return ReplaceValueWithMapContext[any](path, valueType)
 	// base cases below:
+	case FakeFunc:
+		v := valueType().Get()
+		println(v)
+		return valueType().Get()
 	case string, int, bool, float64:
 		return valueType
 	case []string:
@@ -91,27 +103,6 @@ func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 	}
 
 	return nil
-}
-
-func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
-	switch value := data.(type) {
-	case map[string]any:
-		newMap := make(map[string]any)
-		for key, val := range value {
-			newMap[key] = ReplaceMapFunctionPlaceholders(val, funcs)
-		}
-		return newMap
-	case string:
-		if strings.HasPrefix(value, "func:") {
-			funcName := value[5:]
-			if fn, exists := funcs[funcName]; exists {
-				return fn
-			}
-		}
-		return value
-	default:
-		return value
-	}
 }
 
 func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {

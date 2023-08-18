@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 )
 
 func LoadServices(router *Router) error {
@@ -115,21 +114,53 @@ func LoadServices(router *Router) error {
 	return err
 }
 
-func handleErrorAndLatency(service string, config *Config, w http.ResponseWriter) bool {
-	svcConfig := config.GetServiceConfig(service)
-	if svcConfig.Latency > 0 {
-		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)
+func LoadContexts(router *Router) error {
+	wg := &sync.WaitGroup{}
 
-		select {
-		case <-time.After(svcConfig.Latency):
+	type parsed struct {
+		ctx      *ReplacementContext
+		err      error
+		filePath string
+	}
+	ch := make(chan parsed, 0)
+
+	err := filepath.Walk(ContextPath, func(filePath string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			wg.Add(1)
+
+			go func(filePath string) {
+				defer wg.Done()
+				ctx, err := ParseContextFile(filePath)
+				ch <- parsed{
+					ctx:      ctx,
+					err:      err,
+					filePath: filePath,
+				}
+			}(filePath)
 		}
+		return nil
+	})
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	// Collect errors
+	for p := range ch {
+		if p.err != nil {
+			log.Printf("Failed to parse context file %s: %s\n", p.filePath, p.err.Error())
+		}
+		base := filepath.Base(p.filePath)
+		ext := filepath.Ext(base)
+		name := base[0 : len(base)-len(ext)]
+		log.Printf("Adding context: %s from %s", name, filepath.Base(p.filePath))
+		router.AddContext(name, p.ctx)
 	}
 
-	err := svcConfig.Errors.GetError()
-	if err != 0 {
-		NewResponse(err, []byte("Random config error"), w)
-		return true
+	if err != nil {
+		return err
 	}
 
-	return false
+	return nil
 }
