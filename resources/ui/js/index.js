@@ -8,20 +8,21 @@ import * as contexts from './contexts.js';
 import * as resources from './resources.js';
 
 const pageMap = new Map([
-    ['', () => services.show()],
+    ['', services.show],
     ['#/import', home.importForm],
     ["#/settings", settings.editForm],
     ['#/services/add', services.newForm],
     ['#/services/:name/ui', services.showSwagger],
     ['#/services/:name', resources.show],
     ['#/services/:name/:ix/:action', resources.show],
-    ['#/services', () => services.show()],
-    ['#/contexts', () => contexts.show()],
+    ['#/services', services.show],
+    ['#/contexts', contexts.show],
+    ['#/contexts/:name', contexts.editForm],
+    ['#/contexts/add', contexts.editForm],
 ]);
 
 async function onLoad() {
     navi.resetContents();
-    services.show();
     navi.loadPage(pageMap);
 
     // Get the accordion header and content elements

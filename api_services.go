@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -586,20 +585,7 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
-	dirPath := filepath.Dir(filePath)
-	// Create directories recursively
-	err := os.MkdirAll(dirPath, os.ModePerm)
-	if err != nil {
-		return nil, ErrCreatingDirectories
-	}
-
-	dest, err := os.Create(filePath)
-	if err != nil {
-		return nil, ErrCreatingFile
-	}
-
-	_, err = dest.Write(content)
-	if err != nil {
+	if err := SaveFile(filePath, content); err != nil {
 		return nil, err
 	}
 

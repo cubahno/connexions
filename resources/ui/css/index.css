@@ -4,7 +4,7 @@ ul {
 
 input {
     width: 100%;
-    padding: 0.6rem 1.25rem;
+    padding: 2px 4px;
     margin: 0.6rem 0;
     box-sizing: border-box;
     border: 2px solid #cccccc;
@@ -401,6 +401,11 @@ a.service-settings-link {
     color: #850000;
 }
 
+.remove-context {
+    font-size: 14px;
+    cursor: pointer;
+    color: #850000;
+}
 .remove-resource {
     font-size: 14px;
     cursor: pointer;
@@ -445,4 +450,9 @@ a.service-settings-link {
     margin: 8px 0;
     box-sizing: border-box;
     border-radius: 4px;
+}
+
+#context-name {
+    height: 1.95rem;
+    width: auto;
 }

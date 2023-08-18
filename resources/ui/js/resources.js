@@ -2,9 +2,12 @@ import * as config from './config.js';
 import * as commons from './commons.js';
 import * as validators from './validators.js';
 import * as navi from "./navi.js";
+import * as services from "./services.js";
 
 
 export const show = match => {
+    services.show();
+
     const {name, ix, action} = match.params;
     const service = name;
 

@@ -7,6 +7,8 @@ export const editForm = () => {
     console.log(`settings edit`);
     navi.applySelection(`n/a`, 'selected-service');
     navi.resetContents();
+    services.show();
+
     config.contentTitleEl.innerHTML = `Edit Settings`;
 
     const editor = commons.getCodeEditor(`code-editor`, `yaml`);

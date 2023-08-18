@@ -64,12 +64,15 @@ export const getEditorForm = (editorId, typeId) => {
     const editor = getCodeEditor(editorId, `json`);
     editor.setValue(``);
     editor.clearSelection();
-
-    document.getElementById(typeId).addEventListener(`change`, el => {
-        const value = el.target.value;
-        editor.setOptions({
-            mode: `ace/mode/${value}`,
+    console.log(`typeID:`, typeId);
+    if (typeId !== undefined) {
+        document.getElementById(typeId).addEventListener(`change`, el => {
+            const value = el.target.value;
+            editor.setOptions({
+                mode: `ace/mode/${value}`,
+            })
         })
-    })
+    }
+
     return editor;
 }

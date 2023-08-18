@@ -5,6 +5,7 @@
         const appConfig = {
             homeUrl: "{{.HomeURL}}",
             serviceUrl: "{{.ServiceURL}}",
+            contextUrl: "{{.ContextURL}}",
             settingsUrl: "{{.SettingsURL}}"
         }
         console.log(`loaded appConfig:`, appConfig)
@@ -64,10 +65,19 @@
                 <th>Service</th>
                 <th>Swagger</th>
             </tr>
-
             </thead>
-
             <tbody id="table-body">
+            </tbody>
+        </table>
+        <table id="context-table" style="display: none;">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Context</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="context-table-body">
             </tbody>
         </table>
     </div>
@@ -311,24 +321,44 @@
             </div>
         </form>
 
+        <div id="context-edit-container" style="display: none;">
+            <table>
+                <tr>
+                    <td>
+                        <b>Name:</b>
+                    </td>
+                    <td>
+                        <input type="text" id="context-name" value=""/>
+                        <button id="context-save-button" class="save-button">Save</button>&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+
+                    </td>
+                    <td>
+                        <div id="context-code-editor" style="width:750px; height: 600px; float: left;"></div>
+                        <div style="float: left;margin-left:3rem;">
+                            Context.
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <div id="settings-editor" style="display: none;">
             <div class="main-container">
-                <!-- Left container for the code editor (occupies the first column) -->
                 <div class="left-container" id="code-editor"></div>
-
-                <!-- Right container for the save button (occupies the second column) -->
                 <div class="right-container">
-
                     <button id="settings-save-button" class="save-button">Save</button>&nbsp;
                     <button id="settings-default-save-button" class="save-alt-button">Restore Default</button>
                 </div>
             </div>
-
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.min.js" integrity="sha512-j/s6QJ8uW2gD8owi6Mw45E2k8w9TwRojEesI02CWZFGxVcQPGfdIwFzKHRONoCYwLMgDdOXORArWjl2oFWFc5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         </div>
     </div>
 </div>
 
 </body>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.min.js" integrity="sha512-j/s6QJ8uW2gD8owi6Mw45E2k8w9TwRojEesI02CWZFGxVcQPGfdIwFzKHRONoCYwLMgDdOXORArWjl2oFWFc5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </html>

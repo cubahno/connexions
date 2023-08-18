@@ -51,3 +51,10 @@ func (r *Router) AddContext(name string, ctx *ReplacementContext) {
 
 	r.Contexts[name] = ctx
 }
+
+func (r *Router) RemoveContext(name string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.Contexts, name)
+}

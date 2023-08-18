@@ -8,6 +8,7 @@ export const importForm = () => {
     config.contextsLink.className = `menu-link active`;
 
     navi.resetContents();
+    services.show();
 
     config.contentTitleEl.innerHTML = `Import resources from a file`;
     config.resourcesImportForm.style.display = 'block';

@@ -4,6 +4,7 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/rawbytes"
 	"strings"
 )
 
@@ -18,6 +19,20 @@ func ParseContextFile(filePath string) (*ReplacementContext, error) {
 		return nil, err
 	}
 
+	return parseContext(k)
+}
+
+func ParseContextFromBytes(content []byte) (*ReplacementContext, error) {
+	k := koanf.New(".")
+	provider := rawbytes.Provider(content)
+	if err := k.Load(provider, yaml.Parser()); err != nil {
+		return nil, err
+	}
+
+	return parseContext(k)
+}
+
+func parseContext(k *koanf.Koanf) (*ReplacementContext, error) {
 	fakes := GetFakes()
 
 	transformed := koanf.New(".")
@@ -39,6 +54,8 @@ func ParseContextFile(filePath string) (*ReplacementContext, error) {
 
 	return &ReplacementContext{transformed}, nil
 }
+
+
 
 func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
 	switch value := data.(type) {

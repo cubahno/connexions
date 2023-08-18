@@ -1,12 +1,16 @@
 import * as config from './config.js';
 import * as commons from './commons.js';
 import * as navi from "./navi.js";
+import * as services from './services.js';
 import * as resources from "./resources.js";
+import {contextEditContainer} from "./config.js";
 
 export const newForm = () => {
     console.log(`add new service`);
     navi.applySelection(`n/a`, 'selected-service');
     navi.resetContents();
+    services.show();
+
     commons.getEditorForm('selected-text-response', 'response-content-type');
     config.contentTitleEl.innerHTML = `Add new service to the list`;
 
@@ -19,6 +23,8 @@ export const show = (selected = '') => {
 
     const addNewCont = document.getElementById('add-new-service-cont').innerHTML;
     config.serviceTable.innerHTML = '';
+    config.contextTable.style.display = 'none';
+    config.contextEditContainer.style.display = 'none';
 
     console.log("loading service list");
 
@@ -103,6 +109,8 @@ export const show = (selected = '') => {
 }
 
 export const showSwagger = match => {
+    services.show();
+
     const service = match.params.name;
     show(service);
     navi.resetContents();
