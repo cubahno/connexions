@@ -13,7 +13,7 @@ type Router struct {
 	*chi.Mux
 	Services map[string]*ServiceItem
 	Config   *Config
-	Contexts map[string]*ReplacementContext
+	Contexts map[string]ReplacementContext
 	mu       sync.Mutex
 }
 
@@ -41,12 +41,12 @@ func GetErrorResponse(err error) *ErrorMessage {
 	}
 }
 
-func (r *Router) AddContext(name string, ctx *ReplacementContext) {
+func (r *Router) AddContext(name string, ctx ReplacementContext) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if r.Contexts == nil {
-		r.Contexts = map[string]*ReplacementContext{}
+		r.Contexts = map[string]ReplacementContext{}
 	}
 
 	r.Contexts[name] = ctx

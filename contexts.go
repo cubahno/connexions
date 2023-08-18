@@ -8,11 +8,9 @@ import (
 	"strings"
 )
 
-type ReplacementContext struct {
-	*koanf.Koanf
-}
+type ReplacementContext map[string]any
 
-func ParseContextFile(filePath string) (*ReplacementContext, error) {
+func ParseContextFile(filePath string) (ReplacementContext, error) {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -22,7 +20,7 @@ func ParseContextFile(filePath string) (*ReplacementContext, error) {
 	return parseContext(k)
 }
 
-func ParseContextFromBytes(content []byte) (*ReplacementContext, error) {
+func ParseContextFromBytes(content []byte) (ReplacementContext, error) {
 	k := koanf.New(".")
 	provider := rawbytes.Provider(content)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -32,7 +30,7 @@ func ParseContextFromBytes(content []byte) (*ReplacementContext, error) {
 	return parseContext(k)
 }
 
-func parseContext(k *koanf.Koanf) (*ReplacementContext, error) {
+func parseContext(k *koanf.Koanf) (ReplacementContext, error) {
 	fakes := GetFakes()
 
 	transformed := koanf.New(".")
@@ -52,7 +50,7 @@ func parseContext(k *koanf.Koanf) (*ReplacementContext, error) {
 		_ = transformed.Set(key, value)
 	}
 
-	return &ReplacementContext{transformed}, nil
+	return transformed.All(), nil
 }
 
 

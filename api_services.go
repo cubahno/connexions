@@ -355,7 +355,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contexts := make(map[string]*ReplacementContext)
+	contexts := make(map[string]ReplacementContext)
 	for _, contextName := range serviceCfg.Contexts {
 		if ctx, exists := h.router.Contexts[contextName]; exists {
 			contexts[contextName] = ctx
