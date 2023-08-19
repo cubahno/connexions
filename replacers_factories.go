@@ -1,7 +1,7 @@
 package xs
 
 import (
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/jaswdr/faker"
 	"reflect"
 )
 
@@ -12,7 +12,7 @@ type ReplaceContext struct {
 	Schema   any
 	State    *ReplaceState
 	Resource *Resource
-	Faker    *gofakeit.Faker
+	Faker    faker.Faker
 }
 
 type Resource struct {
@@ -22,7 +22,7 @@ type Resource struct {
 }
 
 func CreateValueReplacerFactory() ValueReplacerFactory {
-	faker := gofakeit.New(0)
+	fake := faker.New()
 
 	fns := []Replacer{
 		ReplaceInHeaders,
@@ -47,7 +47,7 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 				Schema:   content,
 				State:    state,
 				Resource: resource,
-				Faker:    faker,
+				Faker:    fake,
 			}
 
 			for _, fn := range fns {

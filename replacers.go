@@ -2,6 +2,7 @@ package xs
 
 import (
 	"strings"
+	"time"
 )
 
 type Replacer func(ctx *ReplaceContext) any
@@ -107,21 +108,19 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 
 	switch schema.Format {
 	case "date":
-		return ctx.Faker.Date().Format("2006-01-02")
+		return ctx.Faker.Time().Time(time.Now()).Format("2006-01-02")
 	case "date-time":
-		return ctx.Faker.Date().Format("2006-01-02T15:04:05.000Z")
+		return ctx.Faker.Time().Time(time.Now()).Format("2006-01-02T15:04:05.000Z")
 	case "email":
-		return ctx.Faker.Email()
+		return ctx.Faker.Internet().Email()
 	case "uuid":
 		return ctx.Faker.UUID()
 	case "password":
-		return ctx.Faker.Password(true, true, true, true, true, 12)
+		return ctx.Faker.Internet().Password()
 	case "hostname":
-		return ctx.Faker.DomainName()
-	case "ipv4", "ipv6":
-		return ctx.Faker.IPv4Address()
+		return ctx.Faker.Internet().Domain()
 	case "uri", "url":
-		return ctx.Faker.URL()
+		return ctx.Faker.Internet().URL()
 	}
 	return nil
 }
@@ -135,11 +134,9 @@ func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 
 	switch schema.Type {
 	case TypeString:
-		return faker.Word()
-	case TypeInteger:
-		return faker.Uint32()
-	case TypeNumber:
-		return faker.Uint32()
+		return faker.Lorem().Word()
+	case TypeInteger, TypeNumber:
+		return faker.UInt32()
 	case TypeBoolean:
 		return faker.Bool()
 	case TypeObject:
