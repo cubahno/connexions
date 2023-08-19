@@ -85,6 +85,9 @@ func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := r.ParseMultipartForm(10 * 1024 * 1024)
 	if err != nil {
 		h.error(400, err.Error(), w)
@@ -103,7 +106,8 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	filePath := filepath.Join(ContextPath, fmt.Sprintf("%s.yml", name))
 	content := r.FormValue("content")
 
-	ctx, err := ParseContextFromBytes([]byte(content))
+	// ignore result as we need to reload them all because of the possible cross-references in aliases
+	_, err = ParseContextFromBytes([]byte(content))
 	if err != nil {
 		h.error(400, "Invalid context: "+err.Error(), w)
 		return
@@ -114,6 +118,10 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.router.AddContext(name, ctx)
+	err = LoadContexts(h.router)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
 	h.success("Context saved", w)
 }

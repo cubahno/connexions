@@ -41,17 +41,6 @@ func GetErrorResponse(err error) *ErrorMessage {
 	}
 }
 
-func (r *Router) AddContext(name string, ctx map[string]any) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.Contexts == nil {
-		r.Contexts = make(map[string]map[string]any)
-	}
-
-	r.Contexts[name] = ctx
-}
-
 func (r *Router) RemoveContext(name string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

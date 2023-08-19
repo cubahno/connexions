@@ -8,7 +8,12 @@ import (
 	"strings"
 )
 
-func ParseContextFile(filePath string) (map[string]any, error) {
+type ParsedContextResult struct {
+	Result  map[string]any
+	Aliases map[string]string
+}
+
+func ParseContextFile(filePath string) (*ParsedContextResult, error) {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -18,7 +23,7 @@ func ParseContextFile(filePath string) (map[string]any, error) {
 	return parseContext(k)
 }
 
-func ParseContextFromBytes(content []byte) (map[string]any, error) {
+func ParseContextFromBytes(content []byte) (*ParsedContextResult, error) {
 	k := koanf.New(".")
 	provider := rawbytes.Provider(content)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -28,10 +33,11 @@ func ParseContextFromBytes(content []byte) (map[string]any, error) {
 	return parseContext(k)
 }
 
-func parseContext(k *koanf.Koanf) (map[string]any, error) {
+func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 	fakes := GetFakes()
 
 	transformed := koanf.New(".")
+	aliased := make(map[string]string)
 	for key, value := range k.All() {
 		if v, isString := value.(string); isString {
 			if strings.HasPrefix(v, "fake:") {
@@ -52,9 +58,7 @@ func parseContext(k *koanf.Koanf) (map[string]any, error) {
 				// 	}
 			} else if strings.HasPrefix(v, "alias:") {
 				alias := v[6:]
-				if aliasValue := transformed.Get(alias); aliasValue != nil {
-					value = aliasValue
-				}
+				aliased[key] = alias
 			} else if strings.HasPrefix(v, "botify:") {
 
 			} else if strings.HasPrefix(v, "from-path:") {
@@ -64,12 +68,21 @@ func parseContext(k *koanf.Koanf) (map[string]any, error) {
 		_ = transformed.Set(key, value)
 	}
 
+	// for key, required := range aliased {
+	// 	if aliasValue := transformed.Get(required); aliasValue != nil {
+	// 		_ = transformed.Set(key, aliasValue)
+	// 	}
+	// }
+
 	target := make(map[string]any)
 	if err := transformed.Unmarshal("", &target); err != nil {
 		return nil, err
 	}
 
-	return target, nil
+	return &ParsedContextResult{
+		Result:  target,
+		Aliases: aliased,
+	}, nil
 }
 
 func CollectContexts(names []map[string]string, available map[string]map[string]any) []map[string]any {

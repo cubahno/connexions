@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -119,13 +120,13 @@ func LoadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	type parsed struct {
-		ctx      map[string]any
+		ctx      *ParsedContextResult
 		err      error
 		filePath string
 	}
 	ch := make(chan parsed, 0)
 
-	err := filepath.Walk(ContextPath, func(filePath string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(ContextPath, func(filePath string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			wg.Add(1)
 
@@ -147,7 +148,10 @@ func LoadContexts(router *Router) error {
 		close(ch)
 	}()
 
-	// Collect errors
+	// Collect results
+	contexts := make(map[string]map[string]any)
+	aliases := make(map[string]map[string]string)
+
 	for p := range ch {
 		if p.err != nil {
 			log.Printf("Failed to parse context file %s: %s\n", p.filePath, p.err.Error())
@@ -156,12 +160,24 @@ func LoadContexts(router *Router) error {
 		ext := filepath.Ext(base)
 		name := base[0 : len(base)-len(ext)]
 		log.Printf("Adding context: %s from %s", name, filepath.Base(p.filePath))
-		router.AddContext(name, p.ctx)
+
+		contexts[name] = p.ctx.Result
+		aliases[name] = p.ctx.Aliases
 	}
 
-	if err != nil {
-		return err
+	for ctxName, requiredAliases := range aliases {
+		for ctxSourceKey, aliasTarget := range requiredAliases {
+			parts := strings.Split(aliasTarget, ".")
+			ns, nsPath := parts[0], strings.Join(parts[1:], ".")
+			if res := GetValueByDottedPath(contexts[ns], nsPath); res != nil {
+				SetValueByDottedPath(contexts[ctxName], ctxSourceKey, res)
+			} else {
+				log.Printf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey)
+			}
+		}
 	}
+
+	router.Contexts = contexts
 
 	return nil
 }
