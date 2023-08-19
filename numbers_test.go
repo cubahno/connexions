@@ -1,6 +1,7 @@
 package xs
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -64,5 +65,34 @@ func TestIsInteger(t *testing.T) {
 				t.Errorf("IsInteger(%v) - Expected: %v, Got: %v", tc.input, tc.expected, actual)
 			}
 		})
+	}
+}
+
+func TestToFloat64(t *testing.T) {
+	tests := []struct {
+		input    interface{}
+		expected float64
+	}{
+		{int32(42), 42.0},
+		{int64(123456), 123456.0},
+		{uint8(255), 255.0},
+		{float32(3.14), 3.14},
+		{float64(2.718), 2.718},
+		// {"string", 0.0}, // Unsupported type
+	}
+
+	for _, test := range tests {
+		result, err := ToFloat64(test.input)
+		if err != nil {
+			t.Errorf("Error converting %v: %v", test.input, err)
+			continue
+		}
+
+		expectedStr := fmt.Sprintf("%.6f", test.expected)
+		resultStr := fmt.Sprintf("%.6f", result)
+
+		if resultStr != expectedStr {
+			t.Errorf("For input %v, expected %s but got %s", test.input, expectedStr, resultStr)
+		}
 	}
 }

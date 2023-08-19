@@ -30,3 +30,11 @@ func ToSnakeCase(input string) string {
 	snake = strings.Trim(snake, "_")
 	return strings.ToLower(snake)
 }
+
+func ValidateStringWithPattern(input string, pattern string) bool {
+	match, err := regexp.MatchString(pattern, input)
+	if err != nil {
+		return false
+	}
+	return match
+}

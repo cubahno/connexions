@@ -1,6 +1,7 @@
 package xs
 
 import (
+	"log"
 	"strings"
 	"time"
 )
@@ -154,6 +155,94 @@ func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
 	return schema.Example
 }
 
+// ApplySchemaConstraints applies schema constraints to the value.
+// It converts the input value to match the corresponding OpenAPI type specified in the schema.
+func ApplySchemaConstraints(schema *Schema, res any) any {
+	if schema == nil {
+		return res
+	}
+
+	switch schema.Type {
+	case TypeString:
+		return applySchemaStringConstraints(schema, res.(string))
+	case TypeInteger:
+		floatValue, err := ToFloat64(res)
+		if err != nil {
+			log.Printf("Failed to convert %v to float64: %v", res, err)
+			return nil
+		}
+		return int64(applySchemaNumberConstraints(schema, floatValue))
+	case TypeNumber:
+		floatValue, _ := ToFloat64(res)
+		return applySchemaNumberConstraints(schema, floatValue)
+	}
+	return res
+}
+
+func applySchemaStringConstraints(schema *Schema, value string) any {
+	if schema == nil {
+		return value
+	}
+
+	minLength := schema.MinLength
+	maxLength := schema.MaxLength
+	pattern := schema.Pattern
+
+	if pattern != "" && !ValidateStringWithPattern(value, pattern) {
+		return nil
+	}
+
+	expectedEnums := make(map[string]bool)
+	// remove random nulls from enum values
+	for _, v := range schema.Enum {
+		if v != nil {
+			expectedEnums[v.(string)] = true
+		}
+	}
+
+	if len(expectedEnums) > 0 && !expectedEnums[value] {
+		return GetRandomKeyFromMap(expectedEnums)
+	}
+
+	if minLength > 0 && len(value) < int(minLength) {
+		return value + strings.Repeat("-", int(minLength)-len(value))
+	}
+
+	if maxLength != nil && len(value) > int(*maxLength) {
+		return value[:int(*maxLength)]
+	}
+
+	return value
+}
+
+func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
+	if schema == nil {
+		return value
+	}
+
+	reqMin := schema.Min
+	reqMax := schema.Max
+	multOf := schema.MultipleOf
+
+	if multOf != nil {
+		value = float64(int(value / *multOf)) * *multOf
+	}
+
+	if reqMin != nil && value < *reqMin {
+		value = *reqMin
+	}
+
+	if reqMax != nil && value > *reqMax {
+		value = *reqMax
+	}
+
+	return value
+}
+
 func ReplaceFallback(ctx *ReplaceContext) any {
-	return nil
+	schema, ok := ctx.Schema.(*Schema)
+	if !ok {
+		return nil
+	}
+	return schema.Default
 }

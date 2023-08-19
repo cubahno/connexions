@@ -118,18 +118,18 @@ func TestCreateValueSchemaReplacer(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{"type": "integer"}`)
 		res := fn(schema, nil)
 
-		v, ok := res.(uint32)
+		v, ok := res.(int64)
 		assert.True(t, ok)
-		assert.Greater(t, v, uint32(0))
+		assert.Greater(t, v, int64(0))
 	})
 
 	t.Run("number", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{"type": "number"}`)
 		res := fn(schema, nil)
 
-		v, ok := res.(uint32)
+		v, ok := res.(float64)
 		assert.True(t, ok)
-		assert.Greater(t, v, uint32(0))
+		assert.Greater(t, v, float64(0))
 	})
 
 	t.Run("boolean", func(t *testing.T) {

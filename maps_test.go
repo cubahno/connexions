@@ -67,3 +67,21 @@ func TestSetValueByDottedPath(t *testing.T) {
 		}
 	}
 }
+
+func TestGetRandomKeyFromMap(t *testing.T) {
+	myMap := map[string]bool{
+		"key1": true,
+		"key2": true,
+		"key3": true,
+	}
+
+	randomKey := GetRandomKeyFromMap(myMap)
+
+	if randomKey == "" {
+		t.Errorf("Expected a non-empty random key, but got an empty key")
+	}
+
+	if _, exists := myMap[randomKey]; !exists {
+		t.Errorf("Random key %s does not exist in the original map", randomKey)
+	}
+}

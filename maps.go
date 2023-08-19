@@ -2,7 +2,9 @@ package xs
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 func GetValueByDottedPath(data map[string]any, path string) any {
@@ -50,4 +52,20 @@ func SetValueByDottedPath(data map[string]interface{}, path string, value interf
 			currentMap = nestedMap
 		}
 	}
+}
+
+func GetRandomKeyFromMap[T any](m map[string]T) string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	if len(keys) == 0 {
+		return ""
+	}
+
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	randomIndex := rand.Intn(len(keys))
+
+	return keys[randomIndex]
 }
