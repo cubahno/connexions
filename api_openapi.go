@@ -92,13 +92,12 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
-	contexts, ordered := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
+	contexts := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
 
 	valueReplacer := CreateValueReplacerFactory()(&Resource{
-		Service:      strings.Trim(prefix, "/"),
-		Path:         resourceName,
-		Contexts:     contexts,
-		ContextOrder: ordered,
+		Service:     strings.Trim(prefix, "/"),
+		Path:        resourceName,
+		ContextData: contexts,
 	})
 	response := NewResponseFromOperation(operation, valueReplacer)
 

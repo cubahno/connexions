@@ -33,13 +33,7 @@ func ReplaceInHeaders(ctx *ReplaceContext) any {
 }
 
 func ReplaceFromContext(ctx *ReplaceContext) any {
-	// use run-time user ctx first
-	if res := ReplaceValueWithContext(ctx.State.NamePath, ctx.Resource.UserReplacements); res != nil {
-		return res
-	}
-
-	for _, name := range ctx.Resource.ContextOrder {
-		replacements := ctx.Resource.Contexts[name]
+	for _, replacements := range ctx.Resource.ContextData {
 		if res := ReplaceValueWithContext(ctx.State.NamePath, replacements); res != nil {
 			return res
 		}

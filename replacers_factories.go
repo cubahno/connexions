@@ -9,19 +9,16 @@ type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
 type ValueReplacerFactory func(resource *Resource) ValueReplacer
 
 type ReplaceContext struct {
-	Schema       any
-	State        *ReplaceState
-	Resource     *Resource
-	OriginalName string
-	Faker        *gofakeit.Faker
+	Schema   any
+	State    *ReplaceState
+	Resource *Resource
+	Faker    *gofakeit.Faker
 }
 
 type Resource struct {
-	Service          string
-	Path             string
-	ContextOrder     []string
-	Contexts         map[string]map[string]any
-	UserReplacements map[string]any
+	Service     string
+	Path        string
+	ContextData []map[string]any
 }
 
 func CreateValueReplacerFactory() ValueReplacerFactory {

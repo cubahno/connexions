@@ -355,14 +355,16 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contexts, ordered := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
+	contexts := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
+	// prepend, as user replacements have higher priority
+	if payload.Replacements != nil {
+		contexts = append([]map[string]any{payload.Replacements}, contexts...)
+	}
 
 	replaceResource := &Resource{
-		Service:          name,
-		Path:             payload.Resource,
-		UserReplacements: payload.Replacements,
-		ContextOrder:     ordered,
-		Contexts:         contexts,
+		Service:     name,
+		Path:        payload.Resource,
+		ContextData: contexts,
 	}
 	valueReplacer := CreateValueReplacerFactory()(replaceResource)
 

@@ -1,6 +1,9 @@
 package xs
 
-import "github.com/jaswdr/faker"
+import (
+	"github.com/jaswdr/faker"
+	"reflect"
+)
 
 type FakeValue interface {
 	~string | ~int | ~float64 | ~bool
@@ -13,6 +16,7 @@ type MixedValue interface {
 
 type StringValue string
 type IntValue int
+type Float64Value float64
 type BoolValue bool
 
 func (s StringValue) Get() any {
@@ -20,7 +24,11 @@ func (s StringValue) Get() any {
 }
 
 func (i IntValue) Get() any {
-	return int(i)
+	return int64(i)
+}
+
+func (f Float64Value) Get() any {
+	return float64(f)
 }
 
 func (b BoolValue) Get() any {
@@ -29,37 +37,101 @@ func (b BoolValue) Get() any {
 
 func AsString(f func() string) FakeFunc {
 	return func() MixedValue {
+		r := f()
+		println(r)
 		return StringValue(f())
 	}
 }
 
+func AsInt64(f func() int64) FakeFunc {
+	return func() MixedValue {
+		return IntValue(f())
+	}
+}
+
+func AsFloat64(f func() float64) FakeFunc {
+	return func() MixedValue {
+		return Float64Value(f())
+	}
+}
+
+func AsBool(f func() bool) FakeFunc {
+	return func() MixedValue {
+		return BoolValue(f())
+	}
+}
+
+func FromReflectedStringValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return StringValue(fn.Call(nil)[0].String())
+	}
+}
+
+func FromReflectedBoolValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return BoolValue(fn.Call(nil)[0].Bool())
+	}
+}
+
+func FromReflectedIntValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return IntValue(fn.Call(nil)[0].Int())
+	}
+}
+
+func FromReflectedFloat64Value(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return Float64Value(fn.Call(nil)[0].Int())
+	}
+}
+
+// GetFakes returns a map of fake functions from underlying fake lib by
+// gathering all exported methods from the faker.Faker struct into map.
 func GetFakes() map[string]FakeFunc {
 	fake := faker.New()
-	gamer := fake.Gamer()
-	person := fake.Person()
-	pet := fake.Pet()
+	return getFakeFuncs(fake, "")
+}
 
-	return map[string]FakeFunc{
-		"gamer.tag": AsString(gamer.Tag),
+// GetFakesFromStruct returns a map of fake functions from a struct.
+// The keys are the snake_cased struct field names, and the values are the fake functions.
+// The fake functions can be called to get a MixedValue, which can be converted to a string, int, float64, or bool.
+func getFakeFuncs(obj any, prefix string) map[string]FakeFunc {
+	res := make(map[string]FakeFunc)
 
-		"person.name":              AsString(person.Name),
-		"person.first_name":        AsString(person.FirstName),
-		"person.last_name":         AsString(person.LastName),
-		"person.gender":            AsString(person.Gender),
-		"person.first_name_female": AsString(person.FirstNameFemale),
-		"person.first_name_male":   AsString(person.FirstNameMale),
-		"person.gender_female":     AsString(person.GenderFemale),
-		"person.gender_male":       AsString(person.GenderMale),
-		"person.name_female":       AsString(person.NameFemale),
-		"person.name_male":         AsString(person.NameMale),
-		"person.ssn":               AsString(person.SSN),
-		"person.suffix":            AsString(person.Suffix),
-		"person.title":             AsString(person.Title),
-		"person.title_female":      AsString(person.TitleFemale),
-		"person.title_male":        AsString(person.TitleMale),
+	ref := reflect.ValueOf(obj)
+	for i := 0; i < ref.NumMethod(); i++ {
+		mType := ref.Type().Method(i)
+		name := mType.Name
+		mappedName := ToSnakeCase(name)
 
-		"pet.name": AsString(pet.Name),
-		"pet.dog":  AsString(pet.Dog),
-		"pet.cat":  AsString(pet.Cat),
+		fn := ref.MethodByName(name)
+		numIn := mType.Type.NumIn() - 1
+
+		if numIn > 0 {
+			continue
+		}
+
+		returnType := mType.Type.Out(0).Kind()
+
+		switch returnType {
+		case reflect.Struct:
+			structInstance := fn.Call(nil)[0].Interface()
+			fromStruct := getFakeFuncs(structInstance, mappedName+".")
+			for k, v := range fromStruct {
+				res[k] = v
+			}
+		case reflect.Float32, reflect.Float64:
+			res[prefix+mappedName] = FromReflectedFloat64Value(fn)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			res[prefix+mappedName] = FromReflectedIntValue(fn)
+		case reflect.Bool:
+			res[prefix+mappedName] = FromReflectedBoolValue(fn)
+		case reflect.String:
+			res[prefix+mappedName] = FromReflectedStringValue(fn)
+		default:
+		}
 	}
+
+	return res
 }

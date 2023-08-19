@@ -43,12 +43,21 @@ func parseContext(k *koanf.Koanf) (map[string]any, error) {
 				if fn, exists := fakes[funcName]; exists {
 					value = fn
 				}
+			} else if strings.HasPrefix(v, "func:") {
+
+				// } else if strings.HasPrefix(v, "env:") {
+				// 	envName := v[4:]
+				// 	if envValue := GetEnv(envName); envValue != "" {
+				// 		value = envValue
+				// 	}
 			} else if strings.HasPrefix(v, "alias:") {
 				alias := v[6:]
 				if aliasValue := transformed.Get(alias); aliasValue != nil {
 					value = aliasValue
 				}
 			} else if strings.HasPrefix(v, "botify:") {
+
+			} else if strings.HasPrefix(v, "from-path:") {
 
 			}
 		}
@@ -63,50 +72,23 @@ func parseContext(k *koanf.Koanf) (map[string]any, error) {
 	return target, nil
 }
 
-func CollectContexts(names []map[string]string, available map[string]map[string]any) (
-	map[string]map[string]any, []string) {
-	res := make(map[string]map[string]any)
-	var ordered []string
+func CollectContexts(names []map[string]string, available map[string]map[string]any) []map[string]any {
+	res := make([]map[string]any, 0)
+
 	for _, contextProps := range names {
 		for key, value := range contextProps {
-			keyPath := key
 			if ctx, exists := available[key]; exists {
 				// child key passed. there's no need to pass complete context
 				if value != "" {
 					if subCtx, subExists := ctx[value]; subExists {
 						if subCtxMap, ok := subCtx.(map[string]any); ok {
-							keyPath += "." + value
-							ordered = append(ordered, keyPath)
 							ctx = subCtxMap
 						}
 					}
-				} else {
-					ordered = append(ordered, key)
 				}
-				res[keyPath] = ctx
+				res = append(res, ctx)
 			}
 		}
 	}
-	return res, ordered
-}
-
-func ReplaceMapFunctionPlaceholders(data any, funcs map[string]any) any {
-	switch value := data.(type) {
-	case map[string]any:
-		newMap := make(map[string]any)
-		for key, val := range value {
-			newMap[key] = ReplaceMapFunctionPlaceholders(val, funcs)
-		}
-		return newMap
-	case string:
-		if strings.HasPrefix(value, "func:") {
-			funcName := value[5:]
-			if fn, exists := funcs[funcName]; exists {
-				return fn
-			}
-		}
-		return value
-	default:
-		return value
-	}
+	return res
 }
