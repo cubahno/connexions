@@ -59,8 +59,6 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 
 	// base cases below:
 	case FakeFunc:
-		v := valueType().Get()
-		println(v)
 		return valueType().Get()
 	case string, int, bool, float64:
 		return valueType

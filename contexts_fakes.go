@@ -37,8 +37,6 @@ func (b BoolValue) Get() any {
 
 func AsString(f func() string) FakeFunc {
 	return func() MixedValue {
-		r := f()
-		println(r)
 		return StringValue(f())
 	}
 }
