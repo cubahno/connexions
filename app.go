@@ -33,11 +33,11 @@ func NewApp() *App {
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	_ = CleanupFileStructure()
 	err := MustFileStructure()
 	if err != nil {
 		panic(err)
 	}
+	_ = CleanupFileStructure()
 
 	config, err := NewConfigFromFile()
 	if err != nil {
