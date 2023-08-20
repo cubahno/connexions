@@ -1,6 +1,14 @@
 package xs
 
-import "math/rand"
+import (
+	"math/rand"
+	"reflect"
+)
+
+func IsSlice(i any) bool {
+	val := reflect.ValueOf(i)
+	return val.Kind() == reflect.Slice
+}
 
 // SliceDeleteAtIndex deletes an element from a slice at the given index and preserves the order of the slice.
 func SliceDeleteAtIndex[T any](slice []T, index int) []T {

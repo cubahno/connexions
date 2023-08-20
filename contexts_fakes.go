@@ -77,6 +77,12 @@ func FromReflectedIntValue(fn reflect.Value) FakeFunc {
 	}
 }
 
+func FromReflectedUIntValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return IntValue(fn.Call(nil)[0].Uint())
+	}
+}
+
 func FromReflectedFloat64Value(fn reflect.Value) FakeFunc {
 	return func() MixedValue {
 		return Float64Value(fn.Call(nil)[0].Int())
@@ -120,9 +126,10 @@ func getFakeFuncs(obj any, prefix string) map[string]FakeFunc {
 			}
 		case reflect.Float32, reflect.Float64:
 			res[prefix+mappedName] = FromReflectedFloat64Value(fn)
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			res[prefix+mappedName] = FromReflectedIntValue(fn)
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			res[prefix+mappedName] = FromReflectedUIntValue(fn)
 		case reflect.Bool:
 			res[prefix+mappedName] = FromReflectedBoolValue(fn)
 		case reflect.String:

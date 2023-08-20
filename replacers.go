@@ -35,8 +35,14 @@ func ReplaceInHeaders(ctx *ReplaceContext) any {
 }
 
 func ReplaceFromContext(ctx *ReplaceContext) any {
-	for _, replacements := range ctx.Resource.ContextData {
-		if res := ReplaceValueWithContext(ctx.State.NamePath, replacements); res != nil {
+	var snakedNamePath []string
+	// context data is stored in snake case
+	for _, name := range ctx.State.NamePath {
+		snakedNamePath = append(snakedNamePath, ToSnakeCase(name))
+	}
+
+	for _, data := range ctx.Resource.ContextData {
+		if res := ReplaceValueWithContext(snakedNamePath, data); res != nil {
 			return res
 		}
 	}
@@ -82,16 +88,37 @@ func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 		return nil
 	}
 
-	fieldName := path[0]
+	fieldName := path[len(path)-1]
 
+	// Expect direct match first.
 	if value, exists := contextData[fieldName]; exists {
 		return ReplaceValueWithContext(path[1:], value)
 	}
 
-	// Field doesn't exist in the context
-	// Try prefixes
-	for key, keyValue := range contextData {
-		if strings.HasPrefix(key, fieldName) {
+	// Shrink the context data to the last element of the path.
+	current := contextData
+	if len(path) > 1 {
+		for _, name := range path[:len(path)-1] {
+			if value, exists := current[name]; exists {
+				if IsMap(value) {
+					current = any(value).(map[string]T)
+				} else {
+					return nil
+				}
+			}
+		}
+		if len(current) == 0 {
+			return nil
+		}
+		if value, exists := current[fieldName]; exists {
+			return ReplaceValueWithContext(path[1:], value)
+		}
+	}
+
+	// Field doesn't exist in the context as-is.
+	// But the context field might be a regex pattern.
+	for key, keyValue := range current {
+		if MightBeRegexPattern(key) && ValidateStringWithPattern(fieldName, key) {
 			return ReplaceValueWithContext(path[1:], keyValue)
 		}
 	}
@@ -108,12 +135,12 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 	switch schema.Format {
 	case "date":
 		return ctx.Faker.Time().Time(time.Now()).Format("2006-01-02")
-	case "date-time":
+	case "date-time", "datetime":
 		return ctx.Faker.Time().Time(time.Now()).Format("2006-01-02T15:04:05.000Z")
 	case "email":
 		return ctx.Faker.Internet().Email()
 	case "uuid":
-		return ctx.Faker.UUID()
+		return ctx.Faker.UUID().V4()
 	case "password":
 		return ctx.Faker.Internet().Password()
 	case "hostname":
@@ -138,9 +165,6 @@ func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 		return faker.UInt32()
 	case TypeBoolean:
 		return faker.Bool()
-	case TypeObject:
-		// empty object with no response
-		return map[string]any{}
 	}
 	return nil
 }

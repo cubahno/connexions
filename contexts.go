@@ -5,6 +5,7 @@ import (
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
+	"log"
 	"strings"
 )
 
@@ -68,12 +69,6 @@ func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 		_ = transformed.Set(key, value)
 	}
 
-	// for key, required := range aliased {
-	// 	if aliasValue := transformed.Get(required); aliasValue != nil {
-	// 		_ = transformed.Set(key, aliasValue)
-	// 	}
-	// }
-
 	target := make(map[string]any)
 	if err := transformed.Unmarshal("", &target); err != nil {
 		return nil, err
@@ -85,20 +80,28 @@ func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 	}, nil
 }
 
-func CollectContexts(names []map[string]string, available map[string]map[string]any) []map[string]any {
+func CollectContexts(names []map[string]string, fileCollections map[string]map[string]any,
+	initial map[string]any) []map[string]any {
 	res := make([]map[string]any, 0)
+
+	if len(initial) > 0 {
+		res = append(res, initial)
+	}
 
 	for _, contextProps := range names {
 		for key, value := range contextProps {
-			if ctx, exists := available[key]; exists {
+			if ctx, exists := fileCollections[key]; exists {
+				name := key
 				// child key passed. there's no need to pass complete context
 				if value != "" {
 					if subCtx, subExists := ctx[value]; subExists {
+						name = value
 						if subCtxMap, ok := subCtx.(map[string]any); ok {
 							ctx = subCtxMap
 						}
 					}
 				}
+				log.Printf("context %s added.", name)
 				res = append(res, ctx)
 			}
 		}

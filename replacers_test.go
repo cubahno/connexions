@@ -38,10 +38,10 @@ func TestReplaceValueWithContext(t *testing.T) {
 
 	t.Run("has-name-prefix", func(t *testing.T) {
 		context := map[string]interface{}{
-			"userData": map[string]interface{}{
+			"user": map[string]interface{}{
 				"name": "John Doe",
 				"country": map[string]interface{}{
-					"name": "Germany",
+					"^name": "Germany",
 				},
 			},
 		}
@@ -53,7 +53,7 @@ func TestReplaceValueWithContext(t *testing.T) {
 
 	t.Run("single-namepath-has-name-prefix", func(t *testing.T) {
 		context := map[string]interface{}{
-			"nameFull": "Jane Doe",
+			"^name": "Jane Doe",
 		}
 		namePath := []string{"name"}
 		res := ReplaceValueWithContext(namePath, context)

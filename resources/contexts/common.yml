@@ -1,0 +1,13 @@
+id: "alias:fake.u_int16"
+_id$: "alias:fake.u_int8"
+_count$: "alias:fake.u_int8"
+_amount$: "alias:fake.u_int8"
+phone_number: "alias:fake.phone.number"
+_phone_number$: "alias:fake.phone.number"
+ip_address: "alias:fake.internet.ipv4"
+_ip_address$: "alias:common.ip_address"
+
+payment_method:
+  type: ["cash", "card", "googlepay", "applepay", "wallet"]
+
+result: ["success", "completed", "failed", "accepted"]

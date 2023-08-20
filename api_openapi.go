@@ -92,7 +92,12 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
-	contexts := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
+	serviceCtxs := serviceCfg.Contexts
+	if len(serviceCtxs) == 0 {
+		serviceCtxs = h.router.ContextNames
+	}
+
+	contexts := CollectContexts(serviceCtxs, h.router.Contexts, nil)
 
 	valueReplacer := CreateValueReplacerFactory()(&Resource{
 		Service:     strings.Trim(prefix, "/"),

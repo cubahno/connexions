@@ -1,3 +1,16 @@
+int: "fake:"
+int8: "fake:"
+int16: "fake:"
+int32: "fake:"
+int64: "fake:"
+u_int: "fake:"
+u_int8: "fake:"
+u_int16: "fake:"
+u_int32: "fake:"
+u_int64: "fake:"
+random_letter: "fake:"
+bool: "fake:"
+
 address:
   address: "fake:"
   building_number: "fake:"
@@ -20,7 +33,6 @@ address:
   street_number: "alias:fake.address.building_number"
   street_suffix: "fake:"
   zip_code: "alias:fake.address.post_code"
-
 app:
   name: "fake:"
   version: "fake:"
@@ -74,19 +86,6 @@ directory:
 emoji:
   emoji: "fake:"
   emoji_code: "fake:"
-random:
-  int: "fake:"
-  int8: "fake:"
-  int16: "fake:"
-  int32: "fake:"
-  int64: "fake:"
-  uint: "fake:"
-  uint8: "fake:"
-  uint16: "fake:"
-  uint32: "fake:"
-  uint64: "fake:"
-  random_letter: "fake:"
-  bool: "fake:"
 file:
   extension: "fake:"
   file_name_with_extension: "fake:"

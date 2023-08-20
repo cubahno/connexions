@@ -3,9 +3,15 @@ package xs
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strings"
 	"time"
 )
+
+func IsMap(i any) bool {
+	val := reflect.ValueOf(i)
+	return val.Kind() == reflect.Map
+}
 
 func GetValueByDottedPath(data map[string]any, path string) any {
 	keys := strings.Split(path, ".")

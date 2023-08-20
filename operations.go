@@ -403,9 +403,8 @@ func GenerateRequestBody(bodyRef *RequestBodyRef, valueResolver ValueReplacer, s
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			// TODO(igor): handle correctly content types
-			return GenerateContentFromSchema(
-					contentTypes[contentType].Schema.Value, valueResolver, state.WithContentType(contentType)),
-				contentType
+			s := contentTypes[contentType].Schema.Value
+			return GenerateContentFromSchema(s, valueResolver, state.WithContentType(contentType)), contentType
 		}
 	}
 

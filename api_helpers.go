@@ -11,10 +11,11 @@ type RouteRegister func(router *Router) error
 
 type Router struct {
 	*chi.Mux
-	Services map[string]*ServiceItem
-	Config   *Config
-	Contexts map[string]map[string]any
-	mu       sync.Mutex
+	Services     map[string]*ServiceItem
+	Config       *Config
+	Contexts     map[string]map[string]any
+	ContextNames []map[string]string
+	mu           sync.Mutex
 }
 
 type ErrorMessage struct {

@@ -177,7 +177,19 @@ func LoadContexts(router *Router) error {
 		}
 	}
 
-	router.Contexts = contexts
+	// get names from namespaced files
+	var names []map[string]string
+	res := make(map[string]map[string]any, 0)
+	for cname, fileCollection := range contexts {
+		res[cname] = make(map[string]any, 0)
+		for name, subCtx := range fileCollection {
+			res[cname][name] = subCtx
+			names = append(names, map[string]string{cname: name})
+		}
+	}
+
+	router.Contexts = res
+	router.ContextNames = names
 
 	return nil
 }

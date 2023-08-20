@@ -355,11 +355,12 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contexts := CollectContexts(serviceCfg.Contexts, h.router.Contexts)
-	// prepend, as user replacements have higher priority
-	if payload.Replacements != nil {
-		contexts = append([]map[string]any{payload.Replacements}, contexts...)
+	serviceCtxs := serviceCfg.Contexts
+	if len(serviceCtxs) == 0 {
+		serviceCtxs = h.router.ContextNames
 	}
+
+	contexts := CollectContexts(serviceCtxs, h.router.Contexts, payload.Replacements)
 
 	replaceResource := &Resource{
 		Service:     name,

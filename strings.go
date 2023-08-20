@@ -5,6 +5,7 @@ import (
 	"golang.org/x/text/language"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 func ToCamelCase(s string) string {
@@ -20,8 +21,15 @@ func ToCamelCase(s string) string {
 	return strings.Join(words, "")
 }
 
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+var (
+	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
+
+var (
+	compiledRegexCache = make(map[string]*regexp.Regexp)
+	cacheMutex         = sync.Mutex{}
+)
 
 func ToSnakeCase(input string) string {
 	snake := matchFirstCap.ReplaceAllString(input, "${1}_${2}")
@@ -31,10 +39,38 @@ func ToSnakeCase(input string) string {
 	return strings.ToLower(snake)
 }
 
+func getOrCreateCompiledRegex(pattern string) (*regexp.Regexp, error) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	if cachedRegex, found := compiledRegexCache[pattern]; found {
+		return cachedRegex, nil
+	}
+
+	compiledRegex, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	compiledRegexCache[pattern] = compiledRegex
+	return compiledRegex, nil
+}
+
+func MightBeRegexPattern(input string) bool {
+	specialChars := []string{"\\", ".", "*", "^", "$", "+", "?", "(", "[", "{", "|"}
+	for _, char := range specialChars {
+		if strings.Contains(input, char) {
+			return true
+		}
+	}
+	return false
+}
+
 func ValidateStringWithPattern(input string, pattern string) bool {
-	match, err := regexp.MatchString(pattern, input)
+	compiledRegex, err := getOrCreateCompiledRegex(pattern)
 	if err != nil {
 		return false
 	}
-	return match
+
+	return compiledRegex.MatchString(input)
 }
