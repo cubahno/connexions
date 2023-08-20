@@ -16,5 +16,6 @@ var (
 	ServiceOpenAPIPath = fmt.Sprintf("%s/services/.openapi", ResourcePath)
 	ServiceRootPath    = fmt.Sprintf("%s/services/.root", ResourcePath)
 	UIPath             = fmt.Sprintf("%s/ui", ResourcePath)
+	TestSchemaPath     = fmt.Sprintf("%s/test/schemas", ResourcePath)
 	ConfigPath         = fmt.Sprintf("%s/config.yml", ResourcePath)
 )

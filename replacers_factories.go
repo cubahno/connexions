@@ -52,12 +52,17 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 
 			for _, fn := range fns {
 				res := fn(ctx)
-				if res != nil && HasCorrectSchemaType(ctx, res) {
+				if res != nil {
+					if !HasCorrectSchemaType(ctx, res) {
+						continue
+					}
 					res = ApplySchemaConstraints(ctx.Schema.(*Schema), res)
 				}
+
 				if res == nil {
 					continue
 				}
+
 				// return nil if function suggests
 				if str, ok := res.(string); ok {
 					if str == NULL {

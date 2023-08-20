@@ -18,14 +18,20 @@ type Config struct {
 }
 
 type ServiceConfig struct {
-	Latency  time.Duration       `koanf:"latency"`
-	Errors   *ServiceError       `koanf:"errors"`
-	Contexts []map[string]string `koanf:"contexts"`
+	Latency  time.Duration          `koanf:"latency"`
+	Errors   *ServiceError          `koanf:"errors"`
+	Contexts []map[string]string    `koanf:"contexts"`
+	Validate *ServiceValidateConfig `koanf:"validate"`
 }
 
 type ServiceError struct {
 	Chance int         `koanf:"chance"`
 	Codes  map[int]int `koanf:"codes"`
+}
+
+type ServiceValidateConfig struct {
+	Request  bool `koanf:"request"`
+	Response bool `koanf:"response"`
 }
 
 const (
@@ -56,6 +62,10 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 	}
 	return &ServiceConfig{
 		Errors: &ServiceError{},
+		Validate: &ServiceValidateConfig{
+			Request:  true,
+			Response: false,
+		},
 	}
 }
 

@@ -367,7 +367,10 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		Path:        payload.Resource,
 		ContextData: contexts,
 	}
-	valueReplacer := CreateValueReplacerFactory()(replaceResource)
+	var valueReplacer ValueReplacer
+	if fileProps.ValueReplacerFactory != nil {
+		valueReplacer = fileProps.ValueReplacerFactory(replaceResource)
+	}
 
 	if !fileProps.IsOpenAPI {
 		res["request"] = NewRequestFromFileProperties(
@@ -400,8 +403,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 	}
 
-	res["request"] = NewRequestFromOperation(
-		fileProps.Prefix, payload.Resource, payload.Method, operation, valueReplacer)
+	req := NewRequestFromOperation(fileProps.Prefix, payload.Resource, payload.Method, operation, valueReplacer)
+
+	res["request"] = req
 	res["response"] = NewResponseFromOperation(operation, valueReplacer)
 
 	NewJSONResponse(http.StatusOK, res, w)

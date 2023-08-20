@@ -20,16 +20,17 @@ import (
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
 type FileProperties struct {
-	ServiceName string
-	IsOpenAPI   bool
-	Method      string
-	Prefix      string
-	Resource    string
-	FilePath    string
-	FileName    string
-	Extension   string
-	ContentType string
-	Spec        *Document `json:"-"`
+	ServiceName          string
+	IsOpenAPI            bool
+	Method               string
+	Prefix               string
+	Resource             string
+	FilePath             string
+	FileName             string
+	Extension            string
+	ContentType          string
+	Spec                 *Document            `json:"-"`
+	ValueReplacerFactory ValueReplacerFactory `json:"-"`
 }
 
 func (f *FileProperties) IsEqual(other *FileProperties) bool {
@@ -127,14 +128,15 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 		}
 
 		return &FileProperties{
-			ServiceName: serviceName,
-			Prefix:      prefix,
-			IsOpenAPI:   true,
-			FilePath:    filePath,
-			FileName:    fileName,
-			Extension:   ext,
-			ContentType: contentType,
-			Spec:        doc,
+			ServiceName:          serviceName,
+			Prefix:               prefix,
+			IsOpenAPI:            true,
+			FilePath:             filePath,
+			FileName:             fileName,
+			Extension:            ext,
+			ContentType:          contentType,
+			Spec:                 doc,
+			ValueReplacerFactory: CreateValueReplacerFactory(),
 		}, nil
 	}
 

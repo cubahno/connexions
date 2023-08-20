@@ -37,8 +37,10 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 }
 
 func createOverwriteResponseHandler(fileProps *FileProperties, config *Config) http.HandlerFunc {
+	svcConfig := config.GetServiceConfig(fileProps.ServiceName)
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		if handled := handleErrorAndLatency(fileProps.ServiceName, config, w); handled {
+		if handled := handleErrorAndLatency(svcConfig, w); handled {
 			return
 		}
 

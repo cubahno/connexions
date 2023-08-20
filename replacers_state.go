@@ -1,28 +1,27 @@
 package xs
 
 import (
-	"strings"
 	"sync"
 )
 
 type ReplaceState struct {
-	NamePath                 []string
-	ElementIndex             int
-	IsHeader                 bool
-	IsURLParam               bool
-	ContentType              string
-	stopCircularArrayTripOn  int
-	stopCircularObjectTripOn string
-	mu                       sync.Mutex
+	NamePath                []string
+	ElementIndex            int
+	IsHeader                bool
+	IsURLParam              bool
+	ContentType             string
+	refPath                 []string
+	stopCircularArrayTripOn int
+	mu                      sync.Mutex
 }
 
 func (s *ReplaceState) NewFrom(src *ReplaceState) *ReplaceState {
 	return &ReplaceState{
-		NamePath:                 src.NamePath,
-		IsHeader:                 src.IsHeader,
-		ContentType:              src.ContentType,
-		stopCircularArrayTripOn:  src.stopCircularArrayTripOn,
-		stopCircularObjectTripOn: src.stopCircularObjectTripOn,
+		NamePath:                src.NamePath,
+		IsHeader:                src.IsHeader,
+		ContentType:             src.ContentType,
+		stopCircularArrayTripOn: src.stopCircularArrayTripOn,
+		refPath:                 src.refPath,
 	}
 }
 
@@ -34,10 +33,26 @@ func (s *ReplaceState) WithName(name string) *ReplaceState {
 	if len(namePath) == 0 {
 		namePath = []string{}
 	}
-	s.stopCircularObjectTripOn = strings.Join(namePath, ".") + "." + name
 	namePath = append(namePath, name)
 
 	s.NamePath = namePath
+	return s
+}
+
+func (s *ReplaceState) WithReference(name string) *ReplaceState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if name == "" {
+		return s
+	}
+
+	refPath := s.refPath
+	if len(refPath) == 0 {
+		refPath = make([]string, 0)
+	}
+	refPath = append(refPath, name)
+	s.refPath = refPath
 	return s
 }
 
@@ -70,8 +85,15 @@ func (s *ReplaceState) WithContentType(value string) *ReplaceState {
 	return s
 }
 
-func (s *ReplaceState) IsCircularObjectTrip() bool {
-	return len(s.NamePath) > 0 && s.stopCircularObjectTripOn == strings.Join(s.NamePath, ".")
+func (s *ReplaceState) IsReferenceVisited(name string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, v := range s.refPath {
+		if v == name {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *ReplaceState) IsCircularArrayTrip(index int) bool {

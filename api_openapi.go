@@ -3,6 +3,7 @@ package xs
 import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -58,6 +59,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	prefix := h.fileProps.Prefix
 	doc := h.spec
 	config := h.router.Config
+	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
 
 	ctx := chi.RouteContext(r.Context())
 	resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
@@ -91,22 +93,44 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
-	serviceCtxs := serviceCfg.Contexts
-	if len(serviceCtxs) == 0 {
-		serviceCtxs = h.router.ContextNames
+	if serviceCfg.Validate.Request && operation.RequestBody != nil {
+		err := ValidateRequest(r, operation.RequestBody.Value)
+		if err != nil {
+			log.Printf("error validating request: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(err.Error()))
+			return
+		}
 	}
 
-	contexts := CollectContexts(serviceCtxs, h.router.Contexts, nil)
+	var valueReplacer ValueReplacer
+	if h.fileProps.ValueReplacerFactory != nil {
+		serviceCtxs := serviceCfg.Contexts
+		if len(serviceCtxs) == 0 {
+			serviceCtxs = h.router.ContextNames
+		}
 
-	valueReplacer := CreateValueReplacerFactory()(&Resource{
-		Service:     strings.Trim(prefix, "/"),
-		Path:        resourceName,
-		ContextData: contexts,
-	})
+		contexts := CollectContexts(serviceCtxs, h.router.Contexts, nil)
+
+		valueReplacer = h.fileProps.ValueReplacerFactory(&Resource{
+			Service:     strings.Trim(prefix, "/"),
+			Path:        resourceName,
+			ContextData: contexts,
+		})
+	}
+
 	response := NewResponseFromOperation(operation, valueReplacer)
+	if serviceCfg.Validate.Response {
+		err := ValidateResponse(r, response, operation)
+		if err != nil {
+			log.Printf("error validating response: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("Invalid response: " + err.Error()))
+			return
+		}
+	}
 
-	if handled := handleErrorAndLatency(strings.TrimPrefix(prefix, "/"), config, w); handled {
+	if handled := handleErrorAndLatency(serviceCfg, w); handled {
 		return
 	}
 

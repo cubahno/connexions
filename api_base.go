@@ -17,17 +17,21 @@ func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
 	NewJSONResponse(code, map[string]any{"success": false, "message": message}, w)
 }
 
-func handleErrorAndLatency(service string, config *Config, w http.ResponseWriter) bool {
-	svcConfig := config.GetServiceConfig(service)
+func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
 	if svcConfig.Latency > 0 {
-		log.Printf("Latency of %s is %s\n", service, svcConfig.Latency)
+		log.Printf("Encountered latency of %s\n", svcConfig.Latency)
 
 		select {
 		case <-time.After(svcConfig.Latency):
 		}
 	}
 
-	err := svcConfig.Errors.GetError()
+	errConfig := svcConfig.Errors
+	if errConfig == nil {
+		return false
+	}
+
+	err := errConfig.GetError()
 	if err != 0 {
 		NewResponse(err, []byte("Random config error"), w)
 		return true

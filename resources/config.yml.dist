@@ -25,3 +25,7 @@ services:
     contexts:
       - fake: pet
       - fake: gamer
+    # validate all incoming requests and outgoing responses to conform to the schema
+    validate:
+      request: true
+      response: false

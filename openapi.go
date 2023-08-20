@@ -2,8 +2,10 @@ package xs
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
 	"github.com/pb33f/libopenapi"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 	"net/http"
@@ -82,19 +84,24 @@ func ValidateRequest(req *http.Request, body *RequestBody) error {
 	return openapi3filter.ValidateRequestBody(context.Background(), inp, body)
 }
 
-func ValidateResponse(req *http.Request, res *Response) error {
-	inp := &openapi3filter.RequestValidationInput{Request: req}
+func ValidateResponse(req *http.Request, res *Response, operation *Operation) error {
+	inp := &openapi3filter.RequestValidationInput{
+		Request: req,
+		Route: &routers.Route{
+			Method:    req.Method,
+			Operation: operation,
+		},
+	}
 	responseValidationInput := &openapi3filter.ResponseValidationInput{
 		RequestValidationInput: inp,
 		Status:                 res.StatusCode,
 		Header:                 res.Headers,
 	}
-	body, ok := res.Content.([]byte)
-	if !ok {
-		return openapi3filter.ErrInvalidRequired
-	}
 
-	responseValidationInput.SetBodyBytes(body)
+	// TODO(igor): set content to bytes in Response itself
+	content, _ := json.Marshal(res.Content)
+
+	responseValidationInput.SetBodyBytes(content)
 	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
 

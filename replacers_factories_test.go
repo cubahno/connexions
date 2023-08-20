@@ -13,11 +13,10 @@ func TestReplaceState(t *testing.T) {
 			NamePath: []string{"foo", "bar"},
 		}
 		wanted := &ReplaceState{
-			NamePath:                 []string{"foo", "bar"},
-			IsHeader:                 false,
-			ContentType:              "",
-			stopCircularArrayTripOn:  0,
-			stopCircularObjectTripOn: "",
+			NamePath:                []string{"foo", "bar"},
+			IsHeader:                false,
+			ContentType:             "",
+			stopCircularArrayTripOn: 0,
 		}
 		if got := src.NewFrom(src); !reflect.DeepEqual(got, wanted) {
 			t.Errorf("NewFrom() = %v, expected %v", got, wanted)
@@ -79,13 +78,6 @@ func TestReplaceState(t *testing.T) {
 
 		res := src.WithContentType("application/json")
 		assert.Equal(t, "application/json", res.ContentType)
-	})
-
-	t.Run("IsCircularObjectTrip", func(t *testing.T) {
-		src := &ReplaceState{}
-
-		res := src.WithName("foo").WithName("bar")
-		assert.True(t, res.IsCircularObjectTrip())
 	})
 
 	t.Run("IsCircularArrayTrip", func(t *testing.T) {

@@ -85,7 +85,7 @@ func FromReflectedUIntValue(fn reflect.Value) FakeFunc {
 
 func FromReflectedFloat64Value(fn reflect.Value) FakeFunc {
 	return func() MixedValue {
-		return Float64Value(fn.Call(nil)[0].Int())
+		return Float64Value(fn.Call(nil)[0].Float())
 	}
 }
 

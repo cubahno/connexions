@@ -15,6 +15,15 @@ func CreateDocumentFromString(t *testing.T, src string) *Document {
 	return doc
 }
 
+func CreateDocumentFromFile(t *testing.T, filePath string) *Document {
+	doc, err := NewDocumentFromFile(filePath)
+	if err != nil {
+		t.Errorf("Error loading document: %v", err)
+		t.FailNow()
+	}
+	return doc
+}
+
 func CreateSchemaFromString(t *testing.T, src string) *Schema {
 	schema := &Schema{}
 	err := json.Unmarshal([]byte(src), schema)

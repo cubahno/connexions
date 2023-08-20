@@ -253,12 +253,12 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 		return nil
 	}
 
-	if state.IsCircularObjectTrip() {
-		return nil
-	}
-
 	for name, schemaRef := range schema.Properties {
-		item := GenerateContentFromSchema(schemaRef.Value, valueReplacer, state.NewFrom(state).WithName(name))
+		if state.IsReferenceVisited(schemaRef.Ref) {
+			continue
+		}
+		s := state.NewFrom(state).WithName(name).WithReference(schemaRef.Ref)
+		item := GenerateContentFromSchema(schemaRef.Value, valueReplacer, s)
 		if item == nil {
 			continue
 		}
