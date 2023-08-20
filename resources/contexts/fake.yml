@@ -127,6 +127,8 @@ internet:
   http_method: "fake:"
   query: "fake:"
   status_code: "fake:"
+uuid:
+  v4: "fake:"
 language:
   default: "fake:"
   language_abbr: "fake:"

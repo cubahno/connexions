@@ -1,4 +1,4 @@
-id: "alias:fake.u_int16"
+id: "alias:fake.uuid.v4"
 _id$: "alias:fake.u_int8"
 _count$: "alias:fake.u_int8"
 _amount$: "alias:fake.u_int8"

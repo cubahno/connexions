@@ -103,7 +103,7 @@ func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 				if IsMap(value) {
 					current = any(value).(map[string]T)
 				} else {
-					return nil
+					break
 				}
 			}
 		}
