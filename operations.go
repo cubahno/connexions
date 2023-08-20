@@ -21,7 +21,7 @@ type Request struct {
 }
 
 type Response struct {
-	Headers     interface{} `json:"headers,omitempty"`
+	Headers     http.Header `json:"headers,omitempty"`
 	Content     interface{} `json:"content,omitempty"`
 	ContentType string      `json:"contentType,omitempty"`
 	StatusCode  int         `json:"statusCode,omitempty"`
@@ -62,7 +62,7 @@ func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer)
 		}
 	}
 
-	headers["content-type"] = contentType
+	headers.Set("content-type", contentType)
 
 	return &Response{
 		Headers:     headers,
@@ -75,8 +75,11 @@ func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer)
 func NewResponseFromFileProperties(
 	filePath, contentType string, valueReplacer ValueReplacer) *Response {
 	content, isBase64 := GenerateContentFromFileProperties(filePath, contentType, valueReplacer)
+	hs := http.Header{}
+	hs.Set("content-type", contentType)
+
 	return &Response{
-		Headers:     map[string]string{"content-type": contentType},
+		Headers:     hs,
 		Content:     content,
 		ContentType: contentType,
 		IsBase64:    isBase64,
@@ -457,15 +460,16 @@ func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueRep
 	return res
 }
 
-func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer) map[string]any {
-	res := map[string]any{}
+func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer) http.Header {
+	res := http.Header{}
 
 	for name, headerRef := range headers {
 		name = strings.ToLower(name)
 		state := &ReplaceState{NamePath: []string{name}, IsHeader: true}
 		header := headerRef.Value
 		params := header.Parameter
-		res[name] = GenerateContentFromSchema(params.Schema.Value, valueReplacer, state)
+		value := GenerateContentFromSchema(params.Schema.Value, valueReplacer, state)
+		res.Set(name, fmt.Sprintf("%v", value))
 	}
 	return res
 }

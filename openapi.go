@@ -1,9 +1,12 @@
 package xs
 
 import (
+	"context"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/pb33f/libopenapi"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"net/http"
 	"os"
 )
 
@@ -72,6 +75,27 @@ func NewContentWithJSONSchema(schema *Schema) OpenAPIContent {
 
 func NewMediaType() *MediaType {
 	return &MediaType{}
+}
+
+func ValidateRequest(req *http.Request, body *RequestBody) error {
+	inp := &openapi3filter.RequestValidationInput{Request: req}
+	return openapi3filter.ValidateRequestBody(context.Background(), inp, body)
+}
+
+func ValidateResponse(req *http.Request, res *Response) error {
+	inp := &openapi3filter.RequestValidationInput{Request: req}
+	responseValidationInput := &openapi3filter.ResponseValidationInput{
+		RequestValidationInput: inp,
+		Status:                 res.StatusCode,
+		Header:                 res.Headers,
+	}
+	body, ok := res.Content.([]byte)
+	if !ok {
+		return openapi3filter.ErrInvalidRequired
+	}
+
+	responseValidationInput.SetBodyBytes(body)
+	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
 
 func NewLibDocument(filePath string) (libopenapi.Document, error) {

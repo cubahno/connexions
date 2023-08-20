@@ -3,6 +3,7 @@ package xs
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"net/http"
 	"testing"
 )
 
@@ -220,9 +221,9 @@ func TestNewResponse(t *testing.T) {
 		`)
 		res := NewResponseFromOperation(operation, valueResolver)
 
-		expectedHeaders := map[string]any{
-			"location":     "https://example.com/users/123",
-			"content-type": "application/json",
+		expectedHeaders := http.Header{
+			"Location":     []string{"https://example.com/users/123"},
+			"Content-Type": []string{"application/json"},
 		}
 		expectedContent := map[string]any{
 			"id":    float64(123),
@@ -285,8 +286,8 @@ func TestNewResponse(t *testing.T) {
 		`)
 		res := NewResponseFromOperation(operation, valueResolver)
 
-		expectedHeaders := map[string]any{
-			"location": "https://example.com/users/123",
+		expectedHeaders := http.Header{
+			"Location": []string{"https://example.com/users/123"},
 		}
 
 		assert.Equal(t, 200, res.StatusCode)
@@ -1321,9 +1322,9 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			},
 		}
 
-		expected := map[string]any{
-			"x-rate-limit-limit":     100,
-			"x-rate-limit-remaining": 80,
+		expected := http.Header{
+			"X-Rate-Limit-Limit":     []string{"100"},
+			"X-Rate-Limit-Remaining": []string{"80"},
 		}
 
 		res := GenerateResponseHeaders(headers, valueResolver)
