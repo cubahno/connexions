@@ -1,0 +1,19 @@
+{
+  "type":"object",
+  "properties": {
+    "name": {
+      "type": "object",
+      "properties": {
+        "first": {
+          "type": "string"
+        },
+        "last": {
+          "type": "string"
+        }
+      }
+    },
+    "age": {
+      "type": "integer"
+    }
+  }
+}

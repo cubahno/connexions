@@ -3,7 +3,9 @@ package xs
 import (
 	"encoding/base64"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,12 +14,17 @@ import (
 )
 
 type Request struct {
-	Headers     interface{} `json:"headers,omitempty"`
-	Method      string      `json:"method,omitempty"`
-	Path        string      `json:"path,omitempty"`
-	Query       interface{} `json:"query,omitempty"`
-	Body        interface{} `json:"body,omitempty"`
-	ContentType string      `json:"contentType,omitempty"`
+	Headers     interface{}     `json:"headers,omitempty"`
+	Method      string          `json:"method,omitempty"`
+	Path        string          `json:"path,omitempty"`
+	Query       interface{}     `json:"query,omitempty"`
+	Body        string          `json:"body,omitempty"`
+	ContentType string          `json:"contentType,omitempty"`
+	Examples    *ContentExample `json:"examples,omitempty"`
+}
+
+type ContentExample struct {
+	CURL string `json:"curl,omitempty"`
 }
 
 type Response struct {
@@ -28,8 +35,20 @@ type Response struct {
 	IsBase64    bool        `json:"isBase64,omitempty"`
 }
 
+// NewRequestFromOperation creates a new request from an operation.
+// It used to pre-generate payloads from the UI or provide service to generate such.
+// It's not part of OpenAPI endpoint handler.
 func NewRequestFromOperation(pathPrefix, path, method string, operation *Operation, valueReplacer ValueReplacer) *Request {
-	body, contentType := GenerateRequestBody(operation.RequestBody, valueReplacer, nil)
+	content, contentType := GenerateRequestBody(operation.RequestBody, valueReplacer, nil)
+	body, err := EncodeContent(content, contentType)
+	if err != nil {
+		log.Printf("Error encoding request: %v", err.Error())
+	}
+
+	curlExample, err := CreateCURLBody(content, contentType)
+	if err != nil {
+		log.Printf("Error creating cURL example body: %v", err.Error())
+	}
 
 	return &Request{
 		Headers:     GenerateRequestHeaders(operation.Parameters, valueReplacer),
@@ -38,7 +57,91 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation *Operati
 		Query:       GenerateQuery(valueReplacer, operation.Parameters),
 		Body:        body,
 		ContentType: contentType,
+		Examples: &ContentExample{
+			CURL: curlExample,
+		},
 	}
+}
+
+func EncodeContent(content any, contentType string) (string, error) {
+	if content == nil {
+		return "", nil
+	}
+
+	switch content.(type) {
+	case string:
+		return content.(string), nil
+	case []byte:
+		return string(content.([]byte)), nil
+	}
+
+	switch contentType {
+	case "application/x-www-form-urlencoded", "multipart/form-data", "application/json":
+		res, err := json.Marshal(content)
+		if err != nil {
+			return "", ErrUnexpectedFormURLEncodedType
+		}
+		return string(res), nil
+
+	case "application/xml":
+		res, err := xml.Marshal(content)
+		if err != nil {
+			return "", err
+		}
+		return string(res), nil
+	}
+
+	return "", nil
+}
+
+func CreateCURLBody(content any, contentType string) (string, error) {
+	if content == nil {
+		return "", nil
+	}
+
+	switch contentType {
+	case "application/x-www-form-urlencoded":
+		data, ok := content.(map[string]any)
+		if !ok {
+			return "", ErrUnexpectedFormURLEncodedType
+		}
+		builder := &strings.Builder{}
+		for key, value := range data {
+			builder.WriteString("--data-urlencode ")
+			builder.WriteString(fmt.Sprintf(`'%s=%v'`, url.QueryEscape(key), url.QueryEscape(fmt.Sprintf("%v", value))))
+			builder.WriteString(" \\\n")
+		}
+		return strings.TrimSuffix(builder.String(), " \\\n"), nil
+
+	case "multipart/form-data":
+		data, ok := content.(map[string]any)
+		if !ok {
+			return "", ErrUnexpectedFormDataType
+		}
+		builder := &strings.Builder{}
+		for key, value := range data {
+			builder.WriteString("--form ")
+			builder.WriteString(fmt.Sprintf(`'%s="%v"'`, url.QueryEscape(key), url.QueryEscape(fmt.Sprintf("%v", value))))
+			builder.WriteString(" \\\n")
+		}
+		return strings.TrimSuffix(builder.String(), " \\\n"), nil
+
+	case "application/json":
+		enc, err := json.Marshal(content)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("--data-raw '%s'", string(enc)), nil
+
+	case "application/xml":
+		enc, err := xml.Marshal(content)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("--data '%s'", string(enc)), nil
+	}
+
+	return "", nil
 }
 
 func NewRequestFromFileProperties(path, method, contentType string, valueReplacer ValueReplacer) *Request {
@@ -163,6 +266,10 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 
 func GenerateURLFromFileProperties(path string, valueReplacer ValueReplacer) string {
 	placeHolders := ExtractPlaceholders(path)
+	if valueReplacer == nil {
+		return path
+	}
+
 	for _, placeholder := range placeHolders {
 		name := placeholder[1 : len(placeholder)-1]
 		res := valueReplacer("", (&ReplaceState{}).WithName(name).WithURLParam())
@@ -258,11 +365,7 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 			continue
 		}
 		s := state.NewFrom(state).WithName(name).WithReference(schemaRef.Ref)
-		item := GenerateContentFromSchema(schemaRef.Value, valueReplacer, s)
-		if item == nil {
-			continue
-		}
-		res[name] = item
+		res[name] = GenerateContentFromSchema(schemaRef.Value, valueReplacer, s)
 	}
 
 	if len(res) == 0 {
@@ -405,7 +508,6 @@ func GenerateRequestBody(bodyRef *RequestBodyRef, valueResolver ValueReplacer, s
 	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
-			// TODO(igor): handle correctly content types
 			s := contentTypes[contentType].Schema.Value
 			return GenerateContentFromSchema(s, valueResolver, state.WithContentType(contentType)), contentType
 		}

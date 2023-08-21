@@ -75,6 +75,12 @@ func NewContentWithJSONSchema(schema *Schema) OpenAPIContent {
 	}
 }
 
+func NewContentWithMultipartFormDataSchema(schema *Schema) OpenAPIContent {
+	return OpenAPIContent{
+		"multipart/form-data": NewMediaType().WithSchema(schema),
+	}
+}
+
 func NewMediaType() *MediaType {
 	return &MediaType{}
 }

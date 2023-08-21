@@ -3,6 +3,7 @@ package xs
 import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -34,6 +35,23 @@ func CreateSchemaFromString(t *testing.T, src string) *Schema {
 	return schema
 }
 
+func CreateSchemaFromFile(t *testing.T, filePath string) *Schema {
+	cont, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Errorf("Error reading file: %v", err)
+		t.FailNow()
+	}
+
+	// remove schema key if pre
+	tmp := make(map[string]any)
+	_ = json.Unmarshal(cont, &tmp)
+	if _, ok := tmp["schema"]; ok {
+		cont, _ = json.Marshal(tmp["schema"])
+	}
+
+	return CreateSchemaFromString(t, string(cont))
+}
+
 func CreateOperationFromString(t *testing.T, src string) *Operation {
 	res := &Operation{}
 	err := json.Unmarshal([]byte(src), res)
@@ -42,6 +60,23 @@ func CreateOperationFromString(t *testing.T, src string) *Operation {
 		t.FailNow()
 	}
 	return res
+}
+
+func CreateOperationFromFile(t *testing.T, filePath string) *Operation {
+	cont, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Errorf("Error reading file: %v", err)
+		t.FailNow()
+	}
+
+	// remove schema key if pre
+	tmp := make(map[string]any)
+	_ = json.Unmarshal(cont, &tmp)
+	if _, ok := tmp["operation"]; ok {
+		cont, _ = json.Marshal(tmp["operation"])
+	}
+
+	return CreateOperationFromString(t, string(cont))
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {

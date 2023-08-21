@@ -9,6 +9,7 @@ type FakeValue interface {
 	~string | ~int | ~float64 | ~bool
 }
 type FakeFunc func() MixedValue
+type FakeFuncFactoryWithString func(value string) FakeFunc
 
 type MixedValue interface {
 	Get() any
@@ -86,6 +87,18 @@ func FromReflectedUIntValue(fn reflect.Value) FakeFunc {
 func FromReflectedFloat64Value(fn reflect.Value) FakeFunc {
 	return func() MixedValue {
 		return Float64Value(fn.Call(nil)[0].Float())
+	}
+}
+
+func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
+	fake := faker.New()
+
+	return map[string]FakeFuncFactoryWithString{
+		"Botify": func(pattern string) FakeFunc {
+			return func() MixedValue {
+				return StringValue(fake.Bothify(pattern))
+			}
+		},
 	}
 }
 

@@ -25,11 +25,13 @@ async function onLoad() {
     navi.resetContents();
     navi.loadPage(pageMap);
 
-    // Get the accordion header and content elements
-    const accordionHeader = document.querySelector('.accordion-header');
-    const accordionContent = document.querySelector('.accordion-content');
-    accordionHeader.addEventListener('click', () => {
-        accordionContent.classList.toggle('active');
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    accordionHeaders.forEach(accordionHeader => {
+        accordionHeader.addEventListener('click', () => {
+            const accordion = accordionHeader.closest('.accordion');
+            const accordionContent = accordion.querySelector('.accordion-content');
+            accordionContent.classList.toggle('active');
+        });
     });
 
     document.getElementById('settings-save-button').addEventListener('click', settings.save);

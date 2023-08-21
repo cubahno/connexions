@@ -1,0 +1,55 @@
+site_name: Connexions Documentation
+theme:
+  custom_dir: resources/docs
+  features:
+    - content.code.annotate
+    - content.tabs.link
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - search.suggest
+    - search.highlight
+  font:
+    code: Roboto Mono
+    text: Roboto
+  locale: en
+  logo: images/connexions.png
+  name: material
+  palette:
+    - accent: indigo
+      primary: light blue
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - accent: red
+      primary: black
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+#plugins:
+#  - search:
+#    indexing: full
+#    lang: en
+#    min_search_length: 4
+#    prebuild_index: true
+markdown_extensions:
+  - admonition
+  - abbr
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - pymdownx.tabbed
+  - pymdownx.superfences
+  - pymdownx.details
+  - toc:
+      permalink: true
+extra:
+  generator: false
+extra_css:
+  - css/extra.css
+extra_javascript:
+  - js/extra.js

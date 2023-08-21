@@ -2,13 +2,16 @@ package xs
 
 import (
 	"encoding/json"
+	"encoding/xml"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestNewRequest(t *testing.T) {
+func TestNewRequestFromOperation(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
 			schema, _ := content.(*Schema)
@@ -21,101 +24,14 @@ func TestNewRequest(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateOperationFromString(t, `
-{
-  "operationId": "createUser",
-  "parameters": [
-    {
-      "name": "userId",
-      "in": "path",
-      "description": "The unique identifier of the user.",
-      "required": true,
-      "schema": {
-        "type": "string"
-      }
-    },
-    {
-      "name": "limit",
-      "in": "query",
-      "required": false,
-      "schema": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 100,
-        "default": 10
-      }
-    },
-    {
-      "name": "lang",
-      "in": "header",
-      "description": "The language preference for the response.",
-      "required": false,
-      "schema": {
-        "type": "string",
-        "enum": [
-          "en",
-          "es",
-          "de"
-        ],
-        "default": "de"
-      }
-    }
-  ],
-  "requestBody": {
-    "description": "JSON payload containing user information.",
-    "required": true,
-    "content": {
-      "application/json": {
-        "schema": {
-          "type": "object",
-          "properties": {
-            "username": {
-              "type": "string",
-              "description": "The username of the new user.",
-              "example": "john_doe"
-            },
-            "email": {
-              "type": "string",
-              "format": "email",
-              "description": "The email address of the new user.",
-              "example": "john.doe@example.com"
-            }
-          },
-          "required": [
-            "username",
-            "email"
-          ]
-        }
-      }
-    }
-  },
-  "responses": {
-    "500": {
-      "description": "Internal Server Error"
-    },
-    "200": {
-      "description": "User account successfully created.",
-      "headers": {
-        "Location": {
-          "description": "The URL of the newly created user account.",
-          "schema": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "400": {
-      "description": "Bad request"
-    }
-  }
-}
-		`)
+		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation.json"))
 		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
 
-		expectedBody := map[string]any{
+		expectedBodyM := map[string]any{
 			"username": "john_doe",
 			"email":    "john.doe@example.com",
 		}
+		expectedBodyB, _ := json.Marshal(expectedBodyM)
 
 		expectedHeaders := map[string]any{"lang": "de"}
 
@@ -123,8 +39,152 @@ func TestNewRequest(t *testing.T) {
 		assert.Equal(t, "/foo/users/123", req.Path)
 		assert.Equal(t, "limit=10", req.Query)
 		assert.Equal(t, "application/json", req.ContentType)
-		assert.Equal(t, expectedBody, req.Body)
+		assert.Equal(t, string(expectedBodyB), req.Body)
 		assert.Equal(t, expectedHeaders, req.Headers)
+	})
+}
+
+func TestEncodeContent(t *testing.T) {
+	t.Run("Nil Content", func(t *testing.T) {
+		result, err := EncodeContent(nil, "application/json")
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+		if result != "" {
+			t.Errorf("Expected empty string, got: %s", result)
+		}
+	})
+
+	t.Run("String Content", func(t *testing.T) {
+		content := "Hello, world!"
+		result, err := EncodeContent(content, "application/json")
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+		if result != content {
+			t.Errorf("Expected '%s', got: %s", content, result)
+		}
+	})
+
+	t.Run("JSON Content", func(t *testing.T) {
+		content := map[string]interface{}{
+			"key1": "value1",
+			"key2": 42,
+		}
+		expectedResult := `{"key1":"value1","key2":42}`
+		result, err := EncodeContent(content, "application/json")
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+		if result != expectedResult {
+			t.Errorf("Expected '%s', got: %s", expectedResult, result)
+		}
+	})
+
+	t.Run("XML Content", func(t *testing.T) {
+		ass := assert.New(t)
+		type Data struct {
+			Name     string `json:"name" xml:"name"`
+			Age      int    `json:"age" xml:"age"`
+			Settings string `json:"settings" xml:"settings"`
+		}
+		structContent := Data{
+			Name:     "John Doe",
+			Age:      30,
+			Settings: "some settings",
+		}
+
+		result, err := EncodeContent(structContent, "application/xml")
+		ass.NoError(err)
+
+		expectedXML, err := xml.Marshal(structContent)
+		ass.NoError(err)
+
+		ass.Equal(string(expectedXML), result)
+	})
+}
+
+func TestCreateCURLBody(t *testing.T) {
+	ass := assert.New(t)
+
+	t.Run("FormURLEncoded", func(t *testing.T) {
+		t.Parallel()
+
+		content := map[string]interface{}{
+			"name":  "John",
+			"age":   30,
+			"email": "john@example.com",
+		}
+
+		result, err := CreateCURLBody(content, "application/x-www-form-urlencoded")
+		ass.NoError(err)
+
+		expected := `--data-urlencode 'name=John' \
+--data-urlencode 'age=30' \
+--data-urlencode 'email=john%40example.com'
+`
+		expected = strings.TrimSuffix(expected, "\n")
+		ass.Equal(expected, result)
+	})
+
+	t.Run("MultipartFormData", func(t *testing.T) {
+		t.Parallel()
+
+		content := map[string]interface{}{
+			"name":  "Jane",
+			"age":   25,
+			"email": "jane@example.com",
+		}
+
+		result, err := CreateCURLBody(content, "multipart/form-data")
+		ass.NoError(err)
+
+		expected := `--form 'name="Jane"' \
+--form 'age="25"' \
+--form 'email="jane%40example.com"'
+`
+		expected = strings.TrimSuffix(expected, "\n")
+		ass.Equal(expected, result)
+	})
+
+	t.Run("JSON", func(t *testing.T) {
+		t.Parallel()
+
+		content := map[string]interface{}{
+			"name":  "Alice",
+			"age":   28,
+			"email": "alice@example.com",
+		}
+
+		result, err := CreateCURLBody(content, "application/json")
+		ass.NoError(err)
+
+		enc, _ := json.Marshal(content)
+		expected := fmt.Sprintf("--data '%s'", string(enc))
+		ass.Equal(expected, result)
+	})
+
+	t.Run("XML", func(t *testing.T) {
+		t.Parallel()
+
+		type Person struct {
+			Name  string `xml:"name"`
+			Age   int    `xml:"age"`
+			Email string `xml:"email"`
+		}
+
+		content := Person{
+			Name:  "Eve",
+			Age:   22,
+			Email: "eve@example.com",
+		}
+
+		result, err := CreateCURLBody(content, "application/xml")
+		ass.NoError(err)
+
+		enc, _ := xml.Marshal(content)
+		expected := fmt.Sprintf("--data '%s'", string(enc))
+		ass.Equal(expected, result)
 	})
 }
 
@@ -814,69 +874,7 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		doc := CreateDocumentFromString(t, `
-{
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Recursive API",
-    "version": "1.0.0"
-  },
-  "paths": {
-    "/nodes/{id}": {
-      "get": {
-        "summary": "Get a node by ID",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The ID of the node",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Node"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Node not found"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "Node": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "name": {
-            "type": "string"
-          },
-          "children": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Node"
-            }
-          }
-        }
-      }
-    }
-  }
-}
-`)
+		doc := CreateDocumentFromFile(t, filepath.Join(TestSchemaPath, "doc-with-circular-array.json"))
 		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
@@ -885,12 +883,14 @@ func TestGenerateContent(t *testing.T) {
 			"name": "noda-123",
 			"children": []any{
 				map[string]any{
-					"id":   123,
-					"name": "noda-123",
+					"id":       123,
+					"name":     "noda-123",
+					"children": nil,
 				},
 				map[string]any{
-					"id":   123,
-					"name": "noda-123",
+					"id":       123,
+					"name":     "noda-123",
+					"children": nil,
 				},
 			},
 		}
@@ -942,53 +942,18 @@ func TestGenerateContent(t *testing.T) {
 			"id":   123,
 			"name": "noda-123",
 			"parent": map[string]any{
-				"id":   123,
-				"name": "noda-123",
+				"id":     123,
+				"name":   "noda-123",
+				"parent": nil,
 			},
 		}
 		assert.Equal(t, expected, res)
-	})
-
-	t.Run("with-no-resolved-values", func(t *testing.T) {
-		schema := CreateSchemaFromString(t, `
-        {
-            "type":"object",
-            "properties": {
-                "name": {
-                    "type": "object",
-                    "properties": {
-                        "first": {"type": "string"}
-                    }
-                }
-            }
-        }`)
-		res := GenerateContentFromSchema(schema, nil, nil)
-		assert.Nil(t, res)
 	})
 }
 
 func TestGenerateContentObject(t *testing.T) {
 	t.Run("GenerateContentObject", func(t *testing.T) {
-		schema := CreateSchemaFromString(t, `
-        {
-            "type":"object",
-            "properties": {
-                "name": {
-                    "type": "object",
-                    "properties": {
-                        "first": {
-                            "type": "string"
-                        },
-                        "last": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "age": {
-                    "type": "integer"
-                }
-            }
-        }`)
+		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-with-name-obj-and-age.json"))
 
 		valueResolver := func(schema any, state *ReplaceState) any {
 			namePath := state.NamePath
@@ -1029,8 +994,13 @@ func TestGenerateContentObject(t *testing.T) {
                 }
             }
         }`)
+		expected := map[string]any{
+			"name": map[string]any{
+				"first": nil,
+			},
+		}
 		res := GenerateContentObject(schema, nil, nil)
-		assert.Nil(t, res)
+		assert.Equal(t, expected, res)
 	})
 }
 

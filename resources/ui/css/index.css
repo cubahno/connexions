@@ -456,3 +456,17 @@ a.service-settings-link {
     height: 1.95rem;
     width: auto;
 }
+
+.copy-code {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    background-color: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px 0 0 0;
+    cursor: pointer;
+}
+
+.copy-icon {
+    margin-right: 4px;
+}

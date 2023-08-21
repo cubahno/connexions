@@ -1,0 +1,17 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "age": {
+        "type": "number"
+      },
+      "settings": {
+        "type": "string",
+        "format": "binary"
+      }
+    }
+  }
+}

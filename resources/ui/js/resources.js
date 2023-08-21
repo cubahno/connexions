@@ -137,22 +137,57 @@ export const generateResult = (service, path, method) => {
         }),
     })
         .then(res => res.json())
-        .then(payload => {
-            const reqPath = payload["request"]["path"];
+        .then(res => {
+            const reqPath = res["request"]["path"];
             if (reqPath) {
                 document.getElementById('request-path').innerHTML = reqPath;
                 document.getElementById('request-path-container').style.display = 'block';
             }
+            const reqContentType = res["request"]["contentType"];
 
             if (method.toLowerCase() === 'get') {
                 document.getElementById('request-body-container').style.display = 'none';
             } else {
-                document.getElementById('request-body').textContent = JSON.stringify(payload["request"]["body"], null, 2);
+                let formattedBody = ``;
+                const reqBody = res["request"]["body"];
+                if (reqBody !== undefined && reqBody.length > 0 && reqContentType === `application/json`) {
+                    const jsonObject = JSON.parse(reqBody);
+                    formattedBody = JSON.stringify(jsonObject, null, 2);
+                }
+                document.getElementById('request-body').textContent = formattedBody;
                 document.getElementById('request-body-container').style.display = 'block';
             }
 
-            document.getElementById('response-body').textContent = JSON.stringify(payload["response"]["content"], null, 2);
+            const curlBlock = document.getElementById('example-curl');
+            const baseUrl = `${window.location.protocol}//${window.location.host}`;
+            curlBlock.textContent = `curl --request ${method} \\\n'${baseUrl}${reqPath}'`;
+            if (reqContentType) {
+                curlBlock.textContent += ` \\\n--header 'Content-Type: ${reqContentType}'`
+            }
+            const exampleCurl = res.request?.examples?.curl;
+            if (exampleCurl) {
+                curlBlock.textContent += ` \\\n${exampleCurl}`;
+            }
+
+            document.getElementById('response-body').textContent = JSON.stringify(res["response"]["content"], null, 2);
             document.getElementById('response-body-container').style.display = 'block';
+
+            const copyCodeElement = document.querySelector(".copy-code");
+            const originalCopyIcon = `<i class="fa-solid fa-copy"></i> Copy`;
+            copyCodeElement.addEventListener("click", () => {
+                const codeText = curlBlock.textContent;
+                navigator.clipboard.writeText(codeText).then(() => {
+                    console.log("Code copied to clipboard!");
+
+                    copyCodeElement.innerHTML = `<i class="fas fa-check"></i> Copied!`;
+                    setTimeout(() => {
+                        copyCodeElement.innerHTML = originalCopyIcon;
+                    }, 2000);
+                }).catch((error) => {
+                    console.error("Failed to copy code:", error);
+                });
+            });
+
         }).then(onDone);
 }
 

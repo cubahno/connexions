@@ -34,7 +34,9 @@ func CreateHomeRoutes(router *Router) error {
 	router.Get(url+"export", exportHandler)
 	router.Post(url+"import", handler.importHandler)
 
+	docsServer(fmt.Sprintf("/%s/docs/*", strings.Trim(url, "/")), router)
 	fileServer(fmt.Sprintf("/%s/*", strings.Trim(url, "/")), router)
+
 	return nil
 }
 
@@ -63,6 +65,15 @@ func fileServer(url string, r chi.Router) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
 		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(UIPath)))
+		fs.ServeHTTP(w, r)
+	})
+}
+
+func docsServer(url string, r chi.Router) {
+	r.Get(url, func(w http.ResponseWriter, r *http.Request) {
+		fs := http.StripPrefix(
+			strings.TrimSuffix(url, "/*"),
+			http.FileServer(http.Dir(filepath.Join(RootPath, "site"))))
 		fs.ServeHTTP(w, r)
 	})
 }
