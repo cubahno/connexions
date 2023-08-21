@@ -389,17 +389,23 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 			defer wg.Done()
 
 			filePath := zipFile.Name
+			takeIt := false
 
 			for _, prefix := range onlyPrefixes {
-				if !strings.HasPrefix(filePath, prefix) {
-					log.Printf("Skipping file %s\n", filePath)
-					return
+				if strings.HasPrefix(filePath, prefix) {
+					takeIt = true
+					break
 				}
+			}
+
+			if !takeIt {
+				log.Printf("Skipping extracted file %s because it doesn't have allowed prefix\n", filePath)
+				return
 			}
 
 			// Ensure the directory exists
 			dir := filepath.Dir(filePath)
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := os.MkdirAll(filepath.Join(targetDir, dir), 0755); err != nil {
 				errCh <- err
 				return
 			}

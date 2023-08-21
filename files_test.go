@@ -251,7 +251,7 @@ func TestExtractZip(t *testing.T) {
 	}
 
 	var createdFiles []string
-	for _, filePath := range getFilePaths(filepath.Join(tempDir)) {
+	for _, filePath := range getFilePaths(tempDir) {
 		// Ensure the directory exists
 		dir := filepath.Dir(filePath)
 		if err := os.MkdirAll(dir, 0755); err != nil {
