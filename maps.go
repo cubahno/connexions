@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 )
@@ -74,4 +75,13 @@ func GetRandomKeyFromMap[T any](m map[string]T) string {
 	randomIndex := rand.Intn(len(keys))
 
 	return keys[randomIndex]
+}
+
+func GetSortedMapKeys(content map[string]any) []string {
+	var keys []string
+	for key := range content {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }

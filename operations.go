@@ -105,8 +105,12 @@ func CreateCURLBody(content any, contentType string) (string, error) {
 		if !ok {
 			return "", ErrUnexpectedFormURLEncodedType
 		}
+
+		keys := GetSortedMapKeys(data)
 		builder := &strings.Builder{}
-		for key, value := range data {
+
+		for _, key := range keys {
+			value := data[key]
 			builder.WriteString("--data-urlencode ")
 			builder.WriteString(fmt.Sprintf(`'%s=%v'`, url.QueryEscape(key), url.QueryEscape(fmt.Sprintf("%v", value))))
 			builder.WriteString(" \\\n")
@@ -118,8 +122,12 @@ func CreateCURLBody(content any, contentType string) (string, error) {
 		if !ok {
 			return "", ErrUnexpectedFormDataType
 		}
+
+		keys := GetSortedMapKeys(data)
 		builder := &strings.Builder{}
-		for key, value := range data {
+
+		for _, key := range keys {
+			value := data[key]
 			builder.WriteString("--form ")
 			builder.WriteString(fmt.Sprintf(`'%s="%v"'`, url.QueryEscape(key), url.QueryEscape(fmt.Sprintf("%v", value))))
 			builder.WriteString(" \\\n")

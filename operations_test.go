@@ -119,9 +119,9 @@ func TestCreateCURLBody(t *testing.T) {
 		result, err := CreateCURLBody(content, "application/x-www-form-urlencoded")
 		ass.NoError(err)
 
-		expected := `--data-urlencode 'name=John' \
---data-urlencode 'age=30' \
---data-urlencode 'email=john%40example.com'
+		expected := `--data-urlencode 'age=30' \
+--data-urlencode 'email=john%40example.com' \
+--data-urlencode 'name=John'
 `
 		expected = strings.TrimSuffix(expected, "\n")
 		ass.Equal(expected, result)
@@ -139,9 +139,9 @@ func TestCreateCURLBody(t *testing.T) {
 		result, err := CreateCURLBody(content, "multipart/form-data")
 		ass.NoError(err)
 
-		expected := `--form 'name="Jane"' \
---form 'age="25"' \
---form 'email="jane%40example.com"'
+		expected := `--form 'age="25"' \
+--form 'email="jane%40example.com"' \
+--form 'name="Jane"'
 `
 		expected = strings.TrimSuffix(expected, "\n")
 		ass.Equal(expected, result)
@@ -160,7 +160,7 @@ func TestCreateCURLBody(t *testing.T) {
 		ass.NoError(err)
 
 		enc, _ := json.Marshal(content)
-		expected := fmt.Sprintf("--data '%s'", string(enc))
+		expected := fmt.Sprintf("--data-raw '%s'", string(enc))
 		ass.Equal(expected, result)
 	})
 
