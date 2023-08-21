@@ -100,6 +100,9 @@ select {
     padding: 10px;
     border-radius: 4px;
     white-space: pre-wrap;
+    overflow: auto;
+    max-width: 750px;
+    max-height: 500px;
 }
 
 .selected-service{

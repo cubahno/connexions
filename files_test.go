@@ -241,12 +241,25 @@ func TestExtractZip(t *testing.T) {
 
 	getFilePaths := func(baseDir string) []string {
 		return []string{
-			filepath.Join(baseDir, "index.json"),
-			filepath.Join(baseDir, RootOpenAPIName, "svc-1", "index.yml"),
-			filepath.Join(baseDir, RootOpenAPIName, "svc-2", "index.yml"),
-			filepath.Join(baseDir, RootServiceName, "svc-1", "get", "users", "index.json"),
-			filepath.Join(baseDir, RootServiceName, "svc-2", "get", "users", "all", "index.json"),
-			filepath.Join(baseDir, "svc-3", "patch", "users", "{userID}", "index.json"),
+			filepath.Join(baseDir, "take-this", "index.json"),
+			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-1", "index.yml"),
+			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-2", "index.yml"),
+			filepath.Join(baseDir, "take-this", RootServiceName, "svc-1", "get", "users", "index.json"),
+			filepath.Join(baseDir, "ignore", RootServiceName, "svc-2", "get", "users", "all", "index.json"),
+			filepath.Join(baseDir, "ignore", "svc-3", "patch", "users", "{userID}", "index.json"),
+			filepath.Join(baseDir, "take-too", "ctx-1.yml"),
+			filepath.Join(baseDir, "take-too", "ctx-2.yml"),
+		}
+	}
+
+	expectedFilePaths := func(baseDir string) []string {
+		return []string{
+			filepath.Join(baseDir, "take-this", "index.json"),
+			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-1", "index.yml"),
+			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-2", "index.yml"),
+			filepath.Join(baseDir, "take-this", RootServiceName, "svc-1", "get", "users", "index.json"),
+			filepath.Join(baseDir, "take-too", "ctx-1.yml"),
+			filepath.Join(baseDir, "take-too", "ctx-2.yml"),
 		}
 	}
 
@@ -314,15 +327,16 @@ func TestExtractZip(t *testing.T) {
 	defer zipReader.Close()
 
 	// Extract and copy the zip contents
-	targetDir := filepath.Join(tempDir, "target")
-	err = ExtractZip(&zipReader.Reader, targetDir, nil)
+
+	targetDir := t.TempDir()
+	err = ExtractZip(&zipReader.Reader, targetDir, []string{"take-this", "take-too"})
 	if err != nil {
 		t.Fatalf("Error extracting and copying files: %v", err)
 	}
 
 	var extracted []string
 	filepath.WalkDir(targetDir, func(path string, info os.DirEntry, err error) error {
-		if info.IsDir() {
+		if info != nil && info.IsDir() {
 			return nil
 		}
 		extracted = append(extracted, path)
@@ -330,7 +344,7 @@ func TestExtractZip(t *testing.T) {
 	})
 
 	// Check if the target directory contains the extracted file
-	expected := getFilePaths(targetDir)
+	expected := expectedFilePaths(targetDir)
 
 	assert.ElementsMatch(t, expected, extracted)
 }
