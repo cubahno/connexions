@@ -187,15 +187,15 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 	}
 
 	return &FileProperties{
-		ServiceName: serviceName,
-		Prefix:      prefix,
-		Method:      method,
-		Resource:    resource,
-		FilePath:    filePath,
-		FileName:    fileName,
-		Extension:   ext,
-		ContentType: contentType,
-		//ValueReplacerFactory: CreateValueReplacerFactory(),
+		ServiceName:          serviceName,
+		Prefix:               prefix,
+		Method:               method,
+		Resource:             resource,
+		FilePath:             filePath,
+		FileName:             fileName,
+		Extension:            ext,
+		ContentType:          contentType,
+		ValueReplacerFactory: CreateValueReplacerFactory(),
 	}, nil
 }
 

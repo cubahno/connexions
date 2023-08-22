@@ -40,13 +40,14 @@ const (
 )
 
 type AppConfig struct {
-	Port        int    `json:"port" koanf:"port"`
-	HomeURL     string `json:"homeUrl" koanf:"homeUrl"`
-	ServiceURL  string `json:"serviceUrl" koanf:"serviceUrl"`
-	SettingsURL string `json:"settingsUrl" koanf:"settingsUrl"`
-	ContextURL  string `json:"contextUrl" koanf:"contextUrl"`
-	ServeUI     bool   `json:"serveUI" koanf:"serveUI"`
-	ServeSpec   bool   `json:"serveSpec" koanf:"serveSpec"`
+	Port              int    `json:"port" koanf:"port"`
+	HomeURL           string `json:"homeUrl" koanf:"homeUrl"`
+	ServiceURL        string `json:"serviceUrl" koanf:"serviceUrl"`
+	SettingsURL       string `json:"settingsUrl" koanf:"settingsUrl"`
+	ContextURL        string `json:"contextUrl" koanf:"contextUrl"`
+	ContextAreaPrefix string `json:"contextAreaPrefix" koanf:"contextAreaPrefix"`
+	ServeUI           bool   `json:"serveUI" koanf:"serveUI"`
+	ServeSpec         bool   `json:"serveSpec" koanf:"serveSpec"`
 }
 
 func (a *AppConfig) IsValidPrefix(prefix string) bool {
@@ -154,13 +155,14 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 func NewDefaultConfig() *Config {
 	return &Config{
 		App: &AppConfig{
-			Port:        2200,
-			HomeURL:     "/.ui",
-			ServiceURL:  "/.services",
-			SettingsURL: "/.settings",
-			ContextURL:  "/.contexts",
-			ServeUI:     true,
-			ServeSpec:   true,
+			Port:              2200,
+			HomeURL:           "/.ui",
+			ServiceURL:        "/.services",
+			SettingsURL:       "/.settings",
+			ContextURL:        "/.contexts",
+			ServeUI:           true,
+			ServeSpec:         true,
+			ContextAreaPrefix: "-in-",
 		},
 	}
 }

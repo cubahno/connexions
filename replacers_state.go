@@ -8,7 +8,7 @@ type ReplaceState struct {
 	NamePath                []string
 	ElementIndex            int
 	IsHeader                bool
-	IsURLParam              bool
+	IsPathParam             bool
 	ContentType             string
 	refPath                 []string
 	stopCircularArrayTripOn int
@@ -74,7 +74,7 @@ func (s *ReplaceState) WithHeader() *ReplaceState {
 func (s *ReplaceState) WithURLParam() *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.IsURLParam = true
+	s.IsPathParam = true
 	return s
 }
 

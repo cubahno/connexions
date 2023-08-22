@@ -338,7 +338,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceCfg := h.router.Config.GetServiceConfig(name)
+	config := h.router.Config
+	serviceCfg := config.GetServiceConfig(name)
 
 	res := map[string]any{}
 
@@ -363,9 +364,10 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	contexts := CollectContexts(serviceCtxs, h.router.Contexts, payload.Replacements)
 
 	replaceResource := &Resource{
-		Service:     name,
-		Path:        payload.Resource,
-		ContextData: contexts,
+		Service:           name,
+		Path:              payload.Resource,
+		ContextData:       contexts,
+		ContextAreaPrefix: config.App.ContextAreaPrefix,
 	}
 	var valueReplacer ValueReplacer
 	if fileProps.ValueReplacerFactory != nil {

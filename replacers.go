@@ -1,6 +1,7 @@
 package xs
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -30,7 +31,35 @@ func ReplaceInHeaders(ctx *ReplaceContext) any {
 	if !ctx.State.IsHeader {
 		return nil
 	}
-	// TODO(igor): implement it
+	return replaceInArea(ctx, "header")
+}
+
+func ReplaceInPath(ctx *ReplaceContext) any {
+	if !ctx.State.IsPathParam {
+		return nil
+	}
+	return replaceInArea(ctx, "path")
+}
+
+func replaceInArea(ctx *ReplaceContext, area string) any {
+	ctxAreaPrefix := ctx.Resource.ContextAreaPrefix
+	if ctxAreaPrefix == "" {
+		return nil
+	}
+
+	snakedNamePath := []string{ToSnakeCase(ctx.State.NamePath[0])}
+
+	for _, data := range ctx.Resource.ContextData {
+		replacements, ok := data[fmt.Sprintf("%s%s", ctxAreaPrefix, area)]
+		if !ok {
+			continue
+		}
+
+		if res := ReplaceValueWithContext(snakedNamePath, replacements); res != nil {
+			return res
+		}
+	}
+
 	return nil
 }
 
@@ -179,8 +208,13 @@ func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
 
 // ApplySchemaConstraints applies schema constraints to the value.
 // It converts the input value to match the corresponding OpenAPI type specified in the schema.
-func ApplySchemaConstraints(schema *Schema, res any) any {
-	if schema == nil {
+func ApplySchemaConstraints(openAPISchema any, res any) any {
+	if openAPISchema == nil {
+		return res
+	}
+
+	schema, ok := openAPISchema.(*Schema)
+	if !ok {
 		return res
 	}
 

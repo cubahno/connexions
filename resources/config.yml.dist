@@ -8,6 +8,11 @@ app:
   serveUI: true
   # adds swagger-ui to each service
   serveSpec: true
+  # set sub-contexts for replacements in path, header or any other supported place
+  # for example:
+  # -in-path:
+  #   pet_id: 123
+  contextAreaPrefix: -in-
 
 services:
   # service name is the first part of the path.

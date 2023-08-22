@@ -16,9 +16,10 @@ type ReplaceContext struct {
 }
 
 type Resource struct {
-	Service     string
-	Path        string
-	ContextData []map[string]any
+	Service           string
+	Path              string
+	ContextAreaPrefix string
+	ContextData       []map[string]any
 }
 
 func CreateValueReplacerFactory() ValueReplacerFactory {
@@ -26,6 +27,7 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 
 	fns := []Replacer{
 		ReplaceInHeaders,
+		ReplaceInPath,
 		ReplaceFromContext,
 		ReplaceFromSchemaFormat,
 		ReplaceFromSchemaPrimitive,
@@ -52,11 +54,11 @@ func CreateValueReplacerFactory() ValueReplacerFactory {
 
 			for _, fn := range fns {
 				res := fn(ctx)
-				if res != nil {
+				if res != nil && ctx.Schema != nil {
 					if !HasCorrectSchemaType(ctx, res) {
 						continue
 					}
-					res = ApplySchemaConstraints(ctx.Schema.(*Schema), res)
+					res = ApplySchemaConstraints(ctx.Schema, res)
 				}
 
 				if res == nil {
