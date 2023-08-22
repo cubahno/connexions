@@ -1,7 +1,6 @@
 package xs
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -33,7 +32,6 @@ type Response struct {
 	Content     []byte      `json:"content,omitempty"`
 	ContentType string      `json:"contentType,omitempty"`
 	StatusCode  int         `json:"statusCode,omitempty"`
-	IsBase64    bool        `json:"isBase64,omitempty"`
 }
 
 // NewRequestFromOperation creates a new request from an operation.
@@ -180,9 +178,8 @@ func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer)
 	}
 }
 
-func NewResponseFromFileProperties(
-	filePath, contentType string, valueReplacer ValueReplacer) *Response {
-	content, isBase64 := GenerateContentFromFileProperties(filePath, contentType, valueReplacer)
+func NewResponseFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) *Response {
+	content := GenerateContentFromFileProperties(filePath, contentType, valueReplacer)
 	hs := http.Header{}
 	hs.Set("content-type", contentType)
 
@@ -195,7 +192,6 @@ func NewResponseFromFileProperties(
 		Headers:     hs,
 		Content:     contentB,
 		ContentType: contentType,
-		IsBase64:    isBase64,
 		StatusCode:  http.StatusOK,
 	}
 }
@@ -594,30 +590,26 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 }
 
 func GenerateContentFromFileProperties(
-	filePath, contentType string, valueReplacer ValueReplacer) (any, bool) {
+	filePath, contentType string, valueReplacer ValueReplacer) any {
 	if filePath == "" {
-		return nil, false
+		return nil
 	}
 
 	payload, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, false
-	}
-
-	if contentType == "application/octet-stream" {
-		return base64.StdEncoding.EncodeToString(payload), true
+		return nil
 	}
 
 	if contentType == "application/json" {
 		var data any
 		err := json.Unmarshal(payload, &data)
 		if err != nil {
-			return nil, false
+			return nil
 		}
-		return GenerateContentFromJSON(data, valueReplacer, nil), false
+		return GenerateContentFromJSON(data, valueReplacer, nil)
 	}
 
-	return payload, false
+	return payload
 }
 
 func GenerateContentFromJSON(data any, valueReplacer ValueReplacer, state *ReplaceState) any {
