@@ -620,15 +620,52 @@ func GenerateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 		state = &ReplaceState{}
 	}
 
+	resolve := func(key string, val any) any {
+		vStr, ok := val.(string)
+		// if value not a string, just copy it
+		if !ok {
+			return val
+		}
+
+		placeHolders := ExtractPlaceholders(vStr)
+		vs := make(map[string]any)
+
+		for _, placeholder := range placeHolders {
+			name := placeholder[1 : len(placeholder)-1]
+			res := valueReplacer(name, state.NewFrom(state).WithName(name))
+			if res != nil {
+				newKey := fmt.Sprintf("%s%s%s", string(placeholder[0]), name, string(placeholder[len(placeholder)-1]))
+				vs[newKey] = res
+			}
+		}
+
+		if len(vs) == 0 {
+			return val
+		}
+
+		// return as-is without type conversion
+		if len(vs) == 1 {
+			for _, res := range vs {
+				return res
+			}
+		}
+
+		// multiple replacements glued together in one string
+		for placeholder, newValue := range vs {
+			vStr = strings.ReplaceAll(vStr, placeholder, fmt.Sprintf("%v", newValue))
+		}
+
+		return vStr
+	}
+
 	switch v := data.(type) {
 	case map[string]interface{}:
 		result := make(map[string]interface{})
 		for key, val := range v {
-			resolved := valueReplacer(val, state.NewFrom(state).WithName(key))
-			if resolved != nil {
-				result[key] = resolved
-			} else {
-				result[key] = GenerateContentFromJSON(val, valueReplacer, state.NewFrom(state).WithName(key))
+			result[key] = val
+			res := resolve(key, val)
+			if res != nil {
+				result[key] = res
 			}
 		}
 		return result
@@ -636,11 +673,10 @@ func GenerateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 	case map[interface{}]interface{}:
 		result := make(map[interface{}]interface{})
 		for key, val := range v {
-			resolved := valueReplacer(val, state.NewFrom(state).WithName(key.(string)))
-			if resolved != nil {
-				result[key] = resolved
-			} else {
-				result[key] = GenerateContentFromJSON(val, valueReplacer, state.NewFrom(state).WithName(key.(string)))
+			result[key] = val
+			res := resolve(key.(string), val)
+			if res != nil {
+				result[key] = res
 			}
 		}
 		return result
@@ -648,11 +684,10 @@ func GenerateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 	case []interface{}:
 		result := make([]interface{}, len(v))
 		for i, val := range v {
-			resolved := valueReplacer(val, state.NewFrom(state).WithName(fmt.Sprintf("%v", i)))
-			if resolved != nil {
-				result[i] = resolved
-			} else {
-				result[i] = GenerateContentFromJSON(val, valueReplacer, state.NewFrom(state).WithName(fmt.Sprintf("%v", i)))
+			result[i] = val
+			res := resolve(fmt.Sprintf("%v", i), val)
+			if res != nil {
+				result[i] = res
 			}
 		}
 		return result
