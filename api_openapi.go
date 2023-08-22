@@ -38,10 +38,11 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 			router.MethodFunc(method, fileProps.Prefix+resName, handler.serve)
 
 			res = append(res, &RouteDescription{
-				Method: method,
-				Path:   resName,
-				Type:   OpenAPIRouteType,
-				File:   fileProps,
+				Method:      method,
+				Path:        resName,
+				Type:        OpenAPIRouteType,
+				ContentType: fileProps.ContentType,
+				File:        fileProps,
 			})
 		}
 	}
@@ -134,5 +135,18 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NewJSONResponse(response.StatusCode, response.Content, w)
+	// set headers
+	if response.Headers.Get("Content-Type") == "" {
+		response.Headers.Set("Content-Type", response.ContentType)
+	}
+	for name, values := range response.Headers {
+		for _, value := range values {
+			w.Header().Set(name, value)
+		}
+	}
+	w.WriteHeader(response.StatusCode)
+	_, err := w.Write(response.Content)
+	if err != nil {
+		log.Printf("error writing response: %v", err)
+	}
 }

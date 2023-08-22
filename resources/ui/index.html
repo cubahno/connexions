@@ -51,7 +51,7 @@
 
         <table style="display: none">
             <tr id="add-new-service-cont">
-                <td colspan="4"><a class="services-add-link" href="#/services/add" title="Add new service">Add new Service ➕</a></td>
+                <td colspan="4"><a class="services-add-link" href="#/services/add" title="Add new service">Add new Resource ➕</a></td>
             </tr>
             <tr id="add-new-context-cont">
                 <td colspan="4"><a class="contexts-add-link" href="#/contexts/add" title="Add new context">Add new Context ➕</a></td>
@@ -159,18 +159,13 @@
                 </div>
                 <div id="generator-container" style="display: none;">
                     <div class="accordion" style="display: inline;">
-                        <div class="accordion-header"><span class="accordion-icon">↪</span> Provide Replacements [Optional]</div>
+                        <div class="accordion-header"><span class="accordion-icon">↪</span> Provide Context Replacements [Optional]</div>
                         <div class="accordion-content">
-                    <textarea id="replacements">
-{
-
-}
-                    </textarea>
-                            <div id="replacements2"></div>
+                            <div id="context-replacements" style="width:100%; height: 200px;"></div>
                         </div>
                     </div>
 
-                    <div class="accordion" style="display: inline;">
+                    <div class="accordion" style="display: inline;margin-left: 10px;">
                         <div class="accordion-header"><i class="fa-solid fa-terminal"></i> cURL:</div>
                         <div class="accordion-content" style="position: relative;">
                             <div class="copy-code">
@@ -372,4 +367,6 @@
 </body>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.min.js" integrity="sha512-j/s6QJ8uW2gD8owi6Mw45E2k8w9TwRojEesI02CWZFGxVcQPGfdIwFzKHRONoCYwLMgDdOXORArWjl2oFWFc5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
 </html>

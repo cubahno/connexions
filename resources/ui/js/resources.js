@@ -4,7 +4,6 @@ import * as validators from './validators.js';
 import * as navi from "./navi.js";
 import * as services from "./services.js";
 
-
 export const show = match => {
     services.show();
 
@@ -12,9 +11,7 @@ export const show = match => {
     const service = name;
 
     navi.resetContents();
-    const editor = commons.getCodeEditor(`replacements2`, `json`);
-    editor.setValue(`{\n\t\n}`);
-    editor.clearSelection();
+    const editor = commons.getCodeEditor(`context-replacements`, `yaml`);
 
     console.log(`service home ${service} ix=${ix} action=${action}`);
 
@@ -35,7 +32,7 @@ export const show = match => {
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
 
-            for (const { method, path, type } of endpoints) {
+            for (const { method, path, type, contentType } of endpoints) {
                 const num = i + 1;
                 let icon = ``;
                 if (type === `overwrite`) {
@@ -61,7 +58,7 @@ export const show = match => {
                 row.appendChild(pathCell);
 
                 const editCell = document.createElement('td');
-                if (type === `overwrite`) {
+                if (type === `overwrite` && commons.isResourceEditable(contentType)) {
                     editCell.innerHTML =`<a href="#/services/${service}/${num}/edit">✎</a>`;
                     editCell.className = 'edit-resource';
                     editCell.title = `Edit resource ${method} ${path}`;
@@ -122,9 +119,16 @@ export const generateResult = (service, path, method) => {
         config.resourceRefreshBtn.style.display = 'block';
     }
     commons.hideMessage();
+    let replacements = null;
+    const replacementsEditor = commons.getCodeEditor(`context-replacements`, `yaml`);
+    const yamlContent = replacementsEditor.getValue();
+    if (yamlContent) {
+        const yamlObject = jsyaml.load(yamlContent);
+        const jsonContent = JSON.stringify(yamlObject, null, 2);
+        replacements = validators.fixAndValidateJSON(jsonContent);
+    }
     document.getElementById(`resource-edit-container`).style.display = 'none';
 
-    let replacements = validators.fixAndValidateJSON(document.getElementById('replacements').value.trim());
     fetch(`${config.serviceUrl}/${service}`, {
         method: 'POST',
         headers: {
@@ -169,7 +173,22 @@ export const generateResult = (service, path, method) => {
                 curlBlock.textContent += ` \\\n${exampleCurl}`;
             }
 
-            document.getElementById('response-body').textContent = JSON.stringify(res["response"]["content"], null, 2);
+            const resContent = res.response.content;
+            const decodedBytes = atob(resContent);
+
+            let resView = ``;
+            if (commons.isResourceEditable(res["response"]["contentType"])) {
+                try {
+                    const jsonObject = JSON.parse(decodedBytes);
+                    resView = JSON.stringify(jsonObject, null, 2);
+                } catch (error) {
+                    resView = decodedBytes;
+                }
+            } else {
+                resView = `<a href="${baseUrl}${res.request.path}" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> View</a>`;
+            }
+
+            document.getElementById('response-body').innerHTML = resView;
             document.getElementById('response-body-container').style.display = 'block';
 
             const copyCodeElement = document.querySelector(".copy-code");
@@ -206,11 +225,19 @@ const edit = (service, method, path) => {
             document.getElementById(`res-endpoint-method`).value = res.method;
             document.getElementById(`res-response-content-type`).value = res.contentType;
 
-            const mode = commons.getCodeEditorMode(res.contentType);
+            if (!commons.isResourceEditable(res.contentType)) {
+                console.log(`resource ${res.contentType} is not editable`);
+                return;
+            }
+
+            const mode = commons.getCodeEditorMode(res.extension);
+            console.log(`editor mode: ${mode}`);
             editor.setValue(res.content);
             editor.setOptions({
                 mode: `ace/mode/${mode}`,
             })
             editor.clearSelection();
+
+            document.getElementById( `res-response-content-type`).value = mode;
         });
 }

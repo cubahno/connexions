@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
 	"net/url"
@@ -29,7 +30,7 @@ type ContentExample struct {
 
 type Response struct {
 	Headers     http.Header `json:"headers,omitempty"`
-	Content     interface{} `json:"content,omitempty"`
+	Content     []byte      `json:"content,omitempty"`
 	ContentType string      `json:"contentType,omitempty"`
 	StatusCode  int         `json:"statusCode,omitempty"`
 	IsBase64    bool        `json:"isBase64,omitempty"`
@@ -55,7 +56,7 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation *Operati
 		Method:      method,
 		Path:        pathPrefix + GenerateURLFromSchemaParameters(path, valueReplacer, operation.Parameters),
 		Query:       GenerateQuery(valueReplacer, operation.Parameters),
-		Body:        body,
+		Body:        string(body),
 		ContentType: contentType,
 		Examples: &ContentExample{
 			CURL: curlExample,
@@ -63,35 +64,29 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation *Operati
 	}
 }
 
-func EncodeContent(content any, contentType string) (string, error) {
+func EncodeContent(content any, contentType string) ([]byte, error) {
 	if content == nil {
-		return "", nil
-	}
-
-	switch content.(type) {
-	case string:
-		return content.(string), nil
-	case []byte:
-		return string(content.([]byte)), nil
+		return nil, nil
 	}
 
 	switch contentType {
 	case "application/x-www-form-urlencoded", "multipart/form-data", "application/json":
-		res, err := json.Marshal(content)
-		if err != nil {
-			return "", ErrUnexpectedFormURLEncodedType
-		}
-		return string(res), nil
+		return json.Marshal(content)
 
 	case "application/xml":
-		res, err := xml.Marshal(content)
-		if err != nil {
-			return "", err
+		return xml.Marshal(content)
+
+	case "application/x-yaml":
+		return yaml.Marshal(content)
+
+	default:
+		switch content.(type) {
+		case string, []byte:
+			return content.([]byte), nil
 		}
-		return string(res), nil
 	}
 
-	return "", nil
+	return nil, nil
 }
 
 func CreateCURLBody(content any, contentType string) (string, error) {
@@ -167,17 +162,19 @@ func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer)
 
 	contentType, contentSchema := GetContentType(response.Content)
 	if contentType == "" {
-		return &Response{
-			StatusCode: statusCode,
-			Headers:    headers,
-		}
+		contentType = "text/plain"
 	}
 
 	headers.Set("content-type", contentType)
+	content := GenerateContentFromSchema(contentSchema, valueReplacer, nil)
+	contentB, err := EncodeContent(content, contentType)
+	if err != nil {
+		log.Printf("Error encoding response: %v", err.Error())
+	}
 
 	return &Response{
 		Headers:     headers,
-		Content:     GenerateContentFromSchema(contentSchema, valueReplacer, nil),
+		Content:     contentB,
 		ContentType: contentType,
 		StatusCode:  statusCode,
 	}
@@ -189,9 +186,14 @@ func NewResponseFromFileProperties(
 	hs := http.Header{}
 	hs.Set("content-type", contentType)
 
+	contentB, err := EncodeContent(content, contentType)
+	if err != nil {
+		log.Printf("Error encoding response: %v", err.Error())
+	}
+
 	return &Response{
 		Headers:     hs,
-		Content:     content,
+		Content:     contentB,
 		ContentType: contentType,
 		IsBase64:    isBase64,
 		StatusCode:  http.StatusOK,
@@ -242,6 +244,10 @@ func TransformHTTPCode(httpCode string) int {
 }
 
 func GetContentType(content OpenAPIContent) (string, *Schema) {
+	if content == nil {
+		return "", nil
+	}
+
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := content[contentType]; ok {
@@ -328,6 +334,9 @@ func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string
 }
 
 func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, state *ReplaceState) any {
+	if schema == nil {
+		return nil
+	}
 	if state == nil {
 		state = &ReplaceState{}
 	}
@@ -599,32 +608,22 @@ func GenerateContentFromFileProperties(
 		return base64.StdEncoding.EncodeToString(payload), true
 	}
 
-	return GenerateContentFromBytes(payload, contentType, valueReplacer), false
-}
-
-func GenerateContentFromBytes(payload []byte, contentType string, valueReplacer ValueReplacer) any {
-	if len(payload) == 0 {
-		return ""
-	}
-
-	if valueReplacer == nil {
-		return string(payload)
-	}
-
-	switch contentType {
-	case "application/json":
+	if contentType == "application/json" {
 		var data any
 		err := json.Unmarshal(payload, &data)
 		if err != nil {
-			return ""
+			return nil, false
 		}
-		return GenerateContentFromJSON(data, valueReplacer, nil)
-	default:
-		return string(payload)
+		return GenerateContentFromJSON(data, valueReplacer, nil), false
 	}
+
+	return payload, false
 }
 
 func GenerateContentFromJSON(data any, valueReplacer ValueReplacer, state *ReplaceState) any {
+	if valueReplacer == nil {
+		return data
+	}
 	if state == nil {
 		state = &ReplaceState{}
 	}

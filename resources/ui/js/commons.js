@@ -76,3 +76,15 @@ export const getEditorForm = (editorId, typeId) => {
 
     return editor;
 }
+
+export const isResourceEditable = contentType => {
+    const editableContentTypes = {
+        'application/json': true,
+        'application/x-yaml': true,
+        'text/plain; charset=utf-8': true,
+        'text/markdown; charset=utf-8' : true,
+        'text/html; charset=utf-8': true,
+        'text/xml; charset=utf-8': true,
+    }
+    return editableContentTypes.hasOwnProperty(contentType);
+}

@@ -50,7 +50,7 @@ func TestEncodeContent(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
 		}
-		if result != "" {
+		if result != nil {
 			t.Errorf("Expected empty string, got: %s", result)
 		}
 	})
@@ -61,8 +61,8 @@ func TestEncodeContent(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
 		}
-		if result != content {
-			t.Errorf("Expected '%s', got: %s", content, result)
+		if string(result) != fmt.Sprintf(`"%s"`, content) {
+			t.Errorf("Expected %s, got: %s", content, result)
 		}
 	})
 
@@ -76,7 +76,7 @@ func TestEncodeContent(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
 		}
-		if result != expectedResult {
+		if string(result) != expectedResult {
 			t.Errorf("Expected '%s', got: %s", expectedResult, result)
 		}
 	})
@@ -100,7 +100,7 @@ func TestEncodeContent(t *testing.T) {
 		expectedXML, err := xml.Marshal(structContent)
 		ass.NoError(err)
 
-		ass.Equal(string(expectedXML), result)
+		ass.Equal(string(expectedXML), string(result))
 	})
 }
 
@@ -286,10 +286,11 @@ func TestNewResponse(t *testing.T) {
 			"Location":     []string{"https://example.com/users/123"},
 			"Content-Type": []string{"application/json"},
 		}
-		expectedContent := map[string]any{
+		expectedContentM := map[string]any{
 			"id":    float64(123),
 			"email": "jane.doe@example.com",
 		}
+		expectedContent, _ := json.Marshal(expectedContentM)
 
 		assert.Equal(t, "application/json", res.ContentType)
 		assert.Equal(t, 200, res.StatusCode)
@@ -309,53 +310,19 @@ func TestNewResponse(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateOperationFromString(t, `
-{
-  "operationId": "createUser",
-  "parameters": [
-    {
-      "name": "userId",
-      "in": "path",
-      "description": "The unique identifier of the user.",
-      "required": true,
-      "schema": {
-        "type": "string"
-      }
-    }
-  ],
-  "responses": {
-    "500": {
-      "description": "Internal Server Error"
-    },
-    "200": {
-      "description": "User account successfully created.",
-      "headers": {
-        "Location": {
-          "description": "The URL of the newly created user account.",
-          "schema": {
-            "type": "string",
-            "example": "https://example.com/users/123"
-          }
-        }
-      },
-      "400": {
-        "description": "Bad request"
-      }
-    }
-  }
-}
-		`)
+		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-without-content-type.json"))
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
-			"Location": []string{"https://example.com/users/123"},
+			"Content-Type": []string{"text/plain"},
+			"Location":     []string{"https://example.com/users/123"},
 		}
 
 		assert.Equal(t, 200, res.StatusCode)
 		assert.Equal(t, expectedHeaders, res.Headers)
 
-		assert.Equal(t, "", res.ContentType)
-		assert.Equal(t, nil, res.Content)
+		assert.Equal(t, "text/plain", res.ContentType)
+		assert.Nil(t, res.Content)
 	})
 }
 

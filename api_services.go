@@ -97,10 +97,11 @@ const (
 // RouteDescription describes a route for the UI Application.
 // Path is relative to the service prefix.
 type RouteDescription struct {
-	Method string          `json:"method"`
-	Path   string          `json:"path"`
-	Type   string          `json:"type"`
-	File   *FileProperties `json:"-"`
+	Method      string          `json:"method"`
+	Path        string          `json:"path"`
+	Type        string          `json:"type"`
+	ContentType string          `json:"contentType"`
+	File        *FileProperties `json:"-"`
 }
 
 type ServiceListResponse struct {
@@ -338,7 +339,6 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceCfg := h.router.Config.GetServiceConfig(name)
-	println(serviceCfg)
 
 	res := map[string]any{}
 
@@ -378,15 +378,10 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 			fileProps.Method,
 			fileProps.ContentType,
 			valueReplacer)
-		res["response"] = NewResponseFromFileProperties(
-			fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		res["response"] = NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		NewJSONResponse(http.StatusOK, res, w)
 		return
-	}
-
-	if !fileProps.IsOpenAPI {
-		h.error(500, "OpenAPI spec not found", w)
 	}
 
 	spec := fileProps.Spec
@@ -491,7 +486,8 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	res := make(map[string]any)
 	res["method"] = rd.Method
 	res["path"] = rd.File.Prefix + rd.File.Resource
-	res["contentType"] = strings.TrimPrefix(rd.File.Extension, ".")
+	res["extension"] = strings.TrimPrefix(rd.File.Extension, ".")
+	res["contentType"] = rd.File.ContentType
 	res["content"] = string(content)
 	NewJSONResponse(http.StatusOK, res, w)
 }
