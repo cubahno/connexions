@@ -8,7 +8,7 @@ import * as contexts from './contexts.js';
 import * as resources from './resources.js';
 
 const pageMap = new Map([
-    ['', services.show],
+    ['', home.home],
     ['#/import', home.importForm],
     ["#/settings", settings.editForm],
     ['#/services/add', services.newForm],

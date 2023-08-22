@@ -3,10 +3,10 @@
     <title>Connexions</title>
     <script>
         const appConfig = {
-            homeUrl: "{{.HomeURL}}",
-            serviceUrl: "{{.ServiceURL}}",
-            contextUrl: "{{.ContextURL}}",
-            settingsUrl: "{{.SettingsURL}}"
+            homeUrl: "{{.AppConfig.HomeURL}}",
+            serviceUrl: "{{.AppConfig.ServiceURL}}",
+            contextUrl: "{{.AppConfig.ContextURL}}",
+            settingsUrl: "{{.AppConfig.SettingsURL}}"
         }
         console.log(`loaded appConfig:`, appConfig)
     </script>
@@ -84,6 +84,9 @@
 
     <div class="holy-grail-middle">
         <h3 id="container-title"></h3>
+
+        <div id="home-contents" style="display: none;">{{.Contents.Home}}</div>
+
         <div id="fixed-service-container" style="display: none;">
             <div class="service-resources-list-header">
                 <h3>Resources</h3>
@@ -368,5 +371,4 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.min.js" integrity="sha512-j/s6QJ8uW2gD8owi6Mw45E2k8w9TwRojEesI02CWZFGxVcQPGfdIwFzKHRONoCYwLMgDdOXORArWjl2oFWFc5Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-
 </html>

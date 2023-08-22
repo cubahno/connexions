@@ -91,6 +91,7 @@ export const applySelection = (targetEl, selectionClassName) => {
 
 export const resetContents = () => {
     console.log(`reset contents`);
+    config.homeContents.style.display = 'none';
     config.iframeContents.src = '';
     config.iframeContents.style.display = 'none';
 

@@ -50,7 +50,25 @@ func createHomeHandler(router *Router) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", UIPath)))
 		config := router.Config.App
-		err := tmpl.Execute(w, config)
+
+		type TemplateData struct {
+			AppConfig *AppConfig
+			Contents map[string]template.HTML
+		}
+
+		homeContents, err := os.ReadFile(filepath.Join(UIPath, "home.html"))
+		if err != nil {
+			log.Println("Failed to get home contents", err)
+		}
+
+		data := &TemplateData{
+			AppConfig: config,
+			Contents: map[string]template.HTML{
+				"Home": template.HTML(homeContents),
+			},
+		}
+
+		err = tmpl.Execute(w, data)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
