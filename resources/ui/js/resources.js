@@ -174,17 +174,20 @@ export const generateResult = (service, path, method) => {
             }
 
             const resContent = res.response.content;
-            const decodedBytes = atob(resContent);
+            let decodedBytes = ``;
+            if (resContent) {
+                decodedBytes = atob(resContent);
+            }
 
             let resView = ``;
-            if (commons.isResourceEditable(res["response"]["contentType"])) {
+            if (decodedBytes && commons.isResourceEditable(res["response"]["contentType"])) {
                 try {
                     const jsonObject = JSON.parse(decodedBytes);
                     resView = JSON.stringify(jsonObject, null, 2);
                 } catch (error) {
                     resView = decodedBytes;
                 }
-            } else {
+            } else if (decodedBytes) {
                 resView = `<a href="${baseUrl}${res.request.path}" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> View</a>`;
             }
 

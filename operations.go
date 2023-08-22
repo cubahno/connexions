@@ -266,8 +266,13 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 		}
 
 		name := param.Name
-		state := &ReplaceState{NamePath: []string{name}}
-		replaced := valueResolver(param.Schema.Value, state)
+		var schema *Schema
+		if param.Schema != nil {
+			schema = param.Schema.Value
+		}
+
+		state := (&ReplaceState{}).WithName(name).WithURLParam()
+		replaced := valueResolver(schema, state)
 		path = strings.Replace(path, "{"+name+"}", fmt.Sprintf("%v", replaced), -1)
 	}
 
@@ -583,7 +588,12 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 		state := &ReplaceState{NamePath: []string{name}, IsHeader: true}
 		header := headerRef.Value
 		params := header.Parameter
-		value := GenerateContentFromSchema(params.Schema.Value, valueReplacer, state)
+
+		var schema *Schema
+		if params.Schema != nil {
+			schema = params.Schema.Value
+		}
+		value := GenerateContentFromSchema(schema, valueReplacer, state)
 		res.Set(name, fmt.Sprintf("%v", value))
 	}
 	return res

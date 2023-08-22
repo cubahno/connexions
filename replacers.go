@@ -24,6 +24,11 @@ func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
 		// TODO(igor): check how to handle with other content schemas
 		return true
 	}
+
+	if schema == nil {
+		return true
+	}
+
 	return IsCorrectlyReplacedType(value, schema.Type)
 }
 
@@ -215,6 +220,9 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 
 	schema, ok := openAPISchema.(*Schema)
 	if !ok {
+		return res
+	}
+	if schema == nil {
 		return res
 	}
 

@@ -53,7 +53,7 @@ func createHomeHandler(router *Router) http.HandlerFunc {
 
 		type TemplateData struct {
 			AppConfig *AppConfig
-			Contents map[string]template.HTML
+			Contents  map[string]template.HTML
 		}
 
 		homeContents, err := os.ReadFile(filepath.Join(UIPath, "home.html"))
