@@ -201,85 +201,7 @@ func TestNewResponse(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateOperationFromString(t, `
-{
-  "operationId": "createUser",
-  "parameters": [
-    {
-      "name": "userId",
-      "in": "path",
-      "description": "The unique identifier of the user.",
-      "required": true,
-      "schema": {
-        "type": "string"
-      }
-    },
-    {
-      "name": "limit",
-      "in": "query",
-      "required": false,
-      "schema": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 100,
-        "default": 10
-      }
-    },
-    {
-      "name": "lang",
-      "in": "header",
-      "description": "The language preference for the response.",
-      "required": false,
-      "schema": {
-        "type": "string",
-        "enum": [
-          "en",
-          "es",
-          "de"
-        ],
-        "default": "de"
-      }
-    }
-  ],
-  "responses": {
-    "500": {
-      "description": "Internal Server Error"
-    },
-    "200": {
-      "description": "User account successfully created.",
-      "headers": {
-        "Location": {
-          "description": "The URL of the newly created user account.",
-          "schema": {
-            "type": "string",
-            "example": "https://example.com/users/123"
-          }
-        }
-      },
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer",
-                "example": 123
-              },
-              "email": {
-                "type": "string",
-                "example": "jane.doe@example.com"
-              }
-            }
-          }
-        }
-      }
-    },
-    "400": {
-      "description": "Bad request"
-    }
-  }
-}
-		`)
+		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-base.json"))
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
@@ -328,33 +250,7 @@ func TestNewResponse(t *testing.T) {
 
 func TestExtractResponse(t *testing.T) {
 	t.Run("extract-response", func(t *testing.T) {
-		operation := CreateOperationFromString(t, `
-			{
-				"responses": {
-                    "500": {
-                        "description": "Internal Server Error"
-                    },
-					"200": {
-						"description": "OK",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
-									"properties": {
-										"foo": {
-											"type": "string"	
-										}	
-									}
-								}
-							}
-						}
-					},
-                    "400": {
-                        "description": "Bad request"
-                    }
-				}
-			}
-		`)
+		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
 		response, code := ExtractResponse(operation)
 
 		assert.Equal(t, 200, code)
@@ -635,83 +531,7 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		schema := CreateSchemaFromString(t, `
-        {
-            "type": "object",
-            "properties": {
-                "user": {
-                    "type": "object",
-                    "properties": {
-                        "id": {
-                            "type": "integer"
-                        },
-                        "score": {
-                            "type": "number"
-                        }
-                    },
-					"required": ["id"]
-                },
-                "pages": {
-					"type": "array",
-					"items": {
-						"type": "object",
-						"allOf": [
-							{
-								"type": "object",
-								"properties": {
-									"limit": {"type": "integer"},
-									"tag1": {"type": "string"}
-								},
-						        "required": ["limit"]
-							},
-							{
-								"type": "object",
-								"properties": {"tag2": {"type": "string"}}
-							}
-						],
-						"anyOf": [
-							{
-								"type": "object",
-								"properties": {
-									"offset": {"type": "integer"}
-								},
-						        "required": ["offset"]
-							},
-							{
-								"type": "object",
-								"properties": {
-									"query": {"type": "string"}
-								},
-						        "required": ["query"]
-							}
-						],
-						"oneOf": [
-							{
-								"type": "object",
-								"properties": {
-									"first": {"type": "integer"},
-									"second": {"type": "integer"}
-								},
-                                "required": ["first", "second"]
-							},
-							{
-								"type": "object",
-								"properties": {
-									"last": {"type": "integer"}
-								},
-                                "required": ["last"]
-							}
-						],
-						"not": {
-							"type": "object",
-							"properties": {
-								"second": {"type": "integer"}
-                            }
-                        }
-					}
-                }
-            }
-        }`)
+		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-base.json"))
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -745,49 +565,7 @@ func TestGenerateContent(t *testing.T) {
 			return nil
 		}
 
-		schema := CreateSchemaFromString(t, `
-        {
-			"type": "object",
-			"allOf": [
-				{
-					"type": "object",
-					"properties": {
-						"name": {"type": "string"}
-					}
-				},
-				{
-					"type": "object",
-	                "allOf": [
-						{
-							"type": "object",
-							"properties": {"age": {"type": "integer"}}
-						},
-						{
-							"type": "object",
-							"allOf": [
-								{
-									"type": "object",
-									"properties": {"tag": {"type": "string"}}
-								},
-								{
-									"type": "object",
-									"allOf": [
-										{
-											"type": "object",
-											"properties": {"league": {"type": "string"}}
-										}
-									]
-								},
-								{
-									"type": "object",
-									"properties": {"rating": {"type": "integer"}}
-								}
-							]
-						}
-					]
-				}
-			]
-        }`)
+		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-with-nested-all-of.json"))
 		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
 
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
@@ -1240,77 +1018,7 @@ func TestGenerateResponseHeaders(t *testing.T) {
 
 func TestMergeSubSchemas(t *testing.T) {
 	t.Run("MergeSubSchemas", func(t *testing.T) {
-		schema := CreateSchemaFromString(t, `
-        {
-            "type": "object",
-            "properties": {
-                "user": {
-                    "type": "object",
-                    "properties": {
-                        "id": {
-                            "type": "integer"
-                        },
-                        "score": {
-                            "type": "number"
-                        }
-                    },
-					"required": ["id"]
-                }
-            },
-			"allOf": [
-				{
-					"type": "object",
-					"properties": {
-						"limit": {"type": "integer"},
-						"tag1": {"type": "string"}
-					},
-					"required": ["limit"]
-				},
-				{
-					"type": "object",
-					"properties": {"tag2": {"type": "string"}}
-				}
-			],
-			"anyOf": [
-				{
-					"type": "object",
-					"properties": {
-						"offset": {"type": "integer"}
-					},
-					"required": ["offset"]
-				},
-				{
-					"type": "object",
-					"properties": {
-						"query": {"type": "string"}
-					},
-					"required": ["query"]
-				}
-			],
-			"oneOf": [
-				{
-					"type": "object",
-					"properties": {
-						"first": {"type": "integer"},
-						"second": {"type": "integer"}
-					},
-					"required": ["first", "second"]
-				},
-				{
-					"type": "object",
-					"properties": {
-						"last": {"type": "integer"}
-					},
-					"required": ["last"]
-				}
-			],
-			"not": {
-				"type": "object",
-				"properties": {
-					"second": {"type": "integer"}
-				}
-			}
-        }`)
+		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-with-sub-schemas.json"))
 		res := MergeSubSchemas(schema)
 		expectedProperties := []string{"user", "limit", "tag1", "tag2", "offset", "first"}
 
@@ -1323,31 +1031,7 @@ func TestMergeSubSchemas(t *testing.T) {
 	})
 
 	t.Run("without-all-of-and-empty-one-of-schema", func(t *testing.T) {
-		schema := CreateSchemaFromString(t, `
-        {
-            "type": "object",
-			"anyOf": [
-				{}
-			],
-			"oneOf": [
-				{
-					"type": "object",
-					"properties": {
-						"first": {"type": "integer"},
-						"second": {"type": "integer"}
-					},
-					"required": ["first", "second"]
-				},
-				{
-					"type": "object",
-					"properties": {
-						"last": {"type": "integer"}
-					},
-					"required": ["last"]
-				}
-			],
-			"not": {}
-        }`)
+		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-without-all-of.json"))
 		res := MergeSubSchemas(schema)
 		expectedProperties := []string{"first", "second"}
 

@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "anyOf": [
+    {}
+  ],
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "first": {"type": "integer"},
+        "second": {"type": "integer"}
+      },
+      "required": ["first", "second"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "last": {"type": "integer"}
+      },
+      "required": ["last"]
+    }
+  ],
+  "not": {}
+}
