@@ -18,4 +18,4 @@ NEXT_TAG="${PARTS[0]}.${PARTS[1]}.$NEXT_PART"
 # Tag and push the new tag to the origin repository
 echo "Tagging and pushing $NEXT_TAG"
 git tag "$NEXT_TAG"
-git push origin "$NEXT_TAG"
+git push origin master "$NEXT_TAG"
