@@ -48,7 +48,7 @@ type HomeHandler struct {
 
 func createHomeHandler(router *Router) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", UIPath)))
+		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", router.GetUIPath())))
 		config := router.Config.App
 
 		type TemplateData struct {
@@ -56,7 +56,7 @@ func createHomeHandler(router *Router) http.HandlerFunc {
 			Contents  map[string]template.HTML
 		}
 
-		homeContents, err := os.ReadFile(filepath.Join(UIPath, "home.html"))
+		homeContents, err := os.ReadFile(filepath.Join(router.GetUIPath(), "home.html"))
 		if err != nil {
 			log.Println("Failed to get home contents", err)
 		}
@@ -78,20 +78,20 @@ func createHomeHandler(router *Router) http.HandlerFunc {
 
 // fileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
-func fileServer(url string, r chi.Router) {
-	r.Get(url, func(w http.ResponseWriter, r *http.Request) {
+func fileServer(url string, router *Router) {
+	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(UIPath)))
+		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(router.GetUIPath())))
 		fs.ServeHTTP(w, r)
 	})
 }
 
-func docsServer(url string, r chi.Router) {
-	r.Get(url, func(w http.ResponseWriter, r *http.Request) {
+func docsServer(url string, router *Router) {
+	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		fs := http.StripPrefix(
 			strings.TrimSuffix(url, "/*"),
-			http.FileServer(http.Dir(filepath.Join(RootPath, "site"))))
+			http.FileServer(http.Dir(filepath.Join(router.Paths.Base, "site"))))
 		fs.ServeHTTP(w, r)
 	})
 }

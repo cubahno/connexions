@@ -17,15 +17,46 @@ import (
 type App struct {
 	Router     *Router
 	BluePrints []RouteRegister
-	baseDir    string
+	Paths      *Paths
 	mu         sync.Mutex
 }
 
-func NewApp(baseDir string) *App {
-	res := &App{
-		baseDir: baseDir,
+type Paths struct {
+	Base              string
+	Resources         string
+	Contexts          string
+	Docs              string
+	Samples           string
+	Services          string
+	ServicesOpenAPI   string
+	ServicesFixedRoot string
+	ConfigFile        string
+}
+
+func NewPaths(baseDir string) *Paths {
+	resDir := filepath.Join(baseDir, "resources")
+	svcDir := filepath.Join(resDir, "services")
+
+	return &Paths{
+		Base:              baseDir,
+		Resources:         resDir,
+		Contexts:          filepath.Join(resDir, "contexts"),
+		Docs:              filepath.Join(resDir, "docs"),
+		Samples:           filepath.Join(resDir, "samples"),
+		Services:          svcDir,
+		ServicesOpenAPI:   filepath.Join(svcDir, ".openapi"),
+		ServicesFixedRoot: filepath.Join(svcDir, ".root"),
+		ConfigFile:        filepath.Join(resDir, "config.yml"),
 	}
-	log.Printf("Initing Application. ResourcePath is: %v\n", ResourcePath)
+}
+
+func NewApp(baseDir string) *App {
+	paths := NewPaths(baseDir)
+	res := &App{
+		Paths: paths,
+	}
+	resourcePath := paths.Resources
+	log.Printf("Initing Application. ResourcePath is: %v\n", resourcePath)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -36,13 +67,13 @@ func NewApp(baseDir string) *App {
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	err := MustFileStructure()
+	err := MustFileStructure(paths)
 	if err != nil {
 		panic(err)
 	}
-	_ = CleanupFileStructure()
+	_ = CleanupServiceFileStructure(paths.Services)
 
-	config, err := NewConfigFromFile(fmt.Sprintf("%s/config.yml", ResourcePath))
+	config, err := NewConfigFromFile(paths.ConfigFile)
 	if err != nil {
 		log.Printf("Failed to load config file: %s\n", err.Error())
 		config = NewDefaultConfig()
@@ -51,6 +82,7 @@ func NewApp(baseDir string) *App {
 	router := &Router{
 		Mux:    r,
 		Config: config,
+		Paths:  paths,
 	}
 	res.Router = router
 
@@ -76,29 +108,30 @@ func NewApp(baseDir string) *App {
 }
 
 // MustFileStructure creates the necessary directories and files
-func MustFileStructure() error {
-	if _, err := os.Stat(ServicePath); os.IsNotExist(err) {
-		log.Print("Creating service directory and configuration for the first time")
-		if err := os.Mkdir(ServicePath, os.ModePerm); err != nil {
+func MustFileStructure(paths *Paths) error {
+	if _, err := os.Stat(paths.Services); os.IsNotExist(err) {
+		log.Println("Creating service directory and configuration for the first time")
+		if err := os.Mkdir(paths.Services, os.ModePerm); err != nil {
 			return err
 		}
 	} else {
 		return nil
 	}
 
-	log.Print("Copying sample content to service directory")
-	if err := CopyDirectory(SamplesPath, ServicePath); err != nil {
+	log.Println("Copying sample content to service directory")
+	if err := CopyDirectory(paths.Samples, paths.Services); err != nil {
 		return err
 	}
 
-	log.Print("Copying sample config file")
-	srcPath := filepath.Join(ResourcePath, "config.yml.dist")
-	destPath := filepath.Join(ResourcePath, "config.yml")
+	log.Println("Copying sample config file")
+
+	destPath := paths.ConfigFile
+	srcPath := fmt.Sprintf("%s.dist", destPath)
 	if err := CopyFile(srcPath, destPath); err != nil {
 		return err
 	}
 
-	log.Print("Done!")
+	log.Println("Done!")
 	return nil
 }
 

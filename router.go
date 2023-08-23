@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"path/filepath"
 	"sync"
 )
 
@@ -15,6 +16,7 @@ type Router struct {
 	Config       *Config
 	Contexts     map[string]map[string]any
 	ContextNames []map[string]string
+	Paths        *Paths
 	mu           sync.Mutex
 }
 
@@ -47,4 +49,20 @@ func (r *Router) RemoveContext(name string) {
 	defer r.mu.Unlock()
 
 	delete(r.Contexts, name)
+}
+
+func (r *Router) GetResourcesPath() string {
+	return r.Paths.Resources
+}
+
+func (r *Router) GetConfigPath() string {
+	return r.Paths.ConfigFile
+}
+
+func (r *Router) GetContextsPath() string {
+	return r.Paths.Contexts
+}
+
+func (r *Router) GetUIPath() string {
+	return filepath.Join(r.GetResourcesPath(), "ui")
 }

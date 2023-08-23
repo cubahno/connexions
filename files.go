@@ -328,9 +328,9 @@ func CopyDirectory(src, dest string) error {
 	})
 }
 
-func CleanupFileStructure() error {
+func CleanupServiceFileStructure(servicePath string) error {
 	fmt.Println("Cleaning up file structure...")
-	return filepath.WalkDir(ServicePath, func(path string, info os.DirEntry, err error) error {
+	return filepath.WalkDir(servicePath, func(path string, info os.DirEntry, err error) error {
 		// Remove empty directories
 		if !info.IsDir() {
 			return nil

@@ -7,10 +7,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 type SettingsHandler struct {
 	*BaseHandler
+	router *Router
+	mu     sync.Mutex
 }
 
 func CreateSettingsRoutes(router *Router) error {
@@ -18,7 +21,9 @@ func CreateSettingsRoutes(router *Router) error {
 		return nil
 	}
 
-	handler := &SettingsHandler{}
+	handler := &SettingsHandler{
+		router: router,
+	}
 
 	url := router.Config.App.SettingsURL
 	url = "/" + strings.Trim(url, "/")
@@ -33,7 +38,7 @@ func CreateSettingsRoutes(router *Router) error {
 }
 
 func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, fmt.Sprintf("%s/config.yml", ResourcePath))
+	http.ServeFile(w, r, h.router.GetConfigPath())
 }
 
 func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +54,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := fmt.Sprintf("%s/config.yml", ResourcePath)
+	filePath := h.router.GetConfigPath()
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
@@ -68,8 +73,8 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 
 // Restore settings from config.yml.dist
 func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
-	src := fmt.Sprintf("%s/config.yml.dist", ResourcePath)
-	dest := fmt.Sprintf("%s/config.yml", ResourcePath)
+	dest := h.router.GetConfigPath()
+	src := fmt.Sprintf("%s.dist", dest)
 
 	if err := CopyFile(src, dest); err != nil {
 		h.error(http.StatusInternalServerError, "Failed to copy file contents", w)

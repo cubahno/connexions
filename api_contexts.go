@@ -65,7 +65,7 @@ func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.ServeFile(w, r, filepath.Join(ContextPath, fmt.Sprintf("%s.yml", name)))
+	http.ServeFile(w, r, filepath.Join(h.router.GetContextsPath(), fmt.Sprintf("%s.yml", name)))
 }
 
 func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +74,7 @@ func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 		h.error(http.StatusNotFound, "Context not found", w)
 		return
 	}
-	filePath := filepath.Join(ContextPath, fmt.Sprintf("%s.yml", name))
+	filePath := filepath.Join(h.router.GetContextsPath(), fmt.Sprintf("%s.yml", name))
 	if err := os.Remove(filePath); err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
@@ -103,7 +103,7 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := filepath.Join(ContextPath, fmt.Sprintf("%s.yml", name))
+	filePath := filepath.Join(h.router.GetContextsPath(), fmt.Sprintf("%s.yml", name))
 	content := r.FormValue("content")
 
 	// ignore result as we need to reload them all because of the possible cross-references in aliases
