@@ -17,11 +17,14 @@ import (
 type App struct {
 	Router     *Router
 	BluePrints []RouteRegister
+	baseDir    string
 	mu         sync.Mutex
 }
 
-func NewApp() *App {
-	res := &App{}
+func NewApp(baseDir string) *App {
+	res := &App{
+		baseDir: baseDir,
+	}
 	log.Printf("Initing Application. ResourcePath is: %v\n", ResourcePath)
 
 	r := chi.NewRouter()

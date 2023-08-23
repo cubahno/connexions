@@ -2,9 +2,14 @@ package main
 
 import (
 	"github.com/cubahno/connexions"
+	"path/filepath"
+	"runtime"
 )
 
 func main() {
-	app := connexions.NewApp()
+	_, b, _, _         := runtime.Caller(0)
+	baseDir           := filepath.Dir(b)
+
+	app := connexions.NewApp(baseDir)
 	app.Run()
 }
