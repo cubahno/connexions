@@ -50,6 +50,8 @@ type ServiceError struct {
 	// Codes is a map of error codes and their weights if Chance > 0.
 	// If no error codes are specified, it returns a 500 error code.
 	Codes map[int]int `koanf:"codes"`
+
+	mu sync.Mutex
 }
 
 type ServiceValidateConfig struct {
@@ -112,6 +114,13 @@ func (a *AppConfig) IsValidPrefix(prefix string) bool {
 	}, prefix)
 }
 
+func (c *Config) GetApp() *AppConfig {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.App
+}
+
 // GetServiceConfig returns the config for a service.
 // If the service is not found, it returns a default config.
 func (c *Config) GetServiceConfig(service string) *ServiceConfig {
@@ -136,16 +145,17 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 
 // EnsureConfigValues ensures that all config values are set.
 func (c *Config) EnsureConfigValues() {
+	defaultConfig := NewDefaultConfig()
+	app := c.GetApp()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	defaultConfig := NewDefaultConfig()
-	if c.App == nil {
+	if app == nil {
 		c.App = defaultConfig.App
 		return
 	}
 
-	app := c.App
 	if app.Port == 0 {
 		app.Port = defaultConfig.App.Port
 	}
@@ -164,12 +174,30 @@ func (c *Config) EnsureConfigValues() {
 	if app.ContextAreaPrefix == "" {
 		app.ContextAreaPrefix = defaultConfig.App.ContextAreaPrefix
 	}
+
+	c.App = app
+}
+
+// transformConfig applies transformations to the config.
+// Currently, it removes % from the chances.
+func (c *Config) transformConfig(k *koanf.Koanf) *koanf.Koanf {
+	transformed := koanf.New(".")
+	for key, value := range k.All() {
+		if v, isString := value.(string); isString && strings.HasSuffix(v, "%") {
+			value = strings.TrimSuffix(v, "%")
+		}
+		_ = transformed.Set(key, value)
+	}
+	return transformed
 }
 
 // GetError returns an error code based on the chance and error weights.
 // If no error weights are specified, it returns a 500 error code.
 // If the chance is 0, it returns 0.
 func (s *ServiceError) GetError() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	randomNumber := rand.Intn(100) + 1
 	if randomNumber > s.Chance {
 		return 0
@@ -214,13 +242,13 @@ func NewConfigFromFile(filePath string) (*Config, error) {
 	}
 
 	cfg := &Config{}
-	transformed := transformConfig(k)
+	transformed := cfg.transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
 		return nil, err
 	}
 	cfg.EnsureConfigValues()
 
-	createConfigWatcher(provider, cfg)
+	createConfigWatcher(filePath, cfg)
 	return cfg, nil
 }
 
@@ -233,7 +261,7 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 	}
 
 	cfg := &Config{}
-	transformed := transformConfig(k)
+	transformed := cfg.transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
 		return nil, err
 	}
@@ -246,38 +274,31 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 	return cfg, nil
 }
 
-// NewDefaultConfig creates a new default config in case the config file is missing, not found or any other error.
-func NewDefaultConfig() *Config {
-	return &Config{
-		App: &AppConfig{
-			Port:              2200,
-			HomeURL:           "/.ui",
-			ServiceURL:        "/.services",
-			SettingsURL:       "/.settings",
-			ContextURL:        "/.contexts",
-			ServeUI:           true,
-			ServeSpec:         true,
-			ContextAreaPrefix: "in-",
-		},
+func NewDefaultAppConfig() *AppConfig {
+	return &AppConfig{
+		Port:              2200,
+		HomeURL:           "/.ui",
+		ServiceURL:        "/.services",
+		SettingsURL:       "/.settings",
+		ContextURL:        "/.contexts",
+		ServeUI:           true,
+		ServeSpec:         true,
+		ContextAreaPrefix: "in-",
 	}
 }
 
-// transformConfig applies transformations to the config.
-// Currently, it removes % from the chances.
-func transformConfig(k *koanf.Koanf) *koanf.Koanf {
-	transformed := koanf.New(".")
-	for key, value := range k.All() {
-		if v, isString := value.(string); isString && strings.HasSuffix(v, "%") {
-			value = strings.TrimSuffix(v, "%")
-		}
-		_ = transformed.Set(key, value)
+// NewDefaultConfig creates a new default config in case the config file is missing, not found or any other error.
+func NewDefaultConfig() *Config {
+	return &Config{
+		App: NewDefaultAppConfig(),
 	}
-	return transformed
 }
 
 // createConfigWatcher creates a watcher for the config file.
 // It reloads the config on change.
-func createConfigWatcher(f *file.File, cfg *Config) {
+func createConfigWatcher(filePath string, cfg *Config) {
+	f := file.Provider(filePath)
+
 	f.Watch(func(event interface{}, err error) {
 		if err != nil {
 			log.Printf("watch error: %v", err)
@@ -292,15 +313,16 @@ func createConfigWatcher(f *file.File, cfg *Config) {
 			return
 		}
 
-		transformed := transformConfig(k)
+		transformed := cfg.transformConfig(k)
+		cfg.mu.Lock()
 		if err := transformed.Unmarshal("", cfg); err != nil {
+			defer cfg.mu.Unlock()
 			log.Printf("error unmarshalling config: %v\n", err)
 			return
 		}
+		defer cfg.mu.Unlock()
 		k.Print()
 
 		log.Println("Configuration reloaded!")
-		// TODO(igor): replace Sleep
-		time.Sleep(10 * time.Millisecond)
 	})
 }

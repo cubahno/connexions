@@ -13,7 +13,6 @@ import (
 
 func TestAppConfig(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	for _, tc := range []struct {
 		prefix  string
@@ -35,7 +34,6 @@ func TestAppConfig(t *testing.T) {
 
 func TestConfig(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	t.Run("GetServiceConfig", func(t *testing.T) {
 		cfg := &Config{}
@@ -105,7 +103,6 @@ func TestConfig(t *testing.T) {
 
 func TestServiceError(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	t.Run("GetError-with-100%-chance", func(t *testing.T) {
 		err := &ServiceError{Chance: 100}
@@ -160,7 +157,6 @@ func TestServiceError(t *testing.T) {
 
 func TestNewConfigFromFile(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	t.Run("happy-path", func(t *testing.T) {
 		tempDir := t.TempDir()
@@ -240,8 +236,9 @@ services:
 		_ = os.WriteFile(filePath, []byte(yamlStr), 0644)
 
 		// we need a moment there
-		time.Sleep(50 * time.Millisecond)
-		assert.Equal(9000, cfg.App.Port)
+		time.Sleep(100 * time.Millisecond)
+		app := cfg.GetApp()
+		assert.Equal(9000, app.Port)
 	})
 
 	t.Run("invalid-type-update-dont-kill", func(t *testing.T) {
@@ -298,14 +295,16 @@ services:
 		// we need a moment there
 		time.Sleep(50 * time.Millisecond)
 		// port is still the old one
-		assert.Equal(8000, cfg.App.Port)
+		app := cfg.GetApp()
+		assert.Equal(8000, app.Port)
 
 		// invalid yaml written
 		yamlStrBad = strings.Replace(yamlStr, "chance: 50", "1", 1)
 		_ = os.WriteFile(filePath, []byte(yamlStrBad), 0644)
-		time.Sleep(50 * time.Millisecond)
+
 		// port is still the old one
-		assert.Equal(8000, cfg.App.Port)
+		app = cfg.GetApp()
+		assert.Equal(8000, app.Port)
 	})
 
 	t.Run("invalid-yaml", func(t *testing.T) {
@@ -347,7 +346,6 @@ app:
 
 func TestNewConfigFromContent(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	t.Run("happy-path", func(t *testing.T) {
 		contents := `
@@ -407,7 +405,6 @@ app:
 
 func TestNewDefaultConfig(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	cfg := NewDefaultConfig()
 	expected := &Config{

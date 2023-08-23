@@ -33,6 +33,35 @@ func ParseContextFromBytes(content []byte) (*ParsedContextResult, error) {
 	return parseContext(k)
 }
 
+func CollectContexts(names []map[string]string, fileCollections map[string]map[string]any,
+	initial map[string]any) []map[string]any {
+	res := make([]map[string]any, 0)
+
+	if len(initial) > 0 {
+		res = append(res, initial)
+	}
+
+	for _, contextProps := range names {
+		for key, value := range contextProps {
+			if ctx, exists := fileCollections[key]; exists {
+				// name := key
+				// child key passed. there's no need to pass complete context
+				if value != "" {
+					if subCtx, subExists := ctx[value]; subExists {
+						// name = value
+						if subCtxMap, ok := subCtx.(map[string]any); ok {
+							ctx = subCtxMap
+						}
+					}
+				}
+				// log.Printf("context %s added.", name)
+				res = append(res, ctx)
+			}
+		}
+	}
+	return res
+}
+
 func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 	fakes := GetFakes()
 
@@ -77,33 +106,4 @@ func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 		Result:  target,
 		Aliases: aliased,
 	}, nil
-}
-
-func CollectContexts(names []map[string]string, fileCollections map[string]map[string]any,
-	initial map[string]any) []map[string]any {
-	res := make([]map[string]any, 0)
-
-	if len(initial) > 0 {
-		res = append(res, initial)
-	}
-
-	for _, contextProps := range names {
-		for key, value := range contextProps {
-			if ctx, exists := fileCollections[key]; exists {
-				// name := key
-				// child key passed. there's no need to pass complete context
-				if value != "" {
-					if subCtx, subExists := ctx[value]; subExists {
-						// name = value
-						if subCtxMap, ok := subCtx.(map[string]any); ok {
-							ctx = subCtxMap
-						}
-					}
-				}
-				// log.Printf("context %s added.", name)
-				res = append(res, ctx)
-			}
-		}
-	}
-	return res
 }
