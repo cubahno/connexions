@@ -1,8 +1,10 @@
 package main
 
-import "github.com/cubahno/xs"
+import (
+	"github.com/cubahno/connexions"
+)
 
 func main() {
-	app := xs.NewApp()
+	app := connexions.NewApp()
 	app.Run()
 }

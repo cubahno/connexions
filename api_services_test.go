@@ -1,1 +1,1 @@
-package xs
+package connexions

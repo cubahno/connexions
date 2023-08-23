@@ -1,4 +1,4 @@
-module github.com/cubahno/xs
+module github.com/cubahno/connexions
 
 go 1.20
 

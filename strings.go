@@ -1,4 +1,4 @@
-package xs
+package connexions
 
 import (
 	"golang.org/x/text/cases"

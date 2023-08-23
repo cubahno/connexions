@@ -1,4 +1,4 @@
-package xs
+package connexions
 
 import (
 	"github.com/stretchr/testify/assert"

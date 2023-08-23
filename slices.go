@@ -1,4 +1,4 @@
-package xs
+package connexions
 
 import (
 	"math/rand"
