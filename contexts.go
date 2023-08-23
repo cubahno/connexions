@@ -44,7 +44,6 @@ func CollectContexts(names []map[string]string, fileCollections map[string]map[s
 	for _, contextProps := range names {
 		for key, value := range contextProps {
 			if ctx, exists := fileCollections[key]; exists {
-				// name := key
 				// child key passed. there's no need to pass complete context
 				if value != "" {
 					if subCtx, subExists := ctx[value]; subExists {
@@ -54,7 +53,6 @@ func CollectContexts(names []map[string]string, fileCollections map[string]map[s
 						}
 					}
 				}
-				// log.Printf("context %s added.", name)
 				res = append(res, ctx)
 			}
 		}

@@ -72,7 +72,30 @@ func TestParseContexFromBytes(t *testing.T) {
     assert := assert2.New(t)
     t.Parallel()
 
-    assert.True(true)
+    contents := `
+name: Jane
+job: fake:company.job_title
+hallo: func:echo:Welt!
+`
+    res, err := ParseContextFromBytes([]byte(contents))
+    assert.Nil(err)
+
+    results := res.Result
+    aliases := res.Aliases
+
+    assert.Equal(map[string]string{}, aliases)
+
+    assert.Equal("Jane", results["name"])
+
+    jobFn, ok := results["job"].(FakeFunc)
+    assert.True(ok)
+    job := jobFn().Get().(string)
+    assert.Greater(len(job), 0)
+
+    echoFn, ok := results["hallo"].(FakeFunc)
+    assert.True(ok)
+    echo := echoFn().Get().(string)
+    assert.Equal("Welt!", echo)
 }
 
 func TestCollectContexts(t *testing.T) {
