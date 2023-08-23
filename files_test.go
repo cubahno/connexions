@@ -236,7 +236,6 @@ func TestComposeFileSavePath(t *testing.T) {
 }
 
 func TestExtractZip(t *testing.T) {
-	// Create a temporary directory for testing
 	tempDir := t.TempDir()
 
 	getFilePaths := func(baseDir string) []string {

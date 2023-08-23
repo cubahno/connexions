@@ -1,7 +1,6 @@
 package xs
 
 import (
-	"fmt"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
@@ -9,77 +8,179 @@ import (
 	"log"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Config struct {
-	App      *AppConfig                `koanf:"app"`
+	// App is the app config.
+	App *AppConfig `koanf:"app"`
+
+	// Services is a map of service name and the corresponding config.
+	// ServiceName is the first part of the path.
+	// e.g. /petstore/v1/pets -> petstore
+	// in case, there's no service name, the name ".root" will be used.
 	Services map[string]*ServiceConfig `koanf:"services"`
+	mu       sync.Mutex
 }
 
 type ServiceConfig struct {
-	Latency  time.Duration          `koanf:"latency"`
-	Errors   *ServiceError          `koanf:"errors"`
-	Contexts []map[string]string    `koanf:"contexts"`
+	// Latency is the latency to add to the response.
+	// Latency not used in the services API, only when endpoint queried directly.
+	Latency time.Duration `koanf:"latency"`
+
+	// Errors is the error config.
+	Errors *ServiceError `koanf:"errors"`
+
+	// Contexts is the list of contexts to use for replacements.
+	// It is a map of context name defined either in the UI or filename without extension.
+	// You can refer to the name when building aliases.
+	Contexts []map[string]string `koanf:"contexts"`
+
+	// Validate is the validation config.
+	// It is used to validate the request and/or response outside of the Services API.
 	Validate *ServiceValidateConfig `koanf:"validate"`
 }
 
 type ServiceError struct {
-	Chance int         `koanf:"chance"`
-	Codes  map[int]int `koanf:"codes"`
+	// Chance is the chance to return an error.
+	// In the config, it can be set with %-suffix.
+	Chance int `koanf:"chance"`
+
+	// Codes is a map of error codes and their weights if Chance > 0.
+	// If no error codes are specified, it returns a 500 error code.
+	Codes map[int]int `koanf:"codes"`
 }
 
 type ServiceValidateConfig struct {
-	Request  bool `koanf:"request"`
+	// Request is a flag whether to validate the request.
+	// Default: true
+	Request bool `koanf:"request"`
+
+	// Response is a flag whether to validate the response.
+	// Default: false
 	Response bool `koanf:"response"`
 }
 
 const (
+	// RootServiceName is the name and location in the service directory of the service without a name.
 	RootServiceName = ".root"
+
+	// RootOpenAPIName is the name and location of the OpenAPI service without a name.
 	RootOpenAPIName = ".openapi"
 )
 
+// AppConfig is the app configuration.
 type AppConfig struct {
-	Port              int    `json:"port" koanf:"port"`
-	HomeURL           string `json:"homeUrl" koanf:"homeUrl"`
-	ServiceURL        string `json:"serviceUrl" koanf:"serviceUrl"`
-	SettingsURL       string `json:"settingsUrl" koanf:"settingsUrl"`
-	ContextURL        string `json:"contextUrl" koanf:"contextUrl"`
+	// Port is the port number to listen on.
+	Port int `json:"port" koanf:"port"`
+
+	// HomeURL is the URL for the UI home page.
+	HomeURL string `json:"homeUrl" koanf:"homeUrl"`
+
+	// ServiceURL is the URL for the service and resources endpoints in the UI.
+	ServiceURL string `json:"serviceUrl" koanf:"serviceUrl"`
+
+	// SettingsURL is the URL for the settings endpoint in the UI.
+	SettingsURL string `json:"settingsUrl" koanf:"settingsUrl"`
+
+	// ContextURL is the URL for the context endpoint in the UI.
+	ContextURL string `json:"contextUrl" koanf:"contextUrl"`
+
+	// ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place.
+	// for example:
+	// in-path:
+	//   user_id: "fake.ids.int8"
 	ContextAreaPrefix string `json:"contextAreaPrefix" koanf:"contextAreaPrefix"`
-	ServeUI           bool   `json:"serveUI" koanf:"serveUI"`
-	ServeSpec         bool   `json:"serveSpec" koanf:"serveSpec"`
+
+	// ServeUI is a flag whether to serve the UI.
+	// Disable it if not needed.
+	// The URL settings from above won't have any effect.
+	ServeUI bool `json:"serveUI" koanf:"serveUI"`
+
+	// ServeSpec is a flag whether or not to serve the OpenAPI spec.
+	ServeSpec bool `json:"serveSpec" koanf:"serveSpec"`
 }
 
+// IsValidPrefix returns true if the prefix is not a reserved URL.
 func (a *AppConfig) IsValidPrefix(prefix string) bool {
-	if prefix == a.HomeURL || prefix == a.ServiceURL || prefix == a.SettingsURL {
-		return false
-	}
-	return true
+	return !SliceContains([]string{
+		a.HomeURL,
+		a.ServiceURL,
+		a.SettingsURL,
+		a.ContextURL,
+	}, prefix)
 }
 
+// GetServiceConfig returns the config for a service.
+// If the service is not found, it returns a default config.
 func (c *Config) GetServiceConfig(service string) *ServiceConfig {
-	if res, ok := c.Services[service]; ok {
-		return res
+	res, ok := c.Services[service]
+	if !ok {
+		res = &ServiceConfig{}
 	}
-	return &ServiceConfig{
-		Errors: &ServiceError{},
-		Validate: &ServiceValidateConfig{
+
+	if res.Errors == nil {
+		res.Errors = &ServiceError{}
+	}
+
+	if res.Validate == nil {
+		res.Validate = &ServiceValidateConfig{
 			Request:  true,
 			Response: false,
-		},
+		}
+	}
+
+	return res
+}
+
+// EnsureConfigValues ensures that all config values are set.
+func (c *Config) EnsureConfigValues() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	defaultConfig := NewDefaultConfig()
+	if c.App == nil {
+		c.App = defaultConfig.App
+		return
+	}
+
+	app := c.App
+	if app.Port == 0 {
+		app.Port = defaultConfig.App.Port
+	}
+	if app.HomeURL == "" {
+		app.HomeURL = defaultConfig.App.HomeURL
+	}
+	if app.ServiceURL == "" {
+		app.ServiceURL = defaultConfig.App.ServiceURL
+	}
+	if app.SettingsURL == "" {
+		app.SettingsURL = defaultConfig.App.SettingsURL
+	}
+	if app.ContextURL == "" {
+		app.ContextURL = defaultConfig.App.ContextURL
+	}
+	if app.ContextAreaPrefix == "" {
+		app.ContextAreaPrefix = defaultConfig.App.ContextAreaPrefix
 	}
 }
 
+// GetError returns an error code based on the chance and error weights.
+// If no error weights are specified, it returns a 500 error code.
+// If the chance is 0, it returns 0.
 func (s *ServiceError) GetError() int {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
 	randomNumber := rand.Intn(100) + 1
 	if randomNumber > s.Chance {
 		return 0
 	}
 
-	fmt.Printf("Got lucky to throw an error with the %d%% chance\n", s.Chance)
-
+	defaultErrorCode := 500
 	errorWeights := s.Codes
+	// If no error weights are specified, return a 500 error code
+	if errorWeights == nil {
+		return defaultErrorCode
+	}
 
 	// Calculate the total weight
 	totalWeight := 0
@@ -88,54 +189,42 @@ func (s *ServiceError) GetError() int {
 	}
 
 	// Generate a random number between 1 and totalWeight
-	randomNumber = rand.Intn(totalWeight) + 1
+	if totalWeight > 0 {
+		randomNumber = rand.Intn(totalWeight) + 1
+	}
 
 	// Select an error code based on the random number and weights
 	for code, weight := range errorWeights {
 		randomNumber -= weight
 		if randomNumber <= 0 {
-			log.Printf("Selected Error Code: %d\n", code)
 			return code
 		}
 	}
 
-	log.Println("Failed to select Error Code")
-	return 0
+	return defaultErrorCode
 }
 
-// NewConfigFromFile creates a new config from a file path.
+// NewConfigFromFile creates a new config from a YAML file path.
 // It also creates a watcher for the file and reloads the config on change.
-func NewConfigFromFile() (*Config, error) {
+func NewConfigFromFile(filePath string) (*Config, error) {
 	k := koanf.New(".")
-	filePath := fmt.Sprintf("%s/config.yml", ResourcePath)
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
 		return nil, err
 	}
 
 	cfg := &Config{}
-	transformed := TransformConfig(k)
+	transformed := transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
 		return nil, err
 	}
+	cfg.EnsureConfigValues()
 
 	createConfigWatcher(provider, cfg)
 	return cfg, nil
 }
 
-// TransformConfig applies transformations to the config.
-// Currently, it removes % from the chances.
-func TransformConfig(k *koanf.Koanf) *koanf.Koanf {
-	transformed := koanf.New(".")
-	for key, value := range k.All() {
-		if v, isString := value.(string); isString && strings.HasSuffix(v, "%") {
-			value = strings.TrimSuffix(v, "%")
-		}
-		_ = transformed.Set(key, value)
-	}
-	return transformed
-}
-
+// NewConfigFromContent creates a new config from a YAML file content.
 func NewConfigFromContent(content []byte) (*Config, error) {
 	k := koanf.New(".")
 	provider := rawbytes.Provider(content)
@@ -144,14 +233,20 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 	}
 
 	cfg := &Config{}
-	transformed := TransformConfig(k)
+	transformed := transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
 		return nil, err
 	}
 
+	if cfg.App == nil {
+		return nil, ErrInvalidConfig
+	}
+	cfg.EnsureConfigValues()
+
 	return cfg, nil
 }
 
+// NewDefaultConfig creates a new default config in case the config file is missing, not found or any other error.
 func NewDefaultConfig() *Config {
 	return &Config{
 		App: &AppConfig{
@@ -162,11 +257,26 @@ func NewDefaultConfig() *Config {
 			ContextURL:        "/.contexts",
 			ServeUI:           true,
 			ServeSpec:         true,
-			ContextAreaPrefix: "-in-",
+			ContextAreaPrefix: "in-",
 		},
 	}
 }
 
+// transformConfig applies transformations to the config.
+// Currently, it removes % from the chances.
+func transformConfig(k *koanf.Koanf) *koanf.Koanf {
+	transformed := koanf.New(".")
+	for key, value := range k.All() {
+		if v, isString := value.(string); isString && strings.HasSuffix(v, "%") {
+			value = strings.TrimSuffix(v, "%")
+		}
+		_ = transformed.Set(key, value)
+	}
+	return transformed
+}
+
+// createConfigWatcher creates a watcher for the config file.
+// It reloads the config on change.
 func createConfigWatcher(f *file.File, cfg *Config) {
 	f.Watch(func(event interface{}, err error) {
 		if err != nil {
@@ -182,7 +292,7 @@ func createConfigWatcher(f *file.File, cfg *Config) {
 			return
 		}
 
-		transformed := TransformConfig(k)
+		transformed := transformConfig(k)
 		if err := transformed.Unmarshal("", cfg); err != nil {
 			log.Printf("error unmarshalling config: %v\n", err)
 			return
@@ -191,6 +301,6 @@ func createConfigWatcher(f *file.File, cfg *Config) {
 
 		log.Println("Configuration reloaded!")
 		// TODO(igor): replace Sleep
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Millisecond)
 	})
 }

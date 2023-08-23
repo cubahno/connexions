@@ -39,7 +39,7 @@ func NewApp() *App {
 	}
 	_ = CleanupFileStructure()
 
-	config, err := NewConfigFromFile()
+	config, err := NewConfigFromFile(fmt.Sprintf("%s/config.yml", ResourcePath))
 	if err != nil {
 		log.Printf("Failed to load config file: %s\n", err.Error())
 		config = NewDefaultConfig()

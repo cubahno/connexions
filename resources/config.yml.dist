@@ -10,9 +10,9 @@ app:
   serveSpec: true
   # set sub-contexts for replacements in path, header or any other supported place
   # for example:
-  # -in-path:
+  # in-path:
   #   pet_id: 123
-  contextAreaPrefix: -in-
+  contextAreaPrefix: in-
 
 services:
   # service name is the first part of the path.
