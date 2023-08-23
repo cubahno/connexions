@@ -100,6 +100,7 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	// base cases below:
 	case FakeFunc:
 		return valueType().Get()
+
 	case string, int, bool, float64:
 		return valueType
 	case []string:

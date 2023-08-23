@@ -64,35 +64,36 @@ func CollectContexts(names []map[string]string, fileCollections map[string]map[s
 
 func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 	fakes := GetFakes()
+	oneArgFuncs := GetFakeFuncFactoryWithString()
 
 	transformed := koanf.New(".")
 	aliased := make(map[string]string)
 	for key, value := range k.All() {
-		if v, isString := value.(string); isString {
-			if strings.HasPrefix(v, "fake:") {
-				funcName := v[5:]
-				// function name can be explicitly set or inferred from key
-				if funcName == "" {
-					funcName = key
-				}
-				if fn, exists := fakes[funcName]; exists {
-					value = fn
-				}
-			} else if strings.HasPrefix(v, "func:") {
+		v, isString := value.(string)
+		if !isString {
+			_ = transformed.Set(key, value)
+			continue
+		}
 
-				// } else if strings.HasPrefix(v, "env:") {
-				// 	envName := v[4:]
-				// 	if envValue := GetEnv(envName); envValue != "" {
-				// 		value = envValue
-				// 	}
-			} else if strings.HasPrefix(v, "alias:") {
-				alias := v[6:]
-				aliased[key] = alias
-			} else if strings.HasPrefix(v, "botify:") {
+		parts := strings.Split(v, ":")
+		prefix := strings.ToLower(parts[0])
+		var res any
+		var parsed bool
 
-			} else if strings.HasPrefix(v, "from-path:") {
+		switch prefix {
+		case "fake":
+			res, parsed = parseFakeContextFunc(key, parts, fakes)
+		case "func":
+			res, parsed = parseOneArgContextFunc(parts, oneArgFuncs)
+		case "alias":
+			alias := v[6:]
+			aliased[key] = alias
+		case "botify":
+			res, parsed = parseBotifyContextFunc(parts, oneArgFuncs)
+		}
 
-			}
+		if parsed {
+			value = res
 		}
 		_ = transformed.Set(key, value)
 	}
@@ -106,4 +107,49 @@ func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 		Result:  target,
 		Aliases: aliased,
 	}, nil
+}
+
+func parseFakeContextFunc(key string, valueParts []string, available map[string]FakeFunc) (FakeFunc, bool) {
+	if len(valueParts) < 2 {
+		return nil, false
+	}
+	value := valueParts[1]
+
+	// function name can be explicitly set or inferred from key
+	if value == "" {
+		value = key
+	}
+	if fn, exists := available[value]; exists {
+		return fn, true
+	}
+	return nil, false
+}
+
+func parseOneArgContextFunc(valueParts []string, available map[string]FakeFuncFactoryWithString) (FakeFunc, bool) {
+	if len(valueParts) < 3 {
+		return nil, false
+	}
+
+	funcName := valueParts[1]
+	if fn, exists := available[funcName]; exists {
+		arg1 := valueParts[2]
+		// call the factory function with the argument
+		return fn(arg1), true
+	}
+	return nil, false
+}
+
+func parseBotifyContextFunc(valueParts []string, available map[string]FakeFuncFactoryWithString) (FakeFunc, bool) {
+	if len(valueParts) < 2 {
+		return nil, false
+	}
+	pattern := valueParts[1]
+
+	if pattern == "" {
+		return nil, false
+	}
+	if fn, exists := available["botify"]; exists {
+		return fn(pattern), true
+	}
+	return nil, false
 }

@@ -94,9 +94,14 @@ func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
 	fake := faker.New()
 
 	return map[string]FakeFuncFactoryWithString{
-		"Botify": func(pattern string) FakeFunc {
+		"botify": func(pattern string) FakeFunc {
 			return func() MixedValue {
 				return StringValue(fake.Bothify(pattern))
+			}
+		},
+		"echo": func(pattern string) FakeFunc {
+			return func() MixedValue {
+				return StringValue(pattern)
 			}
 		},
 	}
