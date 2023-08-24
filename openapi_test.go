@@ -1,23 +1,23 @@
 package connexions
 
 import (
-    "github.com/stretchr/testify/assert"
-    "path/filepath"
-    "testing"
+	"github.com/stretchr/testify/assert"
+	"path/filepath"
+	"testing"
 )
 
 func TestOperation(t *testing.T) {
-    t.Run("GetResponse", func(t *testing.T) {
-        operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
-        response, code := operation.GetResponse()
+	t.Run("GetResponse", func(t *testing.T) {
+		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
+		response, code := operation.GetResponse()
 
-        assert.Equal(t, 200, code)
-        assert.Equal(t, "OK", *response.Description)
-        assert.NotNil(t, response.Content["application/json"])
-    })
+		assert.Equal(t, 200, code)
+		assert.Equal(t, "OK", *response.Description)
+		assert.NotNil(t, response.Content["application/json"])
+	})
 
-    t.Run("get-first-defined", func(t *testing.T) {
-        operation := CreateOperationFromString(t, `
+	t.Run("get-first-defined", func(t *testing.T) {
+		operation := CreateOperationFromString(t, `
 			{
 				"responses": {
                     "500": {
@@ -29,14 +29,14 @@ func TestOperation(t *testing.T) {
 				}
 			}
 		`)
-        response, code := operation.GetResponse()
+		response, code := operation.GetResponse()
 
-        assert.Contains(t, []int{500, 400}, code)
-        assert.Contains(t, []string{"Internal Server Error", "Bad request"}, *response.Description)
-    })
+		assert.Contains(t, []int{500, 400}, code)
+		assert.Contains(t, []string{"Internal Server Error", "Bad request"}, *response.Description)
+	})
 
-    t.Run("get-default-if-nothing-else", func(t *testing.T) {
-        operation := CreateOperationFromString(t, `
+	t.Run("get-default-if-nothing-else", func(t *testing.T) {
+		operation := CreateOperationFromString(t, `
 			{
 				"responses": {
                     "default": {
@@ -45,10 +45,9 @@ func TestOperation(t *testing.T) {
 				}
 			}
 		`)
-        response, code := operation.GetResponse()
+		response, code := operation.GetResponse()
 
-        assert.Equal(t, 200, code)
-        assert.Equal(t, "unexpected error", *response.Description)
-    })
+		assert.Equal(t, 200, code)
+		assert.Equal(t, "unexpected error", *response.Description)
+	})
 }
-

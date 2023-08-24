@@ -219,7 +219,7 @@ func TransformHTTPCode(httpCode string) int {
 	return codeInt
 }
 
-func GetContentType(content OpenAPIContent) (string, *Schema) {
+func GetContentType(content map[string]*MediaType) (string, *Schema) {
 	if content == nil {
 		return "", nil
 	}
@@ -489,7 +489,7 @@ func GenerateRequestBody(schema *RequestBody, valueResolver ValueReplacer, state
 		state = &ReplaceState{}
 	}
 
-	if schema == nil {
+	if schema == nil || schema.RequestBody == nil {
 		return nil, ""
 	}
 

@@ -711,9 +711,7 @@ func TestGenerateRequestBody(t *testing.T) {
 				}
 			}
 	    }`)
-		reqBody := &RequestBody{
-			Content: NewContentWithJSONSchema(schema),
-		}
+		reqBody := NewRequestBodyFromContent(NewContentWithJSONSchema(schema))
 		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
 
 		assert.Equal(t, "application/json", contentType)
@@ -739,13 +737,11 @@ func TestGenerateRequestBody(t *testing.T) {
 				}
 			}
 	    }`)
-		reqBody := &RequestBody{
-			Content: map[string]*MediaType{
-				"application/xml": {
-					Schema: &SchemaRef{Value: schema},
-				},
+		reqBody := NewRequestBodyFromContent(map[string]*MediaType{
+			"application/xml": {
+				Schema: &SchemaRef{Value: schema},
 			},
-		}
+		})
 		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
 
 		assert.Equal(t, "application/xml", contentType)
@@ -768,7 +764,7 @@ func TestGenerateRequestBody(t *testing.T) {
 	})
 
 	t.Run("case-empty-content-types", func(t *testing.T) {
-		reqBody := &RequestBody{Content: nil}
+		reqBody := NewRequestBodyFromContent(nil)
 		payload, contentType := GenerateRequestBody(reqBody, nil, nil)
 
 		assert.Equal(t, "", contentType)
@@ -808,7 +804,7 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			"x-key":       "abcdef",
 			"version":     "1.0.0",
 			"preferences": map[string]any{"mode": "dark", "lang": "de"},
-			"id": nil,
+			"id":          nil,
 		}
 
 		res := GenerateRequestHeaders(params, valueResolver)
