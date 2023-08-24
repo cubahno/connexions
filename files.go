@@ -172,7 +172,7 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 			Extension:            ext,
 			ContentType:          contentType,
 			Spec:                 doc,
-			ValueReplacerFactory: CreateValueReplacerFactory(),
+			ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
 		}, nil
 	}
 
@@ -231,7 +231,7 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 		FileName:             fileName,
 		Extension:            ext,
 		ContentType:          contentType,
-		ValueReplacerFactory: CreateValueReplacerFactory(),
+		ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
 	}, nil
 }
 

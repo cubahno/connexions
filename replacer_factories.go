@@ -22,19 +22,19 @@ type Resource struct {
 	ContextData       []map[string]any
 }
 
-func CreateValueReplacerFactory() ValueReplacerFactory {
-	fake := faker.New()
+var Replacers = []Replacer{
+	ReplaceInHeaders,
+	ReplaceInPath,
+	ReplaceFromContext,
+	ReplaceFromSchemaFormat,
+	ReplaceFromSchemaPrimitive,
+	ReplaceFromSchemaExample,
+	ReplaceFallback,
+}
 
-	fns := []Replacer{
-		ReplaceInHeaders,
-		ReplaceInPath,
-		ReplaceFromContext,
-		ReplaceFromSchemaFormat,
-		ReplaceFromSchemaPrimitive,
-		ReplaceFromSchemaExample,
-		ReplaceFallback,
-	}
+var fake = faker.New()
 
+func CreateValueReplacerFactory(fns []Replacer) ValueReplacerFactory {
 	return func(resource *Resource) ValueReplacer {
 		if resource == nil {
 			resource = &Resource{}
