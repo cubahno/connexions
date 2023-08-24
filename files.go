@@ -20,19 +20,45 @@ import (
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
 type FileProperties struct {
+	// ServiceName is the name of the service that the file belongs to.
+	// It represents the first directory in the file path.
 	ServiceName          string
+
+	// IsOpenAPI indicates whether the file is an OpenAPI specification.
 	IsOpenAPI            bool
+
+	// Method is the HTTP method of the resource, which this file describes.
 	Method               string
+
+	// Prefix is the path prefix of the resource, which this file describes.
+	// This is service name with a leading slash.
 	Prefix               string
+
+	// Resource is the path of the resource, which this file describes without prefix.
 	Resource             string
+
+	// FilePath is the full path to the file.
 	FilePath             string
+
+	// FileName is the name of the file with the extension.
 	FileName             string
+
+	// Extension is the extension of the file, with the leading dot.
 	Extension            string
+
+	// ContentType is the MIME type of the file.
 	ContentType          string
+
+	// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
 	Spec                 *Document            `json:"-"`
+
+	// ValueReplacerFactory is the factory for creating value replacers in the file or resources.
+	// Non-OpenAPI files have to have values wrapped in curly braces to be replaced.
 	ValueReplacerFactory ValueReplacerFactory `json:"-"`
 }
 
+// IsEqual compares two FileProperties structs.
+// Spec and ValueReplacerFactory are not compared.
 func (f *FileProperties) IsEqual(other *FileProperties) bool {
 	return f.ServiceName == other.ServiceName &&
 		f.IsOpenAPI == other.IsOpenAPI &&
@@ -45,16 +71,25 @@ func (f *FileProperties) IsEqual(other *FileProperties) bool {
 		f.ContentType == other.ContentType
 }
 
+// UploadedFile represents an uploaded file.
 type UploadedFile struct {
+	// Content is the content of the file.
 	Content   []byte
+
+	// Filename is the name of the file.
 	Filename  string
+
+	// Extension is the extension of the file with the leading dot.
 	Extension string
+
+	// Size is the size of the file in bytes.
 	Size      int64
 }
 
-func GetRequestFile(r *http.Request, name string) (*UploadedFile, error) {
+// GetRequestFile gets an uploaded file from a request.
+func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 	// Get the uploaded file
-	file, handler, _ := r.FormFile(name)
+	file, handler, _ := r.FormFile(fieldName)
 	if file != nil {
 		defer file.Close()
 	} else {
@@ -91,6 +126,7 @@ func GetRequestFile(r *http.Request, name string) (*UploadedFile, error) {
 	}, nil
 }
 
+// GetPropertiesFromFilePath gets properties of a file from its path.
 func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
@@ -199,6 +235,7 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 	}, nil
 }
 
+// ComposeFileSavePath composes a save path for a file.
 func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
 	if isOpenAPI {
 		return ComposeOpenAPISavePath(service, resource, ext)
@@ -241,6 +278,7 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 	return res
 }
 
+// ComposeOpenAPISavePath composes a save path for an OpenAPI specification.
 func ComposeOpenAPISavePath(service, resource, ext string) string {
 	resource = strings.Trim(resource, "/")
 	parts := strings.Split(resource, "/")
@@ -267,6 +305,8 @@ func ComposeOpenAPISavePath(service, resource, ext string) string {
 	return res
 }
 
+// SaveFile saves a file to the specified path.
+// If the destination directory doesn't exist, it will be created.
 func SaveFile(filePath string, data []byte) error {
 	dirPath := filepath.Dir(filePath)
 	// Create directories recursively
@@ -287,12 +327,20 @@ func SaveFile(filePath string, data []byte) error {
 	return nil
 }
 
+// CopyFile copies a file from srcPath to destPath.
+// If the destination directory doesn't exist, it will be created.
 func CopyFile(srcPath, destPath string) error {
 	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		return err
 	}
 	defer srcFile.Close()
+
+	// Ensure the destination directory exists
+	destDir := filepath.Dir(destPath)
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return err
+	}
 
 	destFile, err := os.Create(destPath)
 	if err != nil {
@@ -308,6 +356,7 @@ func CopyFile(srcPath, destPath string) error {
 	return nil
 }
 
+// CopyDirectory copies a directory recursively.
 func CopyDirectory(src, dest string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -328,10 +377,10 @@ func CopyDirectory(src, dest string) error {
 	})
 }
 
+// CleanupServiceFileStructure removes empty directories from the service directory.
 func CleanupServiceFileStructure(servicePath string) error {
-	fmt.Println("Cleaning up file structure...")
+	log.Printf("Cleaning up service file structure %s...\n", servicePath)
 	return filepath.WalkDir(servicePath, func(path string, info os.DirEntry, err error) error {
-		// Remove empty directories
 		if !info.IsDir() {
 			return nil
 		}
@@ -353,6 +402,7 @@ func CleanupServiceFileStructure(servicePath string) error {
 	})
 }
 
+// IsEmptyDir checks if a directory is empty.
 func IsEmptyDir(path string) (bool, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -361,23 +411,21 @@ func IsEmptyDir(path string) (bool, error) {
 	return len(entries) == 0, nil
 }
 
+// IsJsonType checks if the content is a valid JSON document.
 func IsJsonType(content []byte) bool {
 	var jsonData map[string]interface{}
-	if err := json.Unmarshal(content, &jsonData); err == nil {
-		return true
-	}
-	return false
+	return json.Unmarshal(content, &jsonData) == nil
 }
 
+// IsYamlType checks if the content is a valid YAML document.
 func IsYamlType(content []byte) bool {
 	var yamlData map[string]interface{}
-	if err := yaml.Unmarshal(content, &yamlData); err == nil {
-		fmt.Println("Content is YAML")
-		return true
-	}
-	return false
+	err := yaml.Unmarshal(content, &yamlData)
+	return err == nil
 }
 
+// ExtractZip extracts a zip archive to a target directory.
+// onlyPrefixes is a list of prefixes that are allowed to be extracted.
 func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) error {
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(zipReader.File))

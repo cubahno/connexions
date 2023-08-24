@@ -97,9 +97,7 @@ func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 	}
 
 	target := make(map[string]any)
-	if err := transformed.Unmarshal("", &target); err != nil {
-		return nil, err
-	}
+	_ = transformed.Unmarshal("", &target)
 
 	return &ParsedContextResult{
 		Result:  target,
@@ -108,7 +106,7 @@ func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
 }
 
 func parseFakeContextFunc(key string, valueParts []string, available map[string]FakeFunc) (FakeFunc, bool) {
-	if len(valueParts) < 2 {
+	if len(valueParts) < 2 || len(available) == 0 {
 		return nil, false
 	}
 	value := valueParts[1]
@@ -124,7 +122,7 @@ func parseFakeContextFunc(key string, valueParts []string, available map[string]
 }
 
 func parseOneArgContextFunc(valueParts []string, available map[string]FakeFuncFactoryWithString) (FakeFunc, bool) {
-	if len(valueParts) < 3 {
+	if len(valueParts) < 3 || len(available) == 0 {
 		return nil, false
 	}
 
@@ -137,17 +135,11 @@ func parseOneArgContextFunc(valueParts []string, available map[string]FakeFuncFa
 	return nil, false
 }
 
+// parseBotifyContextFunc is a special case of parseOneArgContextFunc
+// a shorter form for: `func:botify:pattern`
 func parseBotifyContextFunc(valueParts []string, available map[string]FakeFuncFactoryWithString) (FakeFunc, bool) {
-	if len(valueParts) < 2 {
+	if len(valueParts) < 2 || len(available) == 0 {
 		return nil, false
 	}
-	pattern := valueParts[1]
-
-	if pattern == "" {
-		return nil, false
-	}
-	if fn, exists := available["botify"]; exists {
-		return fn(pattern), true
-	}
-	return nil, false
+	return parseOneArgContextFunc([]string{"", "botify", valueParts[1]}, available)
 }

@@ -203,8 +203,8 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	only := []string{
-		path.Base(ServicePath),
-		path.Base(ContextPath),
+		path.Base(h.router.Paths.Services),
+		path.Base(h.router.Paths.Contexts),
 	}
 
 	err = ExtractZip(zipReader, ResourcePath, only)

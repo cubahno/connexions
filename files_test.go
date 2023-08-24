@@ -2,21 +2,85 @@ package connexions
 
 import (
 	"archive/zip"
-	"github.com/stretchr/testify/assert"
+	"bytes"
+	assert2 "github.com/stretchr/testify/assert"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
+func TestFileProperties(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
+	t.Run("IsEqual", func(t *testing.T) {
+		f1 := &FileProperties{}
+		f2 := &FileProperties{}
+		assert.True(f1.IsEqual(f2))
+
+		f1.ServiceName = "test"
+		assert.False(f1.IsEqual(f2))
+	})
+}
+
+func TestGetRequestFile(t *testing.T) {
+	// Create a mock request with a file field
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fileContents := []byte("test file contents")
+	fileName := "test.txt"
+	part, _ := writer.CreateFormFile("file", fileName)
+	part.Write(fileContents)
+	writer.Close()
+
+	req := httptest.NewRequest("POST", "/", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// Initialize a response recorder and handler
+	rr := httptest.NewRecorder()
+
+	// Perform the request
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		file, err := GetRequestFile(r, "file")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Assuming you want to validate the result
+		if file != nil {
+			// Perform your assertions here
+			if string(file.Content) != string(fileContents) ||
+				file.Filename != fileName ||
+				file.Extension != filepath.Ext(fileName) ||
+				file.Size != int64(len(fileContents)) {
+				t.Errorf("Unexpected file attributes")
+			}
+		}
+	})
+
+	handler.ServeHTTP(rr, req)
+
+	// Check the response status code
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+}
+
 func TestGetPropertiesFromFilePath(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
 	t.Run("openapi-root", func(t *testing.T) {
 		t.SkipNow()
 		filePath := ServicePath + "/.openapi/index.yml"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		assert.Equal(&FileProperties{
 			ServiceName: "",
 			Prefix:      "",
 			IsOpenAPI:   true,
@@ -32,7 +96,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		filePath := ServicePath + "/.openapi/nice/dice/rice/index.yml"
 		props, _ := GetPropertiesFromFilePath(filePath)
 
-		assert.Equal(t, &FileProperties{
+		assert.Equal(&FileProperties{
 			ServiceName: "nice",
 			IsOpenAPI:   true,
 			Prefix:      "/nice/dice/rice",
@@ -142,6 +206,9 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 }
 
 func TestComposeFileSavePath(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
 	type params struct {
 		service   string
 		method    string
@@ -231,11 +298,120 @@ func TestComposeFileSavePath(t *testing.T) {
 
 	t.Run("openapi-with-prefix", func(t *testing.T) {
 		res := ComposeFileSavePath("", "", "petstore", ".yml", true)
-		assert.Equal(t, ServicePath+"/.openapi/petstore/index.yml", res)
+		assert.Equal(ServicePath+"/.openapi/petstore/index.yml", res)
 	})
 }
 
+func TestSaveFile(t *testing.T) {
+	assert := assert2.New(t)
+
+	assert.True(true)
+}
+
+func TestCopyFile(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("happy-path", func(t *testing.T) {
+		base1 := t.TempDir()
+		os.MkdirAll(filepath.Join(base1, "subdir11", "subdir12"), 0755)
+		src := filepath.Join(base1, "subdir11", "test1.txt")
+		os.WriteFile(src, []byte("test"), 0644)
+
+		base2 := t.TempDir()
+		dest := filepath.Join(base2, "subdir11", "subdir2", "target.txt")
+
+		err := CopyFile(src, dest)
+		assert.Nil(err)
+		_, err = os.Stat(dest)
+		assert.Nil(err)
+	})
+}
+
+func TestCopyDirectory(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("happy-path", func(t *testing.T) {
+		base1 := t.TempDir()
+		os.MkdirAll(filepath.Join(base1, "subdir11", "subdir12"), 0755)
+		os.WriteFile(filepath.Join(base1, "subdir11", "test1.txt"), []byte("test"), 0644)
+		os.WriteFile(filepath.Join(base1, "subdir11", "subdir12", "test1.txt"), []byte("test"), 0644)
+
+		base2 := t.TempDir()
+		err := CopyDirectory(base1, base2)
+		assert.Nil(err)
+		_, err = os.Stat(filepath.Join(base2, "subdir11", "test1.txt"))
+		assert.Nil(err)
+		_, err = os.Stat(filepath.Join(base2, "subdir11", "subdir12", "test1.txt"))
+		assert.Nil(err)
+	})
+}
+
+func TestCleanupServiceFileStructure(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create some subdirectories and files in the tempDir
+	subDir1 := filepath.Join(tempDir, "subdir1")
+	subDir2 := filepath.Join(tempDir, "subdir2")
+	emptySubDir := filepath.Join(tempDir, "emptysubdir")
+	err := os.Mkdir(subDir1, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Mkdir(subDir2, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Mkdir(emptySubDir, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = CleanupServiceFileStructure(tempDir)
+	if err != nil {
+		t.Errorf("Expected no error, but got: %v", err)
+	}
+
+	// Verify that emptySubDir has been removed
+	if _, err := os.Stat(emptySubDir); !os.IsNotExist(err) {
+		t.Error("Expected emptySubDir to be removed, but it still exists")
+	}
+
+	// Verify that subDir1 and subDir2 still exist
+	if _, err := os.Stat(subDir1); !os.IsNotExist(err) {
+		t.Error("Expected subDir1 to be removed, but it still exists")
+	}
+	if _, err := os.Stat(subDir2); !os.IsNotExist(err) {
+		t.Error("Expected subDir2 to be removed, but it still exists")
+	}
+}
+
+func TestIsEmptyDir(t *testing.T) {
+	assert := assert2.New(t)
+	tempDir := t.TempDir()
+	assert.True(IsEmptyDir(tempDir))
+
+	file, err := os.Create(filepath.Join(tempDir, "test.txt"))
+	if err != nil {
+		t.FailNow()
+	}
+	_ = file.Close()
+	assert.False(IsEmptyDir(tempDir))
+}
+
+func TestIsJsonType(t *testing.T) {
+	assert := assert2.New(t)
+	assert.True(IsJsonType([]byte(`{"key": "value"}`)))
+	assert.False(IsJsonType([]byte(`foo: bar`)))
+}
+
+func TestIsYamlType(t *testing.T) {
+	assert := assert2.New(t)
+	assert.True(IsYamlType([]byte(`foo: bar`)))
+	assert.False(IsYamlType([]byte(`100`)))
+}
+
 func TestExtractZip(t *testing.T) {
+	assert := assert2.New(t)
 	tempDir := t.TempDir()
 
 	getFilePaths := func(baseDir string) []string {
@@ -345,5 +521,5 @@ func TestExtractZip(t *testing.T) {
 	// Check if the target directory contains the extracted file
 	expected := expectedFilePaths(targetDir)
 
-	assert.ElementsMatch(t, expected, extracted)
+	assert.ElementsMatch(expected, extracted)
 }

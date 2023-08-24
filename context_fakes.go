@@ -36,60 +36,7 @@ func (b BoolValue) Get() any {
 	return bool(b)
 }
 
-func AsString(f func() string) FakeFunc {
-	return func() MixedValue {
-		return StringValue(f())
-	}
-}
-
-func AsInt64(f func() int64) FakeFunc {
-	return func() MixedValue {
-		return IntValue(f())
-	}
-}
-
-func AsFloat64(f func() float64) FakeFunc {
-	return func() MixedValue {
-		return Float64Value(f())
-	}
-}
-
-func AsBool(f func() bool) FakeFunc {
-	return func() MixedValue {
-		return BoolValue(f())
-	}
-}
-
-func FromReflectedStringValue(fn reflect.Value) FakeFunc {
-	return func() MixedValue {
-		return StringValue(fn.Call(nil)[0].String())
-	}
-}
-
-func FromReflectedBoolValue(fn reflect.Value) FakeFunc {
-	return func() MixedValue {
-		return BoolValue(fn.Call(nil)[0].Bool())
-	}
-}
-
-func FromReflectedIntValue(fn reflect.Value) FakeFunc {
-	return func() MixedValue {
-		return IntValue(fn.Call(nil)[0].Int())
-	}
-}
-
-func FromReflectedUIntValue(fn reflect.Value) FakeFunc {
-	return func() MixedValue {
-		return IntValue(fn.Call(nil)[0].Uint())
-	}
-}
-
-func FromReflectedFloat64Value(fn reflect.Value) FakeFunc {
-	return func() MixedValue {
-		return Float64Value(fn.Call(nil)[0].Float())
-	}
-}
-
+// GetFakeFuncFactoryWithString returns a map of utility fake functions.
 func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
 	fake := faker.New()
 
@@ -107,8 +54,10 @@ func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
 	}
 }
 
-// GetFakes returns a map of fake functions from underlying fake lib by
+// GetFakes returns a map of fake functions from underlying fake library by
 // gathering all exported methods from the faker.Faker struct into map.
+// The keys are the snake_cased dot-separated method names, which reflect the location of the function:
+// For example: person.first_name will return a fake first name from the Person struct.
 func GetFakes() map[string]FakeFunc {
 	fake := faker.New()
 	return getFakeFuncs(fake, "")
@@ -143,18 +92,48 @@ func getFakeFuncs(obj any, prefix string) map[string]FakeFunc {
 				res[k] = v
 			}
 		case reflect.Float32, reflect.Float64:
-			res[prefix+mappedName] = FromReflectedFloat64Value(fn)
+			res[prefix+mappedName] = fromReflectedFloat64Value(fn)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			res[prefix+mappedName] = FromReflectedIntValue(fn)
+			res[prefix+mappedName] = fromReflectedIntValue(fn)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			res[prefix+mappedName] = FromReflectedUIntValue(fn)
+			res[prefix+mappedName] = fromReflectedUIntValue(fn)
 		case reflect.Bool:
-			res[prefix+mappedName] = FromReflectedBoolValue(fn)
+			res[prefix+mappedName] = fromReflectedBoolValue(fn)
 		case reflect.String:
-			res[prefix+mappedName] = FromReflectedStringValue(fn)
+			res[prefix+mappedName] = fromReflectedStringValue(fn)
 		default:
 		}
 	}
 
 	return res
+}
+
+func fromReflectedStringValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return StringValue(fn.Call(nil)[0].String())
+	}
+}
+
+func fromReflectedBoolValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return BoolValue(fn.Call(nil)[0].Bool())
+	}
+}
+
+func fromReflectedIntValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return IntValue(fn.Call(nil)[0].Int())
+	}
+}
+
+func fromReflectedUIntValue(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return IntValue(fn.Call(nil)[0].Uint())
+	}
+}
+
+func fromReflectedFloat64Value(fn reflect.Value) FakeFunc {
+	return func() MixedValue {
+		return Float64Value(fn.Call(nil)[0].Float())
+	}
 }
