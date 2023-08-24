@@ -38,7 +38,7 @@ type Response struct {
 // It used to pre-generate payloads from the UI or provide service to generate such.
 // It's not part of OpenAPI endpoint handler.
 func NewRequestFromOperation(pathPrefix, path, method string, operation *Operation, valueReplacer ValueReplacer) *Request {
-	content, contentType := GenerateRequestBody(operation.RequestBody, valueReplacer, nil)
+	content, contentType := GenerateRequestBody(operation.GetRequestBody(), valueReplacer, nil)
 	body, err := EncodeContent(content, contentType)
 	if err != nil {
 		log.Printf("Error encoding request: %v", err.Error())
@@ -49,11 +49,13 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation *Operati
 		log.Printf("Error creating cURL example body: %v", err.Error())
 	}
 
+	params := operation.GetParameters()
+
 	return &Request{
-		Headers:     GenerateRequestHeaders(operation.Parameters, valueReplacer),
+		Headers:     GenerateRequestHeaders(params, valueReplacer),
 		Method:      method,
-		Path:        pathPrefix + GenerateURLFromSchemaParameters(path, valueReplacer, operation.Parameters),
-		Query:       GenerateQuery(valueReplacer, operation.Parameters),
+		Path:        pathPrefix + GenerateURLFromSchemaParameters(path, valueReplacer, params),
+		Query:       GenerateQuery(valueReplacer, params),
 		Body:        string(body),
 		ContentType: contentType,
 		Examples: &ContentExample{
@@ -154,7 +156,7 @@ func NewRequestFromFileProperties(path, method, contentType string, valueReplace
 }
 
 func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer) *Response {
-	response, statusCode := ExtractResponse(operation)
+	response, statusCode := operation.GetResponse()
 
 	headers := GenerateResponseHeaders(response.Headers, valueReplacer)
 
@@ -194,28 +196,6 @@ func NewResponseFromFileProperties(filePath, contentType string, valueReplacer V
 		ContentType: contentType,
 		StatusCode:  http.StatusOK,
 	}
-}
-
-func ExtractResponse(operation *Operation) (*OpenAPIResponse, int) {
-	available := operation.Responses
-
-	var responseRef *ResponseRef
-	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		responseRef = available.Get(code)
-		if responseRef != nil {
-			return responseRef.Value, code
-		}
-	}
-
-	// Get first defined
-	for codeName, respRef := range available {
-		if codeName == "default" {
-			continue
-		}
-		return respRef.Value, TransformHTTPCode(codeName)
-	}
-
-	return available.Default().Value, 200
 }
 
 func TransformHTTPCode(httpCode string) int {
@@ -260,7 +240,7 @@ func GetContentType(content OpenAPIContent) (string, *Schema) {
 
 func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, params OpenAPIParameters) string {
 	for _, paramRef := range params {
-		param := paramRef.Value
+		param := paramRef.Parameter
 		if param == nil || param.In != ParameterInPath {
 			continue
 		}
@@ -311,7 +291,7 @@ func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string
 	}
 
 	for _, paramRef := range params {
-		param := paramRef.Value
+		param := paramRef
 		if param == nil || param.In != ParameterInQuery {
 			continue
 		}
@@ -504,16 +484,11 @@ func MergeSubSchemas(schema *Schema) *Schema {
 	return schema
 }
 
-func GenerateRequestBody(bodyRef *RequestBodyRef, valueResolver ValueReplacer, state *ReplaceState) (any, string) {
+func GenerateRequestBody(schema *RequestBody, valueResolver ValueReplacer, state *ReplaceState) (any, string) {
 	if state == nil {
 		state = &ReplaceState{}
 	}
 
-	if bodyRef == nil {
-		return nil, ""
-	}
-
-	schema := bodyRef.Value
 	if schema == nil {
 		return nil, ""
 	}
@@ -548,7 +523,7 @@ func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueRep
 	res := map[string]interface{}{}
 
 	for _, paramRef := range parameters {
-		param := paramRef.Value
+		param := paramRef.Parameter
 		if param == nil {
 			continue
 		}

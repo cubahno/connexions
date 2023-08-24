@@ -2,6 +2,7 @@ package connexions
 
 import (
 	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -53,7 +54,7 @@ func CreateSchemaFromFile(t *testing.T, filePath string) *Schema {
 }
 
 func CreateOperationFromString(t *testing.T, src string) *Operation {
-	res := &Operation{}
+	res := &Operation{openapi3.NewOperation()}
 	err := json.Unmarshal([]byte(src), res)
 	if err != nil {
 		t.Errorf("Error parsing JSON: %v", err)

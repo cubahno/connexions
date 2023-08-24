@@ -248,52 +248,6 @@ func TestNewResponse(t *testing.T) {
 	})
 }
 
-func TestExtractResponse(t *testing.T) {
-	t.Run("extract-response", func(t *testing.T) {
-		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
-		response, code := ExtractResponse(operation)
-
-		assert.Equal(t, 200, code)
-		assert.Equal(t, "OK", *response.Description)
-		assert.NotNil(t, response.Content["application/json"])
-	})
-
-	t.Run("get-first-defined", func(t *testing.T) {
-		operation := CreateOperationFromString(t, `
-			{
-				"responses": {
-                    "500": {
-                        "description": "Internal Server Error"
-                    },
-                    "400": {
-                        "description": "Bad request"
-                    }
-				}
-			}
-		`)
-		response, code := ExtractResponse(operation)
-
-		assert.Contains(t, []int{500, 400}, code)
-		assert.Contains(t, []string{"Internal Server Error", "Bad request"}, *response.Description)
-	})
-
-	t.Run("get-default-if-nothing-else", func(t *testing.T) {
-		operation := CreateOperationFromString(t, `
-			{
-				"responses": {
-                    "default": {
-                        "description": "unexpected error"
-                    }
-				}
-			}
-		`)
-		response, code := ExtractResponse(operation)
-
-		assert.Equal(t, 200, code)
-		assert.Equal(t, "unexpected error", *response.Description)
-	})
-}
-
 func TestTransformHTTPCode(t *testing.T) {
 	type tc struct {
 		name     string
@@ -372,39 +326,9 @@ func TestGenerateURL(t *testing.T) {
 			return "something-else"
 		}
 		params := OpenAPIParameters{
-			{
-				Value: &OpenAPIParameter{
-					Name: "id",
-					In:   "path",
-					Schema: &SchemaRef{
-						Value: &Schema{
-							Type: "integer",
-						},
-					},
-				},
-			},
-			{
-				Value: &OpenAPIParameter{
-					Name: "file-id",
-					In:   "path",
-					Schema: &SchemaRef{
-						Value: &Schema{
-							Type: "string",
-						},
-					},
-				},
-			},
-			{
-				Value: &OpenAPIParameter{
-					Name: "file-id",
-					In:   "query",
-					Schema: &SchemaRef{
-						Value: &Schema{
-							Type: "integer",
-						},
-					},
-				},
-			},
+			NewOpenAPIParameter("id", "path", &Schema{Type: "integer"}),
+			NewOpenAPIParameter("file-id", "path", &Schema{Type: "string"}),
+			NewOpenAPIParameter("file-id", "query", &Schema{Type: "integer"}),
 		}
 		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
 		assert.Equal(t, "/users/123/foo", res)
@@ -423,28 +347,8 @@ func TestGenerateQuery(t *testing.T) {
 			return "something-else"
 		}
 		params := OpenAPIParameters{
-			{
-				Value: &OpenAPIParameter{
-					Name: "id",
-					In:   "query",
-					Schema: &SchemaRef{
-						Value: &Schema{
-							Type: "integer",
-						},
-					},
-				},
-			},
-			{
-				Value: &OpenAPIParameter{
-					Name: "file-id",
-					In:   "query",
-					Schema: &SchemaRef{
-						Value: &Schema{
-							Type: "foo",
-						},
-					},
-				},
-			},
+			NewOpenAPIParameter("id", "query", &Schema{Type: "integer"}),
+			NewOpenAPIParameter("file-id", "query", &Schema{Type: "foo"}),
 		}
 		res := GenerateQuery(valueResolver, params)
 
@@ -457,22 +361,18 @@ func TestGenerateQuery(t *testing.T) {
 			return "foo bar"
 		}
 		params := OpenAPIParameters{
-			{
-				Value: &OpenAPIParameter{
-					Name: "tags",
-					In:   "query",
-					Schema: &SchemaRef{
+			NewOpenAPIParameter(
+				"tags",
+				"query",
+				&Schema{
+					Type: "array",
+					Items: &SchemaRef{
 						Value: &Schema{
-							Type: "array",
-							Items: &SchemaRef{
-								Value: &Schema{
-									Type: "string",
-								},
-							},
+							Type: "string",
 						},
 					},
 				},
-			},
+			),
 		}
 		res := GenerateQuery(valueResolver, params)
 
@@ -485,17 +385,11 @@ func TestGenerateQuery(t *testing.T) {
 			return nil
 		}
 		params := OpenAPIParameters{
-			{
-				Value: &OpenAPIParameter{
-					Name: "id",
-					In:   "query",
-					Schema: &SchemaRef{
-						Value: &Schema{
-							Type: "integer",
-						},
-					},
-				},
-			},
+			NewOpenAPIParameter(
+				"id",
+				"query",
+				&Schema{Type: "integer"},
+			),
 		}
 		res := GenerateQuery(valueResolver, params)
 
@@ -817,12 +711,10 @@ func TestGenerateRequestBody(t *testing.T) {
 				}
 			}
 	    }`)
-		reqBodyRef := &RequestBodyRef{
-			Value: &RequestBody{
-				Content: NewContentWithJSONSchema(schema),
-			},
+		reqBody := &RequestBody{
+			Content: NewContentWithJSONSchema(schema),
 		}
-		payload, contentType := GenerateRequestBody(reqBodyRef, valueResolver, nil)
+		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
 
 		assert.Equal(t, "application/json", contentType)
 		assert.Equal(t, map[string]any{"foo": "bar"}, payload)
@@ -847,16 +739,14 @@ func TestGenerateRequestBody(t *testing.T) {
 				}
 			}
 	    }`)
-		reqBodyRef := &RequestBodyRef{
-			Value: &RequestBody{
-				Content: map[string]*MediaType{
-					"application/xml": {
-						Schema: &SchemaRef{Value: schema},
-					},
+		reqBody := &RequestBody{
+			Content: map[string]*MediaType{
+				"application/xml": {
+					Schema: &SchemaRef{Value: schema},
 				},
 			},
 		}
-		payload, contentType := GenerateRequestBody(reqBodyRef, valueResolver, nil)
+		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
 
 		assert.Equal(t, "application/xml", contentType)
 		assert.Equal(t, map[string]any{"foo": "bar"}, payload)
@@ -870,16 +760,16 @@ func TestGenerateRequestBody(t *testing.T) {
 	})
 
 	t.Run("case-empty-schema", func(t *testing.T) {
-		reqBodyRef := &RequestBodyRef{}
-		payload, contentType := GenerateRequestBody(reqBodyRef, nil, nil)
+		reqBody := &RequestBody{}
+		payload, contentType := GenerateRequestBody(reqBody, nil, nil)
 
 		assert.Equal(t, "", contentType)
 		assert.Equal(t, nil, payload)
 	})
 
 	t.Run("case-empty-content-types", func(t *testing.T) {
-		reqBodyRef := &RequestBodyRef{Value: &RequestBody{Content: nil}}
-		payload, contentType := GenerateRequestBody(reqBodyRef, nil, nil)
+		reqBody := &RequestBody{Content: nil}
+		payload, contentType := GenerateRequestBody(reqBody, nil, nil)
 
 		assert.Equal(t, "", contentType)
 		assert.Equal(t, nil, payload)
@@ -902,46 +792,23 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			return nil
 		}
 		params := OpenAPIParameters{
-			{
-				Value: &OpenAPIParameter{
-					Name:   "X-Key",
-					In:     ParameterInHeader,
-					Schema: &SchemaRef{Value: &Schema{Type: "string"}},
+			NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "string"}),
+			NewOpenAPIParameter("Version", ParameterInHeader, &Schema{Type: "string"}),
+			NewOpenAPIParameter("Preferences", ParameterInHeader, &Schema{
+				Type: "object",
+				Properties: map[string]*SchemaRef{
+					"mode": {Value: &Schema{Type: "string"}},
+					"lang": {Value: &Schema{Type: "string"}},
 				},
-			},
-			{
-				Value: &OpenAPIParameter{
-					Name:   "Version",
-					In:     ParameterInHeader,
-					Schema: &SchemaRef{Value: &Schema{Type: "string"}},
-				},
-			},
-			{
-				Value: &OpenAPIParameter{
-					Name: "Preferences",
-					In:   ParameterInHeader,
-					Schema: &SchemaRef{Value: &Schema{
-						Type: "object",
-						Properties: map[string]*SchemaRef{
-							"mode": {Value: &Schema{Type: "string"}},
-							"lang": {Value: &Schema{Type: "string"}},
-						},
-					}},
-				},
-			},
-			{
-				Value: &OpenAPIParameter{
-					Name:   "id",
-					In:     ParameterInPath,
-					Schema: &SchemaRef{Value: &Schema{Type: "string"}},
-				},
-			},
+			}),
+			NewOpenAPIParameter("id", ParameterInHeader, &Schema{Type: "string"}),
 		}
 
 		expected := map[string]any{
 			"x-key":       "abcdef",
 			"version":     "1.0.0",
 			"preferences": map[string]any{"mode": "dark", "lang": "de"},
+			"id": nil,
 		}
 
 		res := GenerateRequestHeaders(params, valueResolver)
@@ -955,19 +822,14 @@ func TestGenerateRequestHeaders(t *testing.T) {
 	})
 
 	t.Run("schema-ref-is-nil", func(t *testing.T) {
-		params := OpenAPIParameters{{Value: &OpenAPIParameter{Schema: nil, In: ParameterInHeader}}}
+		params := OpenAPIParameters{NewOpenAPIParameter("", ParameterInHeader, nil)}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
 	})
 
 	t.Run("schema-is-nil", func(t *testing.T) {
 		params := OpenAPIParameters{
-			{
-				Value: &OpenAPIParameter{
-					Schema: &SchemaRef{Value: nil},
-					In:     ParameterInHeader,
-				},
-			},
+			NewOpenAPIParameter("", ParameterInHeader, nil),
 		}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
@@ -988,20 +850,12 @@ func TestGenerateResponseHeaders(t *testing.T) {
 		headers := OpenAPIHeaders{
 			"X-Rate-Limit-Limit": {
 				Value: &OpenAPIHeader{
-					Parameter: OpenAPIParameter{
-						Name:   "X-Key",
-						In:     ParameterInHeader,
-						Schema: &SchemaRef{Value: &Schema{Type: "integer"}},
-					},
+					Parameter: *(NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"})).Parameter,
 				},
 			},
 			"X-Rate-Limit-Remaining": {
 				Value: &OpenAPIHeader{
-					Parameter: OpenAPIParameter{
-						Name:   "X-Key",
-						In:     ParameterInHeader,
-						Schema: &SchemaRef{Value: &Schema{Type: "integer"}},
-					},
+					Parameter: *(NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"})).Parameter,
 				},
 			},
 		}

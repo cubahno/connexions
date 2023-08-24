@@ -71,33 +71,17 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currentMethod := r.Method
-	var operation *Operation
-
-	if currentMethod == http.MethodGet {
-		operation = paths.Get
-	} else if currentMethod == http.MethodPost {
-		operation = paths.Post
-	} else if currentMethod == http.MethodPut {
-		operation = paths.Put
-	} else if currentMethod == http.MethodDelete {
-		operation = paths.Delete
-	} else if currentMethod == http.MethodOptions {
-		operation = paths.Options
-	} else if currentMethod == http.MethodHead {
-		operation = paths.Head
-	} else if currentMethod == http.MethodPatch {
-		operation = paths.Patch
-	} else if currentMethod == http.MethodTrace {
-		operation = paths.Trace
-	} else {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	operation := doc.FindOperation(resourceName, currentMethod)
+	if operation == nil {
+		NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
 		return
 	}
 
-	if serviceCfg.Validate.Request && operation.RequestBody != nil {
-		err := ValidateRequest(r, operation.RequestBody.Value)
+	reqBody := operation.GetRequestBody()
+	if serviceCfg.Validate.Request && reqBody != nil {
+		err := ValidateRequest(r, reqBody)
 		if err != nil {
-			log.Printf("error validating request: %v", err)
+			log.Printf("error validating request: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(err.Error()))
 			return

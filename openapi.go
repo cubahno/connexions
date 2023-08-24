@@ -15,14 +15,24 @@ type Document struct {
 	*openapi3.T
 }
 
+type Operation struct {
+	*openapi3.Operation
+}
+
+type OpenAPIParameter struct {
+	*openapi3.Parameter
+}
+
+type OpenAPIParameters []*OpenAPIParameter
+
 type (
 	Schema            = openapi3.Schema
-	Operation         = openapi3.Operation
+	//Operation         = openapi3.Operation
 	OpenAPIResponse   = openapi3.Response
 	ResponseRef       = openapi3.ResponseRef
 	OpenAPIContent    = openapi3.Content
-	OpenAPIParameter  = openapi3.Parameter
-	OpenAPIParameters = openapi3.Parameters
+	//OpenAPIParameter  = openapi3.Parameter
+	//OpenAPIParameters = openapi3.Parameters
 	SchemaRef         = openapi3.SchemaRef
 	SchemaRefs        = openapi3.SchemaRefs
 	RequestBody       = openapi3.RequestBody
@@ -68,6 +78,17 @@ func NewDocumentFromString(src string) (*Document, error) {
 	return &Document{doc}, nil
 }
 
+func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
+	return &OpenAPIParameter{
+		Parameter: &openapi3.Parameter{
+			Name:     name,
+			In:       in,
+			Schema:   &SchemaRef{Value: schema},
+			Required: true,
+		},
+	}
+}
+
 func NewContentWithJSONSchema(schema *Schema) OpenAPIContent {
 	return OpenAPIContent{
 		"application/json": NewMediaType().WithSchema(schema),
@@ -84,6 +105,56 @@ func NewMediaType() *MediaType {
 	return &MediaType{}
 }
 
+func (d *Document) FindOperation(resourceName, method string) *Operation {
+	path := d.Paths.Find(resourceName)
+	if path == nil {
+		return nil
+	}
+	op := path.GetOperation(method)
+	if op == nil {
+		return nil
+	}
+	return &Operation{op}
+}
+
+func (o *Operation) GetRequestBody() *RequestBody {
+	if o.RequestBody == nil {
+		return nil
+	}
+
+	return o.RequestBody.Value
+}
+
+func (o *Operation) GetResponse() (*OpenAPIResponse, int) {
+	available := o.Responses
+
+	var responseRef *ResponseRef
+	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
+		responseRef = available.Get(code)
+		if responseRef != nil {
+			return responseRef.Value, code
+		}
+	}
+
+	// Get first defined
+	for codeName, respRef := range available {
+		if codeName == "default" {
+			continue
+		}
+		return respRef.Value, TransformHTTPCode(codeName)
+	}
+
+	return available.Default().Value, 200
+}
+
+func (o *Operation) GetParameters() OpenAPIParameters {
+	var res []*OpenAPIParameter
+	for _, param := range o.Parameters {
+		res = append(res, &OpenAPIParameter{param.Value})
+	}
+	return res
+}
+
 func ValidateRequest(req *http.Request, body *RequestBody) error {
 	inp := &openapi3filter.RequestValidationInput{Request: req}
 	return openapi3filter.ValidateRequestBody(context.Background(), inp, body)
@@ -94,7 +165,7 @@ func ValidateResponse(req *http.Request, res *Response, operation *Operation) er
 		Request: req,
 		Route: &routers.Route{
 			Method:    req.Method,
-			Operation: operation,
+			Operation: operation.Operation,
 		},
 	}
 	responseValidationInput := &openapi3filter.ResponseValidationInput{

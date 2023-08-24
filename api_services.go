@@ -387,15 +387,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spec := fileProps.Spec
-
-	// handle openapi resource
-	pathItem := spec.Paths[payload.Resource]
-	if pathItem == nil {
-		NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
-		return
-	}
-
-	operation := pathItem.GetOperation(strings.ToUpper(payload.Method))
+	operation := spec.FindOperation(payload.Resource, strings.ToUpper(payload.Method))
 	if operation == nil {
 		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 	}
