@@ -158,9 +158,9 @@ func NewRequestFromFileProperties(path, method, contentType string, valueReplace
 func NewResponseFromOperation(operation *Operation, valueReplacer ValueReplacer) *Response {
 	response, statusCode := operation.GetResponse()
 
-	headers := GenerateResponseHeaders(response.Headers, valueReplacer)
+	headers := GenerateResponseHeaders(response.GetHeaders(), valueReplacer)
 
-	contentType, contentSchema := GetContentType(response.Content)
+	contentType, contentSchema := response.GetContent()
 	if contentType == "" {
 		contentType = "text/plain"
 	}
@@ -435,7 +435,7 @@ func MergeSubSchemas(schema *Schema) *Schema {
 	}
 
 	// pick first from each if present
-	schemaRefs := []SchemaRefs{anyOf, oneOf}
+	schemaRefs := [][]*SchemaRef{anyOf, oneOf}
 	for _, schemaRef := range schemaRefs {
 		if len(schemaRef) == 0 {
 			continue
@@ -558,11 +558,9 @@ func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueRep
 func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer) http.Header {
 	res := http.Header{}
 
-	for name, headerRef := range headers {
+	for name, params := range headers {
 		name = strings.ToLower(name)
 		state := &ReplaceState{NamePath: []string{name}, IsHeader: true}
-		header := headerRef.Value
-		params := header.Parameter
 
 		var schema *Schema
 		if params.Schema != nil {

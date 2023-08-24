@@ -33,14 +33,15 @@ type RequestBody struct {
 	*openapi3.RequestBody
 }
 
+type MediaType struct {
+	*openapi3.MediaType
+}
+
+type OpenAPIHeaders map[string]*OpenAPIParameter
+
 type (
 	Schema         = openapi3.Schema
-	OpenAPIContent = openapi3.Content
 	SchemaRef      = openapi3.SchemaRef
-	SchemaRefs     = openapi3.SchemaRefs
-	OpenAPIHeader  = openapi3.Header
-	OpenAPIHeaders = openapi3.Headers
-	MediaType      = openapi3.MediaType
 )
 
 const (
@@ -91,25 +92,34 @@ func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 }
 
 func NewRequestBodyFromContent(content map[string]*MediaType) *RequestBody {
+	provContent := make(map[string]*openapi3.MediaType)
+	for k, v := range content {
+		provContent[k] = v.MediaType
+	}
+
 	return &RequestBody{&openapi3.RequestBody{
-		Content: content,
+		Content: provContent,
 	}}
 }
 
-func NewContentWithJSONSchema(schema *Schema) OpenAPIContent {
-	return OpenAPIContent{
-		"application/json": NewMediaType().WithSchema(schema),
-	}
-}
-
-func NewContentWithMultipartFormDataSchema(schema *Schema) OpenAPIContent {
-	return OpenAPIContent{
-		"multipart/form-data": NewMediaType().WithSchema(schema),
+func NewContentWithJSONSchema(schema *Schema) map[string]*MediaType {
+	return map[string]*MediaType{
+		"application/json": {NewMediaType().WithSchema(schema)},
 	}
 }
 
 func NewMediaType() *MediaType {
-	return &MediaType{}
+	return &MediaType{
+		openapi3.NewMediaType(),
+	}
+}
+
+func NewMediaTypeFromSchema(schema *Schema) *MediaType {
+	return &MediaType{
+		MediaType: &openapi3.MediaType{
+			Schema: &SchemaRef{Value: schema},
+		},
+	}
 }
 
 func (d *Document) FindOperation(resourceName, method string) *Operation {
@@ -158,6 +168,39 @@ func (o *Operation) GetParameters() OpenAPIParameters {
 	var res []*OpenAPIParameter
 	for _, param := range o.Parameters {
 		res = append(res, &OpenAPIParameter{param.Value})
+	}
+	return res
+}
+
+func (r *OpenAPIResponse) GetContent() (string, *Schema) {
+	types := r.Content
+	if len(types) == 0 {
+		return "", nil
+	}
+
+	prioTypes := []string{"application/json", "text/plain", "text/html"}
+	for _, contentType := range prioTypes {
+		if _, ok := types[contentType]; ok {
+			return contentType, types[contentType].Schema.Value
+		}
+	}
+
+	for contentType, mediaType := range types {
+		return contentType, mediaType.Schema.Value
+	}
+
+	return "", nil
+}
+
+func (r *OpenAPIResponse) GetHeaders() OpenAPIHeaders {
+	res := make(OpenAPIHeaders)
+	for name, header := range r.Headers {
+		ref := header.Value
+		if ref == nil {
+			continue
+		}
+
+		res[name] = &OpenAPIParameter{&ref.Parameter}
 	}
 	return res
 }

@@ -271,48 +271,6 @@ func TestTransformHTTPCode(t *testing.T) {
 	}
 }
 
-func TestGetContentType(t *testing.T) {
-	t.Run("get-first-prioritized", func(t *testing.T) {
-		content := OpenAPIContent{
-			"text/html": {
-				Schema: &SchemaRef{Value: &Schema{}},
-			},
-			"application/json": {
-				Schema: &SchemaRef{Value: &Schema{}},
-			},
-			"text/plain": {
-				Schema: &SchemaRef{Value: &Schema{}},
-			},
-		}
-		contentType, schema := GetContentType(content)
-
-		assert.Equal(t, "application/json", contentType)
-		assert.NotNil(t, schema)
-	})
-
-	t.Run("get-first-found", func(t *testing.T) {
-		content := OpenAPIContent{
-			"multipart/form-data; boundary=something": {
-				Schema: &SchemaRef{},
-			},
-			"application/xml": {
-				Schema: &SchemaRef{},
-			},
-		}
-		contentType, _ := GetContentType(content)
-
-		assert.Contains(t, []string{"multipart/form-data; boundary=something", "application/xml"}, contentType)
-	})
-
-	t.Run("nothing-found", func(t *testing.T) {
-		content := OpenAPIContent{}
-		contentType, schema := GetContentType(content)
-
-		assert.Equal(t, "", contentType)
-		assert.Nil(t, schema)
-	})
-}
-
 func TestGenerateURL(t *testing.T) {
 	t.Run("params correctly replaced in path", func(t *testing.T) {
 		path := "/users/{id}/{file-id}"
@@ -738,9 +696,7 @@ func TestGenerateRequestBody(t *testing.T) {
 			}
 	    }`)
 		reqBody := NewRequestBodyFromContent(map[string]*MediaType{
-			"application/xml": {
-				Schema: &SchemaRef{Value: schema},
-			},
+			"application/xml": NewMediaTypeFromSchema(schema),
 		})
 		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
 
@@ -845,14 +801,10 @@ func TestGenerateResponseHeaders(t *testing.T) {
 		}
 		headers := OpenAPIHeaders{
 			"X-Rate-Limit-Limit": {
-				Value: &OpenAPIHeader{
-					Parameter: *(NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"})).Parameter,
-				},
+				NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"}).Parameter,
 			},
 			"X-Rate-Limit-Remaining": {
-				Value: &OpenAPIHeader{
-					Parameter: *(NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"})).Parameter,
-				},
+				NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"}).Parameter,
 			},
 		}
 
@@ -895,7 +847,7 @@ func TestMergeSubSchemas(t *testing.T) {
 
 	t.Run("with-allof-nil-schema", func(t *testing.T) {
 		schema := &Schema{
-			AllOf: SchemaRefs{
+			AllOf: []*SchemaRef{
 				{
 					Value: nil,
 				},
@@ -907,7 +859,7 @@ func TestMergeSubSchemas(t *testing.T) {
 
 	t.Run("with-anyof-nil-schema", func(t *testing.T) {
 		schema := &Schema{
-			AnyOf: SchemaRefs{
+			AnyOf: []*SchemaRef{
 				{
 					Value: nil,
 				},

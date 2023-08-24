@@ -51,3 +51,45 @@ func TestOperation(t *testing.T) {
 		assert.Equal(t, "unexpected error", *response.Description)
 	})
 }
+
+// func TestOpenAPIResponse(t *testing.T) {
+// 	t.Run("GetResponse-get-first-prioritized", func(t *testing.T) {
+// 		content := OpenAPIContent{
+// 			"text/html": {
+// 				Schema: &SchemaRef{Value: &Schema{}},
+// 			},
+// 			"application/json": {
+// 				Schema: &SchemaRef{Value: &Schema{}},
+// 			},
+// 			"text/plain": {
+// 				Schema: &SchemaRef{Value: &Schema{}},
+// 			},
+// 		}
+// 		contentType, schema := GetContentType(content)
+//
+// 		assert.Equal(t, "application/json", contentType)
+// 		assert.NotNil(t, schema)
+// 	})
+//
+// 	t.Run("GetResponse-get-first-found", func(t *testing.T) {
+// 		content := OpenAPIContent{
+// 			"multipart/form-data; boundary=something": {
+// 				Schema: &SchemaRef{},
+// 			},
+// 			"application/xml": {
+// 				Schema: &SchemaRef{},
+// 			},
+// 		}
+// 		contentType, _ := GetContentType(content)
+//
+// 		assert.Contains(t, []string{"multipart/form-data; boundary=something", "application/xml"}, contentType)
+// 	})
+//
+// 	t.Run("GetResponse-nothing-found", func(t *testing.T) {
+// 		content := OpenAPIContent{}
+// 		contentType, schema := GetContentType(content)
+//
+// 		assert.Equal(t, "", contentType)
+// 		assert.Nil(t, schema)
+// 	})
+// }
