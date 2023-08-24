@@ -22,35 +22,35 @@ import (
 type FileProperties struct {
 	// ServiceName is the name of the service that the file belongs to.
 	// It represents the first directory in the file path.
-	ServiceName          string
+	ServiceName string
 
 	// IsOpenAPI indicates whether the file is an OpenAPI specification.
-	IsOpenAPI            bool
+	IsOpenAPI bool
 
 	// Method is the HTTP method of the resource, which this file describes.
-	Method               string
+	Method string
 
 	// Prefix is the path prefix of the resource, which this file describes.
 	// This is service name with a leading slash.
-	Prefix               string
+	Prefix string
 
 	// Resource is the path of the resource, which this file describes without prefix.
-	Resource             string
+	Resource string
 
 	// FilePath is the full path to the file.
-	FilePath             string
+	FilePath string
 
 	// FileName is the name of the file with the extension.
-	FileName             string
+	FileName string
 
 	// Extension is the extension of the file, with the leading dot.
-	Extension            string
+	Extension string
 
 	// ContentType is the MIME type of the file.
-	ContentType          string
+	ContentType string
 
 	// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
-	Spec                 *Document            `json:"-"`
+	Spec *Document `json:"-"`
 
 	// ValueReplacerFactory is the factory for creating value replacers in the file or resources.
 	// Non-OpenAPI files have to have values wrapped in curly braces to be replaced.
@@ -74,16 +74,16 @@ func (f *FileProperties) IsEqual(other *FileProperties) bool {
 // UploadedFile represents an uploaded file.
 type UploadedFile struct {
 	// Content is the content of the file.
-	Content   []byte
+	Content []byte
 
 	// Filename is the name of the file.
-	Filename  string
+	Filename string
 
 	// Extension is the extension of the file with the leading dot.
 	Extension string
 
 	// Size is the size of the file in bytes.
-	Size      int64
+	Size int64
 }
 
 // GetRequestFile gets an uploaded file from a request.

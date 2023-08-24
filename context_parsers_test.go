@@ -126,16 +126,16 @@ func TestCollectContexts(t *testing.T) {
 	fileCollections := map[string]map[string]any{
 		"common": {
 			"name": "Jane",
-			"age": 30,
+			"age":  30,
 			"company": map[string]any{
 				"name": "func:make_company_name",
 			},
 		},
 		"service": {
 			"person": map[string]any{
-				"job": "fake:company.job_title",
+				"job":  "fake:company.job_title",
 				"name": "John",
-				"age": 40,
+				"age":  40,
 			},
 			"company": map[string]any{
 				"name": "fake:company.name",
@@ -158,16 +158,16 @@ func TestCollectContexts(t *testing.T) {
 		// complete common context
 		{
 			"name": "Jane",
-			"age": 30,
+			"age":  30,
 			"company": map[string]any{
 				"name": "func:make_company_name",
 			},
 		},
 		// service.person only
 		{
-			"job": "fake:company.job_title",
+			"job":  "fake:company.job_title",
 			"name": "John",
-			"age": 40,
+			"age":  40,
 		},
 	}
 

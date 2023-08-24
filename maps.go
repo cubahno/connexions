@@ -1,7 +1,6 @@
 package connexions
 
 import (
-	"fmt"
 	"math/rand"
 	"reflect"
 	"sort"
@@ -20,7 +19,7 @@ func GetValueByDottedPath(data map[string]any, path string) any {
 	var current any = data
 
 	for _, key := range keys {
-		if val, ok := current.(map[string]interface{}); ok {
+		if val, ok := current.(map[string]any); ok {
 			if nestedVal, nestedOk := val[key]; nestedOk {
 				current = nestedVal
 			} else {
@@ -34,7 +33,7 @@ func GetValueByDottedPath(data map[string]any, path string) any {
 	return current
 }
 
-func SetValueByDottedPath(data map[string]interface{}, path string, value interface{}) {
+func SetValueByDottedPath(data map[string]any, path string, value any) {
 	keys := strings.Split(path, ".")
 	lastIndex := len(keys) - 1
 
@@ -47,14 +46,13 @@ func SetValueByDottedPath(data map[string]interface{}, path string, value interf
 		}
 
 		if val, ok := currentMap[key]; ok {
-			if nestedMap, nestedOk := val.(map[string]interface{}); nestedOk {
+			if nestedMap, nestedOk := val.(map[string]any); nestedOk {
 				currentMap = nestedMap
 			} else {
-				fmt.Println("Invalid path:", path)
 				return
 			}
 		} else {
-			nestedMap := make(map[string]interface{})
+			nestedMap := make(map[string]any)
 			currentMap[key] = nestedMap
 			currentMap = nestedMap
 		}
@@ -77,7 +75,7 @@ func GetRandomKeyFromMap[T any](m map[string]T) string {
 	return keys[randomIndex]
 }
 
-func GetSortedMapKeys(content map[string]any) []string {
+func GetSortedMapKeys[T any](content map[string]T) []string {
 	var keys []string
 	for key := range content {
 		keys = append(keys, key)
