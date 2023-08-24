@@ -13,10 +13,10 @@ func TestReplacers(t *testing.T) {
 
 func TestCreateValueReplacerFactory(t *testing.T) {
 	assert := assert2.New(t)
-	fooReplacer := func(ctx *ReplaceContext) any {return "foo"}
-	intReplacer := func(ctx *ReplaceContext) any {return 1}
-	nilReplacer := func(ctx *ReplaceContext) any {return nil}
-	forceNullReplacer := func(ctx *ReplaceContext) any {return NULL}
+	fooReplacer := func(ctx *ReplaceContext) any { return "foo" }
+	intReplacer := func(ctx *ReplaceContext) any { return 1 }
+	nilReplacer := func(ctx *ReplaceContext) any { return nil }
+	forceNullReplacer := func(ctx *ReplaceContext) any { return NULL }
 
 	t.Run("with-nil-state", func(t *testing.T) {
 		fn := CreateValueReplacerFactory([]Replacer{fooReplacer})(nil)

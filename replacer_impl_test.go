@@ -5,6 +5,22 @@ import (
 	"testing"
 )
 
+func TestHasCorrectSchemaType(t *testing.T) {
+
+}
+
+func TestReplaceInHeaders(t *testing.T) {
+
+}
+
+func TestReplaceInPath(t *testing.T) {
+
+}
+
+func TestReplaceFromContext(t *testing.T) {
+
+}
+
 func TestReplaceValueWithContext(t *testing.T) {
 	t.Run("happy-path", func(t *testing.T) {
 		context := map[string]interface{}{
@@ -73,4 +89,24 @@ func TestReplaceValueWithContext(t *testing.T) {
 
 		assert.Contains(t, names, res)
 	})
+}
+
+func TestReplaceValueWithMapContext(t *testing.T) {
+
+}
+
+func TestReplaceFromSchemaFormat(t *testing.T) {
+
+}
+
+func TestReplaceFromSchemaPrimitive(t *testing.T) {
+
+}
+
+func TestReplaceFromSchemaExample(t *testing.T) {
+
+}
+
+func TestReplaceFallback(t *testing.T) {
+
 }
