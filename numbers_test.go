@@ -2,6 +2,7 @@ package connexions
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 )
@@ -78,7 +79,6 @@ func TestToFloat64(t *testing.T) {
 		{uint8(255), 255.0},
 		{float32(3.14), 3.14},
 		{float64(2.718), 2.718},
-		// {"string", 0.0}, // Unsupported type
 	}
 
 	for _, test := range tests {
@@ -95,4 +95,8 @@ func TestToFloat64(t *testing.T) {
 			t.Errorf("For input %v, expected %s but got %s", test.input, expectedStr, resultStr)
 		}
 	}
+
+	val, err := ToFloat64("string")
+	assert.Equal(t, 0.0, val)
+	assert.NotNil(t, err)
 }
