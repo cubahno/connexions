@@ -39,9 +39,10 @@ func ToFloat64(value interface{}) (float64, error) {
 	}
 }
 
-func RemoveNumberPointer[T float64 | int64 | uint64](value *T) T {
+func RemovePointer[T bool | float64 | int64 | uint64](value *T) T {
+	var res T
 	if value == nil {
-		return 0
+		return res
 	}
 	return *value
 }

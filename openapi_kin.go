@@ -59,6 +59,29 @@ func (d *KinDocument) FindOperation(resourceName, method string) Operationer {
 	return &KinOperation{Operation: op}
 }
 
+func (o *KinOperation) GetParameters() OpenAPIParameters {
+	var res []*OpenAPIParameter
+	for _, param := range o.Parameters {
+		p := param.Value
+		if p == nil {
+			continue
+		}
+
+		var schema *Schema
+		if p.Schema != nil {
+			schema = NewSchemaFromKin(p.Schema.Value, nil)
+		}
+
+		res = append(res, &OpenAPIParameter{
+			Name:     p.Name,
+			In:       p.In,
+			Required: p.Required,
+			Schema:   schema,
+		})
+	}
+	return res
+}
+
 func (o *KinOperation) GetRequestBody() (*Schema, string) {
 	if o.RequestBody == nil {
 		return nil, ""
@@ -107,28 +130,6 @@ func (o *KinOperation) GetResponse() (OpenAPIResponse, int) {
 	return &KinResponse{available.Default().Value}, 200
 }
 
-func (o *KinOperation) GetParameters() OpenAPIParameters {
-	var res []*OpenAPIParameter
-	for _, param := range o.Parameters {
-		p := param.Value
-		if p == nil {
-			continue
-		}
-
-		var schema *Schema
-		if p.Schema != nil {
-			schema = NewSchemaFromKin(p.Schema.Value, nil)
-		}
-
-		res = append(res, &OpenAPIParameter{
-			Name:     p.Name,
-			In:       p.In,
-			Required: p.Required,
-			Schema:   schema,
-		})
-	}
-	return res
-}
 
 func (r *KinResponse) GetContent() (string, *Schema) {
 	types := r.Content
@@ -223,16 +224,16 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 	return &Schema{
 		Type:          s.Type,
 		Items:         items,
-		MultipleOf:    RemoveNumberPointer(s.MultipleOf),
-		Maximum:       RemoveNumberPointer(s.Max),
-		Minimum:       RemoveNumberPointer(s.Min),
-		MaxLength:     int64(RemoveNumberPointer(s.MaxLength)),
+		MultipleOf:    RemovePointer(s.MultipleOf),
+		Maximum:       RemovePointer(s.Max),
+		Minimum:       RemovePointer(s.Min),
+		MaxLength:     int64(RemovePointer(s.MaxLength)),
 		MinLength:     int64(s.MinLength),
 		Pattern:       s.Pattern,
 		Format:        s.Format,
-		MaxItems:      int64(RemoveNumberPointer(s.MaxItems)),
+		MaxItems:      int64(RemovePointer(s.MaxItems)),
 		MinItems:      int64(s.MinItems),
-		MaxProperties: int64(RemoveNumberPointer(s.MaxProps)),
+		MaxProperties: int64(RemovePointer(s.MaxProps)),
 		MinProperties: int64(s.MinProps),
 		Required:      s.Required,
 		Enum:          s.Enum,

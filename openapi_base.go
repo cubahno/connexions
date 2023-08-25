@@ -1,9 +1,9 @@
 package connexions
 
 type Document interface {
-	FindOperation(resourceName, method string) Operationer
-	GetResources() map[string][]string
 	GetVersion() string
+	GetResources() map[string][]string
+	FindOperation(resourceName, method string) Operationer
 }
 
 type Operationer interface {
