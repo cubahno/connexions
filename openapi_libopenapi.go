@@ -6,6 +6,8 @@ import (
     "github.com/pb33f/libopenapi/datamodel/high/base"
     v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
     v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
+    "github.com/pb33f/libopenapi/resolver"
+    "log"
     "net/http"
     "os"
     "strings"
@@ -16,7 +18,7 @@ type LibV2Document struct {
 }
 
 type LibV3Document struct {
-    libopenapi.DocumentModel[v3high.Document]
+    *libopenapi.DocumentModel[v3high.Document]
 }
 
 type LibV3Operation struct {
@@ -28,7 +30,10 @@ type LibV3Response struct {
 }
 
 func (d *LibV3Document) GetVersion() string {
-    return d.GetVersion()
+    if d.Model.Info == nil {
+        return ""
+    }
+    return d.Model.Info.Version
 }
 
 func (d *LibV3Document) GetResources() map[string][]string {
@@ -173,7 +178,7 @@ func NewSchemaFromLibOpenAPI(s *base.Schema, visited map[string]bool) *Schema {
         return nil
     }
 
-    // s = MergeKinSubSchemas(s)
+    s = MergeLibOpenAPISubSchemas(s)
 
     if len(visited) == 0 {
         visited = make(map[string]bool)
@@ -248,13 +253,107 @@ func NewSchemaFromLibOpenAPI(s *base.Schema, visited map[string]bool) *Schema {
     }
 }
 
-func NewLibDocument(filePath string) (libopenapi.Document, error) {
+func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
     src, _ := os.ReadFile(filePath)
 
-    // create a new document from specification bytes
-    return libopenapi.NewDocument(src)
+    lib, err := libopenapi.NewDocument(src)
+    if err != nil {
+        return nil, err
+    }
+    model, errs := lib.BuildV3Model()
+    if len(errs) > 0 {
+        for i := range errs {
+            if circError, ok := errs[i].(*resolver.ResolvingError); ok {
+                log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
+                    circError.Error(),
+                    circError.CircularReference.LoopPoint.Node.Line,
+                    circError.CircularReference.IsPolymorphicResult)
+                return &LibV3Document{model}, nil
+            }
+        }
+        return nil, errs[0]
+    }
+
+    return &LibV3Document{model}, nil
 }
 
-func NewLibModel(doc libopenapi.Document) (*libopenapi.DocumentModel[v3high.Document], []error) {
-    return doc.BuildV3Model()
+func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
+    allOf := schema.AllOf
+    anyOf := schema.AnyOf
+    oneOf := schema.OneOf
+    not := schema.Not
+
+    if len(schema.Properties) == 0 {
+        schema.Properties = make(map[string]*base.SchemaProxy)
+    }
+
+    schema.AllOf = make([]*base.SchemaProxy, 0)
+    schema.AnyOf = make([]*base.SchemaProxy, 0)
+    schema.OneOf = make([]*base.SchemaProxy, 0)
+    schema.Not = nil
+
+    for _, schemaRef := range allOf {
+        sub := schemaRef.Schema()
+        if sub == nil {
+            continue
+        }
+
+        for propertyName, property := range sub.Properties {
+            schema.Properties[propertyName] = property
+        }
+
+        schema.AllOf = append(schema.AllOf, sub.AllOf...)
+        schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
+        schema.OneOf = append(schema.OneOf, sub.OneOf...)
+        schema.Required = append(schema.Required, sub.Required...)
+    }
+
+    // pick first from each if present
+    schemaRefs := append(oneOf, anyOf...)
+    for _, schemaRef := range schemaRefs {
+        // if len(schemaRef) == 0 {
+        // 	continue
+        // }
+
+        sub := schemaRef.Schema()
+        if sub == nil {
+            continue
+        }
+
+        for propertyName, property := range sub.Properties {
+            schema.Properties[propertyName] = property
+        }
+
+        schema.AllOf = append(schema.AllOf, sub.AllOf...)
+        schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
+        schema.OneOf = append(schema.OneOf, sub.OneOf...)
+        schema.Required = append(schema.Required, sub.Required...)
+    }
+
+    // exclude properties from `not`
+    if not != nil {
+        notSchema := not.Schema()
+        deletes := map[string]bool{}
+        for propertyName, _ := range notSchema.Properties {
+            delete(schema.Properties, propertyName)
+            deletes[propertyName] = true
+        }
+
+        // remove from required properties
+        for i, propertyName := range schema.Required {
+            if _, ok := deletes[propertyName]; ok {
+                schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
+            }
+        }
+    }
+
+    if len(schema.AllOf) > 0 || len(schema.AnyOf) > 0 || len(schema.OneOf) > 0 {
+        return MergeLibOpenAPISubSchemas(schema)
+    }
+
+    if len(schema.Type) == 0 {
+        schema.Type = []string{"object"}
+    }
+
+    return schema
 }

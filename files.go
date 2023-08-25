@@ -154,7 +154,8 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
 
-		doc, err := NewKinDocumentFromFile(filePath)
+		// doc, err := NewKinDocumentFromFile(filePath)
+		doc, err := NewLibOpenAPIDocumentFromFile(filePath)
 		if err != nil {
 			return nil, err
 		}
