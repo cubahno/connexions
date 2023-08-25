@@ -17,6 +17,7 @@ func LoadServices(router *Router) error {
 
 	openAPIFiles := make([]*FileProperties, 0)
 	overwriteFiles := make([]*FileProperties, 0)
+	appCfg := router.Config.App
 
 	err := filepath.Walk(ServicePath, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -28,7 +29,7 @@ func LoadServices(router *Router) error {
 			return nil
 		}
 
-		fileProps, err := GetPropertiesFromFilePath(filePath)
+		fileProps, err := GetPropertiesFromFilePath(filePath, appCfg)
 		if err != nil {
 			log.Printf("Failed to get file properties from %s: %s\n", filePath, err.Error())
 			// don't return error, as we have more files to process

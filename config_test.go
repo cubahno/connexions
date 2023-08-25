@@ -197,6 +197,7 @@ services:
 				ServeUI:           true,
 				ServeSpec:         true,
 				ContextAreaPrefix: "from-",
+				SchemaProvider:    DefaultSchemaProvider,
 			},
 			Services: map[string]*ServiceConfig{
 				"foo": {
@@ -369,6 +370,7 @@ app:
 				ServeUI:           true,
 				ServeSpec:         true,
 				ContextAreaPrefix: "from-",
+				SchemaProvider:    DefaultSchemaProvider,
 			},
 		}
 
@@ -417,6 +419,7 @@ func TestNewDefaultConfig(t *testing.T) {
 			ServeUI:           true,
 			ServeSpec:         true,
 			ContextAreaPrefix: "in-",
+			SchemaProvider:    DefaultSchemaProvider,
 		},
 	}
 	assert.Equal(expected, cfg)

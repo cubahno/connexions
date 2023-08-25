@@ -12,10 +12,9 @@ type Any interface {
 	string | int | bool | float64 | any
 }
 
-// NULL is used to force resolve to None
+// NULL is used to force resolve to nil
 const (
-	NULL   = "__null__"
-	NONAME = "__noname__"
+	NULL = "__null__"
 )
 
 func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
@@ -273,7 +272,7 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 		return value + strings.Repeat("-", int(minLength)-len(value))
 	}
 
-	if int64(len(value)) > maxLength {
+	if maxLength > 0 && int64(len(value)) > maxLength {
 		return value[:maxLength]
 	}
 

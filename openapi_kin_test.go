@@ -1,9 +1,9 @@
 package connexions
 
 import (
-    "github.com/stretchr/testify/assert"
-    "path/filepath"
-    "testing"
+	"github.com/stretchr/testify/assert"
+	"path/filepath"
+	"testing"
 )
 
 func TestMergeSubSchemas(t *testing.T) {

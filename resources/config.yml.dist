@@ -13,6 +13,10 @@ app:
   # in-path:
   #   pet_id: 123
   contextAreaPrefix: in-
+  # Choose schema provider:
+  # - libopenapi:  https://github.com/pb33f/libopenapi
+  # - kin-openapi: https://github.com/getkin/kin-openapi
+  schemaProvider: libopenapi
 
 services:
   # service name is the first part of the path.

@@ -130,7 +130,6 @@ func (o *KinOperation) GetResponse() (OpenAPIResponse, int) {
 	return &KinResponse{available.Default().Value}, 200
 }
 
-
 func (r *KinResponse) GetContent() (string, *Schema) {
 	types := r.Content
 	if len(types) == 0 {

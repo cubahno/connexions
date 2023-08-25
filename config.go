@@ -72,6 +72,14 @@ const (
 	RootOpenAPIName = ".openapi"
 )
 
+type SchemaProvider string
+
+const (
+	KinOpenAPIProvider    SchemaProvider = "kin-openapi"
+	LibOpenAPIProvider    SchemaProvider = "libopenapi"
+	DefaultSchemaProvider SchemaProvider = LibOpenAPIProvider
+)
+
 // AppConfig is the app configuration.
 type AppConfig struct {
 	// Port is the port number to listen on.
@@ -90,6 +98,7 @@ type AppConfig struct {
 	ContextURL string `json:"contextUrl" koanf:"contextUrl"`
 
 	// ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place.
+	//
 	// for example:
 	// in-path:
 	//   user_id: "fake.ids.int8"
@@ -100,8 +109,10 @@ type AppConfig struct {
 	// The URL settings from above won't have any effect.
 	ServeUI bool `json:"serveUI" koanf:"serveUI"`
 
-	// ServeSpec is a flag whether or not to serve the OpenAPI spec.
+	// ServeSpec is a flag whether to serve the OpenAPI spec.
 	ServeSpec bool `json:"serveSpec" koanf:"serveSpec"`
+
+	SchemaProvider SchemaProvider `json:"schemaProvider" koanf:"schemaProvider"`
 }
 
 // IsValidPrefix returns true if the prefix is not a reserved URL.
@@ -173,6 +184,9 @@ func (c *Config) EnsureConfigValues() {
 	}
 	if app.ContextAreaPrefix == "" {
 		app.ContextAreaPrefix = defaultConfig.App.ContextAreaPrefix
+	}
+	if app.SchemaProvider == "" {
+		app.SchemaProvider = defaultConfig.App.SchemaProvider
 	}
 
 	c.App = app
@@ -284,6 +298,7 @@ func NewDefaultAppConfig() *AppConfig {
 		ServeUI:           true,
 		ServeSpec:         true,
 		ContextAreaPrefix: "in-",
+		SchemaProvider:    DefaultSchemaProvider,
 	}
 }
 

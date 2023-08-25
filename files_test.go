@@ -73,12 +73,13 @@ func TestGetRequestFile(t *testing.T) {
 
 func TestGetPropertiesFromFilePath(t *testing.T) {
 	assert := assert2.New(t)
+	appCfg := NewDefaultAppConfig()
 	t.Parallel()
 
 	t.Run("openapi-root", func(t *testing.T) {
 		t.SkipNow()
 		filePath := ServicePath + "/.openapi/index.yml"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		assert.Equal(&FileProperties{
 			ServiceName: "",
@@ -94,7 +95,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	t.Run("openapi-nested", func(t *testing.T) {
 		t.SkipNow()
 		filePath := ServicePath + "/.openapi/nice/dice/rice/index.yml"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		assert.Equal(&FileProperties{
 			ServiceName: "nice",
@@ -109,7 +110,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Run("service-root-direct", func(t *testing.T) {
 		filePath := ServicePath + "/.root/users.html"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "",
@@ -126,7 +127,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	// result should as above, in the .root
 	t.Run("service-direct", func(t *testing.T) {
 		filePath := ServicePath + "/users.html"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "",
@@ -142,7 +143,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Run("service-root-with-method", func(t *testing.T) {
 		filePath := ServicePath + "/.root/patch/users.html"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "",
@@ -158,7 +159,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Run("service-non-root-will-have-method-as-service", func(t *testing.T) {
 		filePath := ServicePath + "/patch/users.html"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "patch",
@@ -174,7 +175,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Run("service-without-method", func(t *testing.T) {
 		filePath := ServicePath + "/users/all/index.xml"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "users",
@@ -190,7 +191,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Run("service-with-index-file", func(t *testing.T) {
 		filePath := ServicePath + "/users/patch/id/{userId}/index.json"
-		props, _ := GetPropertiesFromFilePath(filePath)
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
 			ServiceName: "users",

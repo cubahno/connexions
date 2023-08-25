@@ -178,7 +178,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		File:        uploadedFile,
 	}
 
-	fileProps, err := saveService(payload, h.router.Config.App.IsValidPrefix)
+	fileProps, err := saveService(payload, h.router.Config.App)
 	if err != nil {
 		h.error(http.StatusBadRequest, err.Error(), w)
 		return
@@ -528,7 +528,8 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	h.success(fmt.Sprintf("Resource %s deleted!", path), w)
 }
 
-func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*FileProperties, error) {
+func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, error) {
+	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
 	service := payload.Name
 	content := payload.Response
@@ -581,7 +582,7 @@ func saveService(payload *ServicePayload, prefixValidator func(string) bool) (*F
 		return nil, err
 	}
 
-	fileProps, err := GetPropertiesFromFilePath(filePath)
+	fileProps, err := GetPropertiesFromFilePath(filePath, appCfg)
 	if err != nil {
 		_ = os.RemoveAll(filePath)
 		return nil, err

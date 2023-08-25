@@ -79,3 +79,14 @@ const (
 	ParameterInQuery  = "query"
 	ParameterInHeader = "header"
 )
+
+func NewDocumentFromFileFactory(provider SchemaProvider) func(string) (Document, error) {
+	switch provider {
+	case KinOpenAPIProvider:
+		return NewKinDocumentFromFile
+	case LibOpenAPIProvider:
+		return NewLibOpenAPIDocumentFromFile
+	default:
+		return NewLibOpenAPIDocumentFromFile
+	}
+}

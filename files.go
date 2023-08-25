@@ -127,7 +127,7 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 }
 
 // GetPropertiesFromFilePath gets properties of a file from its path.
-func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
+func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FileProperties, error) {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
 	contentType := mime.TypeByExtension(ext)
@@ -154,8 +154,7 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
 
-		// doc, err := NewKinDocumentFromFile(filePath)
-		doc, err := NewLibOpenAPIDocumentFromFile(filePath)
+		doc, err := NewDocumentFromFileFactory(appCfg.SchemaProvider)(filePath)
 		if err != nil {
 			return nil, err
 		}

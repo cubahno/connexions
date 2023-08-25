@@ -233,6 +233,11 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 
 		state := (&ReplaceState{}).WithName(name).WithURLParam()
 		replaced := valueResolver(schema, state)
+		replaced = fmt.Sprintf("%v", replaced)
+		if replaced == "" {
+			log.Printf("Warning: parameter '%s' not replaced in URL path", name)
+			continue
+		}
 		path = strings.Replace(path, "{"+name+"}", fmt.Sprintf("%v", replaced), -1)
 	}
 
