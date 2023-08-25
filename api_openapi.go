@@ -32,8 +32,8 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 		fileProps: fileProps,
 	}
 
-	for resName, pathItem := range doc.Paths {
-		for method, _ := range pathItem.Operations() {
+	for resName, resMethods := range doc.GetResources() {
+		for _, method := range resMethods {
 			// register route
 			router.MethodFunc(method, fileProps.Prefix+resName, handler.serve)
 
@@ -52,7 +52,7 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 
 type OpenAPIHandler struct {
 	router    *Router
-	spec      *Document
+	spec      Document
 	fileProps *FileProperties
 }
 
@@ -64,11 +64,6 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 
 	ctx := chi.RouteContext(r.Context())
 	resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
-	paths := doc.Paths[resourceName]
-	if paths == nil {
-		NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
-		return
-	}
 
 	currentMethod := r.Method
 	operation := doc.FindOperation(resourceName, currentMethod)
@@ -77,9 +72,9 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reqBody := operation.GetRequestBody()
+	reqBody, contentType := operation.GetRequestBody()
 	if serviceCfg.Validate.Request && reqBody != nil {
-		err := ValidateRequest(r, reqBody)
+		err := ValidateRequest(r, reqBody, contentType)
 		if err != nil {
 			log.Printf("error validating request: %v\n", err)
 			w.WriteHeader(http.StatusBadRequest)

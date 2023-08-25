@@ -5,23 +5,21 @@ import (
 )
 
 type ReplaceState struct {
-	NamePath                []string
-	ElementIndex            int
-	IsHeader                bool
-	IsPathParam             bool
-	ContentType             string
-	refPath                 []string
-	stopCircularArrayTripOn int
-	mu                      sync.Mutex
+	NamePath     []string
+	ElementIndex int
+	IsHeader     bool
+	IsPathParam  bool
+	ContentType  string
+	refPath      []string
+	mu           sync.Mutex
 }
 
 func (s *ReplaceState) NewFrom(src *ReplaceState) *ReplaceState {
 	return &ReplaceState{
-		NamePath:                src.NamePath,
-		IsHeader:                src.IsHeader,
-		ContentType:             src.ContentType,
-		stopCircularArrayTripOn: src.stopCircularArrayTripOn,
-		refPath:                 src.refPath,
+		NamePath:    src.NamePath,
+		IsHeader:    src.IsHeader,
+		ContentType: src.ContentType,
+		refPath:     src.refPath,
 	}
 }
 
@@ -59,7 +57,7 @@ func (s *ReplaceState) WithReference(name string) *ReplaceState {
 func (s *ReplaceState) WithElementIndex(value int) *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.stopCircularArrayTripOn = value + 1
+
 	s.ElementIndex = value
 	return s
 }
@@ -83,19 +81,4 @@ func (s *ReplaceState) WithContentType(value string) *ReplaceState {
 	defer s.mu.Unlock()
 	s.ContentType = value
 	return s
-}
-
-func (s *ReplaceState) IsReferenceVisited(name string) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, v := range s.refPath {
-		if v == name {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *ReplaceState) IsCircularArrayTrip(index int) bool {
-	return index+1 == s.stopCircularArrayTripOn
 }

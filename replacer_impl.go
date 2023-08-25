@@ -273,8 +273,8 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 		return value + strings.Repeat("-", int(minLength)-len(value))
 	}
 
-	if maxLength != nil && len(value) > int(*maxLength) {
-		return value[:int(*maxLength)]
+	if int64(len(value)) > maxLength {
+		return value[:maxLength]
 	}
 
 	return value
@@ -285,20 +285,20 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 		return value
 	}
 
-	reqMin := schema.Min
-	reqMax := schema.Max
+	reqMin := schema.Minimum
+	reqMax := schema.Maximum
 	multOf := schema.MultipleOf
 
-	if multOf != nil {
-		value = float64(int(value / *multOf)) * *multOf
+	if multOf != 0 {
+		value = float64(int(value/multOf)) * multOf
 	}
 
-	if reqMin != nil && value < *reqMin {
-		value = *reqMin
+	if reqMin != 0 && value < reqMin {
+		value = reqMin
 	}
 
-	if reqMax != nil && value > *reqMax {
-		value = *reqMax
+	if reqMax != 0 && value > reqMax {
+		value = reqMax
 	}
 
 	return value

@@ -3,7 +3,6 @@ package connexions
 import (
 	"github.com/stretchr/testify/assert"
 	"reflect"
-	"sync"
 	"testing"
 )
 
@@ -13,10 +12,9 @@ func TestReplaceState(t *testing.T) {
 			NamePath: []string{"foo", "bar"},
 		}
 		wanted := &ReplaceState{
-			NamePath:                []string{"foo", "bar"},
-			IsHeader:                false,
-			ContentType:             "",
-			stopCircularArrayTripOn: 0,
+			NamePath:    []string{"foo", "bar"},
+			IsHeader:    false,
+			ContentType: "",
 		}
 		if got := src.NewFrom(src); !reflect.DeepEqual(got, wanted) {
 			t.Errorf("NewFrom() = %v, expected %v", got, wanted)
@@ -39,33 +37,6 @@ func TestReplaceState(t *testing.T) {
 		assert.Equal(t, 10, res.ElementIndex)
 	})
 
-	t.Run("WithElementIndexRacing", func(t *testing.T) {
-		const numGoroutines = 1000
-		const targetValue = 42
-
-		// Create a shared ReplaceState
-		state := &ReplaceState{}
-
-		// Use a WaitGroup to wait for all goroutines to finish
-		var wg sync.WaitGroup
-		wg.Add(numGoroutines)
-
-		// Start multiple goroutines that concurrently call WithElementIndex
-		for i := 0; i < numGoroutines; i++ {
-			go func() {
-				defer wg.Done()
-				state.WithElementIndex(targetValue)
-			}()
-		}
-
-		// Wait for all goroutines to finish
-		wg.Wait()
-
-		if state.ElementIndex != targetValue || state.stopCircularArrayTripOn != targetValue+1 {
-			t.Errorf("State not consistent: ElementIndex = %d, stopCircularArrayTripOn = %d", state.ElementIndex, state.stopCircularArrayTripOn)
-		}
-	})
-
 	t.Run("WithHeader", func(t *testing.T) {
 		src := &ReplaceState{}
 
@@ -78,12 +49,5 @@ func TestReplaceState(t *testing.T) {
 
 		res := src.WithContentType("application/json")
 		assert.Equal(t, "application/json", res.ContentType)
-	})
-
-	t.Run("IsCircularArrayTrip", func(t *testing.T) {
-		src := &ReplaceState{}
-
-		res := src.WithElementIndex(10)
-		assert.True(t, res.IsCircularArrayTrip(10))
 	})
 }

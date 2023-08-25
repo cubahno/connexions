@@ -1,6 +1,11 @@
 package connexions
 
 import (
+	"context"
+	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
 	"net/http"
 	"regexp"
 	"strings"
@@ -55,4 +60,42 @@ func IsValidURLResource(urlPattern string) bool {
 
 func ExtractPlaceholders(urlPattern string) []string {
 	return PlaceholderRegex.FindAllString(urlPattern, -1)
+}
+
+func ValidateRequest(req *http.Request, body *Schema, contentType string) error {
+	inp := &openapi3filter.RequestValidationInput{Request: req}
+	schema := openapi3.NewSchema()
+	current, _ := json.Marshal(body)
+	_ = schema.UnmarshalJSON(current)
+
+	reqBody := openapi3.NewRequestBody().WithSchema(
+		schema,
+		[]string{contentType},
+	)
+	return openapi3filter.ValidateRequestBody(context.Background(), inp, reqBody)
+}
+
+// ValidateResponse validates a response against an operation.
+func ValidateResponse(req *http.Request, res *Response, operation Operationer) error {
+	kin, isKinOpenAPI := operation.(*KinOperation)
+	// if not kin openapi, skip validation for now
+	if !isKinOpenAPI {
+		return nil
+	}
+
+	inp := &openapi3filter.RequestValidationInput{
+		Request: req,
+		Route: &routers.Route{
+			Method:    req.Method,
+			Operation: kin.Operation,
+		},
+	}
+	responseValidationInput := &openapi3filter.ResponseValidationInput{
+		RequestValidationInput: inp,
+		Status:                 res.StatusCode,
+		Header:                 res.Headers,
+	}
+
+	responseValidationInput.SetBodyBytes(res.Content)
+	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }

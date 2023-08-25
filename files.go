@@ -50,7 +50,7 @@ type FileProperties struct {
 	ContentType string
 
 	// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
-	Spec *Document `json:"-"`
+	Spec Document `json:"-"`
 
 	// ValueReplacerFactory is the factory for creating value replacers in the file or resources.
 	// Non-OpenAPI files have to have values wrapped in curly braces to be replaced.
@@ -154,12 +154,12 @@ func GetPropertiesFromFilePath(filePath string) (*FileProperties, error) {
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
 
-		doc, err := NewDocumentFromFile(filePath)
+		doc, err := NewKinDocumentFromFile(filePath)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(doc.Paths) == 0 {
+		if doc.GetVersion() == "" {
 			return nil, ErrNoPathsInSchema
 		}
 

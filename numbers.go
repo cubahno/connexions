@@ -38,3 +38,10 @@ func ToFloat64(value interface{}) (float64, error) {
 		return 0, fmt.Errorf("unsupported type: %s", reflect.TypeOf(value))
 	}
 }
+
+func RemoveNumberPointer[T float64 | int64 | uint64](value *T) T {
+	if value == nil {
+		return 0
+	}
+	return *value
+}

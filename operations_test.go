@@ -284,9 +284,9 @@ func TestGenerateURL(t *testing.T) {
 			return "something-else"
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("id", "path", &Schema{Type: "integer"}),
-			NewOpenAPIParameter("file-id", "path", &Schema{Type: "string"}),
-			NewOpenAPIParameter("file-id", "query", &Schema{Type: "integer"}),
+			NewOpenAPIParameter("id", "path", CreateSchemaFromString(t, `{"type": "integer"}`)),
+			NewOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
+			NewOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
 		}
 		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
 		assert.Equal(t, "/users/123/foo", res)
@@ -305,8 +305,8 @@ func TestGenerateQuery(t *testing.T) {
 			return "something-else"
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("id", "query", &Schema{Type: "integer"}),
-			NewOpenAPIParameter("file-id", "query", &Schema{Type: "foo"}),
+			NewOpenAPIParameter("id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
+			NewOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "foo"}`)),
 		}
 		res := GenerateQuery(valueResolver, params)
 
@@ -322,14 +322,7 @@ func TestGenerateQuery(t *testing.T) {
 			NewOpenAPIParameter(
 				"tags",
 				"query",
-				&Schema{
-					Type: "array",
-					Items: &SchemaRef{
-						Value: &Schema{
-							Type: "string",
-						},
-					},
-				},
+				CreateSchemaFromString(t, `{"type": "array", "items": {"type": "string"}}`),
 			),
 		}
 		res := GenerateQuery(valueResolver, params)
@@ -346,7 +339,7 @@ func TestGenerateQuery(t *testing.T) {
 			NewOpenAPIParameter(
 				"id",
 				"query",
-				&Schema{Type: "integer"},
+				CreateSchemaFromString(t, `{"type": "integer"}`),
 			),
 		}
 		res := GenerateQuery(valueResolver, params)
@@ -472,7 +465,8 @@ func TestGenerateContent(t *testing.T) {
 			return nil
 		}
 		doc := CreateDocumentFromFile(t, filepath.Join(TestSchemaPath, "doc-with-circular-array.json"))
-		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
+		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
+		_, schema := resp.GetContent()
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -506,7 +500,8 @@ func TestGenerateContent(t *testing.T) {
 		}
 		filePath := filepath.Join(TestSchemaPath, "circular-with-references.json")
 		doc := CreateDocumentFromFile(t, filePath)
-		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
+		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
+		_, schema := resp.GetContent()
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -532,7 +527,8 @@ func TestGenerateContent(t *testing.T) {
 		}
 		filePath := filepath.Join(TestSchemaPath, "circular-with-inline.json")
 		doc := CreateDocumentFromFile(t, filePath)
-		schema := doc.Paths["/nodes/{id}"].Get.Responses.Get(200).Value.Content.Get("application/json").Schema.Value
+		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
+		_, schema := resp.GetContent()
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -650,84 +646,6 @@ func TestGenerateContentArray(t *testing.T) {
 	})
 }
 
-func TestGenerateRequestBody(t *testing.T) {
-	t.Run("GenerateRequestBody", func(t *testing.T) {
-		valueResolver := func(schema any, state *ReplaceState) any {
-			namePath := state.NamePath
-			for _, name := range namePath {
-				if name == "foo" {
-					return "bar"
-				}
-			}
-			return nil
-		}
-		schema := CreateSchemaFromString(t, `{
-			"type": "object",
-			"properties": {
-				"foo": {
-					"type": "string"
-				}
-			}
-	    }`)
-		reqBody := NewRequestBodyFromContent(NewContentWithJSONSchema(schema))
-		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
-
-		assert.Equal(t, "application/json", contentType)
-		assert.Equal(t, map[string]any{"foo": "bar"}, payload)
-	})
-
-	t.Run("GenerateRequestBody-first-from-encountered", func(t *testing.T) {
-		valueResolver := func(schema any, state *ReplaceState) any {
-			namePath := state.NamePath
-			for _, name := range namePath {
-				if name == "foo" {
-					return "bar"
-				}
-			}
-			return nil
-		}
-
-		schema := CreateSchemaFromString(t, `{
-			"type": "object",
-			"properties": {
-				"foo": {
-					"type": "string"
-				}
-			}
-	    }`)
-		reqBody := NewRequestBodyFromContent(map[string]*MediaType{
-			"application/xml": NewMediaTypeFromSchema(schema),
-		})
-		payload, contentType := GenerateRequestBody(reqBody, valueResolver, nil)
-
-		assert.Equal(t, "application/xml", contentType)
-		assert.Equal(t, map[string]any{"foo": "bar"}, payload)
-	})
-
-	t.Run("case-empty-body-reference", func(t *testing.T) {
-		payload, contentType := GenerateRequestBody(nil, nil, nil)
-
-		assert.Equal(t, "", contentType)
-		assert.Equal(t, nil, payload)
-	})
-
-	t.Run("case-empty-schema", func(t *testing.T) {
-		reqBody := &RequestBody{}
-		payload, contentType := GenerateRequestBody(reqBody, nil, nil)
-
-		assert.Equal(t, "", contentType)
-		assert.Equal(t, nil, payload)
-	})
-
-	t.Run("case-empty-content-types", func(t *testing.T) {
-		reqBody := NewRequestBodyFromContent(nil)
-		payload, contentType := GenerateRequestBody(reqBody, nil, nil)
-
-		assert.Equal(t, "", contentType)
-		assert.Equal(t, nil, payload)
-	})
-}
-
 func TestGenerateRequestHeaders(t *testing.T) {
 	t.Run("GenerateRequestHeaders", func(t *testing.T) {
 		valueResolver := func(schema any, state *ReplaceState) any {
@@ -744,16 +662,10 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			return nil
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "string"}),
-			NewOpenAPIParameter("Version", ParameterInHeader, &Schema{Type: "string"}),
-			NewOpenAPIParameter("Preferences", ParameterInHeader, &Schema{
-				Type: "object",
-				Properties: map[string]*SchemaRef{
-					"mode": {Value: &Schema{Type: "string"}},
-					"lang": {Value: &Schema{Type: "string"}},
-				},
-			}),
-			NewOpenAPIParameter("id", ParameterInHeader, &Schema{Type: "string"}),
+			NewOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
+			NewOpenAPIParameter("Version", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
+			NewOpenAPIParameter("Preferences", ParameterInHeader, CreateSchemaFromString(t, `{"type": "object", "properties": {"mode": {"type": "string"}, "lang": {"type": "string"}}}`)),
+			NewOpenAPIParameter("id", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
 		}
 
 		expected := map[string]any{
@@ -773,7 +685,7 @@ func TestGenerateRequestHeaders(t *testing.T) {
 		assert.Nil(t, res)
 	})
 
-	t.Run("schema-ref-is-nil", func(t *testing.T) {
+	t.Run("schema-is-nil", func(t *testing.T) {
 		params := OpenAPIParameters{NewOpenAPIParameter("", ParameterInHeader, nil)}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
@@ -800,12 +712,8 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			return nil
 		}
 		headers := OpenAPIHeaders{
-			"X-Rate-Limit-Limit": {
-				NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"}).Parameter,
-			},
-			"X-Rate-Limit-Remaining": {
-				NewOpenAPIParameter("X-Key", ParameterInHeader, &Schema{Type: "integer"}).Parameter,
-			},
+			"X-Rate-Limit-Limit":     NewOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "integer"}`)),
+			"X-Rate-Limit-Remaining": NewOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "integer"}`)),
 		}
 
 		expected := http.Header{
@@ -815,63 +723,5 @@ func TestGenerateResponseHeaders(t *testing.T) {
 
 		res := GenerateResponseHeaders(headers, valueResolver)
 		assert.Equal(t, expected, res)
-	})
-}
-
-func TestMergeSubSchemas(t *testing.T) {
-	t.Run("MergeSubSchemas", func(t *testing.T) {
-		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-with-sub-schemas.json"))
-		res := MergeSubSchemas(schema)
-		expectedProperties := []string{"user", "limit", "tag1", "tag2", "offset", "first"}
-
-		resProps := make([]string, 0)
-		for name, _ := range res.Properties {
-			resProps = append(resProps, name)
-		}
-
-		assert.ElementsMatch(t, expectedProperties, resProps)
-	})
-
-	t.Run("without-all-of-and-empty-one-of-schema", func(t *testing.T) {
-		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-without-all-of.json"))
-		res := MergeSubSchemas(schema)
-		expectedProperties := []string{"first", "second"}
-
-		resProps := make([]string, 0)
-		for name, _ := range res.Properties {
-			resProps = append(resProps, name)
-		}
-
-		assert.ElementsMatch(t, expectedProperties, resProps)
-	})
-
-	t.Run("with-allof-nil-schema", func(t *testing.T) {
-		schema := &Schema{
-			AllOf: []*SchemaRef{
-				{
-					Value: nil,
-				},
-			},
-		}
-		res := MergeSubSchemas(schema)
-		assert.Equal(t, "object", res.Type)
-	})
-
-	t.Run("with-anyof-nil-schema", func(t *testing.T) {
-		schema := &Schema{
-			AnyOf: []*SchemaRef{
-				{
-					Value: nil,
-				},
-			},
-		}
-		res := MergeSubSchemas(schema)
-		assert.Equal(t, "object", res.Type)
-	})
-
-	t.Run("empty-type-defaults-in-object", func(t *testing.T) {
-		schema := CreateSchemaFromString(t, `{"type": ""}`)
-		res := MergeSubSchemas(schema)
-		assert.Equal(t, "object", res.Type)
 	})
 }
