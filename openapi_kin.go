@@ -248,17 +248,14 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 
 func MergeKinSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	allOf := schema.AllOf
-	anyOf := schema.AnyOf
-	oneOf := schema.OneOf
 	not := schema.Not
 
 	if len(schema.Properties) == 0 {
 		schema.Properties = make(map[string]*openapi3.SchemaRef)
 	}
 
+	// reset
 	schema.AllOf = make([]*openapi3.SchemaRef, 0)
-	schema.AnyOf = make([]*openapi3.SchemaRef, 0)
-	schema.OneOf = make([]*openapi3.SchemaRef, 0)
 	schema.Not = nil
 
 	for _, schemaRef := range allOf {
@@ -271,6 +268,7 @@ func MergeKinSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 			schema.Properties[propertyName] = property
 		}
 
+		// gather fom the sub
 		schema.AllOf = append(schema.AllOf, sub.AllOf...)
 		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
 		schema.OneOf = append(schema.OneOf, sub.OneOf...)
@@ -278,13 +276,24 @@ func MergeKinSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 	}
 
 	// pick first from each if present
-	schemaRefs := [][]*openapi3.SchemaRef{anyOf, oneOf}
-	for _, schemaRef := range schemaRefs {
-		if len(schemaRef) == 0 {
+	var either []*openapi3.SchemaRef
+	if len(schema.AnyOf) > 0 {
+		either = append(either, schema.AnyOf[0])
+	}
+	if len(schema.OneOf) > 0 {
+		either = append(either, schema.OneOf[0])
+	}
+
+	// reset
+	schema.AnyOf = make([]*openapi3.SchemaRef, 0)
+	schema.OneOf = make([]*openapi3.SchemaRef, 0)
+
+	for _, schemaRef := range either {
+		if schemaRef == nil {
 			continue
 		}
 
-		sub := schemaRef[0].Value
+		sub := schemaRef.Value
 		if sub == nil {
 			continue
 		}
@@ -293,9 +302,6 @@ func MergeKinSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 			schema.Properties[propertyName] = property
 		}
 
-		schema.AllOf = append(schema.AllOf, sub.AllOf...)
-		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
-		schema.OneOf = append(schema.OneOf, sub.OneOf...)
 		schema.Required = append(schema.Required, sub.Required...)
 	}
 
@@ -316,7 +322,7 @@ func MergeKinSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
 		}
 	}
 
-	if len(schema.AllOf) > 0 || len(schema.AnyOf) > 0 || len(schema.OneOf) > 0 {
+	if len(schema.AllOf) > 0 {
 		return MergeKinSubSchemas(schema)
 	}
 
