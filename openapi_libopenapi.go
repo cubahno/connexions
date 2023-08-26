@@ -203,8 +203,11 @@ func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema
 	if s.Items != nil && s.Items.IsA() {
 		libItems := s.Items.A
 		ref := libItems.GetReference()
-
-		sub := NewSchemaFromLibOpenAPI(ref, libItems.Schema(), path)
+		p := path
+		if ref != "" {
+			p = append(p, ref)
+		}
+		sub := NewSchemaFromLibOpenAPI(ref, libItems.Schema(), p)
 		if sub == nil {
 			return nil
 		}
@@ -217,7 +220,7 @@ func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema
 	var properties map[string]*SchemaWithReference
 	if len(s.Properties) > 0 {
 		properties = make(map[string]*SchemaWithReference)
-		for name, sProxy := range s.Properties {
+		for propName, sProxy := range s.Properties {
 			ref := sProxy.GetReference()
 			p := path
 			if ref != "" {
@@ -228,7 +231,7 @@ func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema
 			if sub == nil {
 				continue
 			}
-			properties[name] = &SchemaWithReference{
+			properties[propName] = &SchemaWithReference{
 				Schema:    sub,
 				Reference: ref,
 			}
@@ -300,17 +303,14 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 
 func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
 	allOf := schema.AllOf
-	anyOf := schema.AnyOf
-	oneOf := schema.OneOf
 	not := schema.Not
 
 	if len(schema.Properties) == 0 {
 		schema.Properties = make(map[string]*base.SchemaProxy)
 	}
 
+	// reset
 	schema.AllOf = make([]*base.SchemaProxy, 0)
-	schema.AnyOf = make([]*base.SchemaProxy, 0)
-	schema.OneOf = make([]*base.SchemaProxy, 0)
 	schema.Not = nil
 
 	for _, schemaRef := range allOf {
@@ -323,6 +323,7 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
 			schema.Properties[propertyName] = property
 		}
 
+		// gather from the sub
 		schema.AllOf = append(schema.AllOf, sub.AllOf...)
 		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
 		schema.OneOf = append(schema.OneOf, sub.OneOf...)
@@ -330,11 +331,22 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
 	}
 
 	// pick first from each if present
-	schemaRefs := append(oneOf, anyOf...)
-	for _, schemaRef := range schemaRefs {
-		// if len(schemaRef) == 0 {
-		// 	continue
-		// }
+	var either []*base.SchemaProxy
+	if len(schema.AnyOf) > 0 {
+		either = append(either, schema.AnyOf[0])
+	}
+	if len(schema.OneOf) > 0 {
+		either = append(either, schema.OneOf[0])
+	}
+
+	// reset
+	schema.AnyOf = make([]*base.SchemaProxy, 0)
+	schema.OneOf = make([]*base.SchemaProxy, 0)
+
+	for _, schemaRef := range either {
+		if schemaRef == nil {
+			continue
+		}
 
 		sub := schemaRef.Schema()
 		if sub == nil {
@@ -345,9 +357,6 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
 			schema.Properties[propertyName] = property
 		}
 
-		schema.AllOf = append(schema.AllOf, sub.AllOf...)
-		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
-		schema.OneOf = append(schema.OneOf, sub.OneOf...)
 		schema.Required = append(schema.Required, sub.Required...)
 	}
 
@@ -368,7 +377,7 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
 		}
 	}
 
-	if len(schema.AllOf) > 0 || len(schema.AnyOf) > 0 || len(schema.OneOf) > 0 {
+	if len(schema.AllOf) > 0 {
 		return MergeLibOpenAPISubSchemas(schema)
 	}
 

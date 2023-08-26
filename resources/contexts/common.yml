@@ -6,6 +6,9 @@ phone_number: "alias:fake.phone.number"
 _phone_number$: "alias:fake.phone.number"
 ip_address: "alias:fake.internet.ipv4"
 _ip_address$: "alias:common.ip_address"
+email: "alias:fake.internet.email"
+_email$: "alias:fake.internet.email"
+_currency$: "alias:fake.currency.code"
 
 payment_method:
   type: ["cash", "card", "googlepay", "applepay", "wallet"]
