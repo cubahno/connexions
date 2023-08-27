@@ -547,7 +547,11 @@ func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.Schem
 		if ref != "" {
 			p = append(p, ref)
 		}
-		properties[name] = collectLibObjects(property, p)
+		rv := collectLibObjects(property, p)
+		if rv == nil {
+			continue
+		}
+		properties[name] = rv
 	}
 
 	schema.Properties = properties
@@ -584,10 +588,11 @@ func collectLibArrays(schemaProxy *base.SchemaProxy, path []string) *base.Schema
 	}
 
 	items := schema.Items.A
-	//itemsSchema := items.Schema()
-
-	//rr := collectLibArrays(items, path)
-	schema.Items.A = collectLibArrays(items, path)
+	rv := collectLibArrays(items, path)
+	if rv == nil {
+		return nil
+	}
+	schema.Items.A = rv
 
 	// set initial properties
 	// itemProperties := make(map[string]*base.SchemaProxy)

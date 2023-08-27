@@ -313,18 +313,22 @@ func TestCollectLibObjects_SimpleObjectCircular(t *testing.T) {
     expected := `
 type: object
 properties:
-  user:
-    type: object
-    properties:
-      name:
-        type: string
-      relatives:
+    user:
+        type: object
+        properties:
+            name:
+                type: string
+    relatives:
         type: array
         items:
-          type: object
-          properties:
-            name:
-              type: string
+            type: object
+            properties:
+                user:
+                    type: object
+                    properties:
+                        name:
+                            type: string
+
 `
     AssertLibYamlEqual(t, res.Schema(), expected)
 }
