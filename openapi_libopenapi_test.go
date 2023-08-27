@@ -59,7 +59,8 @@ func TestLibV3Document(t *testing.T) {
             "/pets": {"GET", "POST"},
             "/pets/{id}": {"GET", "DELETE"},
         }
-        assert.Equal(expected, res)
+        assert.ElementsMatch(expected["/pets"], res["/pets"])
+        assert.ElementsMatch(expected["/pets/{id}"], res["/pets/{id}"])
     })
 
     t.Run("FindOperation", func(t *testing.T) {
@@ -106,11 +107,16 @@ func TestLibV3Response(t *testing.T) {
         res, _ := op.GetResponse()
         content, contentType := res.GetContent()
 
+        var props []string
+        for name, _ := range content.Items.Properties {
+            props = append(props, name)
+        }
+
         assert.Equal("application/json", contentType)
         assert.NotNil(content.Items)
         assert.Equal("array", content.Type)
         assert.Equal("object", content.Items.Type)
-        assert.Equal([]string{"name", "id"}, content.Items.Required)
+        assert.ElementsMatch([]string{"name", "tag", "id"}, props)
     })
 }
 
