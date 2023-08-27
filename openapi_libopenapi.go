@@ -67,7 +67,7 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 		var schema *Schema
 		if param.Schema != nil {
 			px := param.Schema
-			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil), nil)
+			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil))
 		}
 
 		params = append(params, &OpenAPIParameter{
@@ -118,14 +118,14 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema
-			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil), nil), contentType
+			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil), nil), contentType
+		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
 	}
 
 	return nil, ""
@@ -141,13 +141,13 @@ func (r *LibV3Response) GetContent() (*Schema, string) {
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
 			px := types[contentType].Schema
-			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil), nil), contentType
+			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil), nil), contentType
+		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
 	}
 
 	return nil, ""
@@ -163,7 +163,7 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 		var schema *Schema
 		if header.Schema != nil {
 			px := header.Schema
-			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil), nil)
+			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil))
 		}
 
 		res[name] = &OpenAPIParameter{
@@ -176,66 +176,22 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 	return res
 }
 
-func NewSchemaFromLibOpenAPI(s *base.Schema, path []string) *Schema {
+func NewSchemaFromLibOpenAPI(s *base.Schema) *Schema {
 	if s == nil {
 		return nil
 	}
 
-	if len(path) == 0 {
-		path = make([]string, 0)
-	}
-
-	var items *SchemaWithReference
+	var items *Schema
 	if s.Items != nil && s.Items.IsA() {
 		libItems := s.Items.A
-
-		ref := ""
-		// ref := libItems.GetReference()
-		// if ref != "" {
-		// 	for _, pathItem := range path {
-		// 		if pathItem == ref {
-		// 			println("circular reference from array:", ref)
-		// 			return nil
-		// 		}
-		// 	}
-		// 	path = append(path, ref)
-		// }
-
-		sub := NewSchemaFromLibOpenAPI(libItems.Schema(), path)
-		if sub == nil {
-			// return nil
-		}
-		items = &SchemaWithReference{
-			Schema:    sub,
-			Reference: ref,
-		}
+		items = NewSchemaFromLibOpenAPI(libItems.Schema())
 	}
 
-	var properties map[string]*SchemaWithReference
+	var properties map[string]*Schema
 	if len(s.Properties) > 0 {
-		properties = make(map[string]*SchemaWithReference)
+		properties = make(map[string]*Schema)
 		for propName, sProxy := range s.Properties {
-			t := path
-			ref := ""
-			// ref := sProxy.GetReference()
-			// if ref != "" {
-			// 	for _, pathItem := range path {
-			// 		if pathItem == ref {
-			// 			println("circular reference from object:", ref)
-			// 			return nil
-			// 		}
-			// 	}
-			// 	t = append(t, ref)
-			// }
-
-			sub := NewSchemaFromLibOpenAPI(sProxy.Schema(), t)
-			if sub == nil {
-				continue
-			}
-			properties[propName] = &SchemaWithReference{
-				Schema:    sub,
-				Reference: ref,
-			}
+			properties[propName] = NewSchemaFromLibOpenAPI(sProxy.Schema())
 		}
 	}
 

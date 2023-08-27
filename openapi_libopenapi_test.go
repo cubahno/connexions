@@ -107,10 +107,10 @@ func TestLibV3Response(t *testing.T) {
         content, contentType := res.GetContent()
 
         assert.Equal("application/json", contentType)
-        assert.NotNil(content.Items.Schema)
+        assert.NotNil(content.Items)
         assert.Equal("array", content.Type)
-        assert.Equal("object", content.Items.Schema.Type)
-        assert.Equal([]string{"name", "id"}, content.Items.Schema.Required)
+        assert.Equal("object", content.Items.Type)
+        assert.Equal([]string{"name", "id"}, content.Items.Required)
     })
 }
 
@@ -120,7 +120,7 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
     doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
     libSchema := doc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
 
-    res := NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(libSchema, nil), nil)
+    res := NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(libSchema, nil))
 
     assert.NotNil(res)
     assert.True(true)

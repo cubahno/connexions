@@ -182,7 +182,7 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 		visited = make(map[string]bool)
 	}
 
-	var items *SchemaWithReference
+	var items *Schema
 	if s.Items != nil && s.Items.Value != nil {
 		if s.Items.Ref != "" {
 			if visited[s.Items.Ref] {
@@ -191,15 +191,12 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 
 			visited[s.Items.Ref] = true
 		}
-		items = &SchemaWithReference{
-			Schema:    NewSchemaFromKin(s.Items.Value, visited),
-			Reference: s.Items.Ref,
-		}
+		items = NewSchemaFromKin(s.Items.Value, visited)
 	}
 
-	var properties map[string]*SchemaWithReference
+	var properties map[string]*Schema
 	if len(s.Properties) > 0 {
-		properties = make(map[string]*SchemaWithReference)
+		properties = make(map[string]*Schema)
 		for name, ref := range s.Properties {
 			t := visited
 			if ref.Ref != "" && visited[ref.Ref] {
@@ -210,10 +207,7 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 				visited[ref.Ref] = true
 			}
 
-			properties[name] = &SchemaWithReference{
-				Schema:    NewSchemaFromKin(ref.Value, t),
-				Reference: ref.Ref,
-			}
+			properties[name] = NewSchemaFromKin(ref.Value, t)
 		}
 	}
 

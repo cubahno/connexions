@@ -10,7 +10,6 @@ type ReplaceState struct {
 	IsHeader     bool
 	IsPathParam  bool
 	ContentType  string
-	refPath      []string
 	mu           sync.Mutex
 }
 
@@ -19,7 +18,6 @@ func (s *ReplaceState) NewFrom(src *ReplaceState) *ReplaceState {
 		NamePath:    src.NamePath,
 		IsHeader:    src.IsHeader,
 		ContentType: src.ContentType,
-		refPath:     src.refPath,
 	}
 }
 
@@ -34,23 +32,6 @@ func (s *ReplaceState) WithName(name string) *ReplaceState {
 	namePath = append(namePath, name)
 
 	s.NamePath = namePath
-	return s
-}
-
-func (s *ReplaceState) WithReference(name string) *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if name == "" {
-		return s
-	}
-
-	refPath := s.refPath
-	if len(refPath) == 0 {
-		refPath = make([]string, 0)
-	}
-	refPath = append(refPath, name)
-	s.refPath = refPath
 	return s
 }
 

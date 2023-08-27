@@ -35,7 +35,7 @@ type Schema struct {
 	Examples []any `json:"examples,omitempty" yaml:"examples,omitempty"`
 
 	// items can be a schema in 2.0, 3.0 and 3.1 or a bool in 3.1
-	Items *SchemaWithReference `json:"items,omitempty" yaml:"items,omitempty"`
+	Items *Schema `json:"items,omitempty" yaml:"items,omitempty"`
 
 	// Compatible with all versions
 	MultipleOf    float64                         `json:"multipleOf,omitempty" yaml:"multipleOf,omitempty"`
@@ -51,18 +51,13 @@ type Schema struct {
 	MinProperties int64                           `json:"minProperties,omitempty" yaml:"minProperties,omitempty"`
 	Required      []string                        `json:"required,omitempty" yaml:"required,omitempty"`
 	Enum          []any                           `json:"enum,omitempty" yaml:"enum,omitempty"`
-	Properties    map[string]*SchemaWithReference `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Properties    map[string]*Schema `json:"properties,omitempty" yaml:"properties,omitempty"`
 	Default       any                             `json:"default,omitempty" yaml:"default,omitempty"`
 	Nullable      bool                            `json:"nullable,omitempty" yaml:"nullable,omitempty"`
 	ReadOnly      bool                            `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
 	WriteOnly     bool                            `json:"writeOnly,omitempty" yaml:"writeOnly,omitempty"`
 	Example       any                             `json:"example,omitempty" yaml:"example,omitempty"`
 	Deprecated    bool                            `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
-}
-
-type SchemaWithReference struct {
-	Reference string
-	Schema    *Schema
 }
 
 const (

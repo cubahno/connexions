@@ -343,8 +343,8 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 	}
 
 	for name, schemaRef := range schema.Properties {
-		s := state.NewFrom(state).WithName(name).WithReference(schemaRef.Reference)
-		res[name] = GenerateContentFromSchema(schemaRef.Schema, valueReplacer, s)
+		s := state.NewFrom(state).WithName(name)
+		res[name] = GenerateContentFromSchema(schemaRef, valueReplacer, s)
 	}
 
 	if len(res) == 0 {
@@ -367,7 +367,7 @@ func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *Re
 	var res []any
 
 	for i := 0; i < minItems+1; i++ {
-		item := GenerateContentFromSchema(schema.Items.Schema, valueReplacer, state.NewFrom(state).WithElementIndex(i))
+		item := GenerateContentFromSchema(schema.Items, valueReplacer, state.NewFrom(state).WithElementIndex(i))
 		if item == nil {
 			continue
 		}
