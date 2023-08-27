@@ -42,6 +42,16 @@ components:
           items:
             $ref: '#/components/schemas/PersonEmbeddable'
 
+    AddressWithAllOf:
+      allOf:
+        - $ref: '#/components/schemas/PersonEmbeddable'
+        - type: object
+          properties:
+            address:
+              allOf:
+                - $ref: '#/components/schemas/Country'
+                - $ref: '#/components/schemas/State'
+
     ObjectWithAllOfPersonAndEmployee:
       allOf:
         - type: object
