@@ -42,6 +42,27 @@ components:
           items:
             $ref: '#/components/schemas/PersonEmbeddable'
 
+    ObjectWithAllOfPersonAndEmployee:
+      allOf:
+        - type: object
+          properties:
+            user:
+              allOf:
+                - $ref: '#/components/schemas/PersonEmbeddable'
+                - type: object
+                  country:
+                    allOf:
+                      - $ref: '#/components/schemas/Country'
+                      - $ref: '#/components/schemas/State'
+        - $ref: '#/components/schemas/Employee'
+
+    ObjectOfUser:
+      allOf:
+        - type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/PersonEmbeddable'
+
     CityAndState:
       type: object
       properties:
@@ -54,6 +75,14 @@ components:
       type: object
       properties:
         name:
+          type: string
+
+    State:
+      type: object
+      properties:
+        name:
+          type: string
+        abbr:
           type: string
 
     Person:
@@ -114,13 +143,6 @@ components:
           properties:
             links:
               $ref: '#/components/schemas/FriendLinks'
-
-    ObjectOfUser:
-      allOf:
-        - type: object
-          properties:
-            user:
-              $ref: '#/components/schemas/PersonEmbeddable'
 
     ObjectOfUserWithInlinedArray:
       allOf:

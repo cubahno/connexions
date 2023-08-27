@@ -109,8 +109,6 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 
     res := NewSchemaFromLibOpenAPI(libSchema, nil)
 
-
-
     assert.NotNil(res)
     assert.True(true)
 }
@@ -119,29 +117,48 @@ func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
 
 }
 
-func TestMergeLibOpenAPISubSchemas_Circular(t *testing.T) {
+
+func TestMergeLibOpenAPISubSchemas(t *testing.T) {
     assert := assert2.New(t)
     t.Parallel()
     doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
-    libSchema := doc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
 
-    res := MergeLibOpenAPISubSchemas(libSchema, nil)
+    t.Run("ObjectOfUser", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["ObjectOfUser"]
+        assert.NotNil(libSchema)
 
-    rn, _ := res.Render()
-    println(rn)
+        res := mergeLibOpenAPISubSchemas(libSchema, nil)
+        expected := `
+type: object
+properties:
+   user:
+        type: object
+        properties:
+            name:
+                type: string
 
-    assert.NotNil(res)
-    assert.True(true)
-}
+`
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
 
-func TestMergeLibOpenAPISubSchemas_WithAllOfItemsArrayType(t *testing.T) {
-    // assert := assert2.New(t)
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["ArrayOfPersonAndEmployeeWithFriends"].Schema()
+    t.Run("Circular", func(t *testing.T) {
+        libSchema := doc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema
 
-    res := MergeLibOpenAPISubSchemas(libSchema, nil)
-    expected := `
+        res := mergeLibOpenAPISubSchemas(libSchema, nil)
+
+        rn, _ := res.Render()
+        println(rn)
+
+        assert.NotNil(res)
+        assert.True(true)
+    })
+
+    t.Run("WithAllOfItemsArrayType", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["ArrayOfPersonAndEmployeeWithFriends"]
+        assert.NotNil(libSchema)
+
+        res := mergeLibOpenAPISubSchemas(libSchema, nil)
+        expected := `
 type: array
 items:
     type: object
@@ -176,17 +193,15 @@ items:
                             city:
                                 type: string
 `
-    AssertLibYamlEqual(t, res, expected)
-}
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
 
-func TestMergeLibOpenAPISubSchemas_WithCircularArrayType(t *testing.T) {
-    // assert := assert2.New(t)
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["FriendLinks"].Schema()
+    t.Run("WithCircularArrayType", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["FriendLinks"]
+        assert.NotNil(libSchema)
 
-    res := MergeLibOpenAPISubSchemas(libSchema, nil)
-    expected := `
+        res := mergeLibOpenAPISubSchemas(libSchema, nil)
+        expected := `
 type: object
 properties:
     person:
@@ -205,17 +220,15 @@ properties:
                         name:
                             type: string
 `
-    AssertLibYamlEqual(t, res, expected)
-}
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
 
-func TestMergeLibOpenAPISubSchemas_ObjectOfPersonAndEmployeeWithFriends(t *testing.T) {
-    // assert := assert2.New(t)
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["ObjectOfPersonAndEmployeeWithFriends"].Schema()
+    t.Run("ObjectOfPersonAndEmployeeWithFriends", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["ObjectOfPersonAndEmployeeWithFriends"]
+        assert.NotNil(libSchema)
 
-    res := MergeLibOpenAPISubSchemas(libSchema, nil)
-    expected := `
+        res := mergeLibOpenAPISubSchemas(libSchema, nil)
+        expected := `
 type: object
 properties:
     person:
@@ -245,53 +258,35 @@ properties:
                         name:
                             type: string
 `
-    AssertLibYamlEqual(t, res, expected)
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
+
 }
 
-func TestMergeLibOpenAPISubSchemas_ObjectOfUser(t *testing.T) {
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["ObjectOfUser"].Schema()
-
-    res := MergeLibOpenAPISubSchemas(libSchema, nil)
-    expected := `
-type: object
-properties:
-   user:
-        type: object
-        properties:
-            name:
-                type: string
-
-`
-    AssertLibYamlEqual(t, res, expected)
-}
-
-func TestCollectLibObjects_SimpleArray(t *testing.T) {
+func TestCollectLibObjects(t *testing.T) {
     assert := assert2.New(t)
     t.Parallel()
     doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["SimpleArray"]
-    assert.NotNil(libSchema)
 
-    res := collectLibObjects(libSchema, nil)
-    expected := `
+    t.Run("SimpleArray", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["SimpleArray"]
+        assert.NotNil(libSchema)
+
+        res := collectLibObjects(libSchema, nil)
+        expected := `
 type: array
 items:
   type: string
 `
-    AssertLibYamlEqual(t, res.Schema(), expected)
-}
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
 
-func TestCollectLibObjects_SimpleArrayWithRef(t *testing.T) {
-    assert := assert2.New(t)
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["SimpleArrayWithRef"]
-    assert.NotNil(libSchema)
+    t.Run("SimpleArrayWithRef", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["SimpleArrayWithRef"]
+        assert.NotNil(libSchema)
 
-    res := collectLibObjects(libSchema, nil)
-    expected := `
+        res := collectLibObjects(libSchema, nil)
+        expected := `
 type: array
 items:
   type: object
@@ -299,18 +294,15 @@ items:
     name:
       type: string
 `
-    AssertLibYamlEqual(t, res.Schema(), expected)
-}
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
 
-func TestCollectLibObjects_SimpleObjectCircular(t *testing.T) {
-    assert := assert2.New(t)
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["SimpleObjectCircular"]
-    assert.NotNil(libSchema)
+    t.Run("SimpleObjectCircular", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["SimpleObjectCircular"]
+        assert.NotNil(libSchema)
 
-    res := collectLibObjects(libSchema, nil)
-    expected := `
+        res := collectLibObjects(libSchema, nil)
+        expected := `
 type: object
 properties:
     user:
@@ -330,18 +322,15 @@ properties:
                             type: string
 
 `
-    AssertLibYamlEqual(t, res.Schema(), expected)
-}
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
 
-func TestCollectLibObjects_ObjectsWithReferencesAndArrays(t *testing.T) {
-    assert := assert2.New(t)
-    t.Parallel()
-    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
-    libSchema := doc.Model.Components.Schemas["ObjectsWithReferencesAndArrays"]
-    assert.NotNil(libSchema)
+    t.Run("ObjectsWithReferencesAndArrays", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["ObjectsWithReferencesAndArrays"]
+        assert.NotNil(libSchema)
 
-    res := collectLibObjects(libSchema, nil)
-    expected := `
+        res := collectLibObjects(libSchema, nil)
+        expected := `
 type: object
 properties:
     relatives:
@@ -364,8 +353,87 @@ properties:
             name:
                 type: string
 `
-    AssertLibYamlEqual(t, res.Schema(), expected)
-    assert.True(true)
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
+
+    t.Run("ObjectWithAllOfPersonAndEmployee", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["ObjectWithAllOfPersonAndEmployee"]
+        assert.NotNil(libSchema)
+
+        res := collectLibObjects(libSchema, nil)
+        expected := `
+type: object
+properties:
+  user:
+    type: object
+    properties:
+      name:
+        type: string
+  employeeId:
+    type: integer
+`
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
+}
+
+
+func TestCollectLibArrays(t *testing.T) {
+    assert := assert2.New(t)
+    t.Parallel()
+    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
+
+
+    t.Run("ArrayOfPersonAndEmployeeWithFriends", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["ArrayOfPersonAndEmployeeWithFriends"]
+        assert.NotNil(libSchema)
+
+        res := collectLibArrays(libSchema, nil)
+        expected := `
+type: array
+items:
+    type: object
+    properties:
+        name:
+            type: string
+        age:
+            type: integer
+        employeeId:
+            type: integer
+        address:
+            type: object
+            properties:
+                state:
+                    type: string
+                city:
+                    type: string
+        friends:
+            type: array
+            items:
+                type: object
+                properties: 
+                    name:   
+                        type: string
+                    age:    
+                        type: integer
+                    address:
+                        type: object
+                        properties:
+                            state:
+                                type: string
+                            city:
+                                type: string
+`
+        AssertLibYamlEqual(t, res.Schema(), expected)
+    })
+
+    t.Run("", func(t *testing.T) {
+
+    })
+
+    t.Run("", func(t *testing.T) {
+
+    })
+
 }
 
 func TestPicklLibOpenAPISchemaProxy(t *testing.T) {

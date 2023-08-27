@@ -185,7 +185,7 @@ func NewSchemaFromLibOpenAPI(s *base.Schema, path []string) *Schema {
 		path = make([]string, 0)
 	}
 
-	s = MergeLibOpenAPISubSchemas(s, path)
+	//s = MergeLibOpenAPISubSchemas(s, path)
 
 	var items *SchemaWithReference
 	if s.Items != nil && s.Items.IsA() {
@@ -244,14 +244,6 @@ func NewSchemaFromLibOpenAPI(s *base.Schema, path []string) *Schema {
 		typ = s.Type[0]
 	}
 
-	// if typ == TypeObject && len(properties) == 0 {
-	// 	return nil
-	// }
-	//
-	// if typ == TypeArray && items == nil {
-	// 	return nil
-	// }
-
 	return &Schema{
 		Type:          typ,
 		Items:         items,
@@ -302,7 +294,7 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	return &LibV3Document{model}, nil
 }
 
-func MergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema {
+func MergeLibOpenAPISubSchemas2(schema *base.Schema, path []string) *base.Schema {
 	if len(path) == 0 {
 		path = make([]string, 0)
 	}
@@ -322,7 +314,7 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 	not := schema.Not
 
 	for propertyName, property := range schema.Properties {
-		resolved := MergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName))
+		resolved := MergeLibOpenAPISubSchemas2(property.Schema(), append(path, propertyName))
 		if resolved == nil {
 			delete(schema.Properties, propertyName)
 			continue
@@ -348,7 +340,7 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 		itemProperties := make(map[string]*base.SchemaProxy)
 		for currentName, currentProperty := range itemsSchema.Properties {
 
-			resolved := MergeLibOpenAPISubSchemas(currentProperty.Schema(), append(path, currentName))
+			resolved := MergeLibOpenAPISubSchemas2(currentProperty.Schema(), append(path, currentName))
 			if resolved == nil {
 				delete(itemsSchema.Properties, currentName)
 				continue
@@ -365,7 +357,7 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 			})
 		}
 
-		resolved := MergeLibOpenAPISubSchemas(itemsSchema, path)
+		resolved := MergeLibOpenAPISubSchemas2(itemsSchema, path)
 		for resName, resProperty := range resolved.Properties {
 			itemProperties[resName] = resProperty
 		}
@@ -400,7 +392,7 @@ func MergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 		}
 
 		for propertyName, property := range sub.Properties {
-			resolved := MergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName))
+			resolved := MergeLibOpenAPISubSchemas2(property.Schema(), append(path, propertyName))
 			if resolved == nil {
 				continue
 			}
@@ -521,10 +513,68 @@ func PicklLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 	return items[0]
 }
 
-func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.SchemaProxy {
+func NormalizeLibOpenAPISchema(schema *base.Schema, path []string) *Schema {
+	return nil
+}
+
+func mergeLibOpenAPISubSchemas(schemaProxy *base.SchemaProxy, path []string) *base.SchemaProxy {
+	if len(path) == 0 {
+		path = make([]string, 0)
+	}
+
 	if isPathRepeated(path) {
 		return nil
 	}
+
+	schema := schemaProxy.Schema()
+
+	allOf := schema.AllOf
+	anyOf := schema.AnyOf
+	oneOf := schema.OneOf
+	not := schema.Not
+
+	// base case: schema is flat
+	if len(allOf) == 0 && len(anyOf) == 0 && len(oneOf) == 0 && not == nil {
+		return schemaProxy
+	}
+
+	// reset
+	schema.AllOf = nil
+	schema.AnyOf = nil
+	schema.OneOf = nil
+	schema.Not = nil
+
+	properties := schema.Properties
+	if len(properties) == 0 {
+		properties = make(map[string]*base.SchemaProxy)
+	}
+
+	for _, schemaRef := range allOf {
+		if schemaRef == nil {
+			continue
+		}
+		// it might have it deep-nested. resolve 'em all here.
+		// sub := mergeLibOpenAPISubSchemas(schemaRef, path)
+		// if sub == nil {
+		// 	continue
+		// }
+		for propertyName, property := range schemaRef.Schema().Properties {
+			properties[propertyName] = mergeLibOpenAPISubSchemas(property, append(path, propertyName))
+		}
+	}
+
+	schema.Properties = properties
+	schema.Type = []string{TypeObject}
+
+	return base.CreateSchemaProxy(schema)
+}
+
+func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.SchemaProxy {
+	if schemaProxy == nil || isPathRepeated(path) {
+		return nil
+	}
+
+	schemaProxy = mergeLibOpenAPISubSchemas(schemaProxy, path)
 
 	schema := schemaProxy.Schema()
 	typ := ""
@@ -537,7 +587,8 @@ func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.Schem
 	}
 
 	if typ != TypeObject {
-		return schemaProxy
+		merged := mergeLibOpenAPISubSchemas(schemaProxy, path)
+		return merged
 	}
 
 	properties := make(map[string]*base.SchemaProxy)
@@ -551,7 +602,9 @@ func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.Schem
 		if rv == nil {
 			continue
 		}
-		properties[name] = rv
+		// flat allOf, ...
+		flatted := mergeLibOpenAPISubSchemas(rv, p)
+		properties[name] = flatted
 	}
 
 	schema.Properties = properties
@@ -560,12 +613,13 @@ func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.Schem
 }
 
 func collectLibArrays(schemaProxy *base.SchemaProxy, path []string) *base.SchemaProxy {
-	if isPathRepeated(path) {
+	if schemaProxy == nil || isPathRepeated(path) {
 		return nil
 	}
 
 	schema := schemaProxy.Schema()
 	ref := schemaProxy.GetReference()
+	// ref := ""
 	if ref != "" {
 		path = append(path, schemaProxy.GetReference())
 	}
@@ -580,7 +634,8 @@ func collectLibArrays(schemaProxy *base.SchemaProxy, path []string) *base.Schema
 	}
 
 	if typ != TypeArray {
-		return schemaProxy
+		merged := mergeLibOpenAPISubSchemas(schemaProxy, path)
+		return merged
 	}
 
 	if schema.Items != nil && !schema.Items.IsA() {
@@ -592,7 +647,11 @@ func collectLibArrays(schemaProxy *base.SchemaProxy, path []string) *base.Schema
 	if rv == nil {
 		return nil
 	}
-	schema.Items.A = rv
+
+	rv2 := mergeLibOpenAPISubSchemas(rv, path)
+
+
+	schema.Items.A = rv2
 
 	// set initial properties
 	// itemProperties := make(map[string]*base.SchemaProxy)
