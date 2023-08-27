@@ -1,0 +1,167 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Files
+paths:
+  /files:
+    get:
+      operationId: getFiles
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - $ref: '#/components/schemas/file'
+        default:
+          description: unexpected error
+components:
+  schemas:
+    file:
+      properties:
+        created:
+          format: unix-time
+          type: integer
+        expires_at:
+          format: unix-time
+          nullable: true
+          type: integer
+        filename:
+          maxLength: 5000
+          nullable: true
+          type: string
+        id:
+          maxLength: 5000
+          type: string
+        author:
+            anyOf:
+                - $ref: '#/components/schemas/user'
+                - maxLength: 50
+                  type: string
+        links:
+          nullable: true
+          properties:
+            data:
+              items:
+                $ref: '#/components/schemas/file_link'
+              type: array
+            has_more:
+              type: boolean
+            object:
+              enum:
+                - list
+              type: string
+            url:
+              maxLength: 5000
+              pattern: ^/v1/file_links
+              type: string
+          required:
+            - data
+            - has_more
+            - object
+            - url
+          type: object
+        object:
+          enum:
+            - file
+          type: string
+        purpose:
+          enum:
+            - account_requirement
+            - additional_verification
+            - business_icon
+            - business_logo
+            - customer_signature
+            - dispute_evidence
+            - document_provider_identity_document
+            - finance_report_run
+            - identity_document
+            - identity_document_downloadable
+            - pci_document
+            - selfie
+            - sigma_scheduled_query
+            - tax_document_user_upload
+            - terminal_reader_splashscreen
+          type: string
+        size:
+          type: integer
+        title:
+          maxLength: 5000
+          nullable: true
+          type: string
+        type:
+          maxLength: 5000
+          nullable: true
+          type: string
+        url:
+          maxLength: 5000
+          nullable: true
+          type: string
+      required:
+        - created
+        - id
+        - object
+        - purpose
+        - size
+      type: object
+
+    file_link:
+      properties:
+        created:
+          format: unix-time
+          type: integer
+        expired:
+          type: boolean
+        expires_at:
+          format: unix-time
+          nullable: true
+          type: integer
+        file:
+          anyOf:
+            - maxLength: 5000
+              type: string
+            - $ref: '#/components/schemas/file'
+        id:
+          maxLength: 5000
+          type: string
+        livemode:
+          type: boolean
+        metadata:
+          additionalProperties:
+            maxLength: 500
+            type: string
+          type: object
+        object:
+          enum:
+            - file_link
+          type: string
+        url:
+          maxLength: 5000
+          nullable: true
+          type: string
+      required:
+        - created
+        - expired
+        - file
+        - id
+        - livemode
+        - metadata
+        - object
+      type: object
+
+    user:
+      properties:
+        id:
+          maxLength: 50
+          type: string
+        avatar:
+          anyOf:
+            - $ref: '#/components/schemas/file'
+            - maxLength: 50
+              type: string
+      required:
+          - id
+      type: object

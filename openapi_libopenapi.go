@@ -30,10 +30,7 @@ type LibV3Response struct {
 }
 
 func (d *LibV3Document) GetVersion() string {
-	if d.Model.Info == nil {
-		return ""
-	}
-	return d.Model.Info.Version
+	return d.Model.Version
 }
 
 func (d *LibV3Document) GetResources() map[string][]string {
@@ -70,7 +67,7 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 		var schema *Schema
 		if param.Schema != nil {
 			px := param.Schema
-			schema = NewSchemaFromLibOpenAPI(px.GetReference(), px.Schema(), nil)
+			schema = NewSchemaFromLibOpenAPI(px.Schema(), nil)
 		}
 
 		params = append(params, &OpenAPIParameter{
@@ -121,39 +118,39 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema
-			return NewSchemaFromLibOpenAPI(px.GetReference(), px.Schema(), nil), contentType
+			return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(px.GetReference(), px.Schema(), nil), contentType
+		return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
 	}
 
 	return nil, ""
 }
 
-func (r *LibV3Response) GetContent() (string, *Schema) {
+func (r *LibV3Response) GetContent() (*Schema, string) {
 	types := r.Content
 	if len(types) == 0 {
-		return "", nil
+		return nil, ""
 	}
 
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
 			px := types[contentType].Schema
-			return contentType, NewSchemaFromLibOpenAPI(px.GetReference(), px.Schema(), nil)
+			return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
 		px := mediaType.Schema
-		return contentType, NewSchemaFromLibOpenAPI(px.GetReference(), px.Schema(), nil)
+		return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
 	}
 
-	return "", nil
+	return nil, ""
 }
 
 func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
@@ -166,7 +163,7 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 		var schema *Schema
 		if header.Schema != nil {
 			px := header.Schema
-			schema = NewSchemaFromLibOpenAPI(px.GetReference(), px.Schema(), nil)
+			schema = NewSchemaFromLibOpenAPI(px.Schema(), nil)
 		}
 
 		res[name] = &OpenAPIParameter{
@@ -179,7 +176,7 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 	return res
 }
 
-func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema {
+func NewSchemaFromLibOpenAPI(s *base.Schema, path []string) *Schema {
 	if s == nil {
 		return nil
 	}
@@ -188,28 +185,26 @@ func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema
 		path = make([]string, 0)
 	}
 
-	if name != "" {
-		for _, p := range path {
-			if p == name {
-				return nil
-			}
-		}
-		path = append(path, name)
-	}
-
-	s = MergeLibOpenAPISubSchemas(s)
+	s = MergeLibOpenAPISubSchemas(s, path)
 
 	var items *SchemaWithReference
 	if s.Items != nil && s.Items.IsA() {
 		libItems := s.Items.A
+
 		ref := libItems.GetReference()
-		p := path
 		if ref != "" {
-			p = append(p, ref)
+			for _, pathItem := range path {
+				if pathItem == ref {
+					println("circular reference from array:", ref)
+					return nil
+				}
+			}
+			path = append(path, ref)
 		}
-		sub := NewSchemaFromLibOpenAPI(ref, libItems.Schema(), p)
+
+		sub := NewSchemaFromLibOpenAPI(libItems.Schema(), path)
 		if sub == nil {
-			return nil
+			// return nil
 		}
 		items = &SchemaWithReference{
 			Schema:    sub,
@@ -221,13 +216,19 @@ func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema
 	if len(s.Properties) > 0 {
 		properties = make(map[string]*SchemaWithReference)
 		for propName, sProxy := range s.Properties {
+			t := path
 			ref := sProxy.GetReference()
-			p := path
 			if ref != "" {
-				p = append(p, ref)
+				for _, pathItem := range path {
+					if pathItem == ref {
+						println("circular reference from object:", ref)
+						return nil
+					}
+				}
+				t = append(t, ref)
 			}
 
-			sub := NewSchemaFromLibOpenAPI(ref, sProxy.Schema(), p)
+			sub := NewSchemaFromLibOpenAPI(sProxy.Schema(), t)
 			if sub == nil {
 				continue
 			}
@@ -243,13 +244,13 @@ func NewSchemaFromLibOpenAPI(name string, s *base.Schema, path []string) *Schema
 		typ = s.Type[0]
 	}
 
-	if typ == TypeObject && len(properties) == 0 {
-		return nil
-	}
-
-	if typ == TypeArray && items == nil {
-		return nil
-	}
+	// if typ == TypeObject && len(properties) == 0 {
+	// 	return nil
+	// }
+	//
+	// if typ == TypeArray && items == nil {
+	// 	return nil
+	// }
 
 	return &Schema{
 		Type:          typ,
@@ -301,89 +302,319 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	return &LibV3Document{model}, nil
 }
 
-func MergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
+func MergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema {
+	if len(path) == 0 {
+		path = make([]string, 0)
+	}
+
+	// detect circular references
+	visited := make(map[string]bool)
+	for _, item := range path {
+		if _, ok := visited[item]; ok {
+			return nil
+		}
+		visited[item] = true
+	}
+
 	allOf := schema.AllOf
+	anyOf := schema.AnyOf
+	oneOf := schema.OneOf
 	not := schema.Not
 
-	if len(schema.Properties) == 0 {
-		schema.Properties = make(map[string]*base.SchemaProxy)
+	for propertyName, property := range schema.Properties {
+		resolved := MergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName))
+		if resolved == nil {
+			delete(schema.Properties, propertyName)
+			continue
+		}
+
+		objProperties := make(map[string]*base.SchemaProxy)
+		if len(resolved.Properties) > 0 {
+			for resName, resProperty := range resolved.Properties {
+				objProperties[resName] = resProperty
+			}
+			schema.Properties[propertyName] = base.CreateSchemaProxy(&base.Schema{
+				Type:       []string{"object"},
+				Properties: objProperties,
+			})
+		}
 	}
 
-	// reset
-	schema.AllOf = make([]*base.SchemaProxy, 0)
-	schema.Not = nil
+	if schema.Items != nil && schema.Items.IsA() {
+		items := schema.Items.A
+		itemsSchema := items.Schema()
+
+		// set initial properties
+		itemProperties := make(map[string]*base.SchemaProxy)
+		for currentName, currentProperty := range itemsSchema.Properties {
+
+			resolved := MergeLibOpenAPISubSchemas(currentProperty.Schema(), append(path, currentName))
+			if resolved == nil {
+				delete(itemsSchema.Properties, currentName)
+				continue
+			}
+			resProperties := make(map[string]*base.SchemaProxy)
+			for resName, resProperty := range resolved.Properties {
+				resProperties[resName] = resProperty
+			}
+
+			itemProperties[currentName] = base.CreateSchemaProxy(&base.Schema{
+				Type:       currentProperty.Schema().Type,
+				Properties: resProperties,
+				Items:      resolved.Items,
+			})
+		}
+
+		resolved := MergeLibOpenAPISubSchemas(itemsSchema, path)
+		for resName, resProperty := range resolved.Properties {
+			itemProperties[resName] = resProperty
+		}
+		schema.Items = &base.DynamicValue[*base.SchemaProxy, bool]{
+			A: base.CreateSchemaProxy(&base.Schema{
+				Type:       []string{"object"},
+				Properties: itemProperties,
+			}),
+		}
+	}
+
+	// schema is flat
+	if len(allOf) == 0 && len(anyOf) == 0 && len(oneOf) == 0 && not == nil {
+		return schema
+	}
+
+	// can contain only references or schema objects,
+	// not primitive types like strings, numbers, or booleans
+	properties := make(map[string]*base.SchemaProxy)
+	var items *base.DynamicValue[*base.SchemaProxy, bool]
+	var typ []string
+
+	if len(allOf) > 0 {
+		typ = []string{"object"}
+	}
 
 	for _, schemaRef := range allOf {
+		// take each item and resolve it
 		sub := schemaRef.Schema()
 		if sub == nil {
 			continue
 		}
 
 		for propertyName, property := range sub.Properties {
-			schema.Properties[propertyName] = property
+			resolved := MergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName))
+			if resolved == nil {
+				continue
+			}
+			if resolved == nil {
+				// delete(schema.Properties, propertyName)
+				continue
+			}
+
+			objProperties := make(map[string]*base.SchemaProxy)
+			if len(resolved.Properties) > 0 {
+				for resName, resProperty := range resolved.Properties {
+					objProperties[resName] = resProperty
+				}
+			}
+			properties[propertyName] = base.CreateSchemaProxy(&base.Schema{
+				Type:       resolved.Type,
+				Properties: objProperties,
+			})
 		}
+
+		// resolved := MergeLibOpenAPISubSchemas(sub, nil)
+		// if resolved == nil {
+		// 	continue
+		// }
+
+		// // reference can only be an object in allOf
+		// // we're composing new properties
+		// for propertyName, property := range resolved.Properties {
+		// 	properties[propertyName] = property
+		// }
+
+		// if sub.Items != nil && sub.Items.IsA() {
+		// 	subPx := sub.Items.A
+		// 	ref := subPx.GetReference()
+		// 	subSchema := subPx.Schema()
+		// 	schema.Items
+		// }
 
 		// gather from the sub
-		schema.AllOf = append(schema.AllOf, sub.AllOf...)
-		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
-		schema.OneOf = append(schema.OneOf, sub.OneOf...)
-		schema.Required = append(schema.Required, sub.Required...)
+		// schema.AllOf = append(schema.AllOf, sub.AllOf...)
+		// schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
+		// schema.OneOf = append(schema.OneOf, sub.OneOf...)
+		// schema.Required = append(schema.Required, sub.Required...)
 	}
 
-	// pick first from each if present
-	var either []*base.SchemaProxy
-	if len(schema.AnyOf) > 0 {
-		either = append(either, schema.AnyOf[0])
-	}
-	if len(schema.OneOf) > 0 {
-		either = append(either, schema.OneOf[0])
-	}
-
+	// pick one from each
+	// either := []*base.SchemaProxy{
+	// 	PicklLibOpenAPISchemaProxy(schema.AnyOf),
+	// 	PicklLibOpenAPISchemaProxy(schema.OneOf),
+	// }
 	// reset
-	schema.AnyOf = make([]*base.SchemaProxy, 0)
-	schema.OneOf = make([]*base.SchemaProxy, 0)
+	//schema.AnyOf = make([]*base.SchemaProxy, 0)
+	//schema.OneOf = make([]*base.SchemaProxy, 0)
 
-	for _, schemaRef := range either {
-		if schemaRef == nil {
+	// for _, schemaRef := range either {
+	// 	if schemaRef == nil {
+	// 		continue
+	// 	}
+	//
+	// 	sub := schemaRef.Schema()
+	// 	if sub == nil {
+	// 		continue
+	// 	}
+	//
+	// 	// ...
+	// 	for propertyName, property := range sub.Properties {
+	// 		schema.Properties[propertyName] = property
+	// 	}
+	//
+	// 	schema.Required = append(schema.Required, sub.Required...)
+	// }
+	//
+	// // exclude properties from `not`
+	// if not != nil {
+	// 	notSchema := not.Schema()
+	// 	deletes := map[string]bool{}
+	// 	for propertyName, _ := range notSchema.Properties {
+	// 		delete(schema.Properties, propertyName)
+	// 		deletes[propertyName] = true
+	// 	}
+	//
+	// 	// remove from required properties
+	// 	for i, propertyName := range schema.Required {
+	// 		if _, ok := deletes[propertyName]; ok {
+	// 			schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
+	// 		}
+	// 	}
+	// }
+
+	// if len(schema.AllOf) > 0 {
+	// 	return MergeLibOpenAPISubSchemas(schema, path)
+	// }
+
+	return &base.Schema{
+		Type:       typ,
+		Properties: properties,
+		Items: items,
+	}
+}
+
+// PicklLibOpenAPISchemaProxy returns the first non-nil schema proxy with reference
+// or the first non-nil schema proxy if none of them have reference.
+func PicklLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
+	if len(items) == 0 {
+		return nil
+	}
+
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
 
-		sub := schemaRef.Schema()
-		if sub == nil {
-			continue
-		}
-
-		for propertyName, property := range sub.Properties {
-			schema.Properties[propertyName] = property
-		}
-
-		schema.Required = append(schema.Required, sub.Required...)
-	}
-
-	// exclude properties from `not`
-	if not != nil {
-		notSchema := not.Schema()
-		deletes := map[string]bool{}
-		for propertyName, _ := range notSchema.Properties {
-			delete(schema.Properties, propertyName)
-			deletes[propertyName] = true
-		}
-
-		// remove from required properties
-		for i, propertyName := range schema.Required {
-			if _, ok := deletes[propertyName]; ok {
-				schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
-			}
+		if item.GetReference() != "" {
+			return item
 		}
 	}
 
-	if len(schema.AllOf) > 0 {
-		return MergeLibOpenAPISubSchemas(schema)
+	return items[0]
+}
+
+func collectLibObjects(schemaProxy *base.SchemaProxy, path []string) *base.SchemaProxy {
+	if isPathRepeated(path) {
+		return nil
 	}
 
-	if len(schema.Type) == 0 {
-		schema.Type = []string{"object"}
+	schema := schemaProxy.Schema()
+	typ := ""
+	if len(schema.Type) > 0 {
+		typ = schema.Type[0]
 	}
 
-	return schema
+	if typ == TypeArray {
+		return collectLibArrays(schemaProxy, path)
+	}
+
+	if typ != TypeObject {
+		return schemaProxy
+	}
+
+	properties := make(map[string]*base.SchemaProxy)
+	for name, property := range schema.Properties {
+		p := path
+		ref := property.GetReference()
+		if ref != "" {
+			p = append(p, ref)
+		}
+		properties[name] = collectLibObjects(property, p)
+	}
+
+	schema.Properties = properties
+
+	return base.CreateSchemaProxy(schema)
+}
+
+func collectLibArrays(schemaProxy *base.SchemaProxy, path []string) *base.SchemaProxy {
+	if isPathRepeated(path) {
+		return nil
+	}
+
+	schema := schemaProxy.Schema()
+	ref := schemaProxy.GetReference()
+	if ref != "" {
+		path = append(path, schemaProxy.GetReference())
+	}
+
+	typ := ""
+	if len(schema.Type) > 0 {
+		typ = schema.Type[0]
+	}
+
+	if typ == TypeObject {
+		return collectLibObjects(schemaProxy, path)
+	}
+
+	if typ != TypeArray {
+		return schemaProxy
+	}
+
+	if schema.Items != nil && !schema.Items.IsA() {
+		return nil
+	}
+
+	items := schema.Items.A
+	//itemsSchema := items.Schema()
+
+	//rr := collectLibArrays(items, path)
+	schema.Items.A = collectLibArrays(items, path)
+
+	// set initial properties
+	// itemProperties := make(map[string]*base.SchemaProxy)
+	// for currentName, currentProperty := range itemsSchema.Properties {
+	// 	resolved := collectLibArrays(currentProperty)
+	// 	itemProperties[currentName] = resolved
+	// }
+
+
+
+	// return base.CreateSchemaProxy(&base.Schema{
+	// 	Type:       []string{TypeArray},
+	// 	Items: &base.DynamicValue[*base.SchemaProxy, bool]{
+	// 		A: rr,
+	// 	},
+	// })
+	return base.CreateSchemaProxy(schema)
+}
+
+func isPathRepeated(path []string) bool {
+	// detect circular references
+	visited := make(map[string]bool)
+	for _, item := range path {
+		if _, ok := visited[item]; ok {
+			return true
+		}
+		visited[item] = true
+	}
+	return false
 }

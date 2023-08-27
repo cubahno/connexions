@@ -30,10 +30,7 @@ func NewKinDocumentFromFile(filePath string) (Document, error) {
 }
 
 func (d *KinDocument) GetVersion() string {
-	if d.Info == nil {
-		return ""
-	}
-	return d.Info.Version
+	return d.OpenAPI
 }
 
 func (d *KinDocument) GetResources() map[string][]string {
@@ -130,24 +127,24 @@ func (o *KinOperation) GetResponse() (OpenAPIResponse, int) {
 	return &KinResponse{available.Default().Value}, 200
 }
 
-func (r *KinResponse) GetContent() (string, *Schema) {
+func (r *KinResponse) GetContent() (*Schema, string) {
 	types := r.Content
 	if len(types) == 0 {
-		return "", nil
+		return nil, ""
 	}
 
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
-			return contentType, NewSchemaFromKin(types[contentType].Schema.Value, nil)
+			return NewSchemaFromKin(types[contentType].Schema.Value, nil), contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
-		return contentType, NewSchemaFromKin(mediaType.Schema.Value, nil)
+		return NewSchemaFromKin(mediaType.Schema.Value, nil), contentType
 	}
 
-	return "", nil
+	return nil, ""
 }
 
 func (r *KinResponse) GetHeaders() OpenAPIHeaders {

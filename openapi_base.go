@@ -13,7 +13,7 @@ type Operationer interface {
 }
 
 type OpenAPIResponse interface {
-	GetContent() (string, *Schema)
+	GetContent() (*Schema, string)
 	GetHeaders() OpenAPIHeaders
 }
 

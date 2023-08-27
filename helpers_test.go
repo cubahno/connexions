@@ -8,15 +8,6 @@ import (
 	"testing"
 )
 
-func CreateDocumentFromFile(t *testing.T, filePath string) Document {
-	doc, err := NewKinDocumentFromFile(filePath)
-	if err != nil {
-		t.Errorf("Error loading document: %v", err)
-		t.FailNow()
-	}
-	return doc
-}
-
 func CreateKinSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 	schema := openapi3.NewSchema()
 	err := json.Unmarshal([]byte(src), schema)
@@ -27,45 +18,11 @@ func CreateKinSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 	return schema
 }
 
-func CreateKinSchemaFromFile(t *testing.T, filePath string) *openapi3.Schema {
-	cont, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Errorf("Error reading file: %v", err)
-		t.FailNow()
-	}
-
-	// remove schema key if pre
-	tmp := make(map[string]any)
-	_ = json.Unmarshal(cont, &tmp)
-	if _, ok := tmp["schema"]; ok {
-		cont, _ = json.Marshal(tmp["schema"])
-	}
-
-	return CreateKinSchemaFromString(t, string(cont))
-}
-
 func CreateSchemaFromString(t *testing.T, src string) *Schema {
 	return NewSchemaFromKin(CreateKinSchemaFromString(t, src), nil)
 }
 
-func CreateSchemaFromFile(t *testing.T, filePath string) *Schema {
-	cont, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Errorf("Error reading file: %v", err)
-		t.FailNow()
-	}
-
-	// remove schema key if pre
-	tmp := make(map[string]any)
-	_ = json.Unmarshal(cont, &tmp)
-	if _, ok := tmp["schema"]; ok {
-		cont, _ = json.Marshal(tmp["schema"])
-	}
-
-	return CreateSchemaFromString(t, string(cont))
-}
-
-func CreateOperationFromString(t *testing.T, src string) Operationer {
+func CreateKinOperationFromString(t *testing.T, src string) Operationer {
 	res := &KinOperation{Operation: openapi3.NewOperation()}
 	err := json.Unmarshal([]byte(src), res)
 	if err != nil {
@@ -75,7 +32,7 @@ func CreateOperationFromString(t *testing.T, src string) Operationer {
 	return res
 }
 
-func CreateOperationFromFile(t *testing.T, filePath string) Operationer {
+func CreateKinOperationFromFile(t *testing.T, filePath string) Operationer {
 	cont, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Errorf("Error reading file: %v", err)
@@ -89,15 +46,7 @@ func CreateOperationFromFile(t *testing.T, filePath string) Operationer {
 		cont, _ = json.Marshal(tmp["operation"])
 	}
 
-	return CreateOperationFromString(t, string(cont))
-}
-
-func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
-	return &OpenAPIParameter{
-		Name:   name,
-		In:     in,
-		Schema: schema,
-	}
+	return CreateKinOperationFromString(t, string(cont))
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {

@@ -1,0 +1,162 @@
+openapi: 3.0.0
+info:
+  title: Array with allOf Property Example
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    SimpleArray:
+      type: array
+      items:
+        type: string
+
+    SimpleArrayWithRef:
+      type: array
+      items:
+        $ref: '#/components/schemas/PersonEmbeddable'
+
+    SimpleObjectCircular:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/PersonEmbeddable'
+        relatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimpleObjectCircular'
+
+    ObjectsWithReferencesAndArrays:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            name:
+              type: string
+            friends:
+              type: array
+              items:
+                  $ref: '#/components/schemas/PersonEmbeddable'
+        relatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonEmbeddable'
+
+    CityAndState:
+      type: object
+      properties:
+        city:
+          type: string
+        state:
+          type: string
+
+    Country:
+      type: object
+      properties:
+        name:
+          type: string
+
+    Person:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        address:
+          allOf:
+            - $ref: '#/components/schemas/CityAndState'
+
+    PersonEmbeddable:
+      type: object
+      properties:
+        name:
+          type: string
+
+    Employee:
+      type: object
+      properties:
+        employeeId:
+          type: integer
+
+    PersonAndEmployee:
+      allOf:
+        - $ref: '#/components/schemas/Person'
+        - $ref: '#/components/schemas/Employee'
+
+    Friends:
+      type: array
+      items:
+        $ref: '#/components/schemas/Person'
+
+    ArrayOfPersonAndEmployee:
+      type: array
+      items:
+        allOf:
+          - $ref: '#/components/schemas/Person'
+          - $ref: '#/components/schemas/Employee'
+
+    ArrayOfPersonAndEmployeeWithFriends:
+      type: array
+      items:
+        allOf:
+          - $ref: '#/components/schemas/Person'
+          - $ref: '#/components/schemas/Employee'
+        properties:
+          friends:
+            $ref: '#/components/schemas/Friends'
+
+    ObjectOfPersonAndEmployeeWithFriends:
+      allOf:
+        - $ref: '#/components/schemas/Person'
+        - $ref: '#/components/schemas/Employee'
+        - type: object
+          properties:
+            links:
+              $ref: '#/components/schemas/FriendLinks'
+
+    ObjectOfUser:
+      allOf:
+        - type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/PersonEmbeddable'
+
+    ObjectOfUserWithInlinedArray:
+      allOf:
+        - type: object
+          properties:
+            user:
+              type: array
+              items:
+                $ref: '#/components/schemas/PersonEmbeddable'
+                minItems: 2
+
+    FriendLinks:
+      type: object
+      properties:
+        person:
+          $ref: '#/components/schemas/PersonEmbeddable'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/FriendLinks'
+
+#    Relationships:
+#      type: object
+#      properties:
+#        family:
+#          type: object
+#          allOf:
+#            - $ref: '#/components/schemas/Person'
+#            - $ref: '#/components/schemas/Employee'
+#
+#        friend:
+#          oneOf:
+#            - type: string
+#            - $ref: '#/components/schemas/PersonEmbeddable'
+#        parent:
+#          anyOf:
+#            - type: string
+#            - $ref: '#/components/schemas/PersonEmbeddable'
+#            - $ref: '#/components/schemas/PersonEmbeddable'

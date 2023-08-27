@@ -162,7 +162,7 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 
 	headers := GenerateResponseHeaders(response.GetHeaders(), valueReplacer)
 
-	contentType, contentSchema := response.GetContent()
+	contentSchema, contentType := response.GetContent()
 	if contentType == "" {
 		contentType = "text/plain"
 	}

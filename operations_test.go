@@ -6,10 +6,45 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
+	return &OpenAPIParameter{
+		Name:   name,
+		In:     in,
+		Schema: schema,
+	}
+}
+
+func CreateKinDocumentFromFile(t *testing.T, filePath string) Document {
+	doc, err := NewKinDocumentFromFile(filePath)
+	if err != nil {
+		t.Errorf("Error loading document: %v", err)
+		t.FailNow()
+	}
+	return doc
+}
+
+func CreateSchemaFromFile(t *testing.T, filePath string) *Schema {
+	cont, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Errorf("Error reading file: %v", err)
+		t.FailNow()
+	}
+
+	// remove schema key if pre
+	tmp := make(map[string]any)
+	_ = json.Unmarshal(cont, &tmp)
+	if _, ok := tmp["schema"]; ok {
+		cont, _ = json.Marshal(tmp["schema"])
+	}
+
+	return CreateSchemaFromString(t, string(cont))
+}
 
 func TestNewRequestFromOperation(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
@@ -24,7 +59,7 @@ func TestNewRequestFromOperation(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation.json"))
+		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation.json"))
 		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
 
 		expectedBodyM := map[string]any{
@@ -201,7 +236,7 @@ func TestNewResponse(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-base.json"))
+		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-base.json"))
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
@@ -232,7 +267,7 @@ func TestNewResponse(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-without-content-type.json"))
+		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-without-content-type.json"))
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
@@ -464,9 +499,9 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		doc := CreateDocumentFromFile(t, filepath.Join(TestSchemaPath, "doc-with-circular-array.json"))
+		doc := CreateKinDocumentFromFile(t, filepath.Join(TestSchemaPath, "doc-with-circular-array.json"))
 		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
-		_, schema := resp.GetContent()
+		schema, _ := resp.GetContent()
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -499,9 +534,9 @@ func TestGenerateContent(t *testing.T) {
 			return nil
 		}
 		filePath := filepath.Join(TestSchemaPath, "circular-with-references.json")
-		doc := CreateDocumentFromFile(t, filePath)
+		doc := CreateKinDocumentFromFile(t, filePath)
 		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
-		_, schema := resp.GetContent()
+		schema, _ := resp.GetContent()
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -526,9 +561,9 @@ func TestGenerateContent(t *testing.T) {
 			return nil
 		}
 		filePath := filepath.Join(TestSchemaPath, "circular-with-inline.json")
-		doc := CreateDocumentFromFile(t, filePath)
+		doc := CreateKinDocumentFromFile(t, filePath)
 		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
-		_, schema := resp.GetContent()
+		schema, _ := resp.GetContent()
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{

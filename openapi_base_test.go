@@ -8,14 +8,14 @@ import (
 
 func TestOperation(t *testing.T) {
 	t.Run("GetResponse", func(t *testing.T) {
-		operation := CreateOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
+		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
 		_, code := operation.GetResponse()
 
 		assert.Equal(t, 200, code)
 	})
 
 	t.Run("get-first-defined", func(t *testing.T) {
-		operation := CreateOperationFromString(t, `
+		operation := CreateKinOperationFromString(t, `
 			{
 				"responses": {
                     "500": {
@@ -33,7 +33,7 @@ func TestOperation(t *testing.T) {
 	})
 
 	t.Run("get-default-if-nothing-else", func(t *testing.T) {
-		operation := CreateOperationFromString(t, `
+		operation := CreateKinOperationFromString(t, `
 			{
 				"responses": {
                     "default": {

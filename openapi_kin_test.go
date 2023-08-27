@@ -1,10 +1,30 @@
 package connexions
 
 import (
+	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"path/filepath"
 	"testing"
 )
+
+func CreateKinSchemaFromFile(t *testing.T, filePath string) *openapi3.Schema {
+	cont, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Errorf("Error reading file: %v", err)
+		t.FailNow()
+	}
+
+	// remove schema key if pre
+	tmp := make(map[string]any)
+	_ = json.Unmarshal(cont, &tmp)
+	if _, ok := tmp["schema"]; ok {
+		cont, _ = json.Marshal(tmp["schema"])
+	}
+
+	return CreateKinSchemaFromString(t, string(cont))
+}
 
 func TestMergeSubSchemas(t *testing.T) {
 	t.Run("MergeKinSubSchemas", func(t *testing.T) {
