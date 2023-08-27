@@ -29,6 +29,30 @@ type LibV3Response struct {
 	*v3high.Response
 }
 
+func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
+	src, _ := os.ReadFile(filePath)
+
+	lib, err := libopenapi.NewDocument(src)
+	if err != nil {
+		return nil, err
+	}
+	model, errs := lib.BuildV3Model()
+	if len(errs) > 0 {
+		for i := range errs {
+			if circError, ok := errs[i].(*resolver.ResolvingError); ok {
+				log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
+					circError.Error(),
+					circError.CircularReference.LoopPoint.Node.Line,
+					circError.CircularReference.IsPolymorphicResult)
+				return &LibV3Document{model}, nil
+			}
+		}
+		return nil, errs[0]
+	}
+
+	return &LibV3Document{model}, nil
+}
+
 func (d *LibV3Document) GetVersion() string {
 	return d.Model.Version
 }
@@ -224,30 +248,6 @@ func NewSchemaFromLibOpenAPI(s *base.Schema) *Schema {
 		Example:       s.Example,
 		Deprecated:    RemovePointer(s.Deprecated),
 	}
-}
-
-func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
-	src, _ := os.ReadFile(filePath)
-
-	lib, err := libopenapi.NewDocument(src)
-	if err != nil {
-		return nil, err
-	}
-	model, errs := lib.BuildV3Model()
-	if len(errs) > 0 {
-		for i := range errs {
-			if circError, ok := errs[i].(*resolver.ResolvingError); ok {
-				log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
-					circError.Error(),
-					circError.CircularReference.LoopPoint.Node.Line,
-					circError.CircularReference.IsPolymorphicResult)
-				return &LibV3Document{model}, nil
-			}
-		}
-		return nil, errs[0]
-	}
-
-	return &LibV3Document{model}, nil
 }
 
 // PicklLibOpenAPISchemaProxy returns the first non-nil schema proxy with reference

@@ -8,7 +8,6 @@ import (
     "testing"
 )
 
-
 func CreateLibDocumentFromFile(t *testing.T, filePath string) Document {
     doc, err := NewLibOpenAPIDocumentFromFile(filePath)
     if err != nil {
@@ -16,19 +15,6 @@ func CreateLibDocumentFromFile(t *testing.T, filePath string) Document {
         t.FailNow()
     }
     return doc
-}
-
-func AssertLibYamlEqual(t *testing.T, schema *base.Schema, expected string) {
-    assert := assert2.New(t)
-    renderedYaml, _ := schema.RenderInline()
-    var resYaml any
-    _ = yaml.Unmarshal(renderedYaml, &resYaml)
-
-    var expectedYaml any
-    err := yaml.Unmarshal([]byte(expected), &expectedYaml)
-    assert.Nil(err)
-
-    assert.Equal(expectedYaml, resYaml)
 }
 
 func GetLibYamlExpectations(t *testing.T, schema *base.Schema, expected string) (any, any, []byte) {
@@ -42,6 +28,10 @@ func GetLibYamlExpectations(t *testing.T, schema *base.Schema, expected string) 
     assert.Nil(err)
 
     return expectedYaml, resYaml, renderedYaml
+}
+
+func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
+
 }
 
 func TestLibV3Document(t *testing.T) {
@@ -132,10 +122,6 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
     assert.True(true)
 }
 
-func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
-
-}
-
 func TestCollectLibObjects(t *testing.T) {
     assert := assert2.New(t)
     t.Parallel()
@@ -169,7 +155,9 @@ items:
     name:
       type: string
 `
-        AssertLibYamlEqual(t, res, expected)
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
     })
 
     t.Run("SimpleObjectCircular", func(t *testing.T) {
@@ -230,7 +218,9 @@ properties:
             name:
                 type: string
 `
-        AssertLibYamlEqual(t, res, expected)
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
     })
 
     t.Run("AddressWithAllOf", func(t *testing.T) {
