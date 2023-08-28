@@ -38,26 +38,26 @@ type Schema struct {
 	Items *Schema `json:"items,omitempty" yaml:"items,omitempty"`
 
 	// Compatible with all versions
-	MultipleOf    float64                         `json:"multipleOf,omitempty" yaml:"multipleOf,omitempty"`
-	Maximum       float64                         `json:"maximum,omitempty" yaml:"maximum,omitempty"`
-	Minimum       float64                         `json:"minimum,omitempty" yaml:"minimum,omitempty"`
-	MaxLength     int64                           `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
-	MinLength     int64                           `json:"minLength,omitempty" yaml:"minLength,omitempty"`
-	Pattern       string                          `json:"pattern,omitempty" yaml:"pattern,omitempty"`
-	Format        string                          `json:"format,omitempty" yaml:"format,omitempty"`
-	MaxItems      int64                           `json:"maxItems,omitempty" yaml:"maxItems,omitempty"`
-	MinItems      int64                           `json:"minItems,omitempty" yaml:"minItems,omitempty"`
-	MaxProperties int64                           `json:"maxProperties,omitempty" yaml:"maxProperties,omitempty"`
-	MinProperties int64                           `json:"minProperties,omitempty" yaml:"minProperties,omitempty"`
-	Required      []string                        `json:"required,omitempty" yaml:"required,omitempty"`
-	Enum          []any                           `json:"enum,omitempty" yaml:"enum,omitempty"`
+	MultipleOf    float64            `json:"multipleOf,omitempty" yaml:"multipleOf,omitempty"`
+	Maximum       float64            `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	Minimum       float64            `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	MaxLength     int64              `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
+	MinLength     int64              `json:"minLength,omitempty" yaml:"minLength,omitempty"`
+	Pattern       string             `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Format        string             `json:"format,omitempty" yaml:"format,omitempty"`
+	MaxItems      int64              `json:"maxItems,omitempty" yaml:"maxItems,omitempty"`
+	MinItems      int64              `json:"minItems,omitempty" yaml:"minItems,omitempty"`
+	MaxProperties int64              `json:"maxProperties,omitempty" yaml:"maxProperties,omitempty"`
+	MinProperties int64              `json:"minProperties,omitempty" yaml:"minProperties,omitempty"`
+	Required      []string           `json:"required,omitempty" yaml:"required,omitempty"`
+	Enum          []any              `json:"enum,omitempty" yaml:"enum,omitempty"`
 	Properties    map[string]*Schema `json:"properties,omitempty" yaml:"properties,omitempty"`
-	Default       any                             `json:"default,omitempty" yaml:"default,omitempty"`
-	Nullable      bool                            `json:"nullable,omitempty" yaml:"nullable,omitempty"`
-	ReadOnly      bool                            `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
-	WriteOnly     bool                            `json:"writeOnly,omitempty" yaml:"writeOnly,omitempty"`
-	Example       any                             `json:"example,omitempty" yaml:"example,omitempty"`
-	Deprecated    bool                            `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
+	Default       any                `json:"default,omitempty" yaml:"default,omitempty"`
+	Nullable      bool               `json:"nullable,omitempty" yaml:"nullable,omitempty"`
+	ReadOnly      bool               `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
+	WriteOnly     bool               `json:"writeOnly,omitempty" yaml:"writeOnly,omitempty"`
+	Example       any                `json:"example,omitempty" yaml:"example,omitempty"`
+	Deprecated    bool               `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 }
 
 const (
