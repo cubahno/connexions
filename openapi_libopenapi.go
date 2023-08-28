@@ -272,13 +272,13 @@ func PicklLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 
 func NormalizeLibOpenAPISchema(schema *base.Schema, path []string) *base.Schema {
 	if schema == nil || isPathRepeated(path) {
-		return &base.Schema{}
+		return &base.Schema{Title: "circular-reference"}
 	}
 	if len(path) == 0 {
 		path = make([]string, 0)
 	}
 
-	schema = mergeLibOpenAPISubSchemas(schema, path)
+	schema = mergeLibOpenAPISubSchemas(schema)
 
 	typ := ""
 	if len(schema.Type) > 0 {
@@ -311,7 +311,7 @@ func NormalizeLibOpenAPISchema(schema *base.Schema, path []string) *base.Schema 
 			p = append(p, propRef)
 		}
 		rv := NormalizeLibOpenAPISchema(propSchema, p)
-		if rv == nil {
+		if rv == nil || rv.Title == "circular-reference" {
 			continue
 		}
 
@@ -325,7 +325,7 @@ func NormalizeLibOpenAPISchema(schema *base.Schema, path []string) *base.Schema 
 	if schema.Items != nil && schema.Items.IsA() {
 		items := schema.Items.A
 		rv := NormalizeLibOpenAPISchema(items.Schema(), path)
-		if rv == nil {
+		if rv == nil || rv.Title == "circular-reference" {
 			return nil
 		}
 		schema.Items.A = base.CreateSchemaProxy(rv)
@@ -335,15 +335,7 @@ func NormalizeLibOpenAPISchema(schema *base.Schema, path []string) *base.Schema 
 	return schema
 }
 
-func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema {
-	if len(path) == 0 {
-		path = make([]string, 0)
-	}
-
-	if isPathRepeated(path) {
-		return base.CreateSchemaProxy(&base.Schema{}).Schema()
-	}
-
+func mergeLibOpenAPISubSchemas(schema *base.Schema) *base.Schema {
 	allOf := schema.AllOf
 	anyOf := schema.AnyOf
 	oneOf := schema.OneOf
@@ -369,8 +361,6 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 		required = make([]string, 0)
 	}
 
-	items := make(map[string]*base.SchemaProxy, 0)
-
 	impliedType := ""
 	if len(allOf) > 0 {
 		impliedType = TypeObject
@@ -388,7 +378,7 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 		}
 
 		subSchema := schemaRef.Schema()
-		if subSchema == nil {
+		if subSchema == nil || subSchema.Title == "circular-reference" {
 			continue
 		}
 
@@ -406,23 +396,12 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 
 		if impliedType == TypeObject {
 			for propertyName, property := range subSchema.Properties {
-				merged := mergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName))
-				properties[propertyName] = base.CreateSchemaProxy(merged)
-				//properties[propertyName] = base.CreateSchemaProxy(property.Schema())
-				if merged != nil && len(merged.Required) > 0 {
-					required = append(required, merged.Required...)
-				}
+				properties[propertyName] = property
 			}
 		}
 
 		if impliedType == TypeArray && subSchema.Items.IsA() {
-			subItems := subSchema.Items.A
-			merged := mergeLibOpenAPISubSchemas(subItems.Schema(), path)
-			if merged != nil {
-				for itemName, itemSchema := range merged.Properties {
-					items[itemName] = itemSchema
-				}
-			}
+			schema.Items = subSchema.Items
 		}
 	}
 
@@ -434,36 +413,9 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 			delete(properties, propertyName)
 			deletes[propertyName] = true
 		}
-
-		// remove from required properties
-		for i, propertyName := range schema.Required {
-			if _, ok := deletes[propertyName]; ok {
-				required = append(schema.Required[:i], schema.Required[i+1:]...)
-			}
-		}
-	}
-
-	if len(required) == 0 {
-		required = nil
-	}
-
-	var itemsSchema *base.SchemaProxy
-	if len(items) > 0 {
-		itemsSchema = base.CreateSchemaProxy(&base.Schema{
-			Type:       []string{TypeObject},
-			Properties: items,
-		})
-		if schema.Items == nil {
-			schema.Items = &base.DynamicValue[*base.SchemaProxy, bool]{
-				A: itemsSchema,
-			}
-		} else {
-			schema.Items.A = itemsSchema
-		}
 	}
 
 	schema.Properties = properties
-	schema.Required = required
 	schema.Type = []string{impliedType}
 
 	return schema

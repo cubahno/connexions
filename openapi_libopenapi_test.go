@@ -183,12 +183,51 @@ properties:
                     properties:
                         name:
                             type: string
-                relatives: {}
 `
 		expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
 		assert.Greater(len(rendered), 0)
 		assert.Equal(expectedYaml, actualYaml)
 	})
+
+    t.Run("SimpleObjectCircularNested", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["SimpleObjectCircularNested"].Schema()
+        assert.NotNil(libSchema)
+
+        res := NormalizeLibOpenAPISchema(libSchema, nil)
+        expected := `
+type: object
+properties:
+    user:
+        type: object
+        properties:
+            name:
+                type: string
+    address:
+        type: object
+        properties:
+            neighbors:
+                type: array
+                items:
+                    type: object
+                    properties:
+                        user:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+            supervisor:
+                type: object
+                properties:
+                    user:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+`
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
+    })
 
 	t.Run("ObjectsWithReferencesAndArrays", func(t *testing.T) {
 		libSchema := doc.Model.Components.Schemas["ObjectsWithReferencesAndArrays"].Schema()
@@ -406,6 +445,19 @@ properties:
                     type: string
 `
 		expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+		assert.Greater(len(rendered), 0)
+		assert.Equal(expectedYaml, actualYaml)
+	})
+
+	t.Run("stripe", func(t *testing.T) {
+		t.SkipNow()
+		doc := CreateLibDocumentFromFile(t, filepath.Join(".data/stripe", "index.yaml")).(*LibV3Document)
+		libSchema := doc.Model.Paths.PathItems["/v1/account"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
+		assert.NotNil(libSchema)
+
+		res := NormalizeLibOpenAPISchema(libSchema, nil)
+		//res := mergeLibOpenAPISubSchemas(libSchema, nil)
+		expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, ``)
 		assert.Greater(len(rendered), 0)
 		assert.Equal(expectedYaml, actualYaml)
 	})

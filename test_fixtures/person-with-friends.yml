@@ -25,6 +25,21 @@ components:
           items:
             $ref: '#/components/schemas/SimpleObjectCircular'
 
+    SimpleObjectCircularNested:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/PersonEmbeddable'
+        address:
+          type: object
+          properties:
+            neighbors:
+              type: array
+              items:
+                $ref: '#/components/schemas/SimpleObjectCircularNested'
+            supervisor:
+              $ref: '#/components/schemas/SimpleObjectCircularNested'
+
     ObjectsWithReferencesAndArrays:
       type: object
       properties:
