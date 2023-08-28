@@ -52,6 +52,27 @@ components:
                 - $ref: '#/components/schemas/Country'
                 - $ref: '#/components/schemas/State'
 
+    AddressWithAnyOfObject:
+      anyOf:
+        - $ref: '#/components/schemas/State'
+        - $ref: '#/components/schemas/CityAndState'
+
+    AddressWithAnyOfArray:
+      anyOf:
+        - type: array
+          items:
+            $ref: '#/components/schemas/State'
+        - type: array
+          items:
+            $ref: '#/components/schemas/CityAndState'
+
+    AddressWithAnyOfArrayWithoutArrayType:
+      anyOf:
+        - items:
+            $ref: '#/components/schemas/State'
+        - items:
+            $ref: '#/components/schemas/CityAndState'
+
     ObjectWithAllOfPersonAndEmployee:
       allOf:
         - type: object
@@ -174,21 +195,32 @@ components:
           items:
             $ref: '#/components/schemas/FriendLinks'
 
-#    Relationships:
-#      type: object
-#      properties:
-#        family:
-#          type: object
-#          allOf:
-#            - $ref: '#/components/schemas/Person'
-#            - $ref: '#/components/schemas/Employee'
-#
-#        friend:
-#          oneOf:
-#            - type: string
-#            - $ref: '#/components/schemas/PersonEmbeddable'
-#        parent:
-#          anyOf:
-#            - type: string
-#            - $ref: '#/components/schemas/PersonEmbeddable'
-#            - $ref: '#/components/schemas/PersonEmbeddable'
+    PersonFeatures:
+      type: object
+      properties:
+        neighbors:
+          anyOf:
+            - type: object
+              properties:
+                houseLeft:
+                  $ref: '#/components/schemas/PersonEmbeddable'
+            - type: object
+              properties:
+                houseRight:
+                  $ref: '#/components/schemas/PersonEmbeddable'
+        severity:
+          oneOf:
+            - type: string
+            - type: integer
+        address:
+          anyOf:
+            - $ref: '#/components/schemas/State'
+            - $ref: '#/components/schemas/Country'
+        previousAddresses:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/CityAndState'
+            - type: array
+              items:
+                $ref: '#/components/schemas/State'

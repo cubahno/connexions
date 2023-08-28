@@ -91,7 +91,7 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 		var schema *Schema
 		if param.Schema != nil {
 			px := param.Schema
-			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil))
+			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema()))
 		}
 
 		params = append(params, &OpenAPIParameter{
@@ -142,14 +142,14 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema
-			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
+			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema())), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
+		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema())), contentType
 	}
 
 	return nil, ""
@@ -165,13 +165,13 @@ func (r *LibV3Response) GetContent() (*Schema, string) {
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
 			px := types[contentType].Schema
-			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
+			return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema())), contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil)), contentType
+		return NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema())), contentType
 	}
 
 	return nil, ""
@@ -187,7 +187,7 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 		var schema *Schema
 		if header.Schema != nil {
 			px := header.Schema
-			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema(), nil))
+			schema = NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(px.Schema()))
 		}
 
 		res[name] = &OpenAPIParameter{
@@ -270,17 +270,17 @@ func PicklLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 	return items[0]
 }
 
-func NormalizeLibOpenAPISchema(schema *base.Schema, path []string) *base.Schema {
-	return collectLibObjects(schema, path)
+func NormalizeLibOpenAPISchema(schema *base.Schema) *base.Schema {
+	return collectLibObjects(schema, nil)
 }
 
-func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema {
+func mergeLibOpenAPISubSchemas(schema *base.Schema, path []any) *base.Schema {
 	if len(path) == 0 {
-		path = make([]string, 0)
+		path = make([]any, 0)
 	}
 
 	if isPathRepeated(path) {
-		return nil
+		return base.CreateSchemaProxy(&base.Schema{}).Schema()
 	}
 
 	allOf := schema.AllOf
@@ -303,71 +303,118 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema, path []string) *base.Schema 
 	if len(properties) == 0 {
 		properties = make(map[string]*base.SchemaProxy)
 	}
+	required := schema.Required
+	if len(required) == 0 {
+		required = make([]string, 0)
+	}
+
+	items := make(map[string]*base.SchemaProxy, 0)
+
+	impliedType := ""
+	if len(allOf) > 0 {
+		impliedType = TypeObject
+	}
+
+	// pick one from each
+	allOf = append(allOf,
+		PicklLibOpenAPISchemaProxy(anyOf),
+		PicklLibOpenAPISchemaProxy(oneOf),
+	)
 
 	for _, schemaRef := range allOf {
 		if schemaRef == nil {
 			continue
 		}
 
-		for propertyName, property := range schemaRef.Schema().Properties {
-			properties[propertyName] = base.CreateSchemaProxy(mergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName)))
-			//properties[propertyName] = base.CreateSchemaProxy(property.Schema())
+		subSchema := schemaRef.Schema()
+		if subSchema == nil {
+			continue
+		}
+
+		if impliedType == "" {
+			if len(subSchema.Type) > 0 {
+				impliedType = subSchema.Type[0]
+			}
+			if impliedType == "" && subSchema.Items.IsA() && len(subSchema.Items.A.Schema().Properties) > 0{
+				impliedType = TypeArray
+			}
+			if impliedType == "" {
+				impliedType = TypeObject
+			}
+		}
+
+		if impliedType == TypeObject {
+			for propertyName, property := range subSchema.Properties {
+				merged := mergeLibOpenAPISubSchemas(property.Schema(), append(path, propertyName))
+				properties[propertyName] = base.CreateSchemaProxy(merged)
+				//properties[propertyName] = base.CreateSchemaProxy(property.Schema())
+				if merged != nil && len(merged.Required) > 0 {
+					required = append(required, merged.Required...)
+				}
+			}
+		}
+
+		if impliedType == TypeArray && subSchema.Items.IsA() {
+			subItems := subSchema.Items.A
+			merged := mergeLibOpenAPISubSchemas(subItems.Schema(), path)
+			if merged != nil {
+				for itemName, itemSchema := range merged.Properties {
+					items[itemName] = itemSchema
+				}
+			}
 		}
 	}
 
-	// pick one from each
-	// either := []*base.SchemaProxy{
-	// 	PicklLibOpenAPISchemaProxy(schema.AnyOf),
-	// 	PicklLibOpenAPISchemaProxy(schema.OneOf),
-	// }
-	// reset
-	//schema.AnyOf = make([]*base.SchemaProxy, 0)
-	//schema.OneOf = make([]*base.SchemaProxy, 0)
+	// exclude properties from `not`
+	if not != nil {
+		notSchema := not.Schema()
+		deletes := map[string]bool{}
+		for propertyName, _ := range notSchema.Properties {
+			delete(properties, propertyName)
+			deletes[propertyName] = true
+		}
 
-	// for _, schemaRef := range either {
-	// 	if schemaRef == nil {
-	// 		continue
-	// 	}
-	//
-	// 	sub := schemaRef.Schema()
-	// 	if sub == nil {
-	// 		continue
-	// 	}
-	//
-	// 	// ...
-	// 	for propertyName, property := range sub.Properties {
-	// 		schema.Properties[propertyName] = property
-	// 	}
-	//
-	// 	schema.Required = append(schema.Required, sub.Required...)
-	// }
-	//
-	// // exclude properties from `not`
-	// if not != nil {
-	// 	notSchema := not.Schema()
-	// 	deletes := map[string]bool{}
-	// 	for propertyName, _ := range notSchema.Properties {
-	// 		delete(schema.Properties, propertyName)
-	// 		deletes[propertyName] = true
-	// 	}
-	//
-	// 	// remove from required properties
-	// 	for i, propertyName := range schema.Required {
-	// 		if _, ok := deletes[propertyName]; ok {
-	// 			schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
-	// 		}
-	// 	}
-	// }
+		// remove from required properties
+		for i, propertyName := range schema.Required {
+			if _, ok := deletes[propertyName]; ok {
+				required = append(schema.Required[:i], schema.Required[i+1:]...)
+			}
+		}
+	}
 
+	if len(required) == 0 {
+		required = nil
+	}
+
+	var itemsSchema *base.SchemaProxy
+	if len(items) > 0 {
+		itemsSchema = base.CreateSchemaProxy(&base.Schema{
+			Type:       []string{TypeObject},
+			Properties: items,
+		})
+		if schema.Items == nil {
+			schema.Items = &base.DynamicValue[*base.SchemaProxy, bool]{
+				A: itemsSchema,
+			}
+		} else {
+			schema.Items.A = itemsSchema
+		}
+	}
+
+	//schema.Items.A = itemsSchema
 	schema.Properties = properties
-	schema.Type = []string{TypeObject}
+	schema.Required = required
+	schema.Type = []string{impliedType}
 
 	return schema
 }
 
-func collectLibObjects(schema *base.Schema, path []string) *base.Schema {
+func collectLibObjects(schema *base.Schema, path []any) *base.Schema {
 	if schema == nil || isPathRepeated(path) {
-		return nil
+		return &base.Schema{}
+	}
+	if len(path) == 0 {
+		path = make([]any, 0)
 	}
 
 	schema = mergeLibOpenAPISubSchemas(schema, path)
@@ -385,22 +432,26 @@ func collectLibObjects(schema *base.Schema, path []string) *base.Schema {
 	}
 
 	if typ != TypeObject {
-		merged := mergeLibOpenAPISubSchemas(schema, path)
-		mergedType := ""
-		if len(merged.Type) > 0 {
-			mergedType = merged.Type[0]
-		}
-		if mergedType == TypeObject {
-			return collectLibObjects(merged, path)
-		} else if mergedType == TypeArray {
-			return collectLibArrays(merged, path)
-		}
-		return merged
+		// merged := mergeLibOpenAPISubSchemas(schema, path)
+		// mergedType := ""
+		// if len(merged.Type) > 0 {
+		// 	mergedType = merged.Type[0]
+		// }
+		// if mergedType == TypeObject {
+		// 	return collectLibObjects(merged, path)
+		// } else if mergedType == TypeArray {
+		// 	return collectLibArrays(merged, path)
+		// }
+		// return merged
+		return schema
 	}
 
 	properties := make(map[string]*base.SchemaProxy)
 	for name, property := range schema.Properties {
 		p := path
+		if property == nil {
+			continue
+		}
 		propSchema := property.Schema()
 
 		// TODO(igor): fix in libopenapi or find a way to get unique reference
@@ -418,7 +469,8 @@ func collectLibObjects(schema *base.Schema, path []string) *base.Schema {
 			continue
 		}
 		// flat allOf, ...
-		flatted := mergeLibOpenAPISubSchemas(rv, p)
+		//flatted := mergeLibOpenAPISubSchemas(rv, p)
+		flatted := rv
 		sp := base.CreateSchemaProxy(flatted)
 		properties[name] = sp
 	}
@@ -428,9 +480,12 @@ func collectLibObjects(schema *base.Schema, path []string) *base.Schema {
 	return schema
 }
 
-func collectLibArrays(schema *base.Schema, path []string) *base.Schema {
+func collectLibArrays(schema *base.Schema, path []any) *base.Schema {
 	if schema == nil || isPathRepeated(path) {
-		return nil
+		return &base.Schema{}
+	}
+	if len(path) == 0 {
+		path = make([]any, 0)
 	}
 
 	typ := ""
@@ -446,8 +501,9 @@ func collectLibArrays(schema *base.Schema, path []string) *base.Schema {
 	}
 
 	if typ != TypeArray {
-		merged := mergeLibOpenAPISubSchemas(schema, path)
-		return merged
+		//merged := mergeLibOpenAPISubSchemas(schema, path)
+		//return merged
+		return schema
 	}
 
 	if schema.Items != nil && !schema.Items.IsA() {
@@ -460,9 +516,10 @@ func collectLibArrays(schema *base.Schema, path []string) *base.Schema {
 		return nil
 	}
 
-	rv2 := mergeLibOpenAPISubSchemas(rv, path)
+	//rv2 := mergeLibOpenAPISubSchemas(rv, path)
+	rv2 := rv
 	schema.Items.A = base.CreateSchemaProxy(rv2)
-
+	schema.Type = []string{TypeArray}
 
 	// return base.CreateSchemaProxy(&base.Schema{
 	// 	Type:       []string{TypeArray},
@@ -473,9 +530,9 @@ func collectLibArrays(schema *base.Schema, path []string) *base.Schema {
 	return schema
 }
 
-func isPathRepeated(path []string) bool {
+func isPathRepeated[T comparable](path []T) bool {
 	// detect circular references
-	visited := make(map[string]bool)
+	visited := make(map[T]bool)
 	for _, item := range path {
 		if _, ok := visited[item]; ok {
 			return true

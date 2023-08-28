@@ -116,10 +116,56 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
     doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
     libSchema := doc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
 
-    res := NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(libSchema, nil))
+    res := NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(libSchema))
 
     assert.NotNil(res)
     assert.True(true)
+}
+
+func TestNormalizeLibOpenAPISchema(t *testing.T) {
+    assert := assert2.New(t)
+    t.Parallel()
+    doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
+
+    t.Run("PersonFeatures", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["PersonFeatures"].Schema()
+        assert.NotNil(libSchema)
+
+        res := NormalizeLibOpenAPISchema(libSchema)
+        expected := `
+type: object
+properties:
+    neighbors:
+        type: object
+        properties:
+            houseLeft:
+                type: object
+                properties:
+                    name:
+                        type: string
+    severity:
+        type: string
+    address:
+        type: object
+        properties:
+            abbr:
+                type: string
+            name:
+                type: string
+    previousAddresses:
+        type: array
+        items:
+            type: object
+            properties:
+                state:
+                    type: string
+                city:
+                    type: string
+`
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
+    })
 }
 
 func TestCollectLibObjects(t *testing.T) {
@@ -183,7 +229,7 @@ properties:
                     properties:
                         name:
                             type: string
-
+                relatives: {}
 `
         expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
         assert.Greater(len(rendered), 0)
@@ -261,6 +307,64 @@ properties:
         type: string
   employeeId:
     type: integer
+`
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
+    })
+
+    t.Run("AddressWithAnyOfObject", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["AddressWithAnyOfObject"].Schema()
+        assert.NotNil(libSchema)
+
+        res := collectLibObjects(libSchema, nil)
+        expected := `
+type: object
+properties:
+  name:
+    type: string
+  abbr:
+    type: string
+`
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
+    })
+
+    t.Run("AddressWithAnyOfArray", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["AddressWithAnyOfArray"].Schema()
+        assert.NotNil(libSchema)
+
+        res := collectLibObjects(libSchema, nil)
+        expected := `
+type: array
+items:
+  type: object
+  properties:
+    name:
+      type: string
+    abbr:
+      type: string
+`
+        expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
+        assert.Greater(len(rendered), 0)
+        assert.Equal(expectedYaml, actualYaml)
+    })
+
+    t.Run("AddressWithAnyOfArrayWithoutArrayType", func(t *testing.T) {
+        libSchema := doc.Model.Components.Schemas["AddressWithAnyOfArrayWithoutArrayType"].Schema()
+        assert.NotNil(libSchema)
+
+        res := collectLibObjects(libSchema, nil)
+        expected := `
+type: array
+items:
+  type: object
+  properties:
+    name:
+      type: string
+    abbr:
+      type: string
 `
         expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
         assert.Greater(len(rendered), 0)
