@@ -21,7 +21,7 @@ func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 }
 
 func CreateKinDocumentFromFile(t *testing.T, filePath string) Document {
-	doc, err := NewKinDocumentFromFile(filePath)
+	doc, err := NewKinDocumentFromFile(filePath, nil)
 	if err != nil {
 		t.Errorf("Error loading document: %v", err)
 		t.FailNow()

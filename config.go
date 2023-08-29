@@ -64,6 +64,15 @@ type ServiceValidateConfig struct {
 	Response bool `koanf:"response"`
 }
 
+type ParseConfig struct {
+	// MaxLevels is the maximum level to parse.
+	MaxLevels int `koanf:"maxLevels"`
+
+	// OnlyRequired is a flag whether to include only required fields.
+	// If the spec contains deep references, this might significantly speed up parsing.
+	OnlyRequired bool `koanf:"onlyRequired"`
+}
+
 const (
 	// RootServiceName is the name and location in the service directory of the service without a name.
 	RootServiceName = ".root"
@@ -112,7 +121,11 @@ type AppConfig struct {
 	// ServeSpec is a flag whether to serve the OpenAPI spec.
 	ServeSpec bool `json:"serveSpec" koanf:"serveSpec"`
 
+	// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
 	SchemaProvider SchemaProvider `json:"schemaProvider" koanf:"schemaProvider"`
+
+	// ParseConfig is the config for parsing the OpenAPI spec.
+	ParseConfig *ParseConfig `json:"parseConfig" koanf:"parseConfig"`
 }
 
 // IsValidPrefix returns true if the prefix is not a reserved URL.

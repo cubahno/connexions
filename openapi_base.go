@@ -75,7 +75,7 @@ const (
 	ParameterInHeader = "header"
 )
 
-func NewDocumentFromFileFactory(provider SchemaProvider) func(string) (Document, error) {
+func NewDocumentFromFileFactory(provider SchemaProvider) func(string, *ParseConfig) (Document, error) {
 	switch provider {
 	case KinOpenAPIProvider:
 		return NewKinDocumentFromFile

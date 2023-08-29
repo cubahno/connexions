@@ -7,25 +7,29 @@ import (
 
 type KinDocument struct {
 	*openapi3.T
+	ParseConfig *ParseConfig
 }
 
 type KinOperation struct {
 	*openapi3.Operation
 	Operationer
+	ParseConfig *ParseConfig
 }
 
 type KinResponse struct {
 	*openapi3.Response
+	ParseConfig *ParseConfig
 }
 
-func NewKinDocumentFromFile(filePath string) (Document, error) {
+func NewKinDocumentFromFile(filePath string, parseConfig *ParseConfig) (Document, error) {
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 	return &KinDocument{
-		T: doc,
+		T:           doc,
+		ParseConfig: parseConfig,
 	}, err
 }
 
@@ -53,12 +57,15 @@ func (d *KinDocument) FindOperation(resourceName, method string) Operationer {
 	if op == nil {
 		return nil
 	}
-	return &KinOperation{Operation: op}
+	return &KinOperation{
+		Operation:   op,
+		ParseConfig: d.ParseConfig,
+	}
 }
 
-func (o *KinOperation) GetParameters() OpenAPIParameters {
+func (op *KinOperation) GetParameters() OpenAPIParameters {
 	var res []*OpenAPIParameter
-	for _, param := range o.Parameters {
+	for _, param := range op.Parameters {
 		p := param.Value
 		if p == nil {
 			continue
@@ -66,7 +73,7 @@ func (o *KinOperation) GetParameters() OpenAPIParameters {
 
 		var schema *Schema
 		if p.Schema != nil {
-			schema = NewSchemaFromKin(p.Schema.Value, nil)
+			schema = NewSchemaFromKin(p.Schema.Value, op.ParseConfig)
 		}
 
 		res = append(res, &OpenAPIParameter{
@@ -79,12 +86,12 @@ func (o *KinOperation) GetParameters() OpenAPIParameters {
 	return res
 }
 
-func (o *KinOperation) GetRequestBody() (*Schema, string) {
-	if o.RequestBody == nil {
+func (op *KinOperation) GetRequestBody() (*Schema, string) {
+	if op.RequestBody == nil {
 		return nil, ""
 	}
 
-	schema := o.RequestBody.Value
+	schema := op.RequestBody.Value
 	contentTypes := schema.Content
 	if len(contentTypes) == 0 {
 		return nil, ""
@@ -93,26 +100,29 @@ func (o *KinOperation) GetRequestBody() (*Schema, string) {
 	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
-			return NewSchemaFromKin(contentTypes[contentType].Schema.Value, nil), contentType
+			return NewSchemaFromKin(contentTypes[contentType].Schema.Value, op.ParseConfig), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
-		return NewSchemaFromKin(mediaType.Schema.Value, nil), contentType
+		return NewSchemaFromKin(mediaType.Schema.Value, op.ParseConfig), contentType
 	}
 
 	return nil, ""
 }
 
-func (o *KinOperation) GetResponse() (OpenAPIResponse, int) {
-	available := o.Responses
+func (op *KinOperation) GetResponse() (OpenAPIResponse, int) {
+	available := op.Responses
 
 	var responseRef *openapi3.ResponseRef
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
 		responseRef = available.Get(code)
 		if responseRef != nil {
-			return &KinResponse{responseRef.Value}, code
+			return &KinResponse{
+				Response:    responseRef.Value,
+				ParseConfig: op.ParseConfig,
+			}, code
 		}
 	}
 
@@ -121,10 +131,16 @@ func (o *KinOperation) GetResponse() (OpenAPIResponse, int) {
 		if codeName == "default" {
 			continue
 		}
-		return &KinResponse{respRef.Value}, TransformHTTPCode(codeName)
+		return &KinResponse{
+			Response:    respRef.Value,
+			ParseConfig: op.ParseConfig,
+		}, TransformHTTPCode(codeName)
 	}
 
-	return &KinResponse{available.Default().Value}, 200
+	return &KinResponse{
+		Response:    available.Default().Value,
+		ParseConfig: op.ParseConfig,
+	}, 200
 }
 
 func (r *KinResponse) GetContent() (*Schema, string) {
@@ -136,12 +152,12 @@ func (r *KinResponse) GetContent() (*Schema, string) {
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
-			return NewSchemaFromKin(types[contentType].Schema.Value, nil), contentType
+			return NewSchemaFromKin(types[contentType].Schema.Value, r.ParseConfig), contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
-		return NewSchemaFromKin(mediaType.Schema.Value, nil), contentType
+		return NewSchemaFromKin(mediaType.Schema.Value, r.ParseConfig), contentType
 	}
 
 	return nil, ""
@@ -158,7 +174,7 @@ func (r *KinResponse) GetHeaders() OpenAPIHeaders {
 		p := ref.Parameter
 		var schema *Schema
 		if p.Schema != nil && p.Schema.Value != nil {
-			schema = NewSchemaFromKin(p.Schema.Value, nil)
+			schema = NewSchemaFromKin(p.Schema.Value, r.ParseConfig)
 		}
 
 		res[name] = &OpenAPIParameter{
@@ -171,7 +187,11 @@ func (r *KinResponse) GetHeaders() OpenAPIHeaders {
 	return res
 }
 
-func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
+func NewSchemaFromKin(s *openapi3.Schema, parseConfig *ParseConfig) *Schema {
+	return newSchemaFromKin(s, nil)
+}
+
+func newSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 	if s == nil {
 		return nil
 	}
@@ -191,7 +211,7 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 
 			visited[s.Items.Ref] = true
 		}
-		items = NewSchemaFromKin(s.Items.Value, visited)
+		items = newSchemaFromKin(s.Items.Value, visited)
 	}
 
 	var properties map[string]*Schema
@@ -207,7 +227,7 @@ func NewSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
 				visited[ref.Ref] = true
 			}
 
-			properties[name] = NewSchemaFromKin(ref.Value, t)
+			properties[name] = newSchemaFromKin(ref.Value, t)
 		}
 	}
 

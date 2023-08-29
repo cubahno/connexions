@@ -8,7 +8,7 @@ import (
 )
 
 func CreateLibDocumentFromFile(t *testing.T, filePath string) Document {
-	doc, err := NewLibOpenAPIDocumentFromFile(filePath)
+	doc, err := NewLibOpenAPIDocumentFromFile(filePath, nil)
 	if err != nil {
 		t.Errorf("Error loading document: %v", err)
 		t.FailNow()
@@ -117,7 +117,7 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 	t.Run("files", func(t *testing.T) {
 		circDoc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
 		libSchema := circDoc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 
 		assert.NotNil(res)
 		assert.True(true)
@@ -127,7 +127,7 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 		libSchema := doc.Model.Components.Schemas["SimpleArray"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: array
 items:
@@ -142,7 +142,7 @@ items:
 		libSchema := doc.Model.Components.Schemas["SimpleArrayWithRef"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: array
 items:
@@ -160,7 +160,7 @@ items:
 		libSchema := doc.Model.Components.Schemas["SimpleObjectCircular"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -191,7 +191,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["SimpleObjectCircularNested"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -244,7 +244,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["ObjectsWithReferencesAndArrays"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -277,7 +277,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["AddressWithAllOf"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -300,7 +300,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["ObjectWithAllOfPersonAndEmployee"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -321,7 +321,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["AddressWithAnyOfObject"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -339,7 +339,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["AddressWithAnyOfArray"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: array
 items:
@@ -359,7 +359,7 @@ items:
 		libSchema := doc.Model.Components.Schemas["AddressWithAnyOfArrayWithoutArrayType"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: array
 items:
@@ -379,7 +379,7 @@ items:
 		libSchema := doc.Model.Components.Schemas["ArrayOfPersonAndEmployeeWithFriends"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: array
 items:
@@ -424,7 +424,7 @@ items:
 		libSchema := doc.Model.Components.Schemas["PersonFeatures"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		expected := `
 type: object
 properties:
@@ -465,7 +465,7 @@ properties:
 		libSchema := doc.Model.Components.Schemas["charge"].Schema()
 		assert.NotNil(libSchema)
 
-		res := NewSchemaFromLibOpenAPI(libSchema)
+		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 		assert.NotNil(res)
 		//expected := ``
 		//expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
