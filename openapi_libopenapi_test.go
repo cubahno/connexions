@@ -461,7 +461,6 @@ properties:
 	})
 
 	t.Run("stripe", func(t *testing.T) {
-		t.SkipNow()
 		doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-psp.yml")).(*LibV3Document)
 		libSchema := doc.Model.Components.Schemas["charge"].Schema()
 		assert.NotNil(libSchema)
