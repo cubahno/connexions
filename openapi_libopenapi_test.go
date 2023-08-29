@@ -158,7 +158,6 @@ items:
 	})
 
 	t.Run("SimpleObjectCircular", func(t *testing.T) {
-		t.SkipNow()
 		libSchema := doc.Model.Components.Schemas["SimpleObjectCircular"].Schema()
 		assert.NotNil(libSchema)
 

@@ -229,7 +229,7 @@ func NewSchemaFromLibOpenAPI(schema *base.Schema, path []string) *Schema {
 		sub := libItems.Schema()
 		ref := libItems.GetReference()
 		if ref != "" {
-			// p = append(p, ref)
+			p = append(p, ref)
 		}
 		items = NewSchemaFromLibOpenAPI(sub, p)
 	}
@@ -237,17 +237,13 @@ func NewSchemaFromLibOpenAPI(schema *base.Schema, path []string) *Schema {
 	properties := make(map[string]*Schema)
 	if len(schema.Properties) > 0 {
 		if mergedReference != "" {
-			path = append(path, mergedReference)
+			// path = append(path, mergedReference)
 		}
 
 		for propName, sProxy := range schema.Properties {
 			sub := sProxy.Schema()
-			sub, subRef := mergeLibOpenAPISubSchemas(sub)
-			if subRef != "" {
-				mergedReference = subRef
-			}
 			p := path
-			if sProxy.IsReference() && sProxy.GetReference() != mergedReference {
+			if sProxy.IsReference() {
 				p = append(p, sProxy.GetReference())
 			}
 
