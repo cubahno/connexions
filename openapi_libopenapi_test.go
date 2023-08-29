@@ -189,7 +189,6 @@ properties:
 	})
 
 	t.Run("SimpleObjectCircularNested", func(t *testing.T) {
-		t.SkipNow()
 		libSchema := doc.Model.Components.Schemas["SimpleObjectCircularNested"].Schema()
 		assert.NotNil(libSchema)
 
