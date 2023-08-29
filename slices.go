@@ -26,7 +26,18 @@ func SliceContains[T comparable](slice []T, value T) bool {
 	return false
 }
 
-func AppendFirstNonEmpty[T comparable](data []T, value ...T) []T {
+func IsSliceUnique[T comparable](path []T) bool {
+	visited := make(map[T]bool)
+	for _, item := range path {
+		if _, ok := visited[item]; ok {
+			return false
+		}
+		visited[item] = true
+	}
+	return true
+}
+
+func AppendSliceFirstNonEmpty[T comparable](data []T, value ...T) []T {
 	var empty T
 
 	for _, v := range value {

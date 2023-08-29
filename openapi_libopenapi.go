@@ -91,7 +91,7 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 		var schema *Schema
 		if param.Schema != nil {
 			px := param.Schema
-			schema = NewSchemaFromLibOpenAPI(px.Schema(), nil)
+			schema = NewSchemaFromLibOpenAPI(px.Schema())
 		}
 
 		params = append(params, &OpenAPIParameter{
@@ -142,14 +142,14 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema
-			return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
+			return NewSchemaFromLibOpenAPI(px.Schema()), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
+		return NewSchemaFromLibOpenAPI(px.Schema()), contentType
 	}
 
 	return nil, ""
@@ -165,13 +165,13 @@ func (r *LibV3Response) GetContent() (*Schema, string) {
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
 			px := types[contentType].Schema
-			return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
+			return NewSchemaFromLibOpenAPI(px.Schema()), contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(px.Schema(), nil), contentType
+		return NewSchemaFromLibOpenAPI(px.Schema()), contentType
 	}
 
 	return nil, ""
@@ -187,7 +187,7 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 		var schema *Schema
 		if header.Schema != nil {
 			px := header.Schema
-			schema = NewSchemaFromLibOpenAPI(px.Schema(), nil)
+			schema = NewSchemaFromLibOpenAPI(px.Schema())
 		}
 
 		res[name] = &OpenAPIParameter{
@@ -200,22 +200,32 @@ func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
 	return res
 }
 
-func NewSchemaFromLibOpenAPI(schema *base.Schema, path []string) *Schema {
+func NewSchemaFromLibOpenAPI(schema *base.Schema) *Schema {
+	return newSchemaFromLibOpenAPI(schema, nil, nil)
+}
+
+func newSchemaFromLibOpenAPI(schema *base.Schema, refPath []string, namePath []string) *Schema {
 	if schema == nil {
 		return nil
 	}
-	if isPathRepeated(path) {
+
+	if len(refPath) == 0 {
+		refPath = make([]string, 0)
+	}
+
+	if len(namePath) == 0 {
+		namePath = make([]string, 0)
+	}
+
+	if len(namePath) >= 7 {
 		return nil
 	}
 
-	if len(path) == 0 {
-		path = make([]string, 0)
+	if !IsSliceUnique(refPath) {
+		return nil
 	}
 
 	schema, mergedReference := mergeLibOpenAPISubSchemas(schema)
-	if mergedReference != "" {
-		//path = append(path, mergedReference)
-	}
 
 	typ := ""
 	if len(schema.Type) > 0 {
@@ -224,32 +234,19 @@ func NewSchemaFromLibOpenAPI(schema *base.Schema, path []string) *Schema {
 
 	var items *Schema
 	if schema.Items != nil && schema.Items.IsA() {
-		// p := path
 		libItems := schema.Items.A
 		sub := libItems.Schema()
 		ref := libItems.GetReference()
-		// if ref != "" {
-		// 	p = append(p, ref)
-		// }
-		items = NewSchemaFromLibOpenAPI(sub, AppendFirstNonEmpty(path, ref, mergedReference))
+		items = newSchemaFromLibOpenAPI(sub,
+			AppendSliceFirstNonEmpty(refPath, ref, mergedReference),
+			append(namePath, "[]items"))
 	}
 
 	properties := make(map[string]*Schema)
-	if len(schema.Properties) > 0 {
-		if mergedReference != "" {
-			// path = append(path, mergedReference)
-		}
-
-		for propName, sProxy := range schema.Properties {
-			// sub := sProxy.Schema()
-			// p := path
-			// if sProxy.IsReference() {
-			// 	p = append(p, sProxy.GetReference())
-			// }
-
-			properties[propName] = NewSchemaFromLibOpenAPI(sProxy.Schema(),
-				AppendFirstNonEmpty(path, sProxy.GetReference(), mergedReference))
-		}
+	for propName, sProxy := range schema.Properties {
+		properties[propName] = newSchemaFromLibOpenAPI(sProxy.Schema(),
+			AppendSliceFirstNonEmpty(refPath, sProxy.GetReference(), mergedReference),
+			append(namePath, propName))
 	}
 
 	return &Schema{
@@ -393,19 +390,4 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	schema.Type = []string{impliedType}
 
 	return schema, subRef
-}
-
-func isPathRepeated[T comparable](path []T) bool {
-	// detect circular references
-	if len(path) >= 6 {
-		return true
-	}
-	visited := make(map[T]bool)
-	for _, item := range path {
-		if _, ok := visited[item]; ok {
-			return true
-		}
-		visited[item] = true
-	}
-	return false
 }
