@@ -359,19 +359,23 @@ func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *Re
 		state = &ReplaceState{}
 	}
 
-	minItems := int(schema.MinItems)
-	if minItems == 0 {
-		minItems = 1
+	// avoid generating too many items
+	take := int(schema.MinItems)
+	if take == 0 {
+		take = 1
 	}
 
 	var res []any
 
-	for i := 0; i < minItems+1; i++ {
+	for i := 1; i < 10; i++ {
 		item := GenerateContentFromSchema(schema.Items, valueReplacer, state.NewFrom(state).WithElementIndex(i))
 		if item == nil {
 			continue
 		}
 		res = append(res, item)
+		if i >= take {
+			break
+		}
 	}
 
 	if len(res) == 0 {

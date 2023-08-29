@@ -362,7 +362,7 @@ func TestGenerateQuery(t *testing.T) {
 		}
 		res := GenerateQuery(valueResolver, params)
 
-		expected := "tags[]=foo+bar&tags[]=foo+bar"
+		expected := "tags[]=foo+bar"
 		assert.Equal(t, expected, res)
 	})
 
@@ -417,9 +417,6 @@ func TestGenerateContent(t *testing.T) {
 		expected := map[string]any{
 			"user": map[string]any{"id": 21, "score": 11.5},
 			"pages": []any{
-				map[string]any{
-					"limit": 100, "tag1": "#dice", "tag2": "#nice", "offset": -1, "first": 10,
-				},
 				map[string]any{
 					"limit": 100, "tag1": "#dice", "tag2": "#nice", "offset": -1, "first": 10,
 				},
@@ -508,11 +505,6 @@ func TestGenerateContent(t *testing.T) {
 			"id":   123,
 			"name": "noda-123",
 			"children": []any{
-				map[string]any{
-					"id":       123,
-					"name":     "noda-123",
-					"children": nil,
-				},
 				map[string]any{
 					"id":       123,
 					"name":     "noda-123",
@@ -646,7 +638,7 @@ func TestGenerateContentArray(t *testing.T) {
 		}
 
 		res := GenerateContentArray(schema, valueResolver, nil)
-		assert.ElementsMatch(t, []string{"foo", "foo"}, res)
+		assert.ElementsMatch(t, []string{"foo"}, res)
 	})
 
 	t.Run("generate simple array", func(t *testing.T) {
@@ -667,7 +659,7 @@ func TestGenerateContentArray(t *testing.T) {
 		}
 
 		res := GenerateContentArray(schema, valueResolver, nil)
-		assert.ElementsMatch(t, []string{"a", "b", "c", "d"}, res)
+		assert.ElementsMatch(t, []string{"a", "b", "c"}, res)
 	})
 
 	t.Run("with-no-resolved-values", func(t *testing.T) {
