@@ -224,14 +224,14 @@ func NewSchemaFromLibOpenAPI(schema *base.Schema, path []string) *Schema {
 
 	var items *Schema
 	if schema.Items != nil && schema.Items.IsA() {
-		p := path
+		// p := path
 		libItems := schema.Items.A
 		sub := libItems.Schema()
 		ref := libItems.GetReference()
-		if ref != "" {
-			p = append(p, ref)
-		}
-		items = NewSchemaFromLibOpenAPI(sub, p)
+		// if ref != "" {
+		// 	p = append(p, ref)
+		// }
+		items = NewSchemaFromLibOpenAPI(sub, AppendFirstNonEmpty(path, ref, mergedReference))
 	}
 
 	properties := make(map[string]*Schema)
@@ -241,13 +241,14 @@ func NewSchemaFromLibOpenAPI(schema *base.Schema, path []string) *Schema {
 		}
 
 		for propName, sProxy := range schema.Properties {
-			sub := sProxy.Schema()
-			p := path
-			if sProxy.IsReference() {
-				p = append(p, sProxy.GetReference())
-			}
+			// sub := sProxy.Schema()
+			// p := path
+			// if sProxy.IsReference() {
+			// 	p = append(p, sProxy.GetReference())
+			// }
 
-			properties[propName] = NewSchemaFromLibOpenAPI(sub, p)
+			properties[propName] = NewSchemaFromLibOpenAPI(sProxy.Schema(),
+				AppendFirstNonEmpty(path, sProxy.GetReference(), mergedReference))
 		}
 	}
 

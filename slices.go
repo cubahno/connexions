@@ -25,3 +25,14 @@ func SliceContains[T comparable](slice []T, value T) bool {
 	}
 	return false
 }
+
+func AppendFirstNonEmpty[T comparable](data []T, value ...T) []T {
+	var empty T
+
+	for _, v := range value {
+		if v != empty {
+			return append(data, v)
+		}
+	}
+	return data
+}

@@ -112,11 +112,10 @@ func TestLibV3Response(t *testing.T) {
 func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 	t.Parallel()
 	assert := assert2.New(t)
-	circDoc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
 	doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends.yml")).(*LibV3Document)
 
-	t.Run("/files", func(t *testing.T) {
-		t.SkipNow()
+	t.Run("files", func(t *testing.T) {
+		circDoc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
 		libSchema := circDoc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
 		res := NewSchemaFromLibOpenAPI(libSchema, nil)
 
