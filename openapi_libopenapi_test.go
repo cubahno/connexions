@@ -81,9 +81,8 @@ func TestLibV3Operation(t *testing.T) {
 
 	t.Run("GetResponse", func(t *testing.T) {
 		op := doc.FindOperation("/pets", "GET")
-		res, code := op.GetResponse()
+		_, code := op.GetResponse()
 		assert.Equal(200, code)
-		println(res)
 	})
 }
 
@@ -116,7 +115,7 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 	doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-files-circular.yml")).(*LibV3Document)
 	libSchema := doc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
 
-	res := NewSchemaFromLibOpenAPI(NormalizeLibOpenAPISchema(libSchema, nil))
+	res := NewSchemaFromLibOpenAPI(libSchema, nil)
 
 	assert.NotNil(res)
 	assert.True(true)
@@ -215,6 +214,8 @@ properties:
                             properties:
                                 name:
                                     type: string
+                        address:
+                            type: object
             supervisor:
                 type: object
                 properties:
@@ -223,6 +224,9 @@ properties:
                         properties:
                             name:
                                 type: string
+                    address:
+                        type: object
+
 `
         expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
         assert.Greater(len(rendered), 0)
@@ -445,19 +449,6 @@ properties:
                     type: string
 `
 		expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
-		assert.Greater(len(rendered), 0)
-		assert.Equal(expectedYaml, actualYaml)
-	})
-
-	t.Run("stripe", func(t *testing.T) {
-		t.SkipNow()
-		doc := CreateLibDocumentFromFile(t, filepath.Join(".data/stripe", "index.yaml")).(*LibV3Document)
-		libSchema := doc.Model.Paths.PathItems["/v1/account"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
-		assert.NotNil(libSchema)
-
-		res := NormalizeLibOpenAPISchema(libSchema, nil)
-		//res := mergeLibOpenAPISubSchemas(libSchema, nil)
-		expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, ``)
 		assert.Greater(len(rendered), 0)
 		assert.Equal(expectedYaml, actualYaml)
 	})

@@ -9,6 +9,8 @@ _ip_address$: "alias:common.ip_address"
 email: "alias:fake.internet.email"
 _email$: "alias:fake.internet.email"
 _currency$: "alias:fake.currency.code"
+ip: "alias:fake.internet.ipv4"
+_ip$: "alias:fake.internet.ipv4"
 
 payment_method:
   type: ["cash", "card", "googlepay", "applepay", "wallet"]
