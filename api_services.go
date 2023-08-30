@@ -12,7 +12,7 @@ import (
 )
 
 func CreateServiceRoutes(router *Router) error {
-	if !router.Config.App.ServeUI || router.Config.App.ServiceURL == "" {
+	if router.Config.App.DisableUI || router.Config.App.ServiceURL == "" {
 		return nil
 	}
 
@@ -28,7 +28,7 @@ func CreateServiceRoutes(router *Router) error {
 		r.Get("/", handler.list)
 		r.Post("/", handler.save)
 		r.Get("/{name}", handler.resources)
-		if router.Config.App.ServeSpec {
+		if !router.Config.App.DisableSwaggerUI {
 			r.Get("/{name}/spec", handler.spec)
 		}
 		r.Post("/{name}", handler.generate)

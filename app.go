@@ -109,13 +109,16 @@ func NewApp(baseDir string) *App {
 
 // MustFileStructure creates the necessary directories and files
 func MustFileStructure(paths *Paths) error {
-	if _, err := os.Stat(paths.Services); os.IsNotExist(err) {
-		log.Println("Creating service directory and configuration for the first time")
-		if err := os.Mkdir(paths.Services, os.ModePerm); err != nil {
-			return err
+	dirs := []string{paths.Services, paths.Contexts}
+	for _, dir := range dirs {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			log.Println("Creating service directory and configuration for the first time")
+			if err := os.Mkdir(dir, os.ModePerm); err != nil {
+				return err
+			}
+		} else {
+			return nil
 		}
-	} else {
-		return nil
 	}
 
 	log.Println("Copying sample content to service directory")

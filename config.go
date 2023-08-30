@@ -116,13 +116,11 @@ type AppConfig struct {
 	//   user_id: "fake.ids.int8"
 	ContextAreaPrefix string `json:"contextAreaPrefix" koanf:"contextAreaPrefix"`
 
-	// ServeUI is a flag whether to serve the UI.
-	// Disable it if not needed.
-	// The URL settings from above won't have any effect.
-	ServeUI bool `json:"serveUI" koanf:"serveUI"`
+	// DisableUI is a flag whether to disable the UI.
+	DisableUI bool `json:"disableUI" koanf:"disableUI"`
 
-	// ServeSpec is a flag whether to serve the OpenAPI spec.
-	ServeSpec bool `json:"serveSpec" koanf:"serveSpec"`
+	// DisableSpec is a flag whether to disable the Swagger UI.
+	DisableSwaggerUI bool `json:"disableSwaggerUI" koanf:"disableSwaggerUI"`
 
 	// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
 	SchemaProvider SchemaProvider `json:"schemaProvider" koanf:"schemaProvider"`
@@ -308,8 +306,6 @@ func NewDefaultAppConfig() *AppConfig {
 		ServiceURL:        "/.services",
 		SettingsURL:       "/.settings",
 		ContextURL:        "/.contexts",
-		ServeUI:           true,
-		ServeSpec:         true,
 		ContextAreaPrefix: "in-",
 		SchemaProvider:    DefaultSchemaProvider,
 	}

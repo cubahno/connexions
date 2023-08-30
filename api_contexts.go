@@ -13,7 +13,7 @@ import (
 )
 
 func CreateContextRoutes(router *Router) error {
-	if !router.Config.App.ServeUI || router.Config.App.ContextURL == "" {
+	if router.Config.App.DisableUI || router.Config.App.ContextURL == "" {
 		return nil
 	}
 

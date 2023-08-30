@@ -80,8 +80,6 @@ func TestConfig(t *testing.T) {
 		cfg.EnsureConfigValues()
 
 		expected := NewDefaultConfig()
-		expected.App.ServeUI = false
-		expected.App.ServeSpec = false
 		assert.Equal(expected, cfg)
 	})
 
@@ -95,8 +93,6 @@ func TestConfig(t *testing.T) {
 
 		expected := NewDefaultConfig()
 		expected.App.Port = 5555
-		expected.App.ServeUI = false
-		expected.App.ServeSpec = false
 		assert.Equal(expected, cfg)
 	})
 }
@@ -167,8 +163,8 @@ app:
   serviceUrl: /new-services
   contextUrl: /new-contexts
   settingsUrl: /new-settings
-  serveUI: true
-  serveSpec: true
+  disableUI: true
+  disableSwaggerUI: true
   contextAreaPrefix: from-
 
 services:
@@ -194,8 +190,8 @@ services:
 				ServiceURL:        "/new-services",
 				ContextURL:        "/new-contexts",
 				SettingsURL:       "/new-settings",
-				ServeUI:           true,
-				ServeSpec:         true,
+				DisableUI:           true,
+				DisableSwaggerUI:         true,
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
 			},
@@ -356,8 +352,8 @@ app:
   serviceUrl: /new-services
   contextUrl: /new-contexts
   settingsUrl: /new-settings
-  serveUI: true
-  serveSpec: true
+  disableUI: true
+  disableSwaggerUI: true
   contextAreaPrefix: from-
 `
 		expected := &Config{
@@ -367,8 +363,8 @@ app:
 				ServiceURL:        "/new-services",
 				ContextURL:        "/new-contexts",
 				SettingsURL:       "/new-settings",
-				ServeUI:           true,
-				ServeSpec:         true,
+				DisableUI:           true,
+				DisableSwaggerUI:         true,
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
 			},
@@ -416,8 +412,6 @@ func TestNewDefaultConfig(t *testing.T) {
 			ServiceURL:        "/.services",
 			SettingsURL:       "/.settings",
 			ContextURL:        "/.contexts",
-			ServeUI:           true,
-			ServeSpec:         true,
 			ContextAreaPrefix: "in-",
 			SchemaProvider:    DefaultSchemaProvider,
 		},

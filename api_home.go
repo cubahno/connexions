@@ -16,7 +16,7 @@ import (
 )
 
 func CreateHomeRoutes(router *Router) error {
-	if !router.Config.App.ServeUI {
+	if router.Config.App.DisableUI {
 		return nil
 	}
 

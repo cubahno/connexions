@@ -17,7 +17,7 @@ type SettingsHandler struct {
 }
 
 func CreateSettingsRoutes(router *Router) error {
-	if !router.Config.App.ServeUI || router.Config.App.SettingsURL == "" {
+	if router.Config.App.DisableUI || router.Config.App.SettingsURL == "" {
 		return nil
 	}
 
