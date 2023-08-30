@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 )
 
 type LibV2Document struct {
@@ -25,14 +26,11 @@ type LibV3Document struct {
 type LibV3Operation struct {
 	*v3high.Operation
 	ParseConfig *ParseConfig
+	withCache   bool
+	mu          sync.Mutex
 }
 
-type LibV3Response struct {
-	*v3high.Response
-	ParseConfig *ParseConfig
-}
-
-func NewLibOpenAPIDocumentFromFile(filePath string, parseConfig *ParseConfig) (Document, error) {
+func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	src, _ := os.ReadFile(filePath)
 
 	lib, err := libopenapi.NewDocument(src)
@@ -50,7 +48,6 @@ func NewLibOpenAPIDocumentFromFile(filePath string, parseConfig *ParseConfig) (D
 					circError.CircularReference.IsPolymorphicResult)
 				return &LibV3Document{
 					DocumentModel: model,
-					ParseConfig:   parseConfig,
 				}, nil
 			}
 		}
@@ -59,7 +56,6 @@ func NewLibOpenAPIDocumentFromFile(filePath string, parseConfig *ParseConfig) (D
 
 	return &LibV3Document{
 		DocumentModel: model,
-		ParseConfig:   parseConfig,
 	}, nil
 }
 
@@ -79,14 +75,17 @@ func (d *LibV3Document) GetResources() map[string][]string {
 	return res
 }
 
-func (d *LibV3Document) FindOperation(resourceName, method string) Operationer {
-	path, ok := d.Model.Paths.PathItems[resourceName]
+func (d *LibV3Document) FindOperation(options *FindOperationOptions) Operationer {
+	if options == nil {
+		return nil
+	}
+	path, ok := d.Model.Paths.PathItems[options.Resource]
 	if !ok {
 		return nil
 	}
 
 	for m, op := range path.GetOperations() {
-		if strings.ToUpper(m) == strings.ToUpper(method) {
+		if strings.ToUpper(m) == strings.ToUpper(options.Method) {
 			return &LibV3Operation{
 				Operation:   op,
 				ParseConfig: d.ParseConfig,
@@ -119,35 +118,72 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 	return params
 }
 
-func (op *LibV3Operation) GetResponse() (OpenAPIResponse, int) {
+func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 	available := op.Responses.Codes
 
 	var responseRef *v3high.Response
+	statusCode := 200
+
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
 		responseRef = available[fmt.Sprintf("%v", code)]
+		statusCode = code
 		if responseRef != nil {
-			return &LibV3Response{
-				Response:    responseRef,
-				ParseConfig: op.ParseConfig,
-			}, code
+			break
 		}
 	}
 
 	// Get first defined
-	for codeName, respRef := range available {
-		if codeName == "default" {
-			continue
+	if responseRef == nil {
+		for codeName, respRef := range available {
+			if codeName == "default" {
+				continue
+			}
+			responseRef = respRef
+			statusCode = TransformHTTPCode(codeName)
+			break
 		}
-		return &LibV3Response{
-			Response:    respRef,
-			ParseConfig: op.ParseConfig,
-		}, TransformHTTPCode(codeName)
 	}
 
-	return &LibV3Response{
-		Response:    op.Responses.Default,
-		ParseConfig: op.ParseConfig,
-	}, 200
+	parsedHeaders := make(OpenAPIHeaders)
+	for name, header := range responseRef.Headers {
+		if header == nil {
+			continue
+		}
+		hSchema := header.Schema.Schema()
+		schema := NewSchemaFromLibOpenAPI(hSchema, op.ParseConfig)
+
+		parsedHeaders[name] = &OpenAPIParameter{
+			Name:     name,
+			In:       ParameterInHeader,
+			Required: header.Required,
+			Schema:   schema,
+		}
+	}
+
+	libContent, contentType := op.getContent(responseRef.Content)
+	content := NewSchemaFromLibOpenAPI(libContent, op.ParseConfig)
+
+	return &OpenAPIResponse{
+		Headers:     parsedHeaders,
+		Content:     content,
+		ContentType: contentType,
+		StatusCode:  statusCode,
+	}
+}
+
+func (op *LibV3Operation) getContent(contentTypes map[string]*v3high.MediaType) (*base.Schema, string) {
+	prioTypes := []string{"application/json", "text/plain", "text/html"}
+	for _, contentType := range prioTypes {
+		if _, ok := contentTypes[contentType]; ok {
+			return contentTypes[contentType].Schema.Schema(), contentType
+		}
+	}
+
+	for contentType, mediaType := range contentTypes {
+		return mediaType.Schema.Schema(), contentType
+	}
+
+	return nil, ""
 }
 
 func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
@@ -177,49 +213,19 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	return nil, ""
 }
 
-func (r *LibV3Response) GetContent() (*Schema, string) {
-	types := r.Content
-	if len(types) == 0 {
-		return nil, ""
-	}
+func (op *LibV3Operation) WithParseConfig(parseConfig *ParseConfig) Operationer {
+	op.mu.Lock()
+	defer op.mu.Unlock()
 
-	prioTypes := []string{"application/json", "text/plain", "text/html"}
-	for _, contentType := range prioTypes {
-		if _, ok := types[contentType]; ok {
-			px := types[contentType].Schema
-			return NewSchemaFromLibOpenAPI(px.Schema(), r.ParseConfig), contentType
-		}
-	}
-
-	for contentType, mediaType := range types {
-		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(px.Schema(), r.ParseConfig), contentType
-	}
-
-	return nil, ""
+	op.ParseConfig = parseConfig
+	return op
 }
 
-func (r *LibV3Response) GetHeaders() OpenAPIHeaders {
-	res := make(OpenAPIHeaders)
-	for name, header := range r.Headers {
-		if header == nil {
-			continue
-		}
+func (op *LibV3Operation) WithCache() Operationer {
+	op.mu.Lock()
+	defer op.mu.Unlock()
 
-		var schema *Schema
-		if header.Schema != nil {
-			px := header.Schema
-			schema = NewSchemaFromLibOpenAPI(px.Schema(), r.ParseConfig)
-		}
-
-		res[name] = &OpenAPIParameter{
-			Name:     name,
-			In:       ParameterInHeader,
-			Required: header.Required,
-			Schema:   schema,
-		}
-	}
-	return res
+	return op
 }
 
 func NewSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig) *Schema {

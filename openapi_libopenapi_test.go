@@ -8,7 +8,7 @@ import (
 )
 
 func CreateLibDocumentFromFile(t *testing.T, filePath string) Document {
-	doc, err := NewLibOpenAPIDocumentFromFile(filePath, nil)
+	doc, err := NewLibOpenAPIDocumentFromFile(filePath)
 	if err != nil {
 		t.Errorf("Error loading document: %v", err)
 		t.FailNow()
@@ -54,7 +54,7 @@ func TestLibV3Document(t *testing.T) {
 	})
 
 	t.Run("FindOperation", func(t *testing.T) {
-		op := doc.FindOperation("/pets", "GET")
+		op := doc.FindOperation(&FindOperationOptions{"", "/pets", "GET", nil})
 		assert.NotNil(op)
 		libOp, ok := op.(*LibV3Operation)
 		assert.True(ok)
@@ -64,12 +64,12 @@ func TestLibV3Document(t *testing.T) {
 	})
 
 	t.Run("FindOperation-res-not-found", func(t *testing.T) {
-		op := doc.FindOperation("/pets2", "GET")
+		op := doc.FindOperation(&FindOperationOptions{"", "/pets2", "GET", nil})
 		assert.Nil(op)
 	})
 
 	t.Run("FindOperation-method-not-found", func(t *testing.T) {
-		op := doc.FindOperation("/pets", "PATCH")
+		op := doc.FindOperation(&FindOperationOptions{"", "/pets", "PATCH", nil})
 		assert.Nil(op)
 	})
 }
@@ -80,9 +80,9 @@ func TestLibV3Operation(t *testing.T) {
 	doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-petstore.yml"))
 
 	t.Run("GetResponse", func(t *testing.T) {
-		op := doc.FindOperation("/pets", "GET")
-		_, code := op.GetResponse()
-		assert.Equal(200, code)
+		op := doc.FindOperation(&FindOperationOptions{"", "/pets", "GET", nil})
+		resp := op.GetResponse()
+		assert.Equal(200, resp.StatusCode)
 	})
 }
 
@@ -92,9 +92,10 @@ func TestLibV3Response(t *testing.T) {
 	doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-petstore.yml"))
 
 	t.Run("GetContent", func(t *testing.T) {
-		op := doc.FindOperation("/pets", "GET")
-		res, _ := op.GetResponse()
-		content, contentType := res.GetContent()
+		op := doc.FindOperation(&FindOperationOptions{"", "/pets", "GET", nil})
+		res := op.GetResponse()
+		content := res.Content
+		contentType := res.ContentType
 
 		var props []string
 		for name, _ := range content.Items.Properties {

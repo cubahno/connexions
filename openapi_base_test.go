@@ -9,9 +9,9 @@ import (
 func TestOperation(t *testing.T) {
 	t.Run("GetResponse", func(t *testing.T) {
 		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-responses-500-200.json"))
-		_, code := operation.GetResponse()
+		resp := operation.GetResponse()
 
-		assert.Equal(t, 200, code)
+		assert.Equal(t, 200, resp.StatusCode)
 	})
 
 	t.Run("get-first-defined", func(t *testing.T) {
@@ -27,9 +27,9 @@ func TestOperation(t *testing.T) {
 				}
 			}
 		`)
-		_, code := operation.GetResponse()
+		resp := operation.GetResponse()
 
-		assert.Contains(t, []int{500, 400}, code)
+		assert.Contains(t, []int{500, 400}, resp.StatusCode)
 	})
 
 	t.Run("get-default-if-nothing-else", func(t *testing.T) {
@@ -42,9 +42,9 @@ func TestOperation(t *testing.T) {
 				}
 			}
 		`)
-		_, code := operation.GetResponse()
+		resp := operation.GetResponse()
 
-		assert.Equal(t, 200, code)
+		assert.Equal(t, 200, resp.StatusCode)
 	})
 }
 

@@ -154,7 +154,7 @@ func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FilePropert
 			prefix = strings.TrimSuffix(prefix, "/")
 		}
 
-		doc, err := NewDocumentFromFileFactory(appCfg.SchemaProvider)(filePath, appCfg.ParseConfig)
+		doc, err := NewDocumentFromFileFactory(appCfg.SchemaProvider)(filePath)
 		if err != nil {
 			return nil, err
 		}

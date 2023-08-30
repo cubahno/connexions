@@ -18,14 +18,6 @@ app:
   # - kin-openapi: https://github.com/getkin/kin-openapi
   schemaProvider: libopenapi
 
-  # optimize openapi schema parsing for better performance
-  parseConfig:
-    # parse the first 6 levels of the schema
-    maxLevels: 6
-
-    # parse only fields marked as required
-    onlyRequired: false
-
 services:
   # service name is the first part of the path.
   # e.g. /petstore/v1/pets -> petstore
@@ -42,6 +34,12 @@ services:
     contexts:
       - fake: pet
       - fake: gamer
+
+  # optimize openapi schema parsing for better performance
+  parseConfig:
+    # parse the first 6 levels of the schema
+    maxLevels: 6
+
     # validate all incoming requests and outgoing responses to conform to the schema
     validate:
       request: true

@@ -387,10 +387,15 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spec := fileProps.Spec
-	operation := spec.FindOperation(payload.Resource, strings.ToUpper(payload.Method))
+	operation := spec.FindOperation(&FindOperationOptions{
+		Service:  name,
+		Resource: payload.Resource,
+		Method:   strings.ToUpper(payload.Method),
+	})
 	if operation == nil {
 		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
 	}
+	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
 	req := NewRequestFromOperation(fileProps.Prefix, payload.Resource, payload.Method, operation, valueReplacer)
 

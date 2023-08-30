@@ -37,6 +37,9 @@ type ServiceConfig struct {
 	// You can refer to the name when building aliases.
 	Contexts []map[string]string `koanf:"contexts"`
 
+	// ParseConfig is the config for parsing the OpenAPI spec.
+	ParseConfig *ParseConfig `json:"parseConfig" koanf:"parseConfig"`
+
 	// Validate is the validation config.
 	// It is used to validate the request and/or response outside of the Services API.
 	Validate *ServiceValidateConfig `koanf:"validate"`
@@ -123,9 +126,6 @@ type AppConfig struct {
 
 	// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
 	SchemaProvider SchemaProvider `json:"schemaProvider" koanf:"schemaProvider"`
-
-	// ParseConfig is the config for parsing the OpenAPI spec.
-	ParseConfig *ParseConfig `json:"parseConfig" koanf:"parseConfig"`
 }
 
 // IsValidPrefix returns true if the prefix is not a reserved URL.

@@ -21,7 +21,7 @@ func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 }
 
 func CreateKinDocumentFromFile(t *testing.T, filePath string) Document {
-	doc, err := NewKinDocumentFromFile(filePath, nil)
+	doc, err := NewKinDocumentFromFile(filePath)
 	if err != nil {
 		t.Errorf("Error loading document: %v", err)
 		t.FailNow()
@@ -497,8 +497,8 @@ func TestGenerateContent(t *testing.T) {
 			return nil
 		}
 		doc := CreateKinDocumentFromFile(t, filepath.Join(TestSchemaPath, "doc-with-circular-array.json"))
-		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
-		schema, _ := resp.GetContent()
+		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
+		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -527,8 +527,8 @@ func TestGenerateContent(t *testing.T) {
 		}
 		filePath := filepath.Join(TestSchemaPath, "circular-with-references.json")
 		doc := CreateKinDocumentFromFile(t, filePath)
-		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
-		schema, _ := resp.GetContent()
+		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
+		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
@@ -554,8 +554,8 @@ func TestGenerateContent(t *testing.T) {
 		}
 		filePath := filepath.Join(TestSchemaPath, "circular-with-inline.json")
 		doc := CreateKinDocumentFromFile(t, filePath)
-		resp, _ := doc.FindOperation("/nodes/{id}", http.MethodGet).GetResponse()
-		schema, _ := resp.GetContent()
+		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
+		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{

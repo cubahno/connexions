@@ -3,33 +3,29 @@ package connexions
 import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
+	"strings"
+	"sync"
 )
 
 type KinDocument struct {
 	*openapi3.T
-	ParseConfig *ParseConfig
 }
 
 type KinOperation struct {
 	*openapi3.Operation
-	Operationer
 	ParseConfig *ParseConfig
+	withCache   bool
+	mu          sync.Mutex
 }
 
-type KinResponse struct {
-	*openapi3.Response
-	ParseConfig *ParseConfig
-}
-
-func NewKinDocumentFromFile(filePath string, parseConfig *ParseConfig) (Document, error) {
+func NewKinDocumentFromFile(filePath string) (Document, error) {
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 	return &KinDocument{
-		T:           doc,
-		ParseConfig: parseConfig,
+		T: doc,
 	}, err
 }
 
@@ -48,18 +44,21 @@ func (d *KinDocument) GetResources() map[string][]string {
 	return res
 }
 
-func (d *KinDocument) FindOperation(resourceName, method string) Operationer {
-	path := d.Paths.Find(resourceName)
+func (d *KinDocument) FindOperation(options *FindOperationOptions) Operationer {
+	if options == nil {
+		return nil
+	}
+
+	path := d.Paths.Find(options.Resource)
 	if path == nil {
 		return nil
 	}
-	op := path.GetOperation(method)
+	op := path.GetOperation(strings.ToUpper(options.Method))
 	if op == nil {
 		return nil
 	}
 	return &KinOperation{
-		Operation:   op,
-		ParseConfig: d.ParseConfig,
+		Operation: op,
 	}
 }
 
@@ -112,39 +111,67 @@ func (op *KinOperation) GetRequestBody() (*Schema, string) {
 	return nil, ""
 }
 
-func (op *KinOperation) GetResponse() (OpenAPIResponse, int) {
+func (op *KinOperation) GetResponse() *OpenAPIResponse {
 	available := op.Responses
 
-	var responseRef *openapi3.ResponseRef
+	var libResponse *openapi3.Response
+	statusCode := 200
+
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		responseRef = available.Get(code)
-		if responseRef != nil {
-			return &KinResponse{
-				Response:    responseRef.Value,
-				ParseConfig: op.ParseConfig,
-			}, code
+		if codeResp := available.Get(code); codeResp != nil {
+			libResponse = codeResp.Value
+			statusCode = code
+			break
 		}
 	}
 
 	// Get first defined
-	for codeName, respRef := range available {
-		if codeName == "default" {
-			continue
+	if libResponse == nil {
+		for codeName, respRef := range available {
+			if codeName == "default" || respRef == nil {
+				continue
+			}
+			statusCode = TransformHTTPCode(codeName)
+			libResponse = respRef.Value
+			break
 		}
-		return &KinResponse{
-			Response:    respRef.Value,
-			ParseConfig: op.ParseConfig,
-		}, TransformHTTPCode(codeName)
 	}
 
-	return &KinResponse{
-		Response:    available.Default().Value,
-		ParseConfig: op.ParseConfig,
-	}, 200
+	if libResponse == nil {
+		libResponse = available.Default().Value
+	}
+
+	libContent, contentType := op.getContent(libResponse.Content)
+
+	headers := make(OpenAPIHeaders)
+	for name, header := range libResponse.Headers {
+		ref := header.Value
+		if ref == nil {
+			continue
+		}
+		p := ref.Parameter
+		var schema *Schema
+		if p.Schema != nil && p.Schema.Value != nil {
+			schema = NewSchemaFromKin(p.Schema.Value, op.ParseConfig)
+		}
+
+		headers[name] = &OpenAPIParameter{
+			Name:     p.Name,
+			In:       p.In,
+			Required: p.Required,
+			Schema:   schema,
+		}
+	}
+
+	return &OpenAPIResponse{
+		Headers:     headers,
+		Content:     NewSchemaFromKin(libContent, op.ParseConfig),
+		StatusCode:  statusCode,
+		ContentType: contentType,
+	}
 }
 
-func (r *KinResponse) GetContent() (*Schema, string) {
-	types := r.Content
+func (op *KinOperation) getContent(types map[string]*openapi3.MediaType) (*openapi3.Schema, string) {
 	if len(types) == 0 {
 		return nil, ""
 	}
@@ -152,39 +179,30 @@ func (r *KinResponse) GetContent() (*Schema, string) {
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := types[contentType]; ok {
-			return NewSchemaFromKin(types[contentType].Schema.Value, r.ParseConfig), contentType
+			return types[contentType].Schema.Value, contentType
 		}
 	}
 
 	for contentType, mediaType := range types {
-		return NewSchemaFromKin(mediaType.Schema.Value, r.ParseConfig), contentType
+		return mediaType.Schema.Value, contentType
 	}
 
 	return nil, ""
 }
 
-func (r *KinResponse) GetHeaders() OpenAPIHeaders {
-	res := make(OpenAPIHeaders)
-	for name, header := range r.Headers {
-		ref := header.Value
-		if ref == nil {
-			continue
-		}
+func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
+	op.mu.Lock()
+	defer op.mu.Unlock()
 
-		p := ref.Parameter
-		var schema *Schema
-		if p.Schema != nil && p.Schema.Value != nil {
-			schema = NewSchemaFromKin(p.Schema.Value, r.ParseConfig)
-		}
+	op.ParseConfig = config
+	return op
+}
 
-		res[name] = &OpenAPIParameter{
-			Name:     p.Name,
-			In:       p.In,
-			Required: p.Required,
-			Schema:   schema,
-		}
-	}
-	return res
+func (op *KinOperation) WithCache() Operationer {
+	op.mu.Lock()
+	defer op.mu.Unlock()
+
+	return op
 }
 
 func NewSchemaFromKin(s *openapi3.Schema, parseConfig *ParseConfig) *Schema {

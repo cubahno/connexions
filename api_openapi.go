@@ -65,12 +65,16 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	ctx := chi.RouteContext(r.Context())
 	resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 
-	currentMethod := r.Method
-	operation := doc.FindOperation(resourceName, currentMethod)
+	operation := doc.FindOperation(&FindOperationOptions{
+		Service:  h.fileProps.ServiceName,
+		Resource: resourceName,
+		Method:   r.Method,
+	})
 	if operation == nil {
 		NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
 		return
 	}
+	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
 	reqBody, contentType := operation.GetRequestBody()
 	if serviceCfg.Validate.Request && reqBody != nil {

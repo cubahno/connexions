@@ -158,11 +158,13 @@ func NewRequestFromFileProperties(path, method, contentType string, valueReplace
 }
 
 func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer) *Response {
-	response, statusCode := operation.GetResponse()
+	response := operation.GetResponse()
+	statusCode := response.StatusCode
 
-	headers := GenerateResponseHeaders(response.GetHeaders(), valueReplacer)
+	headers := GenerateResponseHeaders(response.Headers, valueReplacer)
 
-	contentSchema, contentType := response.GetContent()
+	contentSchema := response.Content
+	contentType := response.ContentType
 	if contentType == "" {
 		contentType = "text/plain"
 	}

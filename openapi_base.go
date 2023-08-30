@@ -3,18 +3,29 @@ package connexions
 type Document interface {
 	GetVersion() string
 	GetResources() map[string][]string
-	FindOperation(resourceName, method string) Operationer
+	FindOperation(options *FindOperationOptions) Operationer
 }
 
 type Operationer interface {
 	GetParameters() OpenAPIParameters
 	GetRequestBody() (*Schema, string)
-	GetResponse() (OpenAPIResponse, int)
+	GetResponse() *OpenAPIResponse
+	WithParseConfig(*ParseConfig) Operationer
+	WithCache() Operationer
 }
 
-type OpenAPIResponse interface {
-	GetContent() (*Schema, string)
-	GetHeaders() OpenAPIHeaders
+type OpenAPIResponse struct {
+	Headers     OpenAPIHeaders
+	Content     *Schema
+	ContentType string
+	StatusCode  int
+}
+
+type FindOperationOptions struct {
+	Service     string
+	Resource    string
+	Method      string
+	ParseConfig *ParseConfig
 }
 
 type OpenAPIParameter struct {
@@ -27,6 +38,9 @@ type OpenAPIParameter struct {
 
 type OpenAPIParameters []*OpenAPIParameter
 type OpenAPIHeaders map[string]*OpenAPIParameter
+
+type BaseOperation struct {
+}
 
 type Schema struct {
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
@@ -75,7 +89,7 @@ const (
 	ParameterInHeader = "header"
 )
 
-func NewDocumentFromFileFactory(provider SchemaProvider) func(string, *ParseConfig) (Document, error) {
+func NewDocumentFromFileFactory(provider SchemaProvider) func(string) (Document, error) {
 	switch provider {
 	case KinOpenAPIProvider:
 		return NewKinDocumentFromFile
@@ -84,4 +98,8 @@ func NewDocumentFromFileFactory(provider SchemaProvider) func(string, *ParseConf
 	default:
 		return NewLibOpenAPIDocumentFromFile
 	}
+}
+
+func (op *BaseOperation) WithCache() Operationer {
+	return nil
 }
