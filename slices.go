@@ -26,6 +26,18 @@ func SliceContains[T comparable](slice []T, value T) bool {
 	return false
 }
 
+func SliceUnique[T comparable](slice []T) []T {
+	visited := make(map[T]bool)
+	var result []T
+	for _, item := range slice {
+		if _, ok := visited[item]; !ok {
+			visited[item] = true
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
 func IsSliceUnique[T comparable](path []T) bool {
 	visited := make(map[T]bool)
 	for _, item := range path {

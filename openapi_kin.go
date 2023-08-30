@@ -198,13 +198,6 @@ func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
 	return op
 }
 
-func (op *KinOperation) WithCache() Operationer {
-	op.mu.Lock()
-	defer op.mu.Unlock()
-
-	return op
-}
-
 func NewSchemaFromKin(s *openapi3.Schema, parseConfig *ParseConfig) *Schema {
 	return newSchemaFromKin(s, nil)
 }

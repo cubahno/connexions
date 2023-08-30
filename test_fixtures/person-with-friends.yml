@@ -2,9 +2,97 @@ openapi: 3.0.0
 info:
   title: Array with allOf Property Example
   version: 1.0.0
-paths: {}
+paths:
+  /person/{id}:
+    get:
+      operationId: findPersonById
+      responses:
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectOfUser'
+          headers:
+            X-Header:
+              schema:
+                type: string
+              required: true
+            Y-Header:
+        'default':
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      operationId: savePersonById
+      responses:
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      operationId: savePersonById
+      responses: {}
+
+  /person/{id}/find:
+    get:
+      operationId: findPersonByIdAction
+      responses:
+        '200':
+          description: Successful response with data in XML format
+          content:
+            application/xml:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                required:
+                    - id
+    post:
+      summary: Submit data with an empty request body
+      responses:
+        '200':
+          description: Data submitted successfully
+    patch:
+      summary: Submit XML data
+      requestBody:
+        description: XML data to be submitted
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+    delete:
+      requestBody:
+        description: XML data to be submitted
+        required: true
+        content:
+
 components:
   schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+
     SimpleArray:
       type: array
       items:
@@ -141,6 +229,8 @@ components:
         address:
           allOf:
             - $ref: '#/components/schemas/CityAndState'
+      required:
+        - name
 
     PersonEmbeddable:
       type: object

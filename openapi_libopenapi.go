@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -115,6 +116,11 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 		})
 	}
 
+	// original names not sorted
+	sort.Slice(params, func(i, j int) bool {
+		return params[i].Name < params[j].Name
+	})
+
 	return params
 }
 
@@ -122,12 +128,12 @@ func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 	available := op.Responses.Codes
 
 	var responseRef *v3high.Response
-	statusCode := 200
+	statusCode := http.StatusOK
 
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
 		responseRef = available[fmt.Sprintf("%v", code)]
-		statusCode = code
 		if responseRef != nil {
+			statusCode = code
 			break
 		}
 	}
@@ -135,29 +141,40 @@ func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 	// Get first defined
 	if responseRef == nil {
 		for codeName, respRef := range available {
-			if codeName == "default" {
-				continue
-			}
+			// There's no default expected in this library implementation
 			responseRef = respRef
 			statusCode = TransformHTTPCode(codeName)
 			break
 		}
 	}
 
+	if responseRef == nil {
+		responseRef = op.Responses.Default
+	}
+
+	if responseRef == nil {
+		return &OpenAPIResponse{}
+	}
+
 	parsedHeaders := make(OpenAPIHeaders)
 	for name, header := range responseRef.Headers {
-		if header == nil {
+		if header.Schema == nil {
 			continue
 		}
 		hSchema := header.Schema.Schema()
 		schema := NewSchemaFromLibOpenAPI(hSchema, op.ParseConfig)
 
+		name = strings.ToLower(name)
 		parsedHeaders[name] = &OpenAPIParameter{
 			Name:     name,
 			In:       ParameterInHeader,
 			Required: header.Required,
 			Schema:   schema,
 		}
+	}
+
+	if len(parsedHeaders) == 0 {
+		parsedHeaders = nil
 	}
 
 	libContent, contentType := op.getContent(responseRef.Content)
@@ -172,6 +189,10 @@ func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 }
 
 func (op *LibV3Operation) getContent(contentTypes map[string]*v3high.MediaType) (*base.Schema, string) {
+	if len(contentTypes) == 0 {
+		contentTypes = make(map[string]*v3high.MediaType)
+	}
+
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := contentTypes[contentType]; ok {
@@ -179,6 +200,7 @@ func (op *LibV3Operation) getContent(contentTypes map[string]*v3high.MediaType) 
 		}
 	}
 
+	// If none of the priority types are found, return the first available media type
 	for contentType, mediaType := range contentTypes {
 		return mediaType.Schema.Schema(), contentType
 	}
@@ -193,7 +215,7 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 
 	contentTypes := op.RequestBody.Content
 	if len(contentTypes) == 0 {
-		return nil, ""
+		contentTypes = make(map[string]*v3high.MediaType)
 	}
 
 	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
@@ -221,14 +243,10 @@ func (op *LibV3Operation) WithParseConfig(parseConfig *ParseConfig) Operationer 
 	return op
 }
 
-func (op *LibV3Operation) WithCache() Operationer {
-	op.mu.Lock()
-	defer op.mu.Unlock()
-
-	return op
-}
-
 func NewSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig) *Schema {
+	if parseConfig == nil {
+		parseConfig = &ParseConfig{}
+	}
 	return newSchemaFromLibOpenAPI(schema, parseConfig, nil, nil)
 }
 
@@ -245,7 +263,7 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		namePath = make([]string, 0)
 	}
 
-	if parseConfig != nil && parseConfig.MaxLevels > 0 && len(namePath) > parseConfig.MaxLevels {
+	if parseConfig.MaxLevels > 0 && len(namePath) > parseConfig.MaxLevels {
 		return nil
 	}
 
@@ -273,6 +291,9 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 
 	properties := make(map[string]*Schema)
 	for propName, sProxy := range schema.Properties {
+		if parseConfig.OnlyRequired && !SliceContains(schema.Required, propName) {
+			continue
+		}
 		properties[propName] = newSchemaFromLibOpenAPI(sProxy.Schema(),
 			parseConfig,
 			AppendSliceFirstNonEmpty(refPath, sProxy.GetReference(), mergedReference),
@@ -404,7 +425,12 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 			}
 			schema.Items = subSchema.Items
 		}
+
+		required = append(required, subSchema.Required...)
 	}
+
+	// make required unique
+	required = SliceUnique(required)
 
 	// exclude properties from `not`
 	if not != nil {
@@ -414,10 +440,18 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 			delete(properties, propertyName)
 			deletes[propertyName] = true
 		}
+
+		// remove from required properties
+		for i, propertyName := range required {
+			if _, ok := deletes[propertyName]; ok {
+				required = append(required[:i], required[i+1:]...)
+			}
+		}
 	}
 
 	schema.Properties = properties
 	schema.Type = []string{impliedType}
+	schema.Required = required
 
 	return schema, subRef
 }

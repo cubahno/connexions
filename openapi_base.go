@@ -11,7 +11,6 @@ type Operationer interface {
 	GetRequestBody() (*Schema, string)
 	GetResponse() *OpenAPIResponse
 	WithParseConfig(*ParseConfig) Operationer
-	WithCache() Operationer
 }
 
 type OpenAPIResponse struct {
