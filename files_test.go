@@ -3,6 +3,7 @@ package connexions
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
@@ -12,6 +13,21 @@ import (
 	"path/filepath"
 	"testing"
 )
+
+type mockFile struct {
+	readErr bool
+}
+
+func (m *mockFile) Read(p []byte) (n int, err error) {
+	if m.readErr {
+		return 0, fmt.Errorf("simulated error")
+	}
+	return len(p), nil
+}
+
+func (m *mockFile) Close() error {
+	return nil
+}
 
 func TestFileProperties(t *testing.T) {
 	assert := assert2.New(t)
@@ -523,4 +539,30 @@ func TestExtractZip(t *testing.T) {
 	expected := expectedFilePaths(targetDir)
 
 	assert.ElementsMatch(expected, extracted)
+}
+
+func TestGetFileHash(t *testing.T) {
+	assert := assert2.New(t)
+	tempDir := t.TempDir()
+
+	filePath := filepath.Join(tempDir, "test.txt")
+	file, err := os.Create(filePath)
+	if err != nil {
+		t.FailNow()
+	}
+	file.WriteString("test")
+	defer file.Close()
+
+	hash := GetFileHash(file)
+	assert.Nil(err)
+	assert.Equal("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hash)
+}
+
+func TestHashFileWithError(t *testing.T) {
+	m := &mockFile{readErr: true}
+	hash := GetFileHash(m)
+
+	if hash != "" {
+		t.Errorf("Expected hash to be empty, got: %s", hash)
+	}
 }

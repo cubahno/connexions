@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v3"
@@ -512,4 +513,13 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 	}
 
 	return nil
+}
+
+func GetFileHash(file io.Reader) string {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%x", hash.Sum(nil))
 }

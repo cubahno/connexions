@@ -40,7 +40,6 @@ func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
 		assert.NotNil(err)
 	})
 
-
 	t.Run("invalid-yaml", func(t *testing.T) {
 		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-invalid.yml"))
 		assert.Nil(res)
@@ -252,7 +251,7 @@ func TestLibV3Operation(t *testing.T) {
 				Type: "object",
 				Properties: map[string]*Schema{
 					"code": {
-						Type: TypeInteger,
+						Type:   TypeInteger,
 						Format: "int32",
 					},
 					"message": {
