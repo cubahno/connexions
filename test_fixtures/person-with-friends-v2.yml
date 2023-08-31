@@ -1,0 +1,357 @@
+swagger: '2.0'
+info:
+  title: Array with allOf Property Example
+  version: 1.0.0
+paths:
+  /person/{id}:
+    get:
+      operationId: findPersonById
+      responses:
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ObjectOfUser'
+          headers:
+            X-Header:
+              type: string
+              required: true
+            Y-Header:
+              type: string
+        'default':
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: savePersonById
+      responses:
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    patch:
+      operationId: savePersonById
+      responses: {}
+
+  /person/{id}/find:
+    get:
+      operationId: findPersonByIdAction
+      responses:
+        '200':
+          description: Successful response with data in XML format
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+            required:
+              - id
+    post:
+      summary: Submit data with an empty request body
+      responses:
+        '200':
+          description: Data submitted successfully
+    patch:
+      summary: Submit XML data
+      consumes:
+        - application/xml
+      parameters:
+        - in: body
+          name: body
+          description: XML data to be submitted
+          required: true
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+    delete:
+      consumes:
+      parameters:
+        - name: id
+          in: body
+
+  /person/{id}/find-missing:
+    post:
+      summary: Submit data with an empty request body
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              id:
+                type: integer
+      responses:
+        '200':
+          description: Data submitted successfully
+
+definitions:
+  Error:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+
+  SimpleArray:
+    type: array
+    items:
+      type: string
+
+  SimpleArrayWithRef:
+    type: array
+    items:
+      $ref: '#/definitions/PersonEmbeddable'
+
+  SimpleObjectCircular:
+    type: object
+    properties:
+      user:
+        $ref: '#/definitions/PersonEmbeddable'
+      relatives:
+        type: array
+        items:
+          $ref: '#/definitions/SimpleObjectCircular'
+
+  SimpleObjectCircularNested:
+    type: object
+    properties:
+      user:
+        $ref: '#/definitions/PersonEmbeddable'
+      address:
+        type: object
+        properties:
+          neighbors:
+            type: array
+            items:
+              $ref: '#/definitions/SimpleObjectCircularNested'
+          supervisor:
+            $ref: '#/definitions/SimpleObjectCircularNested'
+
+  ObjectsWithReferencesAndArrays:
+    type: object
+    properties:
+      user:
+        type: object
+        properties:
+          name:
+            type: string
+          friends:
+            type: array
+            items:
+              $ref: '#/definitions/PersonEmbeddable'
+      relatives:
+        type: array
+        items:
+          $ref: '#/definitions/PersonEmbeddable'
+
+  AddressWithAllOf:
+    type: object
+    properties:
+      address:
+        allOf:
+          - $ref: '#/definitions/Country'
+          - $ref: '#/definitions/State'
+
+  AddressWithAnyOfObject:
+    anyOf:
+      - $ref: '#/definitions/State'
+      - $ref: '#/definitions/CityAndState'
+
+  AddressWithAnyOfArray:
+    anyOf:
+      - type: array
+        items:
+          $ref: '#/definitions/State'
+      - type: array
+        items:
+          $ref: '#/definitions/CityAndState'
+
+  AddressWithAnyOfArrayWithoutArrayType:
+    anyOf:
+      - items:
+          $ref: '#/definitions/State'
+      - items:
+          $ref: '#/definitions/CityAndState'
+
+  StateWithoutAbbr:
+    allOf:
+      - $ref: '#/definitions/State'
+    not:
+      properties:
+        abbr:
+          type: string
+
+  ImpliedType:
+    anyOf:
+      - not:
+          type: string
+
+  EmptyPolymorphic:
+    allOf: []
+    anyOf: []
+
+  ObjectWithAllOfPersonAndEmployee:
+    allOf:
+      - type: object
+        properties:
+          user:
+            allOf:
+              - $ref: '#/definitions/PersonEmbeddable'
+              - type: object
+                properties:
+                  country:
+                    allOf:
+                      - $ref: '#/definitions/Country'
+                      - $ref: '#/definitions/State'
+      - $ref: '#/definitions/Employee'
+
+  ObjectOfUser:
+    allOf:
+      - type: object
+        properties:
+          user:
+            $ref: '#/definitions/PersonEmbeddable'
+
+  CityAndState:
+    type: object
+    properties:
+      city:
+        type: string
+      state:
+        type: string
+
+  Country:
+    type: object
+    properties:
+      name:
+        type: string
+
+  State:
+    type: object
+    properties:
+      name:
+        type: string
+      abbr:
+        type: string
+
+  Person:
+    type: object
+    properties:
+      name:
+        type: string
+      age:
+        type: integer
+      address:
+        allOf:
+          - $ref: '#/definitions/CityAndState'
+    required:
+      - name
+
+  PersonEmbeddable:
+    type: object
+    properties:
+      name:
+        type: string
+
+  Employee:
+    type: object
+    properties:
+      employeeId:
+        type: integer
+
+  PersonAndEmployee:
+    allOf:
+      - $ref: '#/definitions/Person'
+      - $ref: '#/definitions/Employee'
+
+  Friends:
+    type: array
+    items:
+      $ref: '#/definitions/Person'
+
+  ArrayOfPersonAndEmployee:
+    type: array
+    items:
+      allOf:
+        - $ref: '#/definitions/Person'
+        - $ref: '#/definitions/Employee'
+
+  ArrayOfPersonAndEmployeeWithFriends:
+    type: array
+    items:
+      allOf:
+        - $ref: '#/definitions/Person'
+        - $ref: '#/definitions/Employee'
+      properties:
+        friends:
+          $ref: '#/definitions/Friends'
+
+  ObjectOfPersonAndEmployeeWithFriends:
+    allOf:
+      - $ref: '#/definitions/Person'
+      - $ref: '#/definitions/Employee'
+      - type: object
+        properties:
+          links:
+            $ref: '#/definitions/FriendLinks'
+
+  ObjectOfUserWithInlinedArray:
+    allOf:
+      - type: object
+        properties:
+          user:
+            type: array
+            items:
+              $ref: '#/definitions/PersonEmbeddable'
+              minItems: 2
+
+  FriendLinks:
+    type: object
+    properties:
+      person:
+        $ref: '#/definitions/PersonEmbeddable'
+      links:
+        type: array
+        items:
+          $ref: '#/definitions/FriendLinks'
+
+  PersonFeatures:
+    type: object
+    properties:
+      neighbors:
+        anyOf:
+          - type: object
+            properties:
+              houseLeft:
+                $ref: '#/definitions/PersonEmbeddable'
+          - type: object
+            properties:
+              houseRight:
+                $ref: '#/definitions/PersonEmbeddable'
+      severity:
+        oneOf:
+          - type: string
+          - type: integer
+      address:
+        anyOf:
+          - $ref: '#/definitions/State'
+          - $ref: '#/definitions/Country'
+      previousAddresses:
+        oneOf:
+          - type: array
+            items:
+              $ref: '#/definitions/CityAndState'
+          - type: array
+            items:
+              $ref: '#/definitions/State'

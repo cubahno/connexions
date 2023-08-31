@@ -65,6 +65,7 @@ type Schema struct {
 	Required      []string           `json:"required,omitempty" yaml:"required,omitempty"`
 	Enum          []any              `json:"enum,omitempty" yaml:"enum,omitempty"`
 	Properties    map[string]*Schema `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Not           *Schema            `json:"not,omitempty" yaml:"not,omitempty"`
 	Default       any                `json:"default,omitempty" yaml:"default,omitempty"`
 	Nullable      bool               `json:"nullable,omitempty" yaml:"nullable,omitempty"`
 	ReadOnly      bool               `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
@@ -86,6 +87,8 @@ const (
 	ParameterInPath   = "path"
 	ParameterInQuery  = "query"
 	ParameterInHeader = "header"
+	// ParameterInBody v2 Swagger only
+	ParameterInBody = "body"
 )
 
 func NewDocumentFromFileFactory(provider SchemaProvider) func(string) (Document, error) {

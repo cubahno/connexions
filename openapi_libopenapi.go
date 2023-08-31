@@ -1,35 +1,13 @@
 package connexions
 
 import (
-	"fmt"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
-	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
-	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 	"github.com/pb33f/libopenapi/resolver"
 	"log"
-	"net/http"
 	"os"
-	"sort"
 	"strings"
-	"sync"
 )
-
-type LibV2Document struct {
-	libopenapi.DocumentModel[v2high.Swagger]
-}
-
-type LibV3Document struct {
-	*libopenapi.DocumentModel[v3high.Document]
-	ParseConfig *ParseConfig
-}
-
-type LibV3Operation struct {
-	*v3high.Operation
-	ParseConfig *ParseConfig
-	withCache   bool
-	mu          sync.Mutex
-}
 
 func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	src, _ := os.ReadFile(filePath)
@@ -37,6 +15,27 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	lib, err := libopenapi.NewDocument(src)
 	if err != nil {
 		return nil, err
+	}
+
+	if strings.HasPrefix(lib.GetVersion(), "2.") {
+		model, errs := lib.BuildV2Model()
+		if len(errs) > 0 {
+			for i := range errs {
+				if circError, ok := errs[i].(*resolver.ResolvingError); ok {
+					log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
+						circError.Error(),
+						circError.CircularReference.LoopPoint.Node.Line,
+						circError.CircularReference.IsPolymorphicResult)
+					return &LibV2Document{
+						DocumentModel: model,
+					}, nil
+				}
+			}
+			return nil, errs[0]
+		}
+		return &LibV2Document{
+			DocumentModel: model,
+		}, nil
 	}
 
 	model, errs := lib.BuildV3Model()
@@ -58,189 +57,6 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	return &LibV3Document{
 		DocumentModel: model,
 	}, nil
-}
-
-func (d *LibV3Document) GetVersion() string {
-	return d.Model.Version
-}
-
-func (d *LibV3Document) GetResources() map[string][]string {
-	res := make(map[string][]string)
-
-	for name, path := range d.Model.Paths.PathItems {
-		res[name] = make([]string, 0)
-		for method, _ := range path.GetOperations() {
-			res[name] = append(res[name], strings.ToUpper(method))
-		}
-	}
-	return res
-}
-
-func (d *LibV3Document) FindOperation(options *FindOperationOptions) Operationer {
-	if options == nil {
-		return nil
-	}
-	path, ok := d.Model.Paths.PathItems[options.Resource]
-	if !ok {
-		return nil
-	}
-
-	for m, op := range path.GetOperations() {
-		if strings.ToUpper(m) == strings.ToUpper(options.Method) {
-			return &LibV3Operation{
-				Operation:   op,
-				ParseConfig: d.ParseConfig,
-			}
-		}
-	}
-
-	return nil
-}
-
-func (op *LibV3Operation) GetParameters() OpenAPIParameters {
-	params := make(OpenAPIParameters, 0)
-
-	for _, param := range op.Parameters {
-		var schema *Schema
-		if param.Schema != nil {
-			px := param.Schema
-			schema = NewSchemaFromLibOpenAPI(px.Schema(), op.ParseConfig)
-		}
-
-		params = append(params, &OpenAPIParameter{
-			Name:     param.Name,
-			In:       param.In,
-			Required: param.Required,
-			Schema:   schema,
-			Example:  param.Example,
-		})
-	}
-
-	// original names not sorted
-	sort.Slice(params, func(i, j int) bool {
-		return params[i].Name < params[j].Name
-	})
-
-	return params
-}
-
-func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
-	available := op.Responses.Codes
-
-	var responseRef *v3high.Response
-	statusCode := http.StatusOK
-
-	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		responseRef = available[fmt.Sprintf("%v", code)]
-		if responseRef != nil {
-			statusCode = code
-			break
-		}
-	}
-
-	// Get first defined
-	if responseRef == nil {
-		for codeName, respRef := range available {
-			// There's no default expected in this library implementation
-			responseRef = respRef
-			statusCode = TransformHTTPCode(codeName)
-			break
-		}
-	}
-
-	if responseRef == nil {
-		responseRef = op.Responses.Default
-	}
-
-	if responseRef == nil {
-		return &OpenAPIResponse{}
-	}
-
-	parsedHeaders := make(OpenAPIHeaders)
-	for name, header := range responseRef.Headers {
-		if header.Schema == nil {
-			continue
-		}
-		hSchema := header.Schema.Schema()
-		schema := NewSchemaFromLibOpenAPI(hSchema, op.ParseConfig)
-
-		name = strings.ToLower(name)
-		parsedHeaders[name] = &OpenAPIParameter{
-			Name:     name,
-			In:       ParameterInHeader,
-			Required: header.Required,
-			Schema:   schema,
-		}
-	}
-
-	if len(parsedHeaders) == 0 {
-		parsedHeaders = nil
-	}
-
-	libContent, contentType := op.getContent(responseRef.Content)
-	content := NewSchemaFromLibOpenAPI(libContent, op.ParseConfig)
-
-	return &OpenAPIResponse{
-		Headers:     parsedHeaders,
-		Content:     content,
-		ContentType: contentType,
-		StatusCode:  statusCode,
-	}
-}
-
-func (op *LibV3Operation) getContent(contentTypes map[string]*v3high.MediaType) (*base.Schema, string) {
-	if len(contentTypes) == 0 {
-		contentTypes = make(map[string]*v3high.MediaType)
-	}
-
-	prioTypes := []string{"application/json", "text/plain", "text/html"}
-	for _, contentType := range prioTypes {
-		if _, ok := contentTypes[contentType]; ok {
-			return contentTypes[contentType].Schema.Schema(), contentType
-		}
-	}
-
-	// If none of the priority types are found, return the first available media type
-	for contentType, mediaType := range contentTypes {
-		return mediaType.Schema.Schema(), contentType
-	}
-
-	return nil, ""
-}
-
-func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
-	if op.RequestBody == nil {
-		return nil, ""
-	}
-
-	contentTypes := op.RequestBody.Content
-	if len(contentTypes) == 0 {
-		contentTypes = make(map[string]*v3high.MediaType)
-	}
-
-	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
-	for _, contentType := range typesOrder {
-		if _, ok := contentTypes[contentType]; ok {
-			px := contentTypes[contentType].Schema
-			return NewSchemaFromLibOpenAPI(px.Schema(), op.ParseConfig), contentType
-		}
-	}
-
-	// Get first defined
-	for contentType, mediaType := range contentTypes {
-		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(px.Schema(), op.ParseConfig), contentType
-	}
-
-	return nil, ""
-}
-
-func (op *LibV3Operation) WithParseConfig(parseConfig *ParseConfig) Operationer {
-	op.mu.Lock()
-	defer op.mu.Unlock()
-
-	op.ParseConfig = parseConfig
-	return op
 }
 
 func NewSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig) *Schema {
@@ -300,6 +116,11 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 			append(namePath, propName))
 	}
 
+	var not *Schema
+	if schema.Not != nil {
+		not = newSchemaFromLibOpenAPI(schema.Not.Schema(), parseConfig, refPath, namePath)
+	}
+
 	return &Schema{
 		Type:          typ,
 		Items:         items,
@@ -317,6 +138,7 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		Required:      schema.Required,
 		Enum:          schema.Enum,
 		Properties:    properties,
+		Not:           not,
 		Default:       schema.Default,
 		Nullable:      RemovePointer(schema.Nullable),
 		ReadOnly:      schema.ReadOnly,
@@ -326,16 +148,22 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	}
 }
 
-// PicklLibOpenAPISchemaProxy returns the first non-nil schema proxy with reference
+// PickLibOpenAPISchemaProxy returns the first non-nil schema proxy with reference
 // or the first non-nil schema proxy if none of them have reference.
-func PicklLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
+func PickLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 	if len(items) == 0 {
 		return nil
 	}
 
+	var fstNonEmpty *base.SchemaProxy
+
 	for _, item := range items {
 		if item == nil {
 			continue
+		}
+
+		if fstNonEmpty == nil {
+			fstNonEmpty = item
 		}
 
 		if item.GetReference() != "" {
@@ -343,7 +171,7 @@ func PicklLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 		}
 	}
 
-	return items[0]
+	return fstNonEmpty
 }
 
 func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
@@ -354,6 +182,9 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 
 	// base case: schema is flat
 	if len(allOf) == 0 && len(anyOf) == 0 && len(oneOf) == 0 && not == nil {
+		if schema != nil && len(schema.Type) == 0 {
+			schema.Type = []string{TypeObject}
+		}
 		return schema, ""
 	}
 
@@ -379,8 +210,8 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 
 	// pick one from each
 	allOf = append(allOf,
-		PicklLibOpenAPISchemaProxy(anyOf),
-		PicklLibOpenAPISchemaProxy(oneOf),
+		PickLibOpenAPISchemaProxy(anyOf),
+		PickLibOpenAPISchemaProxy(oneOf),
 	)
 
 	subRef := ""
@@ -388,11 +219,7 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 		if schemaRef == nil {
 			continue
 		}
-
 		subSchema := schemaRef.Schema()
-		if subSchema == nil {
-			continue
-		}
 
 		if subRef == "" && schemaRef.IsReference() {
 			subRef = schemaRef.GetReference()
@@ -402,7 +229,7 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 			if len(subSchema.Type) > 0 {
 				impliedType = subSchema.Type[0]
 			}
-			if impliedType == "" && subSchema.Items.IsA() && len(subSchema.Items.A.Schema().Properties) > 0 {
+			if impliedType == "" && subSchema.Items != nil && subSchema.Items.IsA() && len(subSchema.Items.A.Schema().Properties) > 0 {
 				impliedType = TypeArray
 			}
 			if impliedType == "" {
@@ -419,7 +246,7 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 			}
 		}
 
-		if impliedType == TypeArray && subSchema.Items.IsA() {
+		if impliedType == TypeArray && subSchema.Items != nil && subSchema.Items.IsA() {
 			if subRef == "" {
 				subRef = subSchema.Items.A.GetReference()
 			}
@@ -432,25 +259,17 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	// make required unique
 	required = SliceUnique(required)
 
-	// exclude properties from `not`
 	if not != nil {
-		notSchema := not.Schema()
-		deletes := map[string]bool{}
-		for propertyName, _ := range notSchema.Properties {
-			delete(properties, propertyName)
-			deletes[propertyName] = true
+		resultNot, _ := mergeLibOpenAPISubSchemas(not.Schema())
+		if resultNot != nil {
+			// not is always an object
+			resultNot.Type = []string{TypeObject}
 		}
-
-		// remove from required properties
-		for i, propertyName := range required {
-			if _, ok := deletes[propertyName]; ok {
-				required = append(required[:i], required[i+1:]...)
-			}
-		}
+		schema.Not = base.CreateSchemaProxy(resultNot)
 	}
 
-	schema.Properties = properties
 	schema.Type = []string{impliedType}
+	schema.Properties = properties
 	schema.Required = required
 
 	return schema, subRef

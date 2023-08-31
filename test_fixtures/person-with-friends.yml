@@ -176,6 +176,23 @@ components:
         - items:
             $ref: '#/components/schemas/CityAndState'
 
+    StateWithoutAbbr:
+      allOf:
+        - $ref: '#/components/schemas/State'
+      not:
+        properties:
+          abbr:
+            type: string
+
+    ImpliedType:
+      anyOf:
+        - not:
+            type: string
+
+    EmptyPolymorphic:
+      allOf:
+      anyOf:
+
     ObjectWithAllOfPersonAndEmployee:
       allOf:
         - type: object
