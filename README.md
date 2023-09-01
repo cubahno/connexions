@@ -1,3 +1,7 @@
+<div style="text-align: center; width:450px;">
+    <img src="./resources/docs/images/gotham.svg">
+</div>
+
 ## Connexions
 
 **Connexions** is a library inspired by [Connexion](https://github.com/spec-first/connexion).<br/>
