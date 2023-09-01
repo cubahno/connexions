@@ -3,6 +3,8 @@ package connexions
 import (
 	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
+	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -98,11 +100,58 @@ func TestExtractPlaceholders(t *testing.T) {
 
 func TestValidateRequest(t *testing.T) {
 	assert := assert2.New(t)
+	schema := CreateSchemaFromString(t, `
+{"type": "object", 
+"required": ["key"],
+"properties": 
+	{"key": 
+		{"type": "string"}
+}}`)
 
 	t.Run("base-case", func(t *testing.T) {
-		t.SkipNow()
-		err := ValidateRequest(nil, nil, "")
+
+		requestBody := strings.NewReader(`{"key": "value"}`)
+
+		// Create a new HTTP request with a request body.
+		req, err := http.NewRequest("POST", "http://example.com/api/resource", requestBody)
+		if err != nil {
+			t.Errorf("Error creating request: %v", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		err = ValidateRequest(req, schema, "application/json")
 		assert.Nil(err)
+	})
+
+	t.Run("invalid-type", func(t *testing.T) {
+		requestBody := strings.NewReader(`{"key": 1}`)
+
+		req, err := http.NewRequest("POST", "http://example.com/api/resource", requestBody)
+		if err != nil {
+			t.Errorf("Error creating request: %v", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		err = ValidateRequest(req, schema, "application/json")
+		assert.NotNil(err)
+		assert.Contains(err.Error(), "value must be a string")
+	})
+
+	t.Run("missing-required", func(t *testing.T) {
+		requestBody := strings.NewReader(`{"foo": "bar"}`)
+
+		req, err := http.NewRequest("POST", "http://example.com/api/resource", requestBody)
+		if err != nil {
+			t.Errorf("Error creating request: %v", err)
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		err = ValidateRequest(req, schema, "application/json")
+		assert.NotNil(err)
+		assert.Contains(err.Error(), `property "key" is missing`)
 	})
 }
 

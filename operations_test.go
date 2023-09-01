@@ -7,7 +7,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,32 +18,6 @@ func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 		In:     in,
 		Schema: schema,
 	}
-}
-
-func CreateKinDocumentFromFile(t *testing.T, filePath string) Document {
-	doc, err := NewKinDocumentFromFile(filePath)
-	if err != nil {
-		t.Errorf("Error loading document: %v", err)
-		t.FailNow()
-	}
-	return doc
-}
-
-func CreateSchemaFromFile(t *testing.T, filePath string) *Schema {
-	cont, err := os.ReadFile(filePath)
-	if err != nil {
-		t.Errorf("Error reading file: %v", err)
-		t.FailNow()
-	}
-
-	// remove schema key if pre
-	tmp := make(map[string]any)
-	_ = json.Unmarshal(cont, &tmp)
-	if _, ok := tmp["schema"]; ok {
-		cont, _ = json.Marshal(tmp["schema"])
-	}
-
-	return CreateSchemaFromString(t, string(cont))
 }
 
 func TestNewRequestFromOperation(t *testing.T) {
