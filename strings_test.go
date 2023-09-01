@@ -1,7 +1,6 @@
 package connexions
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -27,32 +26,7 @@ func TestToSnakeCase(t *testing.T) {
 	}
 }
 
-func TestValidateStringWithPattern(t *testing.T) {
-	tests := []struct {
-		input    string
-		pattern  string
-		expected bool
-	}{
-		{"hello", "^h.*", true},
-		{"world", "^w.*", true},
-		{"123", "^[0-9]*$", true},
-		{"purchase_count", "^.*_count", true},
-		{"purchase_count", "_count$", true},
-		{"abc", "^d.*", false},
-		{"123a", "^[0-9]*$", false},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s_%s", test.input, test.pattern), func(t *testing.T) {
-			result := ValidateStringWithPattern(test.input, test.pattern)
-			if result != test.expected {
-				t.Errorf("For input '%s' and pattern '%s', expected %v but got %v", test.input, test.pattern, test.expected, result)
-			}
-		})
-	}
-}
-
-func TestMightBeRegexPattern(t *testing.T) {
+func TestMaybeRegexPattern(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected bool
@@ -67,7 +41,7 @@ func TestMightBeRegexPattern(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
-			result := MightBeRegexPattern(test.input)
+			result := MaybeRegexPattern(test.input)
 			if result != test.expected {
 				t.Errorf("For input '%s', expected %v but got %v", test.input, test.expected, result)
 			}

@@ -41,7 +41,7 @@ func getOrCreateCompiledRegex(pattern string) (*regexp.Regexp, error) {
 	return compiledRegex, nil
 }
 
-func MightBeRegexPattern(input string) bool {
+func MaybeRegexPattern(input string) bool {
 	specialChars := []string{"\\", ".", "*", "^", "$", "+", "?", "(", "[", "{", "|"}
 	for _, char := range specialChars {
 		if strings.Contains(input, char) {

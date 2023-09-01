@@ -152,7 +152,7 @@ func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 	// Field doesn't exist in the context as-is.
 	// But the context field might be a regex pattern.
 	for key, keyValue := range current {
-		if MightBeRegexPattern(key) && ValidateStringWithPattern(fieldName, key) {
+		if MaybeRegexPattern(key) && ValidateStringWithPattern(fieldName, key) {
 			return ReplaceValueWithContext(path[1:], keyValue)
 		}
 	}
