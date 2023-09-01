@@ -9,10 +9,17 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 var PlaceholderRegex = regexp.MustCompile(`\{[^\}]*\}`)
 
+var (
+	compiledRegexCache = make(map[string]*regexp.Regexp)
+	cacheMutex         = sync.Mutex{}
+)
+
+// IsValidHTTPVerb checks if the given HTTP verb is valid.
 func IsValidHTTPVerb(verb string) bool {
 	validVerbs := map[string]bool{
 		http.MethodGet:     true,
@@ -58,10 +65,12 @@ func IsValidURLResource(urlPattern string) bool {
 	return true
 }
 
-func ExtractPlaceholders(urlPattern string) []string {
-	return PlaceholderRegex.FindAllString(urlPattern, -1)
+// ExtractPlaceholders extracts all placeholders including curly brackets from a pattern.
+func ExtractPlaceholders(input string) []string {
+	return PlaceholderRegex.FindAllString(input, -1)
 }
 
+// ValidateRequest validates request against a schema.
 func ValidateRequest(req *http.Request, body *Schema, contentType string) error {
 	inp := &openapi3filter.RequestValidationInput{Request: req}
 	schema := openapi3.NewSchema()
@@ -101,6 +110,7 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
 
+// ValidateStringWithPattern checks if the input string matches the given pattern.
 func ValidateStringWithPattern(input string, pattern string) bool {
 	compiledRegex, err := getOrCreateCompiledRegex(pattern)
 	if err != nil {
@@ -108,4 +118,23 @@ func ValidateStringWithPattern(input string, pattern string) bool {
 	}
 
 	return compiledRegex.MatchString(input)
+}
+
+// getOrCreateCompiledRegex returns a compiled regex from the cache if it exists,
+// otherwise it compiles the regex and adds it to the cache.
+func getOrCreateCompiledRegex(pattern string) (*regexp.Regexp, error) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	if cachedRegex, found := compiledRegexCache[pattern]; found {
+		return cachedRegex, nil
+	}
+
+	compiledRegex, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	compiledRegexCache[pattern] = compiledRegex
+	return compiledRegex, nil
 }

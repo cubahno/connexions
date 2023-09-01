@@ -3,7 +3,6 @@ package connexions
 import (
 	"regexp"
 	"strings"
-	"sync"
 )
 
 var (
@@ -11,11 +10,7 @@ var (
 	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
 )
 
-var (
-	compiledRegexCache = make(map[string]*regexp.Regexp)
-	cacheMutex         = sync.Mutex{}
-)
-
+// ToSnakeCase converts a string to snake_case case
 func ToSnakeCase(input string) string {
 	snake := matchFirstCap.ReplaceAllString(input, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
@@ -24,23 +19,8 @@ func ToSnakeCase(input string) string {
 	return strings.ToLower(snake)
 }
 
-func getOrCreateCompiledRegex(pattern string) (*regexp.Regexp, error) {
-	cacheMutex.Lock()
-	defer cacheMutex.Unlock()
-
-	if cachedRegex, found := compiledRegexCache[pattern]; found {
-		return cachedRegex, nil
-	}
-
-	compiledRegex, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	compiledRegexCache[pattern] = compiledRegex
-	return compiledRegex, nil
-}
-
+// MaybeRegexPattern checks if the input string contains any special characters.
+// This is a simple good-enough check to see if the context key is a regex pattern.
 func MaybeRegexPattern(input string) bool {
 	specialChars := []string{"\\", ".", "*", "^", "$", "+", "?", "(", "[", "{", "|"}
 	for _, char := range specialChars {
