@@ -7,6 +7,7 @@ import (
 	"github.com/knadh/koanf/providers/rawbytes"
 	"log"
 	"math/rand"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ type Config struct {
 	// e.g. /petstore/v1/pets -> petstore
 	// in case, there's no service name, the name ".root" will be used.
 	Services map[string]*ServiceConfig `koanf:"services"`
+	baseDir  string                    `koanf:"-"`
 	mu       sync.Mutex
 }
 
@@ -124,6 +126,26 @@ type AppConfig struct {
 
 	// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
 	SchemaProvider SchemaProvider `json:"schemaProvider" koanf:"schemaProvider"`
+
+	// Paths is the paths to various resource directories.
+	Paths *Paths `json:"-" koanf:"-"`
+}
+
+func NewPaths(baseDir string) *Paths {
+	resDir := filepath.Join(baseDir, "resources")
+	svcDir := filepath.Join(resDir, "services")
+
+	return &Paths{
+		Base:              baseDir,
+		Resources:         resDir,
+		Contexts:          filepath.Join(resDir, "contexts"),
+		Docs:              filepath.Join(resDir, "docs"),
+		Samples:           filepath.Join(resDir, "samples"),
+		Services:          svcDir,
+		ServicesOpenAPI:   filepath.Join(svcDir, ".openapi"),
+		ServicesFixedRoot: filepath.Join(svcDir, ".root"),
+		ConfigFile:        filepath.Join(resDir, "config.yml"),
+	}
 }
 
 // IsValidPrefix returns true if the prefix is not a reserved URL.
@@ -167,7 +189,7 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 
 // EnsureConfigValues ensures that all config values are set.
 func (c *Config) EnsureConfigValues() {
-	defaultConfig := NewDefaultConfig()
+	defaultConfig := NewDefaultConfig(c.baseDir)
 	app := c.GetApp()
 
 	c.mu.Lock()
@@ -200,6 +222,7 @@ func (c *Config) EnsureConfigValues() {
 		app.SchemaProvider = defaultConfig.App.SchemaProvider
 	}
 
+	app.Paths = defaultConfig.App.Paths
 	c.App = app
 }
 
@@ -257,9 +280,12 @@ func (s *ServiceError) GetError() int {
 	return defaultErrorCode
 }
 
-// NewConfigFromFile creates a new config from a YAML file path.
+// NewConfig creates a new config from a YAML file path.
 // It also creates a watcher for the file and reloads the config on change.
-func NewConfigFromFile(filePath string) (*Config, error) {
+func NewConfig(baseDir string) (*Config, error) {
+	paths := NewPaths(baseDir)
+	filePath := paths.ConfigFile
+
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
@@ -272,6 +298,8 @@ func NewConfigFromFile(filePath string) (*Config, error) {
 		return nil, err
 	}
 	cfg.EnsureConfigValues()
+	cfg.App.Paths = paths
+	cfg.baseDir = baseDir
 
 	createConfigWatcher(filePath, cfg)
 	return cfg, nil
@@ -299,7 +327,7 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 	return cfg, nil
 }
 
-func NewDefaultAppConfig() *AppConfig {
+func NewDefaultAppConfig(baseDir string) *AppConfig {
 	return &AppConfig{
 		Port:              2200,
 		HomeURL:           "/.ui",
@@ -308,13 +336,15 @@ func NewDefaultAppConfig() *AppConfig {
 		ContextURL:        "/.contexts",
 		ContextAreaPrefix: "in-",
 		SchemaProvider:    DefaultSchemaProvider,
+		Paths:             NewPaths(baseDir),
 	}
 }
 
 // NewDefaultConfig creates a new default config in case the config file is missing, not found or any other error.
-func NewDefaultConfig() *Config {
+func NewDefaultConfig(baseDir string) *Config {
 	return &Config{
-		App: NewDefaultAppConfig(),
+		App:     NewDefaultAppConfig(baseDir),
+		baseDir: baseDir,
 	}
 }
 

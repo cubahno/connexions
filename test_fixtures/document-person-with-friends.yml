@@ -2,6 +2,9 @@ openapi: 3.0.0
 info:
   title: Array with allOf Property Example
   version: 1.0.0
+
+servers:
+  - url: https://doc.person-wth-friends
 paths:
   /person/{id}:
     get:
@@ -18,6 +21,7 @@ paths:
                 type: string
               required: true
             Y-Header:
+              type: string
         'default':
           description: unexpected error
           content:

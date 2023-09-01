@@ -1,25 +1,10 @@
 package connexions
 
 import (
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"regexp"
 	"strings"
 	"sync"
 )
-
-func ToCamelCase(s string) string {
-	words := strings.Fields(strings.ReplaceAll(s, "_", " "))
-	for i, word := range words {
-		if i > 0 {
-			caser := cases.Title(language.English)
-			words[i] = caser.String(word)
-		} else {
-			words[i] = strings.ToLower(word)
-		}
-	}
-	return strings.Join(words, "")
-}
 
 var (
 	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
@@ -64,13 +49,4 @@ func MightBeRegexPattern(input string) bool {
 		}
 	}
 	return false
-}
-
-func ValidateStringWithPattern(input string, pattern string) bool {
-	compiledRegex, err := getOrCreateCompiledRegex(pattern)
-	if err != nil {
-		return false
-	}
-
-	return compiledRegex.MatchString(input)
 }

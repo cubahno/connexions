@@ -420,7 +420,7 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := deleteService(service); err != nil {
+	if err := deleteService(service, h.router.Paths); err != nil {
 		h.error(500, err.Error(), w)
 		return
 	}
@@ -533,6 +533,14 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	h.success(fmt.Sprintf("Resource %s deleted!", path), w)
 }
 
+type ServiceDescription struct {
+	Name      string
+	Method    string
+	Path      string
+	Ext       string
+	IsOpenAPI bool
+}
+
 func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
@@ -577,7 +585,14 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 		}
 	}
 
-	filePath := ComposeFileSavePath(service, method, path, ext, payload.IsOpenAPI)
+	descr := &ServiceDescription{
+		Name:      service,
+		Method:    method,
+		Path:      path,
+		Ext:       ext,
+		IsOpenAPI: payload.IsOpenAPI,
+	}
+	filePath := ComposeFileSavePath(descr, appCfg.Paths)
 
 	if payload.IsOpenAPI && len(content) == 0 {
 		return nil, ErrOpenAPISpecIsEmpty
@@ -600,13 +615,13 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	return fileProps, nil
 }
 
-func deleteService(service *ServiceItem) error {
+func deleteService(service *ServiceItem, paths *Paths) error {
 	var targets []string
 
 	name := service.Name
 	if name == "" {
-		targets = append(targets, ServiceOpenAPIPath)
-		targets = append(targets, ServiceRootPath)
+		targets = append(targets, paths.ServicesOpenAPI)
+		targets = append(targets, paths.ServicesFixedRoot)
 	}
 
 	for _, route := range service.Routes {

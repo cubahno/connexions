@@ -134,7 +134,7 @@ func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FilePropert
 	contentType := mime.TypeByExtension(ext)
 	resource := ""
 
-	s := strings.TrimPrefix(strings.Replace(filePath, ServicePath, "", 1), "/")
+	s := strings.TrimPrefix(strings.Replace(filePath, appCfg.Paths.Services, "", 1), "/")
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
 
@@ -237,15 +237,18 @@ func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FilePropert
 }
 
 // ComposeFileSavePath composes a save path for a file.
-func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) string {
-	if isOpenAPI {
-		return ComposeOpenAPISavePath(service, resource, ext)
+func ComposeFileSavePath(descr *ServiceDescription, paths *Paths) string {
+	if descr.IsOpenAPI {
+		return ComposeOpenAPISavePath(descr, paths.ServicesOpenAPI)
 	}
 
-	resource = strings.Trim(resource, "/")
+	resource := strings.Trim(descr.Path, "/")
 	parts := strings.Split(resource, "/")
 
-	res := ServicePath
+	res := paths.Services
+	service := descr.Name
+	method := descr.Method
+	ext := descr.Ext
 
 	if service == "" && len(parts) > 1 {
 		service = parts[0]
@@ -280,11 +283,13 @@ func ComposeFileSavePath(service, method, resource, ext string, isOpenAPI bool) 
 }
 
 // ComposeOpenAPISavePath composes a save path for an OpenAPI specification.
-func ComposeOpenAPISavePath(service, resource, ext string) string {
-	resource = strings.Trim(resource, "/")
+func ComposeOpenAPISavePath(descr *ServiceDescription, baseDir string) string {
+	resource := strings.Trim(descr.Path, "/")
 	parts := strings.Split(resource, "/")
+	service := descr.Name
+	ext := descr.Ext
 
-	res := ServiceOpenAPIPath
+	res := baseDir
 
 	if service == "" && len(parts) > 0 {
 		service = parts[0]

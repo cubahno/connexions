@@ -148,32 +148,6 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	}
 }
 
-// PickLibOpenAPISchemaProxy returns the first non-nil schema proxy with reference
-// or the first non-nil schema proxy if none of them have reference.
-func PickLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
-	if len(items) == 0 {
-		return nil
-	}
-
-	var fstNonEmpty *base.SchemaProxy
-
-	for _, item := range items {
-		if item == nil {
-			continue
-		}
-
-		if fstNonEmpty == nil {
-			fstNonEmpty = item
-		}
-
-		if item.GetReference() != "" {
-			return item
-		}
-	}
-
-	return fstNonEmpty
-}
-
 func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	allOf := schema.AllOf
 	anyOf := schema.AnyOf
@@ -210,8 +184,8 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 
 	// pick one from each
 	allOf = append(allOf,
-		PickLibOpenAPISchemaProxy(anyOf),
-		PickLibOpenAPISchemaProxy(oneOf),
+		pickLibOpenAPISchemaProxy(anyOf),
+		pickLibOpenAPISchemaProxy(oneOf),
 	)
 
 	subRef := ""
@@ -272,5 +246,35 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	schema.Properties = properties
 	schema.Required = required
 
+	if len(schema.AllOf) > 0 {
+		return mergeLibOpenAPISubSchemas(schema)
+	}
+
 	return schema, subRef
+}
+
+// pickLibOpenAPISchemaProxy returns the first non-nil schema proxy with reference
+// or the first non-nil schema proxy if none of them have reference.
+func pickLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
+	if len(items) == 0 {
+		return nil
+	}
+
+	var fstNonEmpty *base.SchemaProxy
+
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+
+		if fstNonEmpty == nil {
+			fstNonEmpty = item
+		}
+
+		if item.GetReference() != "" {
+			return item
+		}
+	}
+
+	return fstNonEmpty
 }

@@ -1,0 +1,28 @@
+type: object
+allOf:
+  - type: object
+    properties:
+      name:
+        type: string
+  - type: object
+    allOf:
+      - type: object
+        properties:
+          age:
+            type: integer
+      - type: object
+        allOf:
+          - type: object
+            properties:
+              tag:
+                type: string
+          - type: object
+            allOf:
+              - type: object
+                properties:
+                  league:
+                    type: string
+              - type: object
+                properties:
+                  rating:
+                    type: integer

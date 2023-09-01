@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
@@ -59,7 +60,9 @@ func TestNewRequestFromOperation(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation.json"))
+		operation := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation.yml"), operation)
+
 		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
 
 		expectedBodyM := map[string]any{
@@ -236,7 +239,8 @@ func TestNewResponse(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-base.json"))
+		operation := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
@@ -267,7 +271,9 @@ func TestNewResponse(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := CreateKinOperationFromFile(t, filepath.Join(TestSchemaPath, "operation-without-content-type.json"))
+		operation := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-without-content-type.yml"), operation)
+
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
@@ -411,14 +417,23 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-base.json"))
+
+		target := openapi3.NewSchema()
+		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-base.yml"), target)
+		schema := NewSchemaFromKin(target, nil)
+
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{
 			"user": map[string]any{"id": 21, "score": 11.5},
 			"pages": []any{
 				map[string]any{
-					"limit": 100, "tag1": "#dice", "tag2": "#nice", "offset": -1, "first": 10,
+					"limit":  100,
+					"tag1":   "#dice",
+					"tag2":   "#nice",
+					"offset": -1,
+					"first":  10,
+					"second": 20,
 				},
 			},
 		}
@@ -442,7 +457,10 @@ func TestGenerateContent(t *testing.T) {
 			return nil
 		}
 
-		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-with-nested-all-of.json"))
+		target := openapi3.NewSchema()
+		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-nested-all-of.yml"), target)
+		schema := NewSchemaFromKin(target, nil)
+
 		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
 
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
@@ -496,7 +514,11 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		doc := CreateKinDocumentFromFile(t, filepath.Join(TestSchemaPath, "doc-with-circular-array.json"))
+
+		filePath := filepath.Join("test_fixtures", "document-with-circular-array.yml")
+		doc, err := NewKinDocumentFromFile(filePath)
+		assert.Nil(t, err)
+
 		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
@@ -525,8 +547,10 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		filePath := filepath.Join(TestSchemaPath, "circular-with-references.json")
-		doc := CreateKinDocumentFromFile(t, filePath)
+		filePath := filepath.Join("test_fixtures", "document-circular-with-references.yml")
+		doc, err := NewKinDocumentFromFile(filePath)
+		assert.Nil(t, err)
+
 		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
@@ -535,8 +559,9 @@ func TestGenerateContent(t *testing.T) {
 			"id":   123,
 			"name": "noda-123",
 			"parent": map[string]any{
-				"id":   123,
-				"name": "noda-123",
+				"id":     123,
+				"name":   "noda-123",
+				"parent": nil,
 			},
 		}
 		assert.Equal(t, expected, res)
@@ -552,8 +577,10 @@ func TestGenerateContent(t *testing.T) {
 			}
 			return nil
 		}
-		filePath := filepath.Join(TestSchemaPath, "circular-with-inline.json")
-		doc := CreateKinDocumentFromFile(t, filePath)
+		filePath := filepath.Join("test_fixtures", "document-circular-with-inline.yml")
+		doc, err := NewKinDocumentFromFile(filePath)
+		assert.Nil(t, err)
+
 		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
@@ -573,7 +600,9 @@ func TestGenerateContent(t *testing.T) {
 
 func TestGenerateContentObject(t *testing.T) {
 	t.Run("GenerateContentObject", func(t *testing.T) {
-		schema := CreateSchemaFromFile(t, filepath.Join(TestSchemaPath, "schema-with-name-obj-and-age.json"))
+		target := openapi3.NewSchema()
+		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-name-obj-and-age.yml"), target)
+		schema := NewSchemaFromKin(target, nil)
 
 		valueResolver := func(schema any, state *ReplaceState) any {
 			namePath := state.NamePath

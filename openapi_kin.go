@@ -3,6 +3,7 @@ package connexions
 import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -13,8 +14,7 @@ type KinDocument struct {
 
 type KinOperation struct {
 	*openapi3.Operation
-	ParseConfig *ParseConfig
-	withCache   bool
+	parseConfig *ParseConfig
 	mu          sync.Mutex
 }
 
@@ -27,6 +27,10 @@ func NewKinDocumentFromFile(filePath string) (Document, error) {
 	return &KinDocument{
 		T: doc,
 	}, err
+}
+
+func (d *KinDocument) Provider() SchemaProvider {
+	return KinOpenAPIProvider
 }
 
 func (d *KinDocument) GetVersion() string {
@@ -63,7 +67,7 @@ func (d *KinDocument) FindOperation(options *FindOperationOptions) Operationer {
 }
 
 func (op *KinOperation) GetParameters() OpenAPIParameters {
-	var res []*OpenAPIParameter
+	var params []*OpenAPIParameter
 	for _, param := range op.Parameters {
 		p := param.Value
 		if p == nil {
@@ -72,17 +76,22 @@ func (op *KinOperation) GetParameters() OpenAPIParameters {
 
 		var schema *Schema
 		if p.Schema != nil {
-			schema = NewSchemaFromKin(p.Schema.Value, op.ParseConfig)
+			schema = NewSchemaFromKin(p.Schema.Value, op.parseConfig)
 		}
 
-		res = append(res, &OpenAPIParameter{
+		params = append(params, &OpenAPIParameter{
 			Name:     p.Name,
 			In:       p.In,
 			Required: p.Required,
 			Schema:   schema,
 		})
 	}
-	return res
+
+	sort.Slice(params, func(i, j int) bool {
+		return params[i].Name < params[j].Name
+	})
+
+	return params
 }
 
 func (op *KinOperation) GetRequestBody() (*Schema, string) {
@@ -99,13 +108,13 @@ func (op *KinOperation) GetRequestBody() (*Schema, string) {
 	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
-			return NewSchemaFromKin(contentTypes[contentType].Schema.Value, op.ParseConfig), contentType
+			return NewSchemaFromKin(contentTypes[contentType].Schema.Value, op.parseConfig), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
-		return NewSchemaFromKin(mediaType.Schema.Value, op.ParseConfig), contentType
+		return NewSchemaFromKin(mediaType.Schema.Value, op.parseConfig), contentType
 	}
 
 	return nil, ""
@@ -137,8 +146,14 @@ func (op *KinOperation) GetResponse() *OpenAPIResponse {
 		}
 	}
 
-	if libResponse == nil {
+	if libResponse == nil && available.Default() != nil {
 		libResponse = available.Default().Value
+	}
+
+	if libResponse == nil {
+		return &OpenAPIResponse{
+			StatusCode: statusCode,
+		}
 	}
 
 	libContent, contentType := op.getContent(libResponse.Content)
@@ -152,20 +167,24 @@ func (op *KinOperation) GetResponse() *OpenAPIResponse {
 		p := ref.Parameter
 		var schema *Schema
 		if p.Schema != nil && p.Schema.Value != nil {
-			schema = NewSchemaFromKin(p.Schema.Value, op.ParseConfig)
+			schema = NewSchemaFromKin(p.Schema.Value, op.parseConfig)
 		}
-
+		name = strings.ToLower(name)
 		headers[name] = &OpenAPIParameter{
-			Name:     p.Name,
-			In:       p.In,
+			Name:     name,
+			In:       ParameterInHeader,
 			Required: p.Required,
 			Schema:   schema,
 		}
 	}
 
+	if len(headers) == 0 {
+		headers = nil
+	}
+
 	return &OpenAPIResponse{
 		Headers:     headers,
-		Content:     NewSchemaFromKin(libContent, op.ParseConfig),
+		Content:     NewSchemaFromKin(libContent, op.parseConfig),
 		StatusCode:  statusCode,
 		ContentType: contentType,
 	}
@@ -194,163 +213,221 @@ func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
 	op.mu.Lock()
 	defer op.mu.Unlock()
 
-	op.ParseConfig = config
+	op.parseConfig = config
 	return op
 }
 
-func NewSchemaFromKin(s *openapi3.Schema, parseConfig *ParseConfig) *Schema {
-	return newSchemaFromKin(s, nil)
+func NewSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig) *Schema {
+	if parseConfig == nil {
+		parseConfig = &ParseConfig{}
+	}
+	return newSchemaFromKin(schema, parseConfig, nil, nil)
 }
 
-func newSchemaFromKin(s *openapi3.Schema, visited map[string]bool) *Schema {
-	if s == nil {
+func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath []string, namePath []string) *Schema {
+	if schema == nil {
 		return nil
 	}
 
-	s = MergeKinSubSchemas(s)
+	merged, mergedReference := mergeKinSubSchemas(schema)
 
-	if len(visited) == 0 {
-		visited = make(map[string]bool)
+	if len(refPath) == 0 {
+		refPath = make([]string, 0)
+	}
+
+	if len(namePath) == 0 {
+		namePath = make([]string, 0)
+	}
+
+	if parseConfig.MaxLevels > 0 && len(namePath) > parseConfig.MaxLevels {
+		return nil
+	}
+
+	if !IsSliceUnique(refPath) {
+		return nil
 	}
 
 	var items *Schema
-	if s.Items != nil && s.Items.Value != nil {
-		if s.Items.Ref != "" {
-			if visited[s.Items.Ref] {
-				return nil
-			}
-
-			visited[s.Items.Ref] = true
-		}
-		items = newSchemaFromKin(s.Items.Value, visited)
+	if merged.Items != nil && merged.Items.Value != nil {
+		items = newSchemaFromKin(merged.Items.Value,
+			parseConfig,
+			AppendSliceFirstNonEmpty(refPath, merged.Items.Ref, mergedReference),
+			namePath)
 	}
 
 	var properties map[string]*Schema
-	if len(s.Properties) > 0 {
+	if len(merged.Properties) > 0 {
 		properties = make(map[string]*Schema)
-		for name, ref := range s.Properties {
-			t := visited
-			if ref.Ref != "" && visited[ref.Ref] {
+		for propName, ref := range merged.Properties {
+			if parseConfig.OnlyRequired && !SliceContains(merged.Required, propName) {
 				continue
 			}
-
-			if ref.Ref != "" {
-				visited[ref.Ref] = true
-			}
-
-			properties[name] = newSchemaFromKin(ref.Value, t)
+			properties[propName] = newSchemaFromKin(ref.Value,
+				parseConfig,
+				AppendSliceFirstNonEmpty(refPath, ref.Ref, mergedReference),
+				AppendSliceFirstNonEmpty(namePath, propName))
 		}
 	}
 
 	return &Schema{
-		Type:          s.Type,
+		Type:          merged.Type,
 		Items:         items,
-		MultipleOf:    RemovePointer(s.MultipleOf),
-		Maximum:       RemovePointer(s.Max),
-		Minimum:       RemovePointer(s.Min),
-		MaxLength:     int64(RemovePointer(s.MaxLength)),
-		MinLength:     int64(s.MinLength),
-		Pattern:       s.Pattern,
-		Format:        s.Format,
-		MaxItems:      int64(RemovePointer(s.MaxItems)),
-		MinItems:      int64(s.MinItems),
-		MaxProperties: int64(RemovePointer(s.MaxProps)),
-		MinProperties: int64(s.MinProps),
-		Required:      s.Required,
-		Enum:          s.Enum,
+		MultipleOf:    RemovePointer(merged.MultipleOf),
+		Maximum:       RemovePointer(merged.Max),
+		Minimum:       RemovePointer(merged.Min),
+		MaxLength:     int64(RemovePointer(merged.MaxLength)),
+		MinLength:     int64(merged.MinLength),
+		Pattern:       merged.Pattern,
+		Format:        merged.Format,
+		MaxItems:      int64(RemovePointer(merged.MaxItems)),
+		MinItems:      int64(merged.MinItems),
+		MaxProperties: int64(RemovePointer(merged.MaxProps)),
+		MinProperties: int64(merged.MinProps),
+		Required:      merged.Required,
+		Enum:          merged.Enum,
 		Properties:    properties,
-		Default:       s.Default,
-		Nullable:      s.Nullable,
-		ReadOnly:      s.ReadOnly,
-		WriteOnly:     s.WriteOnly,
-		Example:       s.Example,
-		Deprecated:    s.Deprecated,
+		Default:       merged.Default,
+		Nullable:      merged.Nullable,
+		ReadOnly:      merged.ReadOnly,
+		WriteOnly:     merged.WriteOnly,
+		Example:       merged.Example,
+		Deprecated:    merged.Deprecated,
 	}
 }
 
-func MergeKinSubSchemas(schema *openapi3.Schema) *openapi3.Schema {
+func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 	allOf := schema.AllOf
+	anyOf := schema.AnyOf
+	oneOf := schema.OneOf
 	not := schema.Not
 
-	if len(schema.Properties) == 0 {
-		schema.Properties = make(map[string]*openapi3.SchemaRef)
+	// base case: schema is flat
+	if len(allOf) == 0 && len(anyOf) == 0 && len(oneOf) == 0 && not == nil {
+		if schema != nil && len(schema.Type) == 0 {
+			schema.Type = TypeObject
+		}
+		return schema, ""
 	}
 
 	// reset
-	schema.AllOf = make([]*openapi3.SchemaRef, 0)
+	schema.AllOf = nil
+	schema.AnyOf = nil
+	schema.OneOf = nil
 	schema.Not = nil
 
+	properties := schema.Properties
+	if len(properties) == 0 {
+		properties = make(map[string]*openapi3.SchemaRef)
+	}
+	required := schema.Required
+	if len(required) == 0 {
+		required = make([]string, 0)
+	}
+
+	impliedType := ""
+	if len(allOf) > 0 {
+		impliedType = TypeObject
+	}
+
+	// pick one from each
+	allOf = append(allOf,
+		pickKinSchemaProxy(anyOf),
+		pickKinSchemaProxy(oneOf),
+	)
+
+	subRef := ""
 	for _, schemaRef := range allOf {
-		sub := schemaRef.Value
-		if sub == nil {
-			continue
-		}
-
-		for propertyName, property := range sub.Properties {
-			schema.Properties[propertyName] = property
-		}
-
-		// gather fom the sub
-		schema.AllOf = append(schema.AllOf, sub.AllOf...)
-		schema.AnyOf = append(schema.AnyOf, sub.AnyOf...)
-		schema.OneOf = append(schema.OneOf, sub.OneOf...)
-		schema.Required = append(schema.Required, sub.Required...)
-	}
-
-	// pick first from each if present
-	var either []*openapi3.SchemaRef
-	if len(schema.AnyOf) > 0 {
-		either = append(either, schema.AnyOf[0])
-	}
-	if len(schema.OneOf) > 0 {
-		either = append(either, schema.OneOf[0])
-	}
-
-	// reset
-	schema.AnyOf = make([]*openapi3.SchemaRef, 0)
-	schema.OneOf = make([]*openapi3.SchemaRef, 0)
-
-	for _, schemaRef := range either {
 		if schemaRef == nil {
 			continue
 		}
+		subSchema := schemaRef.Value
 
-		sub := schemaRef.Value
-		if sub == nil {
+		if subRef == "" && schemaRef.Ref != "" {
+			subRef = schemaRef.Ref
+		}
+
+		if impliedType == "" {
+			if len(subSchema.Type) > 0 {
+				impliedType = subSchema.Type
+			}
+			if impliedType == "" && subSchema.Items != nil && subSchema.Items.Value != nil && len(subSchema.Items.Value.Properties) > 0 {
+				impliedType = TypeArray
+			}
+			if impliedType == "" {
+				impliedType = TypeObject
+			}
+		}
+
+		if impliedType == TypeObject {
+			for propertyName, property := range subSchema.Properties {
+				if subRef == "" {
+					subRef = property.Ref
+				}
+				properties[propertyName] = property
+			}
+		}
+
+		if impliedType == TypeArray && subSchema.Items != nil && subSchema.Items.Value != nil {
+			if subRef == "" {
+				subRef = subSchema.Items.Ref
+			}
+			schema.Items = subSchema.Items
+		}
+
+		// gather fom the sub
+		schema.AllOf = append(schema.AllOf, subSchema.AllOf...)
+		schema.AnyOf = append(schema.AnyOf, subSchema.AnyOf...)
+		schema.OneOf = append(schema.OneOf, subSchema.OneOf...)
+		schema.Required = append(schema.Required, subSchema.Required...)
+
+		required = append(required, subSchema.Required...)
+	}
+
+	// make required unique
+	required = SliceUnique(required)
+
+	if not != nil {
+		resultNot, _ := mergeKinSubSchemas(not.Value)
+		if resultNot != nil {
+			// not is always an object
+			resultNot.Type = TypeObject
+		}
+		schema.Not = openapi3.NewSchemaRef("", resultNot)
+	}
+
+	schema.Type = impliedType
+	schema.Properties = properties
+	schema.Required = required
+
+	if len(schema.AllOf) > 0 {
+		return mergeKinSubSchemas(schema)
+	}
+
+	return schema, subRef
+}
+
+// pickKinSchemaProxy returns the first non-nil schema proxy with reference
+// or the first non-nil schema proxy if none of them have reference.
+func pickKinSchemaProxy(items []*openapi3.SchemaRef) *openapi3.SchemaRef {
+	if len(items) == 0 {
+		return nil
+	}
+
+	var fstNonEmpty *openapi3.SchemaRef
+
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
 
-		for propertyName, property := range sub.Properties {
-			schema.Properties[propertyName] = property
+		if fstNonEmpty == nil {
+			fstNonEmpty = item
 		}
 
-		schema.Required = append(schema.Required, sub.Required...)
-	}
-
-	// exclude properties from `not`
-	if not != nil && not.Value != nil {
-		notSchema := not.Value
-		deletes := map[string]bool{}
-		for propertyName, _ := range notSchema.Properties {
-			delete(schema.Properties, propertyName)
-			deletes[propertyName] = true
-		}
-
-		// remove from required properties
-		for i, propertyName := range schema.Required {
-			if _, ok := deletes[propertyName]; ok {
-				schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
-			}
+		if item.Ref != "" {
+			return item
 		}
 	}
 
-	if len(schema.AllOf) > 0 {
-		return MergeKinSubSchemas(schema)
-	}
-
-	if schema.Type == "" {
-		schema.Type = "object"
-	}
-
-	return schema
+	return fstNonEmpty
 }

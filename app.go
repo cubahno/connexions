@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -33,25 +32,14 @@ type Paths struct {
 	ConfigFile        string
 }
 
-func NewPaths(baseDir string) *Paths {
-	resDir := filepath.Join(baseDir, "resources")
-	svcDir := filepath.Join(resDir, "services")
-
-	return &Paths{
-		Base:              baseDir,
-		Resources:         resDir,
-		Contexts:          filepath.Join(resDir, "contexts"),
-		Docs:              filepath.Join(resDir, "docs"),
-		Samples:           filepath.Join(resDir, "samples"),
-		Services:          svcDir,
-		ServicesOpenAPI:   filepath.Join(svcDir, ".openapi"),
-		ServicesFixedRoot: filepath.Join(svcDir, ".root"),
-		ConfigFile:        filepath.Join(resDir, "config.yml"),
-	}
-}
-
 func NewApp(baseDir string) *App {
-	paths := NewPaths(baseDir)
+	config, err := NewConfig(baseDir)
+	if err != nil {
+		log.Printf("Failed to load config file: %s\n", err.Error())
+		config = NewDefaultConfig(baseDir)
+	}
+
+	paths := config.App.Paths
 	res := &App{
 		Paths: paths,
 	}
@@ -67,17 +55,11 @@ func NewApp(baseDir string) *App {
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	err := MustFileStructure(paths)
+	err = MustFileStructure(paths)
 	if err != nil {
 		panic(err)
 	}
 	_ = CleanupServiceFileStructure(paths.Services)
-
-	config, err := NewConfigFromFile(paths.ConfigFile)
-	if err != nil {
-		log.Printf("Failed to load config file: %s\n", err.Error())
-		config = NewDefaultConfig()
-	}
 
 	router := &Router{
 		Mux:    r,

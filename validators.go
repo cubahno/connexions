@@ -99,3 +99,12 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 	responseValidationInput.SetBodyBytes(res.Content)
 	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
+
+func ValidateStringWithPattern(input string, pattern string) bool {
+	compiledRegex, err := getOrCreateCompiledRegex(pattern)
+	if err != nil {
+		return false
+	}
+
+	return compiledRegex.MatchString(input)
+}

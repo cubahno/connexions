@@ -11,7 +11,8 @@ import (
 func TestLibV2Document(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-petstore-v2.yml"))
+	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore-v2.yml"))
+	assert.Nil(err)
 
 	t.Run("GetVersion", func(t *testing.T) {
 		assert.Equal("2.0", doc.GetVersion())
@@ -58,8 +59,10 @@ func TestLibV2Document(t *testing.T) {
 func TestLibV2Operation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	doc := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "document-petstore-v2.yml"))
-	docWithFriends := CreateLibDocumentFromFile(t, filepath.Join("test_fixtures", "person-with-friends-v2.yml"))
+	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore-v2.yml"))
+	assert.Nil(err)
+	docWithFriends, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-person-with-friends-v2.yml"))
+	assert.Nil(err)
 
 	t.Run("FindOperation-with-no-options", func(t *testing.T) {
 		op := doc.FindOperation(nil)
@@ -168,6 +171,7 @@ func TestLibV2Operation(t *testing.T) {
 
 	t.Run("GetRequestBody-empty-content", func(t *testing.T) {
 		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "DELETE", nil})
+		assert.NotNil(op)
 		body, contentType := op.GetRequestBody()
 
 		assert.Nil(body)

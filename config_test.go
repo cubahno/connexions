@@ -26,7 +26,7 @@ func TestAppConfig(t *testing.T) {
 		{"/.ui", false},
 	} {
 		t.Run(fmt.Sprintf("IsValidPrefix: %s", tc.prefix), func(t *testing.T) {
-			cfg := NewDefaultConfig().App
+			cfg := NewDefaultConfig("/app").App
 			assert.True(cfg.IsValidPrefix(tc.prefix) == tc.isValid)
 		})
 	}
@@ -68,18 +68,21 @@ func TestConfig(t *testing.T) {
 	})
 
 	t.Run("EnsureConfigValues-when-empty", func(t *testing.T) {
-		cfg := &Config{}
+		cfg := &Config{
+			baseDir: "/app",
+		}
 		cfg.EnsureConfigValues()
-		assert.Equal(NewDefaultConfig(), cfg)
+		assert.Equal(NewDefaultConfig("/app"), cfg)
 	})
 
 	t.Run("EnsureConfigValues-port-is-set", func(t *testing.T) {
 		cfg := &Config{
-			App: &AppConfig{},
+			App:     &AppConfig{},
+			baseDir: "/app",
 		}
 		cfg.EnsureConfigValues()
 
-		expected := NewDefaultConfig()
+		expected := NewDefaultConfig("/app")
 		assert.Equal(expected, cfg)
 	})
 
@@ -88,10 +91,11 @@ func TestConfig(t *testing.T) {
 			App: &AppConfig{
 				Port: 5555,
 			},
+			baseDir: "/app",
 		}
 		cfg.EnsureConfigValues()
 
-		expected := NewDefaultConfig()
+		expected := NewDefaultConfig("/app")
 		expected.App.Port = 5555
 		assert.Equal(expected, cfg)
 	})
@@ -151,7 +155,7 @@ func TestServiceError(t *testing.T) {
 	})
 }
 
-func TestNewConfigFromFile(t *testing.T) {
+func TestNewConfig(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("happy-path", func(t *testing.T) {
@@ -184,6 +188,7 @@ services:
       response: true
 `
 		expected := &Config{
+			baseDir: tempDir,
 			App: &AppConfig{
 				Port:              8000,
 				HomeURL:           "/new-ui",
@@ -194,6 +199,7 @@ services:
 				DisableSwaggerUI:  true,
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
+				Paths:             NewPaths(tempDir),
 			},
 			Services: map[string]*ServiceConfig{
 				"foo": {
@@ -218,11 +224,13 @@ services:
 			},
 		}
 
-		filePath := filepath.Join(tempDir, "cfg.yml")
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfigFromFile(filePath)
+		cfg, err := NewConfig(tempDir)
 		assert.Nil(err)
 		assert.Equal(expected, cfg)
 
@@ -244,11 +252,12 @@ services:
 app:
   port: 8000
 `
-		filePath := filepath.Join(tempDir, "cfg.yml")
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfigFromFile(filePath)
+		cfg, err := NewConfig(tempDir)
 		assert.Nil(err)
 
 		// check live config is triggered
@@ -275,11 +284,12 @@ services:
     errors:
       chance: 50%
 `
-		filePath := filepath.Join(tempDir, "cfg.yml")
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfigFromFile(filePath)
+		cfg, err := NewConfig(tempDir)
 		assert.Nil(err)
 
 		// check live config is triggered
@@ -307,11 +317,12 @@ services:
 	t.Run("invalid-yaml", func(t *testing.T) {
 		tempDir := t.TempDir()
 		contents := `1`
-		filePath := filepath.Join(tempDir, "cfg.yml")
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfigFromFile(filePath)
+		cfg, err := NewConfig(tempDir)
 		assert.Nil(cfg)
 		assert.NotNil(err)
 	})
@@ -322,20 +333,20 @@ services:
 app:
   port: xxx
 `
-		filePath := filepath.Join(tempDir, "cfg.yml")
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfigFromFile(filePath)
+		cfg, err := NewConfig(tempDir)
 		assert.Nil(cfg)
 		assert.NotNil(err)
 	})
 
 	t.Run("file-not-found", func(t *testing.T) {
 		tempDir := t.TempDir()
-		filePath := filepath.Join(tempDir, "cfg.yml")
 
-		cfg, err := NewConfigFromFile(filePath)
+		cfg, err := NewConfig(tempDir)
 		assert.Nil(cfg)
 		assert.NotNil(err)
 	})
@@ -367,7 +378,9 @@ app:
 				DisableSwaggerUI:  true,
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
+				Paths:             NewPaths(""),
 			},
+			baseDir: "",
 		}
 
 		cfg, err := NewConfigFromContent([]byte(contents))
@@ -404,7 +417,7 @@ app:
 func TestNewDefaultConfig(t *testing.T) {
 	assert := assert2.New(t)
 
-	cfg := NewDefaultConfig()
+	cfg := NewDefaultConfig("/app")
 	expected := &Config{
 		App: &AppConfig{
 			Port:              2200,
@@ -414,7 +427,9 @@ func TestNewDefaultConfig(t *testing.T) {
 			ContextURL:        "/.contexts",
 			ContextAreaPrefix: "in-",
 			SchemaProvider:    DefaultSchemaProvider,
+			Paths:             NewPaths("/app"),
 		},
+		baseDir: "/app",
 	}
 	assert.Equal(expected, cfg)
 }

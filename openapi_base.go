@@ -1,6 +1,7 @@
 package connexions
 
 type Document interface {
+	Provider() SchemaProvider
 	GetVersion() string
 	GetResources() map[string][]string
 	FindOperation(options *FindOperationOptions) Operationer

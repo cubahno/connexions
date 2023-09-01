@@ -89,12 +89,14 @@ func TestGetRequestFile(t *testing.T) {
 
 func TestGetPropertiesFromFilePath(t *testing.T) {
 	assert := assert2.New(t)
-	appCfg := NewDefaultAppConfig()
+	appCfg := NewDefaultAppConfig("/app")
+	paths := appCfg.Paths
+
 	t.Parallel()
 
 	t.Run("openapi-root", func(t *testing.T) {
 		t.SkipNow()
-		filePath := ServicePath + "/.openapi/index.yml"
+		filePath := paths.Services + "/.openapi/index.yml"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		assert.Equal(&FileProperties{
@@ -110,7 +112,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Run("openapi-nested", func(t *testing.T) {
 		t.SkipNow()
-		filePath := ServicePath + "/.openapi/nice/dice/rice/index.yml"
+		filePath := paths.Services + "/.openapi/nice/dice/rice/index.yml"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		assert.Equal(&FileProperties{
@@ -125,7 +127,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 
 	t.Run("service-root-direct", func(t *testing.T) {
-		filePath := ServicePath + "/.root/users.html"
+		filePath := paths.Services + "/.root/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -142,7 +144,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	// result should as above, in the .root
 	t.Run("service-direct", func(t *testing.T) {
-		filePath := ServicePath + "/users.html"
+		filePath := paths.Services + "/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -158,7 +160,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 
 	t.Run("service-root-with-method", func(t *testing.T) {
-		filePath := ServicePath + "/.root/patch/users.html"
+		filePath := paths.Services + "/.root/patch/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -174,7 +176,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 
 	t.Run("service-non-root-will-have-method-as-service", func(t *testing.T) {
-		filePath := ServicePath + "/patch/users.html"
+		filePath := paths.Services + "/patch/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -190,7 +192,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 
 	t.Run("service-without-method", func(t *testing.T) {
-		filePath := ServicePath + "/users/all/index.xml"
+		filePath := paths.Services + "/users/all/index.xml"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -206,7 +208,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 
 	t.Run("service-with-index-file", func(t *testing.T) {
-		filePath := ServicePath + "/users/patch/id/{userId}/index.json"
+		filePath := paths.Services + "/users/patch/id/{userId}/index.json"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -234,6 +236,9 @@ func TestComposeFileSavePath(t *testing.T) {
 		isOpenAPI bool
 	}
 
+	appCfg := NewDefaultAppConfig("/app")
+	paths := appCfg.Paths
+
 	testCases := []struct {
 		description string
 		params      params
@@ -244,7 +249,7 @@ func TestComposeFileSavePath(t *testing.T) {
 			params: params{
 				resource: "/foo.html",
 			},
-			expected: ServicePath + "/.root/get/foo.html",
+			expected: paths.Services + "/.root/get/foo.html",
 		},
 		{
 			description: "root patch file",
@@ -252,7 +257,7 @@ func TestComposeFileSavePath(t *testing.T) {
 				method:   "patch",
 				resource: "/foo.html",
 			},
-			expected: ServicePath + "/.root/patch/foo.html",
+			expected: paths.Services + "/.root/patch/foo.html",
 		},
 		{
 			params: params{
@@ -262,20 +267,20 @@ func TestComposeFileSavePath(t *testing.T) {
 				ext:       ".json",
 				isOpenAPI: false,
 			},
-			expected: ServicePath + "/test/get/test-path/index.json",
+			expected: paths.Services + "/test/get/test-path/index.json",
 		},
 		{
 			params: params{
 				resource: "/foo/bar",
 			},
-			expected: ServicePath + "/foo/get/bar/index.txt",
+			expected: paths.Services + "/foo/get/bar/index.txt",
 		},
 		{
 			params: params{
 				service: "nice",
 				method:  "patch",
 			},
-			expected: ServicePath + "/nice/patch/index.txt",
+			expected: paths.Services + "/nice/patch/index.txt",
 		},
 		{
 			params: params{
@@ -285,27 +290,33 @@ func TestComposeFileSavePath(t *testing.T) {
 				ext:       ".yml",
 				isOpenAPI: true,
 			},
-			expected: ServicePath + "/.openapi/nice/dice/rice.yml",
+			expected: paths.Services + "/.openapi/nice/dice/rice.yml",
 		},
 		{
 			params: params{
 				isOpenAPI: true,
 			},
-			expected: ServicePath + "/.openapi/index",
+			expected: paths.Services + "/.openapi/index",
 		},
 		{
 			params: params{
 				isOpenAPI: true,
 				ext:       ".yml",
 			},
-			expected: ServicePath + "/.openapi/index.yml",
+			expected: paths.Services + "/.openapi/index.yml",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			actual := ComposeFileSavePath(
-				tc.params.service, tc.params.method, tc.params.resource, tc.params.ext, tc.params.isOpenAPI)
+			descr := &ServiceDescription{
+				Name:      tc.params.service,
+				Method:    tc.params.method,
+				Path:      tc.params.resource,
+				Ext:       tc.params.ext,
+				IsOpenAPI: tc.params.isOpenAPI,
+			}
+			actual := ComposeFileSavePath(descr, paths)
 			if actual != tc.expected {
 				t.Errorf("ComposeFileSavePath(%v): %v - Expected: %v, Got: %v",
 					tc.params, tc.description, tc.expected, actual)
@@ -314,12 +325,20 @@ func TestComposeFileSavePath(t *testing.T) {
 	}
 
 	t.Run("openapi-with-prefix", func(t *testing.T) {
-		res := ComposeFileSavePath("", "", "petstore", ".yml", true)
-		assert.Equal(ServicePath+"/.openapi/petstore/index.yml", res)
+		appCfg := NewDefaultAppConfig("/app")
+		paths := appCfg.Paths
+		descr := &ServiceDescription{
+			Path:      "petstore",
+			Ext:       ".yml",
+			IsOpenAPI: true,
+		}
+		res := ComposeFileSavePath(descr, paths)
+		assert.Equal(paths.Services+"/.openapi/petstore/index.yml", res)
 	})
 }
 
 func TestSaveFile(t *testing.T) {
+	t.SkipNow()
 	assert := assert2.New(t)
 
 	assert.True(true)

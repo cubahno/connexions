@@ -13,13 +13,16 @@ import (
 
 type LibV3Document struct {
 	*libopenapi.DocumentModel[v3high.Document]
-	ParseConfig *ParseConfig
 }
 
 type LibV3Operation struct {
 	*v3high.Operation
-	ParseConfig *ParseConfig
+	parseConfig *ParseConfig
 	mu          sync.Mutex
+}
+
+func (d *LibV3Document) Provider() SchemaProvider {
+	return LibOpenAPIProvider
 }
 
 func (d *LibV3Document) GetVersion() string {
@@ -50,8 +53,7 @@ func (d *LibV3Document) FindOperation(options *FindOperationOptions) Operationer
 	for m, op := range path.GetOperations() {
 		if strings.ToUpper(m) == strings.ToUpper(options.Method) {
 			return &LibV3Operation{
-				Operation:   op,
-				ParseConfig: d.ParseConfig,
+				Operation: op,
 			}
 		}
 	}
@@ -66,7 +68,7 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 		var schema *Schema
 		if param.Schema != nil {
 			px := param.Schema
-			schema = NewSchemaFromLibOpenAPI(px.Schema(), op.ParseConfig)
+			schema = NewSchemaFromLibOpenAPI(px.Schema(), op.parseConfig)
 		}
 
 		params = append(params, &OpenAPIParameter{
@@ -115,16 +117,18 @@ func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 	}
 
 	if responseRef == nil {
-		return &OpenAPIResponse{}
+		return &OpenAPIResponse{
+			StatusCode: statusCode,
+		}
 	}
 
 	parsedHeaders := make(OpenAPIHeaders)
 	for name, header := range responseRef.Headers {
-		if header.Schema == nil {
-			continue
+		var schema *Schema
+		if header.Schema != nil {
+			hSchema := header.Schema.Schema()
+			schema = NewSchemaFromLibOpenAPI(hSchema, op.parseConfig)
 		}
-		hSchema := header.Schema.Schema()
-		schema := NewSchemaFromLibOpenAPI(hSchema, op.ParseConfig)
 
 		name = strings.ToLower(name)
 		parsedHeaders[name] = &OpenAPIParameter{
@@ -140,7 +144,7 @@ func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 	}
 
 	libContent, contentType := op.getContent(responseRef.Content)
-	content := NewSchemaFromLibOpenAPI(libContent, op.ParseConfig)
+	content := NewSchemaFromLibOpenAPI(libContent, op.parseConfig)
 
 	return &OpenAPIResponse{
 		Headers:     parsedHeaders,
@@ -184,14 +188,14 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema
-			return NewSchemaFromLibOpenAPI(px.Schema(), op.ParseConfig), contentType
+			return NewSchemaFromLibOpenAPI(px.Schema(), op.parseConfig), contentType
 		}
 	}
 
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		px := mediaType.Schema
-		return NewSchemaFromLibOpenAPI(px.Schema(), op.ParseConfig), contentType
+		return NewSchemaFromLibOpenAPI(px.Schema(), op.parseConfig), contentType
 	}
 
 	return nil, ""
@@ -201,6 +205,6 @@ func (op *LibV3Operation) WithParseConfig(parseConfig *ParseConfig) Operationer 
 	op.mu.Lock()
 	defer op.mu.Unlock()
 
-	op.ParseConfig = parseConfig
+	op.parseConfig = parseConfig
 	return op
 }

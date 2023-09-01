@@ -21,6 +21,10 @@ type LibV2Operation struct {
 	mu          sync.Mutex
 }
 
+func (d *LibV2Document) Provider() SchemaProvider {
+	return LibOpenAPIProvider
+}
+
 func (d *LibV2Document) GetVersion() string {
 	return d.Model.Swagger
 }

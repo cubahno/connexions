@@ -30,8 +30,8 @@ func CreateHomeRoutes(router *Router) error {
 	homeRedirect := http.RedirectHandler(url, http.StatusMovedPermanently).ServeHTTP
 	router.Get(strings.TrimSuffix(url, "/"), homeRedirect)
 
-	router.Get(url, createHomeHandler(router))
-	router.Get(url+"export", exportHandler)
+	router.Get(url, createHomeHandlerFunc(router))
+	router.Get(url+"export", handler.export)
 	router.Post(url+"import", handler.importHandler)
 
 	docsServer(fmt.Sprintf("/%s/docs/*", strings.Trim(url, "/")), router)
@@ -46,7 +46,7 @@ type HomeHandler struct {
 	mu     sync.Mutex
 }
 
-func createHomeHandler(router *Router) http.HandlerFunc {
+func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", router.GetUIPath())))
 		config := router.Config.App
@@ -96,9 +96,9 @@ func docsServer(url string, router *Router) {
 	})
 }
 
-func exportHandler(w http.ResponseWriter, r *http.Request) {
+func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 	// Specify the path to the folder you want to zip
-	resourcePath := ResourcePath
+	resourcePath := h.router.Paths.Resources
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename=download.zip")
@@ -107,8 +107,8 @@ func exportHandler(w http.ResponseWriter, r *http.Request) {
 	defer zipWriter.Close()
 
 	only := []string{
-		path.Base(ServicePath),
-		path.Base(ContextPath),
+		path.Base(h.router.Paths.Services),
+		path.Base(h.router.Paths.Contexts),
 	}
 
 	err := filepath.WalkDir(resourcePath, func(path string, info os.DirEntry, err error) error {
@@ -207,7 +207,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		path.Base(h.router.Paths.Contexts),
 	}
 
-	err = ExtractZip(zipReader, ResourcePath, only)
+	err = ExtractZip(zipReader, h.router.Paths.Resources, only)
 	if err != nil {
 		http.Error(w, "Error extracting and copying files", http.StatusInternalServerError)
 		return
