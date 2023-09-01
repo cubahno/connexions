@@ -2,8 +2,10 @@ package connexions
 
 import (
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -109,7 +111,6 @@ func TestValidateRequest(t *testing.T) {
 }}`)
 
 	t.Run("base-case", func(t *testing.T) {
-
 		requestBody := strings.NewReader(`{"key": "value"}`)
 
 		// Create a new HTTP request with a request body.
@@ -157,10 +158,49 @@ func TestValidateRequest(t *testing.T) {
 
 func TestValidateResponse(t *testing.T) {
 	assert := assert2.New(t)
+	operation := &KinOperation{Operation: openapi3.NewOperation()}
+	CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
 
 	t.Run("base-case", func(t *testing.T) {
-		t.SkipNow()
-		err := ValidateResponse(nil, nil, nil)
+		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
+		res := &Response{
+			StatusCode: http.StatusOK,
+			Headers:    http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+			Content:    []byte(`{"id": 1, "email": "jane.doe@email"}`),
+			ContentType: "application/json",
+		}
+
+		err := ValidateResponse(req, res, operation)
+		assert.Nil(err)
+	})
+
+	t.Run("invalid-type", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
+		res := &Response{
+			StatusCode: http.StatusOK,
+			Headers:    http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+			Content:    []byte(`{"id": "1", "email": "jane.doe@email"}`),
+			ContentType: "application/json",
+		}
+
+		err := ValidateResponse(req, res, operation)
+		assert.Contains(err.Error(), "value must be an integer")
+	})
+
+	t.Run("no-headers-not-validated", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
+		res := &Response{
+			StatusCode: http.StatusOK,
+			// invalid type
+			Content:    []byte(`{"id": "1", "email": "jane.doe@email"}`),
+			ContentType: "application/json",
+		}
+
+		err := ValidateResponse(req, res, operation)
 		assert.Nil(err)
 	})
 }
@@ -187,5 +227,12 @@ func TestValidateStringWithPattern(t *testing.T) {
 				t.Errorf("For input '%s' and pattern '%s', expected %v but got %v", test.input, test.pattern, test.expected, result)
 			}
 		})
+	}
+}
+
+func TestValidateStringWithInvalidPattern(t *testing.T) {
+	result := ValidateStringWithPattern("abc", "[a-z")
+	if result {
+		t.Errorf("Expected false but got true")
 	}
 }

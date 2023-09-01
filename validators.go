@@ -76,10 +76,11 @@ func ValidateRequest(req *http.Request, body *Schema, contentType string) error 
 }
 
 // ValidateResponse validates a response against an operation.
+// Response must contain non-empty headers or it'll fail validation.
 func ValidateResponse(req *http.Request, res *Response, operation Operationer) error {
 	kin, isKinOpenAPI := operation.(*KinOperation)
 	// if not kin openapi, skip validation for now
-	if !isKinOpenAPI {
+	if !isKinOpenAPI || len(res.Headers) == 0 {
 		return nil
 	}
 
