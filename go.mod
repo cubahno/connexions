@@ -9,7 +9,6 @@ require (
 	github.com/knadh/koanf v1.5.0
 	github.com/pb33f/libopenapi v0.9.8
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/text v0.11.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

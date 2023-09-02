@@ -165,10 +165,10 @@ func TestValidateResponse(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
 		res := &Response{
 			StatusCode: http.StatusOK,
-			Headers:    http.Header{
+			Headers: http.Header{
 				"Content-Type": []string{"application/json"},
 			},
-			Content:    []byte(`{"id": 1, "email": "jane.doe@email"}`),
+			Content:     []byte(`{"id": 1, "email": "jane.doe@email"}`),
 			ContentType: "application/json",
 		}
 
@@ -180,10 +180,10 @@ func TestValidateResponse(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
 		res := &Response{
 			StatusCode: http.StatusOK,
-			Headers:    http.Header{
+			Headers: http.Header{
 				"Content-Type": []string{"application/json"},
 			},
-			Content:    []byte(`{"id": "1", "email": "jane.doe@email"}`),
+			Content:     []byte(`{"id": "1", "email": "jane.doe@email"}`),
 			ContentType: "application/json",
 		}
 
@@ -196,7 +196,7 @@ func TestValidateResponse(t *testing.T) {
 		res := &Response{
 			StatusCode: http.StatusOK,
 			// invalid type
-			Content:    []byte(`{"id": "1", "email": "jane.doe@email"}`),
+			Content:     []byte(`{"id": "1", "email": "jane.doe@email"}`),
 			ContentType: "application/json",
 		}
 
