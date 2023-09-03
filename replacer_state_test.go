@@ -1,12 +1,14 @@
 package connexions
 
 import (
-	"github.com/stretchr/testify/assert"
+	assert2 "github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
 
 func TestReplaceState(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("NewFrom", func(t *testing.T) {
 		src := &ReplaceState{
 			NamePath: []string{"foo", "bar"},
@@ -22,32 +24,44 @@ func TestReplaceState(t *testing.T) {
 	})
 
 	t.Run("WithName", func(t *testing.T) {
+		// empty initial
+		res := (&ReplaceState{}).WithName("foo")
+		assert.Equal([]string{"foo"}, res.NamePath)
+
+		// non-empty initial
 		src := &ReplaceState{
 			NamePath: []string{"dice", "nice"},
 		}
 
-		res := src.WithName("mice")
-		assert.Equal(t, []string{"dice", "nice", "mice"}, res.NamePath)
+		res = src.WithName("mice")
+		assert.Equal([]string{"dice", "nice", "mice"}, res.NamePath)
 	})
 
 	t.Run("WithElementIndex", func(t *testing.T) {
 		src := &ReplaceState{}
 
 		res := src.WithElementIndex(10)
-		assert.Equal(t, 10, res.ElementIndex)
+		assert.Equal(10, res.ElementIndex)
 	})
 
 	t.Run("WithHeader", func(t *testing.T) {
 		src := &ReplaceState{}
 
 		res := src.WithHeader()
-		assert.True(t, res.IsHeader)
+		assert.True(res.IsHeader)
+	})
+
+	t.Run("WithPathParam", func(t *testing.T) {
+		src := &ReplaceState{}
+
+		res := src.WithPathParam()
+		assert.True(res.IsPathParam)
 	})
 
 	t.Run("WithContentType", func(t *testing.T) {
 		src := &ReplaceState{}
 
 		res := src.WithContentType("application/json")
-		assert.Equal(t, "application/json", res.ContentType)
+		assert.Equal("application/json", res.ContentType)
 	})
 }

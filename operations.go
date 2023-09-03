@@ -233,7 +233,7 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 		name := param.Name
 		schema := param.Schema
 
-		state := (&ReplaceState{}).WithName(name).WithURLParam()
+		state := (&ReplaceState{}).WithName(name).WithPathParam()
 		replaced := valueResolver(schema, state)
 		replaced = fmt.Sprintf("%v", replaced)
 		if replaced == "" {
@@ -254,7 +254,7 @@ func GenerateURLFromFileProperties(path string, valueReplacer ValueReplacer) str
 
 	for _, placeholder := range placeHolders {
 		name := placeholder[1 : len(placeholder)-1]
-		res := valueReplacer("", (&ReplaceState{}).WithName(name).WithURLParam())
+		res := valueReplacer("", (&ReplaceState{}).WithName(name).WithPathParam())
 		if res != nil {
 			path = strings.Replace(path, placeholder, fmt.Sprintf("%v", res), -1)
 		}

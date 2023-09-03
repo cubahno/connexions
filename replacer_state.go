@@ -50,7 +50,7 @@ func (s *ReplaceState) WithHeader() *ReplaceState {
 	return s
 }
 
-func (s *ReplaceState) WithURLParam() *ReplaceState {
+func (s *ReplaceState) WithPathParam() *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.IsPathParam = true
