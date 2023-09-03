@@ -113,7 +113,6 @@ func TestValidateRequest(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
 		requestBody := strings.NewReader(`{"key": "value"}`)
 
-		// Create a new HTTP request with a request body.
 		req, err := http.NewRequest("POST", "http://example.com/api/resource", requestBody)
 		if err != nil {
 			t.Errorf("Error creating request: %v", err)

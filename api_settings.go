@@ -38,7 +38,7 @@ func CreateSettingsRoutes(router *Router) error {
 }
 
 func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, h.router.GetConfigPath())
+	http.ServeFile(w, r, h.router.Config.App.Paths.ConfigFile)
 }
 
 func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := h.router.GetConfigPath()
+	filePath := h.router.Config.App.Paths.ConfigFile
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
@@ -73,7 +73,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 
 // Restore settings from config.yml.dist
 func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
-	dest := h.router.GetConfigPath()
+	dest := h.router.Config.App.Paths.ConfigFile
 	src := fmt.Sprintf("%s.dist", dest)
 
 	if err := CopyFile(src, dest); err != nil {

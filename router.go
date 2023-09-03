@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"net/http"
-	"path/filepath"
 	"sync"
 )
 
@@ -29,16 +28,17 @@ type ErrorResponse struct {
 	Details []*ErrorMessage `json:"details"`
 }
 
-func GetPayload[T any](req *http.Request) (*T, error) {
+func GetJSONPayload[T any](req *http.Request) (*T, error) {
 	var payload T
 	err := json.NewDecoder(req.Body).Decode(&payload)
 	if err != nil {
 		return nil, err
 	}
+
 	return &payload, nil
 }
 
-func GetErrorResponse(err error) *ErrorMessage {
+func NewErrorMessage(err error) *ErrorMessage {
 	return &ErrorMessage{
 		Message: err.Error(),
 	}
@@ -49,20 +49,4 @@ func (r *Router) RemoveContext(name string) {
 	defer r.mu.Unlock()
 
 	delete(r.Contexts, name)
-}
-
-func (r *Router) GetResourcesPath() string {
-	return r.Paths.Resources
-}
-
-func (r *Router) GetConfigPath() string {
-	return r.Paths.ConfigFile
-}
-
-func (r *Router) GetContextsPath() string {
-	return r.Paths.Contexts
-}
-
-func (r *Router) GetUIPath() string {
-	return filepath.Join(r.GetResourcesPath(), "ui")
 }

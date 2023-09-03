@@ -47,8 +47,11 @@ type HomeHandler struct {
 }
 
 func createHomeHandlerFunc(router *Router) http.HandlerFunc {
+	resDir := router.Config.App.Paths.Contexts
+	uiPath := filepath.Join(resDir, "ui")
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", router.GetUIPath())))
+		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", uiPath)))
 		config := router.Config.App
 
 		type TemplateData struct {
@@ -56,7 +59,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 			Contents  map[string]template.HTML
 		}
 
-		homeContents, err := os.ReadFile(filepath.Join(router.GetUIPath(), "home.html"))
+		homeContents, err := os.ReadFile(filepath.Join(uiPath, "home.html"))
 		if err != nil {
 			log.Println("Failed to get home contents", err)
 		}
@@ -79,10 +82,13 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 // fileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
 func fileServer(url string, router *Router) {
+	resDir := router.Config.App.Paths.Contexts
+	uiPath := filepath.Join(resDir, "ui")
+
 	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(router.GetUIPath())))
+		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(uiPath)))
 		fs.ServeHTTP(w, r)
 	})
 }
@@ -91,14 +97,14 @@ func docsServer(url string, router *Router) {
 	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		fs := http.StripPrefix(
 			strings.TrimSuffix(url, "/*"),
-			http.FileServer(http.Dir(filepath.Join(router.Paths.Base, "site"))))
+			http.FileServer(http.Dir(filepath.Join(router.Config.App.Paths.Base, "site"))))
 		fs.ServeHTTP(w, r)
 	})
 }
 
 func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 	// Specify the path to the folder you want to zip
-	resourcePath := h.router.Paths.Resources
+	resourcePath := h.router.Config.App.Paths.Resources
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename=download.zip")
@@ -107,8 +113,8 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 	defer zipWriter.Close()
 
 	only := []string{
-		path.Base(h.router.Paths.Services),
-		path.Base(h.router.Paths.Contexts),
+		path.Base(h.router.Config.App.Paths.Services),
+		path.Base(h.router.Config.App.Paths.Contexts),
 	}
 
 	err := filepath.WalkDir(resourcePath, func(path string, info os.DirEntry, err error) error {

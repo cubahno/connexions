@@ -307,7 +307,7 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 
 	content, err := os.ReadFile(fileProps.FilePath)
 	if err != nil {
-		NewJSONResponse(http.StatusInternalServerError, GetErrorResponse(err), w)
+		NewJSONResponse(http.StatusInternalServerError, NewErrorMessage(err), w)
 		return
 	}
 
@@ -315,9 +315,9 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
-	payload, err := GetPayload[ResourceGeneratePayload](r)
+	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
 	if err != nil {
-		NewJSONResponse(http.StatusBadRequest, GetErrorResponse(err), w)
+		NewJSONResponse(http.StatusBadRequest, NewErrorMessage(err), w)
 		return
 	}
 
@@ -352,7 +352,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fileProps == nil {
-		NewJSONResponse(http.StatusNotFound, GetErrorResponse(ErrResourceNotFound), w)
+		NewJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
 		return
 	}
 
@@ -393,7 +393,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		Method:   strings.ToUpper(payload.Method),
 	})
 	if operation == nil {
-		NewJSONResponse(http.StatusMethodNotAllowed, GetErrorResponse(ErrResourceMethodNotFound), w)
+		NewJSONResponse(http.StatusMethodNotAllowed, NewErrorMessage(ErrResourceMethodNotFound), w)
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 

@@ -127,7 +127,8 @@ func LoadContexts(router *Router) error {
 	}
 	ch := make(chan parsed, 0)
 
-	_ = filepath.Walk(router.GetContextsPath(), func(filePath string, info os.FileInfo, err error) error {
+	ctxDir := router.Config.App.Paths.Contexts
+	_ = filepath.Walk(ctxDir, func(filePath string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			wg.Add(1)
 
