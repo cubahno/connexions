@@ -86,15 +86,15 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	switch valueType := contextData.(type) {
 	case map[string]string:
-		return ReplaceValueWithMapContext[string](path, valueType)
+		return replaceValueWithMapContext[string](path, valueType)
 	case map[string]int:
-		return ReplaceValueWithMapContext[int](path, valueType)
+		return replaceValueWithMapContext[int](path, valueType)
 	case map[string]bool:
-		return ReplaceValueWithMapContext[bool](path, valueType)
+		return replaceValueWithMapContext[bool](path, valueType)
 	case map[string]float64:
-		return ReplaceValueWithMapContext[float64](path, valueType)
+		return replaceValueWithMapContext[float64](path, valueType)
 	case map[string]any:
-		return ReplaceValueWithMapContext[any](path, valueType)
+		return replaceValueWithMapContext[any](path, valueType)
 
 	// base cases below:
 	case FakeFunc:
@@ -117,7 +117,7 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	}
 }
 
-func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) any {
+func replaceValueWithMapContext[T Any](path []string, contextData map[string]T) any {
 	if len(path) == 0 {
 		return nil
 	}
@@ -130,28 +130,16 @@ func ReplaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 	}
 
 	// Shrink the context data to the last element of the path.
-	current := contextData
 	if len(path) > 1 {
-		for _, name := range path[:len(path)-1] {
-			if value, exists := current[name]; exists {
-				if IsMap(value) {
-					current = any(value).(map[string]T)
-				} else {
-					break
-				}
-			}
-		}
-		if len(current) == 0 {
-			return nil
-		}
-		if value, exists := current[fieldName]; exists {
+		fst := path[0]
+		if value, exists := contextData[fst]; exists {
 			return ReplaceValueWithContext(path[1:], value)
 		}
 	}
 
 	// Field doesn't exist in the context as-is.
 	// But the context field might be a regex pattern.
-	for key, keyValue := range current {
+	for key, keyValue := range contextData {
 		if MaybeRegexPattern(key) && ValidateStringWithPattern(fieldName, key) {
 			return ReplaceValueWithContext(path[1:], keyValue)
 		}

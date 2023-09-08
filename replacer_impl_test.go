@@ -1,7 +1,7 @@
 package connexions
 
 import (
-	"github.com/stretchr/testify/assert"
+	assert2 "github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -22,10 +22,11 @@ func TestReplaceFromContext(t *testing.T) {
 }
 
 func TestReplaceValueWithContext(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("happy-path", func(t *testing.T) {
 		context := map[string]interface{}{
 			"user": map[string]interface{}{
-				"name": "Jane Doe",
 				"age":  30,
 				"country": map[string]interface{}{
 					"name": "Germany",
@@ -36,7 +37,7 @@ func TestReplaceValueWithContext(t *testing.T) {
 		namePath := []string{"user", "country", "name"}
 		res := ReplaceValueWithContext(namePath, context)
 
-		assert.Equal(t, "Germany", res)
+		assert.Equal("Germany", res)
 	})
 
 	t.Run("happy-path-with-ints", func(t *testing.T) {
@@ -49,13 +50,12 @@ func TestReplaceValueWithContext(t *testing.T) {
 		namePath := []string{"user", "age"}
 		res := ReplaceValueWithContext(namePath, context)
 
-		assert.Equal(t, 30, res)
+		assert.Equal(30, res)
 	})
 
 	t.Run("has-name-prefix", func(t *testing.T) {
 		context := map[string]interface{}{
 			"user": map[string]interface{}{
-				"name": "John Doe",
 				"country": map[string]interface{}{
 					"^name": "Germany",
 				},
@@ -64,7 +64,7 @@ func TestReplaceValueWithContext(t *testing.T) {
 		namePath := []string{"user", "country", "name"}
 		res := ReplaceValueWithContext(namePath, context)
 
-		assert.Equal(t, "Germany", res)
+		assert.Equal("Germany", res)
 	})
 
 	t.Run("single-namepath-has-name-prefix", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestReplaceValueWithContext(t *testing.T) {
 		namePath := []string{"name"}
 		res := ReplaceValueWithContext(namePath, context)
 
-		assert.Equal(t, "Jane Doe", res)
+		assert.Equal("Jane Doe", res)
 	})
 
 	t.Run("random-slice-value", func(t *testing.T) {
@@ -87,12 +87,35 @@ func TestReplaceValueWithContext(t *testing.T) {
 		namePath := []string{"user", "name"}
 		res := ReplaceValueWithContext(namePath, context)
 
-		assert.Contains(t, names, res)
+		assert.Contains(names, res)
 	})
 }
 
 func TestReplaceValueWithMapContext(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("empty-path", func(t *testing.T) {
+		res := replaceValueWithMapContext[string]([]string{}, map[string]string{})
+		assert.Nil(res)
+	})
+
+	t.Run("direct-match", func(t *testing.T) {
+		path := []string{"name"}
+		data := map[string]string{
+			"name": "Jane Doe",
+		}
+		res := replaceValueWithMapContext[string](path, data)
+		assert.Equal("Jane Doe", res)
+	})
+
+	t.Run("no-match", func(t *testing.T) {
+		path := []string{"user"}
+		data := map[string]string{
+			"name": "Jane Doe",
+		}
+		res := replaceValueWithMapContext[string](path, data)
+		assert.Nil(res)
+	})
 }
 
 func TestReplaceFromSchemaFormat(t *testing.T) {
@@ -108,5 +131,9 @@ func TestReplaceFromSchemaExample(t *testing.T) {
 }
 
 func TestReplaceFallback(t *testing.T) {
+
+}
+
+func TestApplySchemaConstraints(t *testing.T) {
 
 }
