@@ -2,6 +2,7 @@ package connexions
 
 import (
 	assert2 "github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
@@ -119,7 +120,94 @@ func TestReplaceValueWithMapContext(t *testing.T) {
 }
 
 func TestReplaceFromSchemaFormat(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("not-a-schema", func(t *testing.T) {
+		res := ReplaceFromSchemaFormat(NewReplaceContext("not-a-schema", nil, nil))
+		assert.Nil(res)
+	})
+
+	t.Run("unknown-format", func(t *testing.T) {
+		schema := &Schema{
+			Format: "my-format",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.Nil(res)
+	})
+
+	t.Run("date", func(t *testing.T) {
+		schema := &Schema{
+			Format: "date",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Equal(len(value), 10)
+	})
+
+	t.Run("date-time", func(t *testing.T) {
+		schema := &Schema{
+			Format: "date-time",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Equal(len(value), 24)
+	})
+
+	t.Run("email", func(t *testing.T) {
+		schema := &Schema{
+			Format: "email",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Greater(len(value), 6)
+		assert.Contains(value, "@")
+	})
+
+	t.Run("uuid", func(t *testing.T) {
+		schema := &Schema{
+			Format: "uuid",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Equal(len(value), 36)
+	})
+
+	t.Run("password", func(t *testing.T) {
+		schema := &Schema{
+			Format: "password",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Greater(len(value), 6)
+	})
+
+	t.Run("hostname", func(t *testing.T) {
+		schema := &Schema{
+			Format: "hostname",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Greater(len(value), 6)
+		assert.Contains(value, ".")
+	})
+
+	t.Run("url", func(t *testing.T) {
+		schema := &Schema{
+			Format: "url",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Greater(len(value), 6)
+		assert.Contains(value, ".")
+		assert.True(strings.HasPrefix(value, "http"))
+	})
 }
 
 func TestReplaceFromSchemaPrimitive(t *testing.T) {

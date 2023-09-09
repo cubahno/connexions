@@ -34,6 +34,15 @@ var Replacers = []Replacer{
 
 var fake = faker.New()
 
+func NewReplaceContext(schema any, state *ReplaceState, resource *Resource) *ReplaceContext {
+	return &ReplaceContext{
+		Schema:   schema,
+		State:    state,
+		Resource: resource,
+		Faker:    fake,
+	}
+}
+
 func CreateValueReplacerFactory(fns []Replacer) ValueReplacerFactory {
 	return func(resource *Resource) ValueReplacer {
 		if resource == nil {
