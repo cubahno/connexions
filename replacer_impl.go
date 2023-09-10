@@ -210,9 +210,6 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 	if !ok {
 		return res
 	}
-	if schema == nil {
-		return res
-	}
 
 	switch schema.Type {
 	case TypeString:
@@ -225,7 +222,11 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 		}
 		return int64(applySchemaNumberConstraints(schema, floatValue))
 	case TypeNumber:
-		floatValue, _ := ToFloat64(res)
+		floatValue, err := ToFloat64(res)
+		if err != nil {
+			log.Printf("Failed to convert %v to float64: %v", res, err)
+			return nil
+		}
 		return applySchemaNumberConstraints(schema, floatValue)
 	}
 	return res

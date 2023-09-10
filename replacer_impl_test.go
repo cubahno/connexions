@@ -246,16 +246,249 @@ func TestReplaceFromSchemaPrimitive(t *testing.T) {
 		assert.True(ok)
 	})
 
+	t.Run("other", func(t *testing.T) {
+		schema := &Schema{Type: TypeObject}
+		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		assert.Nil(res)
+	})
+
 }
 
 func TestReplaceFromSchemaExample(t *testing.T) {
+	assert := assert2.New(t)
 
-}
+	t.Run("not-a-schema", func(t *testing.T) {
+		res := ReplaceFromSchemaExample(NewReplaceContext("not-a-schema", nil, nil))
+		assert.Nil(res)
+	})
 
-func TestReplaceFromSchemaFallback(t *testing.T) {
-
+	t.Run("with-a-schema", func(t *testing.T) {
+		schema := &Schema{Example: "hallo, welt!"}
+		res := ReplaceFromSchemaExample(NewReplaceContext(schema, nil, nil))
+		assert.Equal("hallo, welt!", res)
+	})
 }
 
 func TestApplySchemaConstraints(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("nil-schema", func(t *testing.T) {
+		res := ApplySchemaConstraints(nil, "some-value")
+		assert.Equal("some-value", res)
+	})
+
+	t.Run("not-a-schema", func(t *testing.T) {
+		res := ApplySchemaConstraints("not-a-schema", "some-value")
+		assert.Equal("some-value", res)
+	})
+
+	t.Run("case-not-applied", func(t *testing.T) {
+		schema := &Schema{Type: TypeBoolean}
+		res := ApplySchemaConstraints(schema, true)
+		assert.Equal(true, res)
+	})
+
+	t.Run("number-conv-fails", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber}
+		res := ApplySchemaConstraints(schema, "abc")
+		assert.Nil(res)
+	})
+
+	t.Run("int-conv-fails", func(t *testing.T) {
+		schema := &Schema{Type: TypeInteger}
+		res := ApplySchemaConstraints(schema, "abc")
+		assert.Nil(res)
+	})
+
+	t.Run("string-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeString, MinLength: 5}
+		res := ApplySchemaConstraints(schema, "hallo, welt!")
+		assert.Equal("hallo, welt!", res)
+	})
+
+	t.Run("number-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Minimum: 100}
+		res := ApplySchemaConstraints(schema, 133)
+		assert.Equal(133.0, res)
+	})
+
+	t.Run("int-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeInteger, Maximum: 10}
+		res := ApplySchemaConstraints(schema, 6)
+		assert.Equal(int64(6), res)
+	})
+
+}
+
+func TestApplySchemaStringConstraints(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("nil-schema", func(t *testing.T) {
+		res := applySchemaStringConstraints(nil, "some-value")
+		assert.Equal("some-value", res)
+	})
+
+	t.Run("no-constraints", func(t *testing.T) {
+		schema := &Schema{Type:    TypeString}
+		res := applySchemaStringConstraints(schema, "hallo welt!")
+		assert.Equal("hallo welt!", res)
+	})
+
+	t.Run("pattern-ok", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			Pattern: "^[0-9]{2}[a-z]+$",
+		}
+		res := applySchemaStringConstraints(schema, "12go")
+		assert.Equal("12go", res)
+	})
+
+	t.Run("pattern-fails", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			Pattern: "^[0-9]{2}$",
+		}
+		res := applySchemaStringConstraints(schema, "12go")
+		assert.Nil(res)
+	})
+
+	t.Run("enum-ok", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			Enum: []any{
+				"nice",
+				"rice",
+				"dice",
+			},
+		}
+		res := applySchemaStringConstraints(schema, "dice")
+		assert.Equal("dice", res)
+	})
+
+	t.Run("enum-applied", func(t *testing.T) {
+		enum := []any{
+			"nice",
+			"rice",
+			"dice",
+		}
+		schema := &Schema{
+			Type:    TypeString,
+			Enum: enum,
+		}
+		res := applySchemaStringConstraints(schema, "mice")
+		assert.Contains(enum, res)
+	})
+
+	t.Run("min-length-ok", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			MinLength: 5,
+		}
+		res := applySchemaStringConstraints(schema, "hallo")
+		assert.Equal("hallo", res)
+	})
+
+	t.Run("min-length-applied", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			MinLength: 5,
+		}
+		res := applySchemaStringConstraints(schema, "ha")
+		assert.Equal("ha---", res)
+	})
+
+	t.Run("max-length-ok", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			MaxLength: 5,
+		}
+		res := applySchemaStringConstraints(schema, "hallo")
+		assert.Equal("hallo", res)
+	})
+
+	t.Run("max-length-applied", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			MaxLength: 5,
+		}
+		res := applySchemaStringConstraints(schema, "hallo welt!")
+		assert.Equal("hallo", res)
+	})
+}
+
+func TestApplySchemaNumberConstraints(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("nil-schema", func(t *testing.T) {
+		res := applySchemaNumberConstraints(nil, 123)
+		assert.Equal(123.0, res)
+	})
+
+	t.Run("no-constraints", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber}
+		res := applySchemaNumberConstraints(schema, 123)
+		assert.Equal(123.0, res)
+	})
+
+	t.Run("min-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Minimum: 100}
+		res := applySchemaNumberConstraints(schema, 100)
+		assert.Equal(100.0, res)
+	})
+
+	t.Run("min-applied", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Minimum: 100}
+		res := applySchemaNumberConstraints(schema, 99)
+		assert.Equal(100.0, res)
+	})
+
+	t.Run("max-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Maximum: 100}
+		res := applySchemaNumberConstraints(schema, 100)
+		assert.Equal(100.0, res)
+	})
+
+	t.Run("max-applied", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Maximum: 100}
+		res := applySchemaNumberConstraints(schema, 123)
+		assert.Equal(100.0, res)
+	})
+
+	t.Run("mult-of-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, MultipleOf: 5}
+		res := applySchemaNumberConstraints(schema, 15)
+		assert.Equal(15.0, res)
+	})
+
+	t.Run("mult-of-applied", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, MultipleOf: 3}
+		res := applySchemaNumberConstraints(schema, 100)
+		assert.Equal(99.0, res)
+	})
+
+	t.Run("min-max-mult-of-applied", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeNumber,
+			MultipleOf: 3,
+			Minimum: 12,
+			Maximum: 21,
+		}
+		res := applySchemaNumberConstraints(schema, 100)
+		assert.Equal(21.0, res)
+	})
+}
+
+func TestReplaceFromSchemaFallback(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("not-a-schema", func(t *testing.T) {
+		res := ReplaceFromSchemaFallback(NewReplaceContext("not-a-schema", nil, nil))
+		assert.Nil(res)
+	})
+
+	t.Run("with-a-schema", func(t *testing.T) {
+		schema := &Schema{Default: "hallo, welt!"}
+		res := ReplaceFromSchemaFallback(NewReplaceContext(schema, nil, nil))
+		assert.Equal("hallo, welt!", res)
+	})
 }
