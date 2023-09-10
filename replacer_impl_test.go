@@ -211,6 +211,40 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 }
 
 func TestReplaceFromSchemaPrimitive(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("not-a-schema", func(t *testing.T) {
+		res := ReplaceFromSchemaPrimitive(NewReplaceContext("not-a-schema", nil, nil))
+		assert.Nil(res)
+	})
+
+	t.Run("string", func(t *testing.T) {
+		schema := &Schema{Type: TypeString}
+		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		value, _ := res.(string)
+		assert.Greater(len(value), 0)
+	})
+
+	t.Run("integer", func(t *testing.T) {
+		schema := &Schema{Type: TypeInteger}
+		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		_, ok := res.(uint32)
+		assert.True(ok)
+	})
+
+	t.Run("number", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber}
+		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		_, ok := res.(uint32)
+		assert.True(ok)
+	})
+
+	t.Run("boolean", func(t *testing.T) {
+		schema := &Schema{Type: TypeBoolean}
+		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		_, ok := res.(bool)
+		assert.True(ok)
+	})
 
 }
 
@@ -218,7 +252,7 @@ func TestReplaceFromSchemaExample(t *testing.T) {
 
 }
 
-func TestReplaceFallback(t *testing.T) {
+func TestReplaceFromSchemaFallback(t *testing.T) {
 
 }
 

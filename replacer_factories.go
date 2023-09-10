@@ -29,7 +29,7 @@ var Replacers = []Replacer{
 	ReplaceFromSchemaFormat,
 	ReplaceFromSchemaPrimitive,
 	ReplaceFromSchemaExample,
-	ReplaceFallback,
+	ReplaceFromSchemaFallback,
 }
 
 var fake = faker.New()

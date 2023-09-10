@@ -291,7 +291,7 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 	return value
 }
 
-func ReplaceFallback(ctx *ReplaceContext) any {
+func ReplaceFromSchemaFallback(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
 	if !ok {
 		return nil
