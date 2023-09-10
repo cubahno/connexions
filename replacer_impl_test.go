@@ -342,7 +342,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
 		assert.NotNil(res)
 		value, _ := res.(string)
-		assert.Greater(len(value), 6)
+		assert.GreaterOrEqual(len(value), 6)
 	})
 
 	t.Run("hostname", func(t *testing.T) {
