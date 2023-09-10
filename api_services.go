@@ -375,7 +375,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !fileProps.IsOpenAPI {
-		res["request"] = NewRequestFromFileProperties(
+		res["request"] = newResourceRequest(
 			fileProps.Prefix+fileProps.Resource,
 			fileProps.Method,
 			fileProps.ContentType,

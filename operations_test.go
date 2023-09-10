@@ -297,7 +297,22 @@ func TestCreateCURLBody(t *testing.T) {
 	})
 }
 
-func TestNewResponse(t *testing.T) {
+func TestNewResourceRequest(t *testing.T) {
+	ass := assert.New(t)
+	valueReplacer := func(content any, state *ReplaceState) any {
+		return "resolved-value"
+	}
+	res := newResourceRequest("/foo/bar", http.MethodPatch, "application/json", valueReplacer)
+	expected := &Request{
+		Method:      http.MethodPatch,
+		Path:        "/foo/bar",
+		ContentType: "application/json",
+		Examples:    nil,
+	}
+	ass.Equal(expected, res)
+}
+
+func TestNewResponseFromOperation(t *testing.T) {
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
 			schema, _ := content.(*Schema)

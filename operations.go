@@ -149,7 +149,8 @@ func createCURLBody(content any, contentType string) (string, error) {
 	return "", nil
 }
 
-func NewRequestFromFileProperties(path, method, contentType string, valueReplacer ValueReplacer) *Request {
+func newResourceRequest(path, method, contentType string, valueReplacer ValueReplacer) *Request {
+	// TODO(cubahno): add cURL example
 	return &Request{
 		Method:      method,
 		Path:        GenerateURLFromFileProperties(path, valueReplacer),
