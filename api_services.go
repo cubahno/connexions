@@ -380,7 +380,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 			fileProps.Method,
 			fileProps.ContentType,
 			valueReplacer)
-		res["response"] = NewResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		res["response"] = newResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		NewJSONResponse(http.StatusOK, res, w)
 		return

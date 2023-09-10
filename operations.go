@@ -184,8 +184,8 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 	}
 }
 
-func NewResponseFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) *Response {
-	content := GenerateContentFromFileProperties(filePath, contentType, valueReplacer)
+func newResponseFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) *Response {
+	content := generateContentFromFileProperties(filePath, contentType, valueReplacer)
 	hs := http.Header{}
 	hs.Set("content-type", contentType)
 
@@ -430,7 +430,7 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 	return res
 }
 
-func GenerateContentFromFileProperties(
+func generateContentFromFileProperties(
 	filePath, contentType string, valueReplacer ValueReplacer) any {
 	if filePath == "" {
 		return nil
@@ -447,13 +447,13 @@ func GenerateContentFromFileProperties(
 		if err != nil {
 			return nil
 		}
-		return GenerateContentFromJSON(data, valueReplacer, nil)
+		return generateContentFromJSON(data, valueReplacer, nil)
 	}
 
 	return payload
 }
 
-func GenerateContentFromJSON(data any, valueReplacer ValueReplacer, state *ReplaceState) any {
+func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if valueReplacer == nil {
 		return data
 	}
