@@ -5,9 +5,14 @@ import (
 	"testing"
 )
 
+func TestNewReplaceContext(t *testing.T) {
+	assert := assert2.New(t)
+	res := NewReplaceContext(nil, nil, nil)
+	assert.NotNil(res.Faker)
+}
+
 func TestReplacers(t *testing.T) {
 	assert := assert2.New(t)
-
 	assert.Equal(7, len(Replacers))
 }
 
