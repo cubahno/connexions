@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
+func newOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 	return &OpenAPIParameter{
 		Name:   name,
 		In:     in,
@@ -21,6 +22,8 @@ func NewOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 }
 
 func TestNewRequestFromOperation(t *testing.T) {
+	ass := assert.New(t)
+
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
 			schema, _ := content.(*Schema)
@@ -46,16 +49,27 @@ func TestNewRequestFromOperation(t *testing.T) {
 
 		expectedHeaders := map[string]any{"lang": "de"}
 
-		assert.Equal(t, "POST", req.Method)
-		assert.Equal(t, "/foo/users/123", req.Path)
-		assert.Equal(t, "limit=10", req.Query)
-		assert.Equal(t, "application/json", req.ContentType)
-		assert.Equal(t, string(expectedBodyB), req.Body)
-		assert.Equal(t, expectedHeaders, req.Headers)
+		ass.Equal("POST", req.Method)
+		ass.Equal("/foo/users/123", req.Path)
+		ass.Equal("limit=10", req.Query)
+		ass.Equal("application/json", req.ContentType)
+		ass.Equal(string(expectedBodyB), req.Body)
+		ass.Equal(expectedHeaders, req.Headers)
+	})
+
+	t.Run("invalid-resolve-value", func(t *testing.T) {
+		valueResolver := func(content any, state *ReplaceState) any {return func(){}}
+		operation := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-with-invalid-req-body.yml"), operation)
+
+		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
+		ass.Equal("", req.Body)
 	})
 }
 
 func TestEncodeContent(t *testing.T) {
+	ass := assert.New(t)
+
 	t.Run("Nil Content", func(t *testing.T) {
 		result, err := EncodeContent(nil, "application/json")
 		if err != nil {
@@ -93,7 +107,6 @@ func TestEncodeContent(t *testing.T) {
 	})
 
 	t.Run("XML Content", func(t *testing.T) {
-		ass := assert.New(t)
 		type Data struct {
 			Name     string `json:"name" xml:"name"`
 			Age      int    `json:"age" xml:"age"`
@@ -113,10 +126,51 @@ func TestEncodeContent(t *testing.T) {
 
 		ass.Equal(string(expectedXML), string(result))
 	})
+
+	t.Run("YAML Content", func(t *testing.T) {
+		type Data struct {
+			Name     string `json:"name" yaml:"name"`
+			Age      int    `json:"age" yaml:"age"`
+			Settings string `json:"settings" yaml:"settings"`
+		}
+		structContent := Data{
+			Name:     "John Doe",
+			Age:      30,
+			Settings: "some settings",
+		}
+
+		result, err := EncodeContent(structContent, "application/x-yaml")
+		ass.NoError(err)
+
+		expectedYAML, err := yaml.Marshal(structContent)
+		ass.NoError(err)
+
+		ass.Equal(string(expectedYAML), string(result))
+	})
+
+	t.Run("Byte Content", func(t *testing.T) {
+		content := []byte("hallo, welt!")
+		result, err := EncodeContent(content, "x-unknown")
+		ass.NoError(err)
+		ass.Equal(content, result)
+	})
+
+	t.Run("Unknown Content Type", func(t *testing.T) {
+		content := 123
+		result, err := EncodeContent(content, "x-unknown")
+		ass.NoError(err)
+		ass.Nil(result)
+	})
 }
 
 func TestCreateCURLBody(t *testing.T) {
 	ass := assert.New(t)
+
+	t.Run("nil-content", func(t *testing.T) {
+		res, err := createCURLBody(nil, "application/json")
+		ass.NoError(err)
+		ass.Nil(res)
+	})
 
 	t.Run("FormURLEncoded", func(t *testing.T) {
 		t.Parallel()
@@ -127,7 +181,7 @@ func TestCreateCURLBody(t *testing.T) {
 			"email": "john@example.com",
 		}
 
-		result, err := CreateCURLBody(content, "application/x-www-form-urlencoded")
+		result, err := createCURLBody(content, "application/x-www-form-urlencoded")
 		ass.NoError(err)
 
 		expected := `--data-urlencode 'age=30' \
@@ -136,6 +190,20 @@ func TestCreateCURLBody(t *testing.T) {
 `
 		expected = strings.TrimSuffix(expected, "\n")
 		ass.Equal(expected, result)
+	})
+
+	t.Run("FormURLEncoded-incorrect-content-type", func(t *testing.T) {
+		t.Parallel()
+
+		// should be map[string]any
+		content := map[string]string{
+			"name":  "John",
+			"email": "john@example.com",
+		}
+
+		result, err := createCURLBody(content, "application/x-www-form-urlencoded")
+		ass.Equal("", result)
+		ass.Equal(ErrUnexpectedFormURLEncodedType, err)
 	})
 
 	t.Run("MultipartFormData", func(t *testing.T) {
@@ -147,7 +215,7 @@ func TestCreateCURLBody(t *testing.T) {
 			"email": "jane@example.com",
 		}
 
-		result, err := CreateCURLBody(content, "multipart/form-data")
+		result, err := createCURLBody(content, "multipart/form-data")
 		ass.NoError(err)
 
 		expected := `--form 'age="25"' \
@@ -156,6 +224,20 @@ func TestCreateCURLBody(t *testing.T) {
 `
 		expected = strings.TrimSuffix(expected, "\n")
 		ass.Equal(expected, result)
+	})
+
+	t.Run("MultipartFormData-incorrect-content-type", func(t *testing.T) {
+		t.Parallel()
+
+		// should be map[string]any
+		content := map[string]string{
+			"name":  "Jane",
+			"email": "jane@example.com",
+		}
+
+		result, err := createCURLBody(content, "multipart/form-data")
+		ass.Equal("", result)
+		ass.Equal(ErrUnexpectedFormDataType, err)
 	})
 
 	t.Run("JSON", func(t *testing.T) {
@@ -167,7 +249,7 @@ func TestCreateCURLBody(t *testing.T) {
 			"email": "alice@example.com",
 		}
 
-		result, err := CreateCURLBody(content, "application/json")
+		result, err := createCURLBody(content, "application/json")
 		ass.NoError(err)
 
 		enc, _ := json.Marshal(content)
@@ -190,12 +272,28 @@ func TestCreateCURLBody(t *testing.T) {
 			Email: "eve@example.com",
 		}
 
-		result, err := CreateCURLBody(content, "application/xml")
+		result, err := createCURLBody(content, "application/xml")
 		ass.NoError(err)
 
 		enc, _ := xml.Marshal(content)
 		expected := fmt.Sprintf("--data '%s'", string(enc))
 		ass.Equal(expected, result)
+	})
+
+	t.Run("XML-invalid", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := createCURLBody(func() {}, "application/xml")
+		ass.Equal("", result)
+		ass.Error(err)
+	})
+
+	t.Run("unknown-content-type", func(t *testing.T) {
+		t.Parallel()
+
+		result, err := createCURLBody(123, "application/unknown")
+		ass.Equal("", result)
+		ass.NoError(err)
 	})
 }
 
@@ -298,9 +396,9 @@ func TestGenerateURL(t *testing.T) {
 			return "something-else"
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("id", "path", CreateSchemaFromString(t, `{"type": "integer"}`)),
-			NewOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
-			NewOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
+			newOpenAPIParameter("id", "path", CreateSchemaFromString(t, `{"type": "integer"}`)),
+			newOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
+			newOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
 		}
 		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
 		assert.Equal(t, "/users/123/foo", res)
@@ -319,8 +417,8 @@ func TestGenerateQuery(t *testing.T) {
 			return "something-else"
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
-			NewOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "foo"}`)),
+			newOpenAPIParameter("id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
+			newOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "foo"}`)),
 		}
 		res := GenerateQuery(valueResolver, params)
 
@@ -333,7 +431,7 @@ func TestGenerateQuery(t *testing.T) {
 			return "foo bar"
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter(
+			newOpenAPIParameter(
 				"tags",
 				"query",
 				CreateSchemaFromString(t, `{"type": "array", "items": {"type": "string"}}`),
@@ -350,7 +448,7 @@ func TestGenerateQuery(t *testing.T) {
 			return nil
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter(
+			newOpenAPIParameter(
 				"id",
 				"query",
 				CreateSchemaFromString(t, `{"type": "integer"}`),
@@ -691,10 +789,10 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			return nil
 		}
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
-			NewOpenAPIParameter("Version", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
-			NewOpenAPIParameter("Preferences", ParameterInHeader, CreateSchemaFromString(t, `{"type": "object", "properties": {"mode": {"type": "string"}, "lang": {"type": "string"}}}`)),
-			NewOpenAPIParameter("id", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
+			newOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
+			newOpenAPIParameter("Version", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
+			newOpenAPIParameter("Preferences", ParameterInHeader, CreateSchemaFromString(t, `{"type": "object", "properties": {"mode": {"type": "string"}, "lang": {"type": "string"}}}`)),
+			newOpenAPIParameter("id", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
 		}
 
 		expected := map[string]any{
@@ -715,14 +813,14 @@ func TestGenerateRequestHeaders(t *testing.T) {
 	})
 
 	t.Run("schema-is-nil", func(t *testing.T) {
-		params := OpenAPIParameters{NewOpenAPIParameter("", ParameterInHeader, nil)}
+		params := OpenAPIParameters{newOpenAPIParameter("", ParameterInHeader, nil)}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
 	})
 
 	t.Run("schema-is-nil", func(t *testing.T) {
 		params := OpenAPIParameters{
-			NewOpenAPIParameter("", ParameterInHeader, nil),
+			newOpenAPIParameter("", ParameterInHeader, nil),
 		}
 		res := GenerateRequestHeaders(params, nil)
 		assert.Nil(t, res)
@@ -741,8 +839,8 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			return nil
 		}
 		headers := OpenAPIHeaders{
-			"X-Rate-Limit-Limit":     NewOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "integer"}`)),
-			"X-Rate-Limit-Remaining": NewOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "integer"}`)),
+			"X-Rate-Limit-Limit":     newOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "integer"}`)),
+			"X-Rate-Limit-Remaining": newOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "integer"}`)),
 		}
 
 		expected := http.Header{

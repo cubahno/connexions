@@ -46,7 +46,7 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation Operatio
 		log.Printf("Error encoding request: %v", err.Error())
 	}
 
-	curlExample, err := CreateCURLBody(content, contentType)
+	curlExample, err := createCURLBody(content, contentType)
 	if err != nil {
 		log.Printf("Error creating cURL example body: %v", err.Error())
 	}
@@ -91,7 +91,7 @@ func EncodeContent(content any, contentType string) ([]byte, error) {
 	return nil, nil
 }
 
-func CreateCURLBody(content any, contentType string) (string, error) {
+func createCURLBody(content any, contentType string) (string, error) {
 	if content == nil {
 		return "", nil
 	}
