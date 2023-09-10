@@ -11,11 +11,122 @@ func TestHasCorrectSchemaType(t *testing.T) {
 }
 
 func TestReplaceInHeaders(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("not-a-header", func(t *testing.T) {
+		state := &ReplaceState{
+			NamePath: []string{"userID"},
+		}
+		resource := &Resource{
+			ContextData: []map[string]any{
+				{
+					"user_id": "1234",
+				},
+			},
+		}
+		res := ReplaceInHeaders(NewReplaceContext(nil, state, resource))
+		assert.Nil(res)
+	})
+
+	t.Run("in-headers", func(t *testing.T) {
+		state := &ReplaceState{
+			NamePath: []string{"userID"},
+			IsHeader: true,
+
+		}
+		resource := &Resource{
+			ContextAreaPrefix: "in-",
+			ContextData: []map[string]any{
+				{
+					"user_id": "1234",
+					"in-header": map[string]string{
+						"user_id": "5678",
+					},
+				},
+			},
+		}
+		res := ReplaceInHeaders(NewReplaceContext(nil, state, resource))
+		assert.Equal("5678", res)
+	})
 }
 
 func TestReplaceInPath(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("not-a-path", func(t *testing.T) {
+		state := &ReplaceState{
+			NamePath: []string{"userID"},
+			IsPathParam: false,
+		}
+		resource := &Resource{
+			ContextData: []map[string]any{
+				{
+					"user_id": "1234",
+				},
+			},
+		}
+		res := ReplaceInPath(NewReplaceContext(nil, state, resource))
+		assert.Nil(res)
+	})
+
+	t.Run("in-path", func(t *testing.T) {
+		state := &ReplaceState{
+			NamePath: []string{"userID"},
+			IsPathParam: true,
+
+		}
+		resource := &Resource{
+			ContextAreaPrefix: "in-",
+			ContextData: []map[string]any{
+				{
+					"user_id": "1234",
+					"in-path": map[string]string{
+						"user_id": "5678",
+					},
+				},
+			},
+		}
+		res := ReplaceInPath(NewReplaceContext(nil, state, resource))
+		assert.Equal("5678", res)
+	})
+
+	t.Run("not-in-ctx", func(t *testing.T) {
+		state := &ReplaceState{
+			NamePath: []string{"userID"},
+			IsPathParam: true,
+
+		}
+		resource := &Resource{
+			ContextAreaPrefix: "in-",
+			ContextData: []map[string]any{
+				{
+					"user_id": "1234",
+				},
+			},
+		}
+		res := ReplaceInPath(NewReplaceContext(nil, state, resource))
+		assert.Nil(res)
+	})
+}
+
+func TestReplaceInArea(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("missing-prefix", func(t *testing.T) {
+		state := &ReplaceState{
+			NamePath: []string{"userID"},
+			IsPathParam: true,
+		}
+		resource := &Resource{
+			ContextData: []map[string]any{
+				{
+					"user_id": "1234",
+				},
+			},
+		}
+		res := replaceInArea(NewReplaceContext(nil, state, resource), "path")
+		assert.Nil(res)
+	})
 }
 
 func TestReplaceFromContext(t *testing.T) {
