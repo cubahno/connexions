@@ -7,7 +7,29 @@ import (
 )
 
 func TestHasCorrectSchemaType(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("nil-schema", func(t *testing.T) {
+		res := HasCorrectSchemaType(NewReplaceContext(nil, nil, nil), "nice")
+		assert.True(res)
+	})
+
+	t.Run("not-a-schema", func(t *testing.T) {
+		res := HasCorrectSchemaType(NewReplaceContext("not-a-schema", nil, nil), "nice")
+		assert.True(res)
+	})
+
+	t.Run("string-type-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeString}
+		res := HasCorrectSchemaType(NewReplaceContext(schema, nil, nil), "nice")
+		assert.True(res)
+	})
+
+	t.Run("string-type-error", func(t *testing.T) {
+		schema := &Schema{Type: TypeString}
+		res := HasCorrectSchemaType(NewReplaceContext(schema, nil, nil), 123)
+		assert.False(res)
+	})
 }
 
 func TestReplaceInHeaders(t *testing.T) {

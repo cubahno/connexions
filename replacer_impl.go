@@ -18,13 +18,12 @@ const (
 )
 
 func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
-	schema, ok := ctx.Schema.(*Schema)
-	if !ok {
-		// TODO(igor): check how to handle with other content schemas
+	// TODO(igor): check how to handle other content schemas
+	if ctx.Schema == nil {
 		return true
 	}
-
-	if schema == nil {
+	schema, ok := ctx.Schema.(*Schema)
+	if !ok {
 		return true
 	}
 
