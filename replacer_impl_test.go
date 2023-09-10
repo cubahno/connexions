@@ -19,7 +19,47 @@ func TestReplaceInPath(t *testing.T) {
 }
 
 func TestReplaceFromContext(t *testing.T) {
+	assert := assert2.New(t)
 
+	t.Run("happy-path", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeString,
+		}
+		state := &ReplaceState{
+			NamePath: []string{"Person", "dateOfBirth"},
+		}
+		resource := &Resource{
+			ContextData: []map[string]any{
+				{
+					"person": map[string]any{
+						"date_of_birth": "1980-01-01",
+					},
+				},
+			},
+		}
+		res := ReplaceFromContext(NewReplaceContext(schema, state, resource))
+		assert.Equal("1980-01-01", res)
+	})
+
+	t.Run("not-found-in-path", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeString,
+		}
+		state := &ReplaceState{
+			NamePath: []string{"Person", "dateOfBirth"},
+		}
+		resource := &Resource{
+			ContextData: []map[string]any{
+				{
+					"people": map[string]any{
+						"date_of_birth": "1980-01-01",
+					},
+				},
+			},
+		}
+		res := ReplaceFromContext(NewReplaceContext(schema, state, resource))
+		assert.Nil(res)
+	})
 }
 
 func TestReplaceValueWithContext(t *testing.T) {
@@ -52,6 +92,15 @@ func TestReplaceValueWithContext(t *testing.T) {
 		res := ReplaceValueWithContext(namePath, context)
 
 		assert.Equal(30, res)
+	})
+
+	t.Run("unmapped-type", func(t *testing.T) {
+		namePath := []string{"rank"}
+		ctx := map[string]int64{
+			"rank": 123,
+		}
+		res := ReplaceValueWithContext(namePath, ctx)
+		assert.Nil(res)
 	})
 
 	t.Run("has-name-prefix", func(t *testing.T) {
@@ -89,6 +138,116 @@ func TestReplaceValueWithContext(t *testing.T) {
 		res := ReplaceValueWithContext(namePath, context)
 
 		assert.Contains(names, res)
+	})
+
+	t.Run("with-map-of-strings-ctx", func(t *testing.T) {
+		context := map[string]string{
+			"name": "Jane Doe",
+		}
+		namePath := []string{"name"}
+		res := ReplaceValueWithContext(namePath, context)
+
+		assert.Equal("Jane Doe", res)
+	})
+
+	t.Run("with-map-of-ints-ctx", func(t *testing.T) {
+		context := map[string]int{
+			"age": 30,
+		}
+		namePath := []string{"name", "age"}
+		res := ReplaceValueWithContext(namePath, context)
+
+		assert.Equal(30, res)
+	})
+
+	t.Run("with-map-of-float64s-ctx", func(t *testing.T) {
+		id := float64(123)
+		context := map[string]float64{
+			"rank": id,
+		}
+		namePath := []string{"name", "rank"}
+		res := ReplaceValueWithContext(namePath, context)
+
+		assert.Equal(id, res)
+	})
+
+	t.Run("with-map-of-bools-ctx", func(t *testing.T) {
+		context := map[string]bool{
+			"is_married": true,
+		}
+		namePath := []string{"name", "is_married"}
+		res := ReplaceValueWithContext(namePath, context)
+
+		assert.Equal(true, res)
+	})
+
+	t.Run("with-fake-func-ctx", func(t *testing.T) {
+		fn := FakeFunc(func() MixedValue {
+			return IntValue(123)
+		})
+		namePath := []string{"name", "rank"}
+		res := ReplaceValueWithContext(namePath, fn)
+
+		assert.Equal(int64(123), res)
+	})
+
+	t.Run("with-string-ctx", func(t *testing.T) {
+		namePath := []string{"name"}
+		res := ReplaceValueWithContext(namePath, "Jane")
+		assert.Equal("Jane", res)
+	})
+
+	t.Run("with-int-ctx", func(t *testing.T) {
+		namePath := []string{"age"}
+		res := ReplaceValueWithContext(namePath, 30)
+		assert.Equal(30, res)
+	})
+
+	t.Run("with-float64-ctx", func(t *testing.T) {
+		namePath := []string{"rank"}
+		res := ReplaceValueWithContext(namePath, 123.0)
+		assert.Equal(123.0, res)
+	})
+
+	t.Run("with-bool-ctx", func(t *testing.T) {
+		namePath := []string{"is_married"}
+		res := ReplaceValueWithContext(namePath, true)
+		assert.Equal(true, res)
+	})
+
+	t.Run("with-string-slice-ctx", func(t *testing.T) {
+		namePath := []string{"name"}
+		values := []string{"Jane", "John"}
+		res := ReplaceValueWithContext(namePath, values)
+		assert.Contains(values, res)
+	})
+
+	t.Run("with-int-slice-ctx", func(t *testing.T) {
+		namePath := []string{"age"}
+		values := []int{30, 40}
+		res := ReplaceValueWithContext(namePath, values)
+		assert.Contains(values, res)
+	})
+
+	t.Run("with-bool-slice-ctx", func(t *testing.T) {
+		namePath := []string{"is_married"}
+		values := []bool{true, false}
+		res := ReplaceValueWithContext(namePath, values)
+		assert.Contains(values, res)
+	})
+
+	t.Run("with-float64-slice-ctx", func(t *testing.T) {
+		namePath := []string{"rank"}
+		values := []float64{123.0, 1.0, 12.0}
+		res := ReplaceValueWithContext(namePath, values)
+		assert.Contains(values, res)
+	})
+
+	t.Run("with-any-slice-ctx", func(t *testing.T) {
+		namePath := []string{"nickname"}
+		values := []any{"j", 1}
+		res := ReplaceValueWithContext(namePath, values)
+		assert.Contains(values, res)
 	})
 }
 

@@ -113,7 +113,7 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	case []any:
 		return GetRandomSliceValue[any](valueType)
 	default:
-		return nil // Invalid path
+		return nil // unmapped type
 	}
 }
 
