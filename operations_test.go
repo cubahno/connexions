@@ -169,7 +169,7 @@ func TestCreateCURLBody(t *testing.T) {
 	t.Run("nil-content", func(t *testing.T) {
 		res, err := createCURLBody(nil, "application/json")
 		ass.NoError(err)
-		ass.Nil(res)
+		ass.Equal("", res)
 	})
 
 	t.Run("FormURLEncoded", func(t *testing.T) {
