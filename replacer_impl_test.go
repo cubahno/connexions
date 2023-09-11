@@ -54,7 +54,6 @@ func TestReplaceInHeaders(t *testing.T) {
 		state := &ReplaceState{
 			NamePath: []string{"userID"},
 			IsHeader: true,
-
 		}
 		resource := &Resource{
 			ContextAreaPrefix: "in-",
@@ -77,7 +76,7 @@ func TestReplaceInPath(t *testing.T) {
 
 	t.Run("not-a-path", func(t *testing.T) {
 		state := &ReplaceState{
-			NamePath: []string{"userID"},
+			NamePath:    []string{"userID"},
 			IsPathParam: false,
 		}
 		resource := &Resource{
@@ -93,9 +92,8 @@ func TestReplaceInPath(t *testing.T) {
 
 	t.Run("in-path", func(t *testing.T) {
 		state := &ReplaceState{
-			NamePath: []string{"userID"},
+			NamePath:    []string{"userID"},
 			IsPathParam: true,
-
 		}
 		resource := &Resource{
 			ContextAreaPrefix: "in-",
@@ -114,9 +112,8 @@ func TestReplaceInPath(t *testing.T) {
 
 	t.Run("not-in-ctx", func(t *testing.T) {
 		state := &ReplaceState{
-			NamePath: []string{"userID"},
+			NamePath:    []string{"userID"},
 			IsPathParam: true,
-
 		}
 		resource := &Resource{
 			ContextAreaPrefix: "in-",
@@ -136,7 +133,7 @@ func TestReplaceInArea(t *testing.T) {
 
 	t.Run("missing-prefix", func(t *testing.T) {
 		state := &ReplaceState{
-			NamePath: []string{"userID"},
+			NamePath:    []string{"userID"},
 			IsPathParam: true,
 		}
 		resource := &Resource{
@@ -201,7 +198,7 @@ func TestReplaceValueWithContext(t *testing.T) {
 	t.Run("happy-path", func(t *testing.T) {
 		context := map[string]interface{}{
 			"user": map[string]interface{}{
-				"age":  30,
+				"age": 30,
 				"country": map[string]interface{}{
 					"name": "Germany",
 					"code": "DE",
@@ -621,7 +618,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 	})
 
 	t.Run("no-constraints", func(t *testing.T) {
-		schema := &Schema{Type:    TypeString}
+		schema := &Schema{Type: TypeString}
 		res := applySchemaStringConstraints(schema, "hallo welt!")
 		assert.Equal("hallo welt!", res)
 	})
@@ -646,7 +643,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 
 	t.Run("enum-ok", func(t *testing.T) {
 		schema := &Schema{
-			Type:    TypeString,
+			Type: TypeString,
 			Enum: []any{
 				"nice",
 				"rice",
@@ -664,7 +661,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 			"dice",
 		}
 		schema := &Schema{
-			Type:    TypeString,
+			Type: TypeString,
 			Enum: enum,
 		}
 		res := applySchemaStringConstraints(schema, "mice")
@@ -673,7 +670,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 
 	t.Run("min-length-ok", func(t *testing.T) {
 		schema := &Schema{
-			Type:    TypeString,
+			Type:      TypeString,
 			MinLength: 5,
 		}
 		res := applySchemaStringConstraints(schema, "hallo")
@@ -682,7 +679,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 
 	t.Run("min-length-applied", func(t *testing.T) {
 		schema := &Schema{
-			Type:    TypeString,
+			Type:      TypeString,
 			MinLength: 5,
 		}
 		res := applySchemaStringConstraints(schema, "ha")
@@ -691,7 +688,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 
 	t.Run("max-length-ok", func(t *testing.T) {
 		schema := &Schema{
-			Type:    TypeString,
+			Type:      TypeString,
 			MaxLength: 5,
 		}
 		res := applySchemaStringConstraints(schema, "hallo")
@@ -700,7 +697,7 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 
 	t.Run("max-length-applied", func(t *testing.T) {
 		schema := &Schema{
-			Type:    TypeString,
+			Type:      TypeString,
 			MaxLength: 5,
 		}
 		res := applySchemaStringConstraints(schema, "hallo welt!")
@@ -760,10 +757,10 @@ func TestApplySchemaNumberConstraints(t *testing.T) {
 
 	t.Run("min-max-mult-of-applied", func(t *testing.T) {
 		schema := &Schema{
-			Type: TypeNumber,
+			Type:       TypeNumber,
 			MultipleOf: 3,
-			Minimum: 12,
-			Maximum: 21,
+			Minimum:    12,
+			Maximum:    21,
 		}
 		res := applySchemaNumberConstraints(schema, 100)
 		assert.Equal(21.0, res)

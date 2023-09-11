@@ -149,11 +149,11 @@ func createCURLBody(content any, contentType string) (string, error) {
 	return "", nil
 }
 
-func newResourceRequest(path, method, contentType string, valueReplacer ValueReplacer) *Request {
+func newRequestFromFixedResource(path, method, contentType string, valueReplacer ValueReplacer) *Request {
 	// TODO(cubahno): add cURL example
 	return &Request{
 		Method:      method,
-		Path:        GenerateURLFromFileProperties(path, valueReplacer),
+		Path:        generateURLFromFixedResourcePath(path, valueReplacer),
 		ContentType: contentType,
 	}
 }
@@ -185,9 +185,9 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 	}
 }
 
-func newResponseFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) *Response {
+func newResponseFromFixedResource(filePath, contentType string, valueReplacer ValueReplacer) *Response {
 	content := generateContentFromFileProperties(filePath, contentType, valueReplacer)
-	hs := http.Header{}
+	hs := make(http.Header)
 	hs.Set("content-type", contentType)
 
 	contentB, err := EncodeContent(content, contentType)
@@ -199,7 +199,8 @@ func newResponseFromFileProperties(filePath, contentType string, valueReplacer V
 		Headers:     hs,
 		Content:     contentB,
 		ContentType: contentType,
-		StatusCode:  http.StatusOK,
+		// 200 is the only possible status code for fixed resource
+		StatusCode: http.StatusOK,
 	}
 }
 
@@ -247,7 +248,7 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 	return path
 }
 
-func GenerateURLFromFileProperties(path string, valueReplacer ValueReplacer) string {
+func generateURLFromFixedResourcePath(path string, valueReplacer ValueReplacer) string {
 	placeHolders := ExtractPlaceholders(path)
 	if valueReplacer == nil {
 		return path
@@ -257,7 +258,12 @@ func GenerateURLFromFileProperties(path string, valueReplacer ValueReplacer) str
 		name := placeholder[1 : len(placeholder)-1]
 		res := valueReplacer("", (&ReplaceState{}).WithName(name).WithPathParam())
 		if res != nil {
-			path = strings.Replace(path, placeholder, fmt.Sprintf("%v", res), -1)
+			replaceWith := fmt.Sprintf("%v", res)
+			if len(replaceWith) > 0 {
+				path = strings.Replace(path, placeholder, replaceWith, -1)
+			} else {
+				log.Printf("parameter '%s' not replaced in URL path", name)
+			}
 		}
 	}
 	return path
@@ -341,17 +347,13 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 
 	res := map[string]any{}
 
-	if schema.Properties == nil {
+	if len(schema.Properties) == 0 {
 		return nil
 	}
 
 	for name, schemaRef := range schema.Properties {
 		s := state.NewFrom(state).WithName(name)
 		res[name] = GenerateContentFromSchema(schemaRef, valueReplacer, s)
-	}
-
-	if len(res) == 0 {
-		return nil
 	}
 
 	return res
@@ -431,14 +433,15 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 	return res
 }
 
-func generateContentFromFileProperties(
-	filePath, contentType string, valueReplacer ValueReplacer) any {
+func generateContentFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) any {
 	if filePath == "" {
+		log.Println("file path is empty")
 		return nil
 	}
 
 	payload, err := os.ReadFile(filePath)
 	if err != nil {
+		log.Printf("Error reading file: %v", err.Error())
 		return nil
 	}
 
@@ -446,6 +449,7 @@ func generateContentFromFileProperties(
 		var data any
 		err := json.Unmarshal(payload, &data)
 		if err != nil {
+			log.Printf("Error unmarshalling JSON: %v", err.Error())
 			return nil
 		}
 		return generateContentFromJSON(data, valueReplacer, nil)
@@ -501,7 +505,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 	}
 
 	switch v := data.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		result := make(map[string]interface{})
 		for key, val := range v {
 			result[key] = val
@@ -512,8 +516,8 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 		}
 		return result
 
-	case map[interface{}]interface{}:
-		result := make(map[interface{}]interface{})
+	case map[any]any:
+		result := make(map[any]any)
 		for key, val := range v {
 			result[key] = val
 			res := resolve(key.(string), val)
@@ -523,7 +527,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 		}
 		return result
 
-	case []interface{}:
+	case []any:
 		result := make([]interface{}, len(v))
 		for i, val := range v {
 			result[i] = val

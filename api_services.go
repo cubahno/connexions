@@ -375,12 +375,12 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !fileProps.IsOpenAPI {
-		res["request"] = newResourceRequest(
+		res["request"] = newRequestFromFixedResource(
 			fileProps.Prefix+fileProps.Resource,
 			fileProps.Method,
 			fileProps.ContentType,
 			valueReplacer)
-		res["response"] = newResponseFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		res["response"] = newResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		NewJSONResponse(http.StatusOK, res, w)
 		return

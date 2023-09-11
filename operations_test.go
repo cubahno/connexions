@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/stretchr/testify/assert"
+	assert2 "github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"net/http"
 	"path/filepath"
@@ -22,7 +22,7 @@ func newOpenAPIParameter(name, in string, schema *Schema) *OpenAPIParameter {
 }
 
 func TestNewRequestFromOperation(t *testing.T) {
-	ass := assert.New(t)
+	assert := assert2.New(t)
 
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
@@ -49,26 +49,26 @@ func TestNewRequestFromOperation(t *testing.T) {
 
 		expectedHeaders := map[string]any{"lang": "de"}
 
-		ass.Equal("POST", req.Method)
-		ass.Equal("/foo/users/123", req.Path)
-		ass.Equal("limit=10", req.Query)
-		ass.Equal("application/json", req.ContentType)
-		ass.Equal(string(expectedBodyB), req.Body)
-		ass.Equal(expectedHeaders, req.Headers)
+		assert.Equal("POST", req.Method)
+		assert.Equal("/foo/users/123", req.Path)
+		assert.Equal("limit=10", req.Query)
+		assert.Equal("application/json", req.ContentType)
+		assert.Equal(string(expectedBodyB), req.Body)
+		assert.Equal(expectedHeaders, req.Headers)
 	})
 
 	t.Run("invalid-resolve-value", func(t *testing.T) {
-		valueResolver := func(content any, state *ReplaceState) any {return func(){}}
+		valueResolver := func(content any, state *ReplaceState) any { return func() {} }
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-with-invalid-req-body.yml"), operation)
 
 		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
-		ass.Equal("", req.Body)
+		assert.Equal("", req.Body)
 	})
 }
 
 func TestEncodeContent(t *testing.T) {
-	ass := assert.New(t)
+	assert := assert2.New(t)
 
 	t.Run("Nil Content", func(t *testing.T) {
 		result, err := EncodeContent(nil, "application/json")
@@ -119,12 +119,12 @@ func TestEncodeContent(t *testing.T) {
 		}
 
 		result, err := EncodeContent(structContent, "application/xml")
-		ass.NoError(err)
+		assert.NoError(err)
 
 		expectedXML, err := xml.Marshal(structContent)
-		ass.NoError(err)
+		assert.NoError(err)
 
-		ass.Equal(string(expectedXML), string(result))
+		assert.Equal(string(expectedXML), string(result))
 	})
 
 	t.Run("YAML Content", func(t *testing.T) {
@@ -140,36 +140,36 @@ func TestEncodeContent(t *testing.T) {
 		}
 
 		result, err := EncodeContent(structContent, "application/x-yaml")
-		ass.NoError(err)
+		assert.NoError(err)
 
 		expectedYAML, err := yaml.Marshal(structContent)
-		ass.NoError(err)
+		assert.NoError(err)
 
-		ass.Equal(string(expectedYAML), string(result))
+		assert.Equal(string(expectedYAML), string(result))
 	})
 
 	t.Run("Byte Content", func(t *testing.T) {
 		content := []byte("hallo, welt!")
 		result, err := EncodeContent(content, "x-unknown")
-		ass.NoError(err)
-		ass.Equal(content, result)
+		assert.NoError(err)
+		assert.Equal(content, result)
 	})
 
 	t.Run("Unknown Content Type", func(t *testing.T) {
 		content := 123
 		result, err := EncodeContent(content, "x-unknown")
-		ass.NoError(err)
-		ass.Nil(result)
+		assert.NoError(err)
+		assert.Nil(result)
 	})
 }
 
 func TestCreateCURLBody(t *testing.T) {
-	ass := assert.New(t)
+	assert := assert2.New(t)
 
 	t.Run("nil-content", func(t *testing.T) {
 		res, err := createCURLBody(nil, "application/json")
-		ass.NoError(err)
-		ass.Equal("", res)
+		assert.NoError(err)
+		assert.Equal("", res)
 	})
 
 	t.Run("FormURLEncoded", func(t *testing.T) {
@@ -182,14 +182,14 @@ func TestCreateCURLBody(t *testing.T) {
 		}
 
 		result, err := createCURLBody(content, "application/x-www-form-urlencoded")
-		ass.NoError(err)
+		assert.NoError(err)
 
 		expected := `--data-urlencode 'age=30' \
 --data-urlencode 'email=john%40example.com' \
 --data-urlencode 'name=John'
 `
 		expected = strings.TrimSuffix(expected, "\n")
-		ass.Equal(expected, result)
+		assert.Equal(expected, result)
 	})
 
 	t.Run("FormURLEncoded-incorrect-content-type", func(t *testing.T) {
@@ -202,8 +202,8 @@ func TestCreateCURLBody(t *testing.T) {
 		}
 
 		result, err := createCURLBody(content, "application/x-www-form-urlencoded")
-		ass.Equal("", result)
-		ass.Equal(ErrUnexpectedFormURLEncodedType, err)
+		assert.Equal("", result)
+		assert.Equal(ErrUnexpectedFormURLEncodedType, err)
 	})
 
 	t.Run("MultipartFormData", func(t *testing.T) {
@@ -216,14 +216,14 @@ func TestCreateCURLBody(t *testing.T) {
 		}
 
 		result, err := createCURLBody(content, "multipart/form-data")
-		ass.NoError(err)
+		assert.NoError(err)
 
 		expected := `--form 'age="25"' \
 --form 'email="jane%40example.com"' \
 --form 'name="Jane"'
 `
 		expected = strings.TrimSuffix(expected, "\n")
-		ass.Equal(expected, result)
+		assert.Equal(expected, result)
 	})
 
 	t.Run("MultipartFormData-incorrect-content-type", func(t *testing.T) {
@@ -236,8 +236,8 @@ func TestCreateCURLBody(t *testing.T) {
 		}
 
 		result, err := createCURLBody(content, "multipart/form-data")
-		ass.Equal("", result)
-		ass.Equal(ErrUnexpectedFormDataType, err)
+		assert.Equal("", result)
+		assert.Equal(ErrUnexpectedFormDataType, err)
 	})
 
 	t.Run("JSON", func(t *testing.T) {
@@ -250,11 +250,11 @@ func TestCreateCURLBody(t *testing.T) {
 		}
 
 		result, err := createCURLBody(content, "application/json")
-		ass.NoError(err)
+		assert.NoError(err)
 
 		enc, _ := json.Marshal(content)
 		expected := fmt.Sprintf("--data-raw '%s'", string(enc))
-		ass.Equal(expected, result)
+		assert.Equal(expected, result)
 	})
 
 	t.Run("XML", func(t *testing.T) {
@@ -273,46 +273,48 @@ func TestCreateCURLBody(t *testing.T) {
 		}
 
 		result, err := createCURLBody(content, "application/xml")
-		ass.NoError(err)
+		assert.NoError(err)
 
 		enc, _ := xml.Marshal(content)
 		expected := fmt.Sprintf("--data '%s'", string(enc))
-		ass.Equal(expected, result)
+		assert.Equal(expected, result)
 	})
 
 	t.Run("XML-invalid", func(t *testing.T) {
 		t.Parallel()
 
 		result, err := createCURLBody(func() {}, "application/xml")
-		ass.Equal("", result)
-		ass.Error(err)
+		assert.Equal("", result)
+		assert.Error(err)
 	})
 
 	t.Run("unknown-content-type", func(t *testing.T) {
 		t.Parallel()
 
 		result, err := createCURLBody(123, "application/unknown")
-		ass.Equal("", result)
-		ass.NoError(err)
+		assert.Equal("", result)
+		assert.NoError(err)
 	})
 }
 
-func TestNewResourceRequest(t *testing.T) {
-	ass := assert.New(t)
+func TestNewRequestFromFixedResource(t *testing.T) {
+	assert := assert2.New(t)
 	valueReplacer := func(content any, state *ReplaceState) any {
 		return "resolved-value"
 	}
-	res := newResourceRequest("/foo/bar", http.MethodPatch, "application/json", valueReplacer)
+	res := newRequestFromFixedResource("/foo/bar", http.MethodPatch, "application/json", valueReplacer)
 	expected := &Request{
 		Method:      http.MethodPatch,
 		Path:        "/foo/bar",
 		ContentType: "application/json",
 		Examples:    nil,
 	}
-	ass.Equal(expected, res)
+	assert.Equal(expected, res)
 }
 
 func TestNewResponseFromOperation(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
 			schema, _ := content.(*Schema)
@@ -339,10 +341,10 @@ func TestNewResponseFromOperation(t *testing.T) {
 		}
 		expectedContent, _ := json.Marshal(expectedContentM)
 
-		assert.Equal(t, "application/json", res.ContentType)
-		assert.Equal(t, 200, res.StatusCode)
-		assert.Equal(t, expectedHeaders, res.Headers)
-		assert.Equal(t, expectedContent, res.Content)
+		assert.Equal("application/json", res.ContentType)
+		assert.Equal(200, res.StatusCode)
+		assert.Equal(expectedHeaders, res.Headers)
+		assert.Equal(expectedContent, res.Content)
 	})
 
 	t.Run("no-content-type", func(t *testing.T) {
@@ -367,15 +369,115 @@ func TestNewResponseFromOperation(t *testing.T) {
 			"Location":     []string{"https://example.com/users/123"},
 		}
 
-		assert.Equal(t, 200, res.StatusCode)
-		assert.Equal(t, expectedHeaders, res.Headers)
+		assert.Equal(200, res.StatusCode)
+		assert.Equal(expectedHeaders, res.Headers)
 
-		assert.Equal(t, "text/plain", res.ContentType)
-		assert.Nil(t, res.Content)
+		assert.Equal("text/plain", res.ContentType)
+		assert.Nil(res.Content)
+	})
+
+	t.Run("invalid-resolved-value", func(t *testing.T) {
+		valueResolver := func(content any, state *ReplaceState) any {
+			if state.NamePath[0] == "userId" {
+				return 123
+			}
+			return func() {}
+		}
+
+		operation := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
+
+		res := NewResponseFromOperation(operation, valueResolver)
+		assert.Nil(res.Content)
+	})
+}
+
+func TestNewResponseFromFixedResponse(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("happy-path", func(t *testing.T) {
+		dir := t.TempDir()
+		filePath := filepath.Join(dir, "users.json")
+		fileContent := []byte(`[{"name":"Jane"},{"name":"John"}]`)
+
+		err := SaveFile(filePath, fileContent)
+		assert.Nil(err)
+
+		res := newResponseFromFixedResource(filePath, "application/json", nil)
+		expected := &Response{
+			Headers:     http.Header{"Content-Type": []string{"application/json"}},
+			Content:     fileContent,
+			ContentType: "application/json",
+			StatusCode:  http.StatusOK,
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("bad-json", func(t *testing.T) {
+		dir := t.TempDir()
+		filePath := filepath.Join(dir, "users.json")
+		fileContent := []byte(`[{"name":"Jane"}`)
+
+		err := SaveFile(filePath, fileContent)
+		assert.Nil(err)
+
+		res := newResponseFromFixedResource(filePath, "application/json", nil)
+		expected := &Response{
+			Headers:     http.Header{"Content-Type": []string{"application/json"}},
+			Content:     nil,
+			ContentType: "application/json",
+			StatusCode:  http.StatusOK,
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("bad-xml", func(t *testing.T) {
+		dir := t.TempDir()
+		filePath := filepath.Join(dir, "users.xml")
+		fileContent := []byte(`<name>`)
+
+		err := SaveFile(filePath, fileContent)
+		assert.Nil(err)
+
+		res := newResponseFromFixedResource(filePath, "application/xml", nil)
+		expected := &Response{
+			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
+			Content:     nil,
+			ContentType: "application/xml",
+			StatusCode:  http.StatusOK,
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("file-not-found", func(t *testing.T) {
+		dir := t.TempDir()
+		filePath := filepath.Join(dir, "users.xml")
+
+		res := newResponseFromFixedResource(filePath, "application/xml", nil)
+		expected := &Response{
+			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
+			Content:     nil,
+			ContentType: "application/xml",
+			StatusCode:  http.StatusOK,
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("empty-filepath", func(t *testing.T) {
+		res := newResponseFromFixedResource("", "application/xml", nil)
+		expected := &Response{
+			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
+			Content:     nil,
+			ContentType: "application/xml",
+			StatusCode:  http.StatusOK,
+		}
+		assert.Equal(expected, res)
 	})
 }
 
 func TestTransformHTTPCode(t *testing.T) {
+	assert := assert2.New(t)
+
 	type tc struct {
 		name     string
 		expected int
@@ -393,12 +495,14 @@ func TestTransformHTTPCode(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, TransformHTTPCode(tc.name))
+			assert.Equal(tc.expected, TransformHTTPCode(tc.name))
 		})
 	}
 }
 
-func TestGenerateURL(t *testing.T) {
+func TestGenerateURLFromSchemaParameters(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("params correctly replaced in path", func(t *testing.T) {
 		path := "/users/{id}/{file-id}"
 		valueResolver := func(content any, state *ReplaceState) any {
@@ -410,17 +514,56 @@ func TestGenerateURL(t *testing.T) {
 			}
 			return "something-else"
 		}
+
 		params := OpenAPIParameters{
 			newOpenAPIParameter("id", "path", CreateSchemaFromString(t, `{"type": "integer"}`)),
 			newOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
 			newOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
 		}
 		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
-		assert.Equal(t, "/users/123/foo", res)
+		assert.Equal("/users/123/foo", res)
+	})
+
+	t.Run("replaced-with-empty-dont-happen", func(t *testing.T) {
+		path := "/users/{id}/{file-id}"
+		valueResolver := func(content any, state *ReplaceState) any { return "" }
+
+		params := OpenAPIParameters{
+			newOpenAPIParameter("id", "path", CreateSchemaFromString(t, `{"type": "integer"}`)),
+			newOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
+		}
+		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
+		assert.Equal("/users/{id}/{file-id}", res)
+	})
+}
+
+func TestGenerateURLFromFixedResourcePath(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("without-value-replacer", func(t *testing.T) {
+		res := generateURLFromFixedResourcePath("/users/{id}/{file-id}", nil)
+		assert.Equal("/users/{id}/{file-id}", res)
+	})
+
+	t.Run("happy-path", func(t *testing.T) {
+		valueReplacer := func(schema any, state *ReplaceState) any {
+			if state.NamePath[0] == "id" {
+				return 123
+			}
+			if state.NamePath[0] == "file-id" {
+				return "foo"
+			}
+			return ""
+		}
+
+		res := generateURLFromFixedResourcePath("/users/{id}/{file-id}/{action}", valueReplacer)
+		assert.Equal("/users/123/foo/{action}", res)
 	})
 }
 
 func TestGenerateQuery(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("params correctly replaced in query", func(t *testing.T) {
 		valueResolver := func(schema any, state *ReplaceState) any {
 			if state.NamePath[0] == "id" {
@@ -438,7 +581,7 @@ func TestGenerateQuery(t *testing.T) {
 		res := GenerateQuery(valueResolver, params)
 
 		// TODO(igor): fix order of query params
-		assert.Contains(t, []string{"id=123&file-id=foo", "file-id=foo&id=123"}, res)
+		assert.Contains([]string{"id=123&file-id=foo", "file-id=foo&id=123"}, res)
 	})
 
 	t.Run("arrays in url", func(t *testing.T) {
@@ -455,7 +598,7 @@ func TestGenerateQuery(t *testing.T) {
 		res := GenerateQuery(valueResolver, params)
 
 		expected := "tags[]=foo+bar"
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("no-resolved-values", func(t *testing.T) {
@@ -472,11 +615,13 @@ func TestGenerateQuery(t *testing.T) {
 		res := GenerateQuery(valueResolver, params)
 
 		expected := "id="
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 }
 
-func TestGenerateContent(t *testing.T) {
+func TestGenerateContentFromSchema(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
@@ -523,7 +668,7 @@ func TestGenerateContent(t *testing.T) {
 				},
 			},
 		}
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("with-nested-all-of", func(t *testing.T) {
@@ -550,7 +695,7 @@ func TestGenerateContent(t *testing.T) {
 		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
 
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("fast-track-used-with-object", func(t *testing.T) {
@@ -587,7 +732,7 @@ func TestGenerateContent(t *testing.T) {
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
 		expected := map[string]any{"dice": dice}
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("with-circular-array-references", func(t *testing.T) {
@@ -603,7 +748,7 @@ func TestGenerateContent(t *testing.T) {
 
 		filePath := filepath.Join("test_fixtures", "document-with-circular-array.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
-		assert.Nil(t, err)
+		assert.Nil(err)
 
 		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
 		schema := resp.Content
@@ -620,7 +765,7 @@ func TestGenerateContent(t *testing.T) {
 				},
 			},
 		}
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("with-circular-object-references", func(t *testing.T) {
@@ -635,7 +780,7 @@ func TestGenerateContent(t *testing.T) {
 		}
 		filePath := filepath.Join("test_fixtures", "document-circular-with-references.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
-		assert.Nil(t, err)
+		assert.Nil(err)
 
 		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
 		schema := resp.Content
@@ -650,7 +795,7 @@ func TestGenerateContent(t *testing.T) {
 				"parent": nil,
 			},
 		}
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("with-circular-object-references-inlined", func(t *testing.T) {
@@ -665,7 +810,7 @@ func TestGenerateContent(t *testing.T) {
 		}
 		filePath := filepath.Join("test_fixtures", "document-circular-with-inline.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
-		assert.Nil(t, err)
+		assert.Nil(err)
 
 		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
 		schema := resp.Content
@@ -680,11 +825,13 @@ func TestGenerateContent(t *testing.T) {
 				"parent": nil,
 			},
 		}
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 }
 
 func TestGenerateContentObject(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("GenerateContentObject", func(t *testing.T) {
 		target := openapi3.NewSchema()
 		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-name-obj-and-age.yml"), target)
@@ -707,13 +854,13 @@ func TestGenerateContentObject(t *testing.T) {
 
 		expected := `{"age":21,"name":{"first":"Jane","last":"Doe"}}`
 		resJs, _ := json.Marshal(res)
-		assert.Equal(t, expected, string(resJs))
+		assert.Equal(expected, string(resJs))
 	})
 
 	t.Run("with-no-properties", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{"type": "object"}`)
 		res := GenerateContentObject(schema, nil, nil)
-		assert.Nil(t, res)
+		assert.Nil(res)
 	})
 
 	t.Run("with-no-resolved-values", func(t *testing.T) {
@@ -735,11 +882,13 @@ func TestGenerateContentObject(t *testing.T) {
 			},
 		}
 		res := GenerateContentObject(schema, nil, nil)
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 }
 
 func TestGenerateContentArray(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("generate simple array without min/max items", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{
             "type": "array",
@@ -753,7 +902,7 @@ func TestGenerateContentArray(t *testing.T) {
 		}
 
 		res := GenerateContentArray(schema, valueResolver, nil)
-		assert.ElementsMatch(t, []string{"foo"}, res)
+		assert.ElementsMatch([]string{"foo"}, res)
 	})
 
 	t.Run("generate simple array", func(t *testing.T) {
@@ -774,7 +923,7 @@ func TestGenerateContentArray(t *testing.T) {
 		}
 
 		res := GenerateContentArray(schema, valueResolver, nil)
-		assert.ElementsMatch(t, []string{"a", "b", "c"}, res)
+		assert.ElementsMatch([]string{"a", "b", "c"}, res)
 	})
 
 	t.Run("with-no-resolved-values", func(t *testing.T) {
@@ -784,11 +933,13 @@ func TestGenerateContentArray(t *testing.T) {
             "items": {"type": "string"}
         }`)
 		res := GenerateContentArray(schema, nil, nil)
-		assert.Nil(t, res)
+		assert.Nil(res)
 	})
 }
 
 func TestGenerateRequestHeaders(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("GenerateRequestHeaders", func(t *testing.T) {
 		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
@@ -804,6 +955,7 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			return nil
 		}
 		params := OpenAPIParameters{
+			nil,
 			newOpenAPIParameter("X-Key", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
 			newOpenAPIParameter("Version", ParameterInHeader, CreateSchemaFromString(t, `{"type": "string"}`)),
 			newOpenAPIParameter("Preferences", ParameterInHeader, CreateSchemaFromString(t, `{"type": "object", "properties": {"mode": {"type": "string"}, "lang": {"type": "string"}}}`)),
@@ -818,19 +970,19 @@ func TestGenerateRequestHeaders(t *testing.T) {
 		}
 
 		res := GenerateRequestHeaders(params, valueResolver)
-		assert.Equal(t, expected, res)
+		assert.Equal(expected, res)
 	})
 
 	t.Run("param-is-nil", func(t *testing.T) {
 		params := OpenAPIParameters{{}}
 		res := GenerateRequestHeaders(params, nil)
-		assert.Nil(t, res)
+		assert.Nil(res)
 	})
 
 	t.Run("schema-is-nil", func(t *testing.T) {
 		params := OpenAPIParameters{newOpenAPIParameter("", ParameterInHeader, nil)}
 		res := GenerateRequestHeaders(params, nil)
-		assert.Nil(t, res)
+		assert.Nil(res)
 	})
 
 	t.Run("schema-is-nil", func(t *testing.T) {
@@ -838,13 +990,15 @@ func TestGenerateRequestHeaders(t *testing.T) {
 			newOpenAPIParameter("", ParameterInHeader, nil),
 		}
 		res := GenerateRequestHeaders(params, nil)
-		assert.Nil(t, res)
+		assert.Nil(res)
 	})
 }
 
 func TestGenerateResponseHeaders(t *testing.T) {
+	assert := assert2.New(t)
+
 	t.Run("GenerateResponseHeaders", func(t *testing.T) {
-		valueResolver := func(schema any, state *ReplaceState) any {
+		valueReplacer := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
 			case "x-rate-limit-limit":
 				return 100
@@ -863,7 +1017,89 @@ func TestGenerateResponseHeaders(t *testing.T) {
 			"X-Rate-Limit-Remaining": []string{"80"},
 		}
 
-		res := GenerateResponseHeaders(headers, valueResolver)
-		assert.Equal(t, expected, res)
+		res := GenerateResponseHeaders(headers, valueReplacer)
+		assert.Equal(expected, res)
+	})
+}
+
+func TestGenerateContentFromJSON(t *testing.T) {
+	assert := assert2.New(t)
+	valueReplacer := func(schema any, state *ReplaceState) any {
+		switch state.NamePath[len(state.NamePath)-1] {
+		case "id":
+			return 123
+		case "name":
+			return "Jane Doe"
+		}
+		return nil
+	}
+
+	t.Run("json-map-any-any", func(t *testing.T) {
+		content := map[any]any{
+			"id":   "{id}",
+			"name": "{name}",
+		}
+		expected := map[any]any{
+			"id":   123,
+			"name": "Jane Doe",
+		}
+
+		res := generateContentFromJSON(content, valueReplacer, nil)
+		assert.Equal(expected, res)
+	})
+
+	t.Run("json-map-string-any", func(t *testing.T) {
+		content := map[string]any{
+			"id":   "{id}",
+			"name": "{name}",
+		}
+		expected := map[string]any{
+			"id":   123,
+			"name": "Jane Doe",
+		}
+
+		res := generateContentFromJSON(content, valueReplacer, nil)
+		assert.Equal(expected, res)
+	})
+
+	t.Run("json-map-string-any-glued", func(t *testing.T) {
+		content := map[string]any{
+			"id":           "{id}",
+			"name":         "{name}",
+			"id-with-name": "{id}-{name}",
+		}
+		expected := map[string]any{
+			"id":           123,
+			"name":         "Jane Doe",
+			"id-with-name": "123-Jane Doe",
+		}
+
+		res := generateContentFromJSON(content, valueReplacer, nil)
+		assert.Equal(expected, res)
+	})
+	t.Run("json-slice-any", func(t *testing.T) {
+		content := []any{"{id}", "{name}"}
+		expected := []any{123, "Jane Doe"}
+
+		res := generateContentFromJSON(content, valueReplacer, nil)
+		assert.Equal(expected, res)
+	})
+
+	t.Run("json-unknown-underlying-struct", func(t *testing.T) {
+		content := []string{"{name}", "{name}"}
+		expected := []string{"{name}", "{name}"}
+
+		res := generateContentFromJSON(content, valueReplacer, nil)
+		assert.Equal(expected, res)
+	})
+
+	t.Run("no-placeholders", func(t *testing.T) {
+		content := map[string]any{
+			"id":   1234,
+			"name": "John Doe",
+		}
+
+		res := generateContentFromJSON(content, valueReplacer, nil)
+		assert.Equal(content, res)
 	})
 }
