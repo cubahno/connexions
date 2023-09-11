@@ -99,6 +99,38 @@ func TestConfig(t *testing.T) {
 		expected.App.Port = 5555
 		assert.Equal(expected, cfg)
 	})
+
+	t.Run("Reload", func(t *testing.T) {
+		tempDir := t.TempDir()
+		contents := `
+app:
+  port: 8000
+  homeUrl: /new-ui
+  serviceUrl: /new-services
+  contextUrl: /new-contexts
+  settingsUrl: /new-settings
+  disableUI: true
+  disableSwaggerUI: true
+  contextAreaPrefix: from-
+`
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		err := os.WriteFile(filePath, []byte(contents), 0644)
+		assert.Nil(err)
+
+		cfg, err := NewConfig(tempDir)
+		assert.Nil(err)
+
+		// replace port
+		ymlContent, _ := yaml.Marshal(cfg)
+		yamlStr := string(ymlContent)
+		yamlStr = strings.Replace(yamlStr, "port: 8000", "port: 9000", 1)
+		_ = os.WriteFile(filePath, []byte(yamlStr), 0644)
+
+		cfg.Reload()
+		assert.Equal(9000, cfg.App.Port)
+	})
 }
 
 func TestServiceError(t *testing.T) {
@@ -233,17 +265,6 @@ services:
 		cfg, err := NewConfig(tempDir)
 		assert.Nil(err)
 		assert.Equal(expected, cfg)
-
-		// check live config is triggered
-		ymlContent, _ := yaml.Marshal(cfg)
-		yamlStr := string(ymlContent)
-		yamlStr = strings.Replace(yamlStr, "port: 8000", "port: 9000", 1)
-		_ = os.WriteFile(filePath, []byte(yamlStr), 0644)
-
-		// we need a moment there
-		time.Sleep(100 * time.Millisecond)
-		app := cfg.GetApp()
-		assert.Equal(9000, app.Port)
 	})
 
 	t.Run("invalid-type-update-dont-kill", func(t *testing.T) {
@@ -267,8 +288,7 @@ app:
 		yamlStr = strings.Replace(yamlStr, "port: 8000", "port: x", 1)
 		_ = os.WriteFile(filePath, []byte(yamlStr), 0644)
 
-		// we need a moment there
-		time.Sleep(50 * time.Millisecond)
+		cfg.Reload()
 		// port is still the old one
 		assert.Equal(8000, cfg.App.Port)
 	})
@@ -299,8 +319,7 @@ services:
 		yamlStrBad := strings.Replace(yamlStr, "chance: 50", "chance: x%", 1)
 		_ = os.WriteFile(filePath, []byte(yamlStrBad), 0644)
 
-		// we need a moment there
-		time.Sleep(50 * time.Millisecond)
+		cfg.Reload()
 		// port is still the old one
 		app := cfg.GetApp()
 		assert.Equal(8000, app.Port)

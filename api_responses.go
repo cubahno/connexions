@@ -5,19 +5,13 @@ import (
 	"net/http"
 )
 
-func WithHeader(name, value string) func(w http.ResponseWriter) {
-	return func(w http.ResponseWriter) {
-		w.Header().Set(name, value)
-	}
-}
-
-func WithContentType(value string) func(w http.ResponseWriter) {
+func SetAPIResponseContentType(value string) func(w http.ResponseWriter) {
 	return func(w http.ResponseWriter) {
 		w.Header().Set("content-type", value)
 	}
 }
 
-func NewJSONResponse(statusCode int, res any, w http.ResponseWriter, headers ...func(w http.ResponseWriter)) {
+func NewAPIJSONResponse(statusCode int, res any, w http.ResponseWriter, headers ...func(w http.ResponseWriter)) {
 	w.Header().Set("content-type", "application/json")
 	for _, header := range headers {
 		header(w)
@@ -35,7 +29,7 @@ func NewJSONResponse(statusCode int, res any, w http.ResponseWriter, headers ...
 	_, _ = w.Write(jsonBytes)
 }
 
-func NewResponse(statusCode int, res []byte, w http.ResponseWriter, headers ...func(w http.ResponseWriter)) {
+func NewAPIResponse(statusCode int, res []byte, w http.ResponseWriter, headers ...func(w http.ResponseWriter)) {
 	for _, header := range headers {
 		header(w)
 	}

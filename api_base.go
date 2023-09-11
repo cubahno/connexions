@@ -10,11 +10,11 @@ type BaseHandler struct {
 }
 
 func (h *BaseHandler) success(message string, w http.ResponseWriter) {
-	NewJSONResponse(http.StatusOK, map[string]any{"success": true, "message": message}, w)
+	NewAPIJSONResponse(http.StatusOK, map[string]any{"success": true, "message": message}, w)
 }
 
 func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
-	NewJSONResponse(code, map[string]any{"success": false, "message": message}, w)
+	NewAPIJSONResponse(code, map[string]any{"success": false, "message": message}, w)
 }
 
 func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
@@ -33,7 +33,7 @@ func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool
 
 	err := errConfig.GetError()
 	if err != 0 {
-		NewResponse(err, []byte("Random config error"), w)
+		NewAPIResponse(err, []byte("Random config error"), w)
 		return true
 	}
 

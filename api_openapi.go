@@ -71,7 +71,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		Method:   r.Method,
 	})
 	if operation == nil {
-		NewJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
+		NewAPIJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)

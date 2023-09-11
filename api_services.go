@@ -149,7 +149,7 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 		Items: items,
 	}
 
-	NewJSONResponse(http.StatusOK, res, w)
+	NewAPIJSONResponse(http.StatusOK, res, w)
 }
 
 func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +233,7 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 	}
 	service := h.router.Services[name]
 	if service == nil {
-		NewJSONResponse(http.StatusNotFound, "Service not found", w)
+		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
@@ -277,7 +277,7 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	NewJSONResponse(http.StatusOK, res, w)
+	NewAPIJSONResponse(http.StatusOK, res, w)
 }
 
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
@@ -288,36 +288,36 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if service == nil {
-		NewJSONResponse(http.StatusNotFound, "Service not found", w)
+		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
 	openAPIFiles := service.OpenAPIFiles
 	if len(openAPIFiles) == 0 {
-		NewJSONResponse(http.StatusNotFound, "No Spec files attached", w)
+		NewAPIJSONResponse(http.StatusNotFound, "No Spec files attached", w)
 		return
 	}
 
 	// TODO(igor): handle multiple spec files in the UI
 	fileProps := openAPIFiles[0]
 	if fileProps == nil {
-		NewJSONResponse(http.StatusNotFound, "Service spec not found", w)
+		NewAPIJSONResponse(http.StatusNotFound, "Service spec not found", w)
 		return
 	}
 
 	content, err := os.ReadFile(fileProps.FilePath)
 	if err != nil {
-		NewJSONResponse(http.StatusInternalServerError, NewErrorMessage(err), w)
+		NewAPIJSONResponse(http.StatusInternalServerError, NewErrorMessage(err), w)
 		return
 	}
 
-	NewResponse(http.StatusOK, content, w, WithContentType("text/plain"))
+	NewAPIResponse(http.StatusOK, content, w, SetAPIResponseContentType("text/plain"))
 }
 
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
 	if err != nil {
-		NewJSONResponse(http.StatusBadRequest, NewErrorMessage(err), w)
+		NewAPIJSONResponse(http.StatusBadRequest, NewErrorMessage(err), w)
 		return
 	}
 
@@ -328,13 +328,13 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 
 	method := strings.ToUpper(payload.Method)
 	if !IsValidHTTPVerb(method) {
-		NewJSONResponse(http.StatusBadRequest, "Invalid method", w)
+		NewAPIJSONResponse(http.StatusBadRequest, "Invalid method", w)
 		return
 	}
 
 	service := h.router.Services[name]
 	if service == nil {
-		NewJSONResponse(http.StatusNotFound, "Service not found", w)
+		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
@@ -352,7 +352,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fileProps == nil {
-		NewJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
+		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
 		return
 	}
 
@@ -382,7 +382,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 			valueReplacer)
 		res["response"] = newResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
-		NewJSONResponse(http.StatusOK, res, w)
+		NewAPIJSONResponse(http.StatusOK, res, w)
 		return
 	}
 
@@ -393,7 +393,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		Method:   strings.ToUpper(payload.Method),
 	})
 	if operation == nil {
-		NewJSONResponse(http.StatusMethodNotAllowed, NewErrorMessage(ErrResourceMethodNotFound), w)
+		NewAPIJSONResponse(http.StatusMethodNotAllowed, NewErrorMessage(ErrResourceMethodNotFound), w)
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
@@ -402,7 +402,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res["request"] = req
 	res["response"] = NewResponseFromOperation(operation, valueReplacer)
 
-	NewJSONResponse(http.StatusOK, res, w)
+	NewAPIJSONResponse(http.StatusOK, res, w)
 }
 
 func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
@@ -488,7 +488,7 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	res["extension"] = strings.TrimPrefix(rd.File.Extension, ".")
 	res["contentType"] = rd.File.ContentType
 	res["content"] = string(content)
-	NewJSONResponse(http.StatusOK, res, w)
+	NewAPIJSONResponse(http.StatusOK, res, w)
 }
 
 func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) {

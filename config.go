@@ -239,6 +239,31 @@ func (c *Config) transformConfig(k *koanf.Koanf) *koanf.Koanf {
 	return transformed
 }
 
+func (c *Config) Reload() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	filePath := c.App.Paths.ConfigFile
+	provider := file.Provider(filePath)
+
+	// Throw away the old config and load a fresh copy.
+	log.Println("reloading config ...")
+	k := koanf.New(".")
+	if err := k.Load(provider, yaml.Parser()); err != nil {
+		log.Printf("error loading config: %v\n", err)
+		return
+	}
+
+	transformed := c.transformConfig(k)
+	if err := transformed.Unmarshal("", c); err != nil {
+		log.Printf("error unmarshalling config: %v\n", err)
+		return
+	}
+	k.Print()
+
+	log.Println("Configuration reloaded!")
+}
+
 // GetError returns an error code based on the chance and error weights.
 // If no error weights are specified, it returns a 500 error code.
 // If the chance is 0, it returns 0.
@@ -301,7 +326,6 @@ func NewConfig(baseDir string) (*Config, error) {
 	cfg.App.Paths = paths
 	cfg.baseDir = baseDir
 
-	createConfigWatcher(filePath, cfg)
 	return cfg, nil
 }
 
@@ -346,37 +370,4 @@ func NewDefaultConfig(baseDir string) *Config {
 		App:     NewDefaultAppConfig(baseDir),
 		baseDir: baseDir,
 	}
-}
-
-// createConfigWatcher creates a watcher for the config file.
-// It reloads the config on change.
-func createConfigWatcher(filePath string, cfg *Config) {
-	f := file.Provider(filePath)
-
-	f.Watch(func(event interface{}, err error) {
-		if err != nil {
-			log.Printf("watch error: %v", err)
-			return
-		}
-
-		// Throw away the old config and load a fresh copy.
-		log.Println("config changed. Reloading ...")
-		k := koanf.New(".")
-		if err := k.Load(f, yaml.Parser()); err != nil {
-			log.Printf("error loading config: %v\n", err)
-			return
-		}
-
-		transformed := cfg.transformConfig(k)
-		cfg.mu.Lock()
-		if err := transformed.Unmarshal("", cfg); err != nil {
-			defer cfg.mu.Unlock()
-			log.Printf("error unmarshalling config: %v\n", err)
-			return
-		}
-		defer cfg.mu.Unlock()
-		k.Print()
-
-		log.Println("Configuration reloaded!")
-	})
 }

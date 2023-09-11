@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -65,5 +66,39 @@ func TestSettingsHandler(t *testing.T) {
 		contents, err := os.ReadFile(filePath)
 		assert.Nil(err)
 		assert.Greater(len(contents), 0)
+	})
+
+	t.Run("put", func(t *testing.T) {
+		payload := `
+app:
+  port: 8080
+`
+		req := httptest.NewRequest("PUT", "/.settings", strings.NewReader(payload))
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+
+		assert.Equal(8080, router.Config.App.Port)
+		var response map[string]interface{} // You can define a suitable struct for your JSON structure
+		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+			t.Fatalf("Failed to decode JSON response: %v", err)
+		}
+		assert.Equal(true, response["success"])
+		assert.Equal("Settings saved and reloaded!", response["message"])
+	})
+
+	t.Run("put-no-body", func(t *testing.T) {
+		req := httptest.NewRequest("PUT", "/.settings", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var response map[string]interface{} // You can define a suitable struct for your JSON structure
+		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+			t.Fatalf("Failed to decode JSON response: %v", err)
+		}
+		assert.Equal(400, w.Code)
+		assert.Equal(false, response["success"])
+		assert.Equal("invalid config", response["message"])
 	})
 }

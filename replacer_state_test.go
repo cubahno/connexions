@@ -58,7 +58,7 @@ func TestReplaceState(t *testing.T) {
 		assert.True(res.IsPathParam)
 	})
 
-	t.Run("WithContentType", func(t *testing.T) {
+	t.Run("SetAPIResponseContentType", func(t *testing.T) {
 		src := &ReplaceState{}
 
 		res := src.WithContentType("application/json")

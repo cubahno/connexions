@@ -42,20 +42,16 @@ func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
-	payload, err := io.ReadAll(r.Body)
+	payload, _ := io.ReadAll(r.Body)
+
+	_, err := NewConfigFromContent(payload)
 	if err != nil {
 		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
-	_, err = NewConfigFromContent(payload)
-	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
-		return
-	}
-
-	filePath := h.router.Config.App.Paths.ConfigFile
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	configPath := h.router.Config.App.Paths.ConfigFile
+	file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
@@ -68,6 +64,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.router.Config.Reload()
 	h.success("Settings saved and reloaded!", w)
 }
 
@@ -80,5 +77,7 @@ func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 		h.error(http.StatusInternalServerError, "Failed to copy file contents", w)
 		return
 	}
+
+	h.router.Config.Reload()
 	h.success("Settings restored and reloaded!", w)
 }
