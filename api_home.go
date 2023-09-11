@@ -209,11 +209,11 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	only := []string{
-		path.Base(h.router.Paths.Services),
-		path.Base(h.router.Paths.Contexts),
+		path.Base(h.router.Config.App.Paths.Services),
+		path.Base(h.router.Config.App.Paths.Contexts),
 	}
 
-	err = ExtractZip(zipReader, h.router.Paths.Resources, only)
+	err = ExtractZip(zipReader, h.router.Config.App.Paths.Resources, only)
 	if err != nil {
 		http.Error(w, "Error extracting and copying files", http.StatusInternalServerError)
 		return

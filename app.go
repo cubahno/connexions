@@ -2,8 +2,6 @@ package connexions
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"math/rand"
 	"net/http"
@@ -46,12 +44,6 @@ func NewApp(baseDir string) *App {
 	resourcePath := paths.Resources
 	log.Printf("Initing Application. ResourcePath is: %v\n", resourcePath)
 
-	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
-
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -61,11 +53,7 @@ func NewApp(baseDir string) *App {
 	}
 	_ = CleanupServiceFileStructure(paths.Services)
 
-	router := &Router{
-		Mux:    r,
-		Config: config,
-		Paths:  paths,
-	}
+	router := NewRouter(config)
 	res.Router = router
 
 	bluePrints := []RouteRegister{

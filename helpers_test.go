@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -109,4 +110,39 @@ func GetJSONPair(expected, actual any) (string, string) {
 	actualJSON, _ := json.Marshal(actual)
 
 	return string(expectedJSON), string(actualJSON)
+}
+
+func SetupApp(appDir string) (*Router, error) {
+	err := os.MkdirAll(filepath.Join(appDir, "resources"), 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	err = CopyDirectory("resources", filepath.Join(appDir, "resources"))
+	// err := os.MkdirAll(filepath.Join(appDir, "resources", "samples"), 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	currentCfg, err := os.ReadFile(filepath.Join("resources", "config.yml"))
+	if err != nil {
+		return nil, err
+	}
+
+	err = SaveFile(filepath.Join(appDir, "resources", "config.yml"), currentCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := NewConfig(appDir)
+	if err != nil {
+		return nil, err
+	}
+
+	err = MustFileStructure(cfg.App.Paths)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewRouter(cfg), nil
 }

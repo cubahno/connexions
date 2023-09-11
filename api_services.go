@@ -420,7 +420,7 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := deleteService(service, h.router.Paths); err != nil {
+	if err := deleteService(service, h.router.Config.App.Paths); err != nil {
 		h.error(500, err.Error(), w)
 		return
 	}

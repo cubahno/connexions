@@ -8,6 +8,16 @@ import (
 	"testing"
 )
 
+func TestNewRouter(t *testing.T) {
+	assert := assert2.New(t)
+	config := &Config{}
+	router := NewRouter(config)
+
+	assert.NotNil(router)
+	assert.NotNil(router.Mux)
+	assert.Equal(config, router.Config)
+}
+
 func TestGetJSONPayload(t *testing.T) {
 	assert := assert2.New(t)
 

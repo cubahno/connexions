@@ -19,7 +19,7 @@ func LoadServices(router *Router) error {
 	overwriteFiles := make([]*FileProperties, 0)
 	appCfg := router.Config.App
 
-	err := filepath.Walk(router.Paths.Services, func(filePath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(appCfg.Paths.Services, func(filePath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

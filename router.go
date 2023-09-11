@@ -3,8 +3,10 @@ package connexions
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type RouteRegister func(router *Router) error
@@ -15,7 +17,6 @@ type Router struct {
 	Config       *Config
 	Contexts     map[string]map[string]any
 	ContextNames []map[string]string
-	Paths        *Paths
 	mu           sync.Mutex
 }
 
@@ -26,6 +27,19 @@ type ErrorMessage struct {
 type ErrorResponse struct {
 	Error   string          `json:"error"`
 	Details []*ErrorMessage `json:"details"`
+}
+
+func NewRouter(config *Config) *Router {
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
+
+	return &Router{
+		Mux:    r,
+		Config: config,
+	}
 }
 
 func GetJSONPayload[T any](req *http.Request) (*T, error) {
