@@ -461,16 +461,6 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 
 			targetPath := filepath.Join(targetDir, filePath)
 
-			// inf := zipFile.FileInfo()
-			// if inf.IsDir() {
-			// 	err := os.MkdirAll(targetPath, zipFile.FileInfo().Mode())
-			// 	if err != nil {
-			// 		errCh <- err
-			// 		return
-			// 	}
-			// 	return
-			// }
-
 			// Create the parent directory if it doesn't exist
 			parentDir := filepath.Dir(targetPath)
 			if err := os.MkdirAll(parentDir, 0755); err != nil {
