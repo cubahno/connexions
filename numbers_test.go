@@ -2,7 +2,7 @@ package connexions
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
+	assert2 "github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 )
@@ -70,6 +70,8 @@ func TestIsInteger(t *testing.T) {
 }
 
 func TestToFloat64(t *testing.T) {
+	assert := assert2.New(t)
+
 	tests := []struct {
 		input    interface{}
 		expected float64
@@ -97,6 +99,27 @@ func TestToFloat64(t *testing.T) {
 	}
 
 	val, err := ToFloat64("string")
-	assert.Equal(t, 0.0, val)
-	assert.NotNil(t, err)
+	assert.Equal(0.0, val)
+	assert.NotNil(err)
+}
+
+func TestRemovePointer(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("nil-bool", func(t *testing.T) {
+		res := RemovePointer[bool](nil)
+		assert.Equal(false, res)
+	})
+
+	t.Run("nil-float64", func(t *testing.T) {
+		res := RemovePointer[float64](nil)
+		assert.Equal(0.0, res)
+	})
+
+	t.Run("int64", func(t *testing.T) {
+		v := int64(21)
+		ptr := &v
+		res := RemovePointer(ptr)
+		assert.Equal(v, res)
+	})
 }
