@@ -1,0 +1,7 @@
+swagger: '2.0'
+definitions:
+  x:
+    type: object
+    properties:
+      y:
+        $ref: '#/definitions/y'

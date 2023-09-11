@@ -22,6 +22,9 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 		if len(errs) > 0 {
 			for i := range errs {
 				if circError, ok := errs[i].(*resolver.ResolvingError); ok {
+					if circError.CircularReference == nil {
+						break
+					}
 					log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
 						circError.Error(),
 						circError.CircularReference.LoopPoint.Node.Line,
@@ -227,6 +230,12 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 			schema.Items = subSchema.Items
 		}
 
+		// gather fom the sub
+		schema.AllOf = append(schema.AllOf, subSchema.AllOf...)
+		schema.AnyOf = append(schema.AnyOf, subSchema.AnyOf...)
+		schema.OneOf = append(schema.OneOf, subSchema.OneOf...)
+		schema.Required = append(schema.Required, subSchema.Required...)
+
 		required = append(required, subSchema.Required...)
 	}
 
@@ -271,6 +280,7 @@ func pickLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 			fstNonEmpty = item
 		}
 
+		// prefer reference
 		if item.GetReference() != "" {
 			return item
 		}

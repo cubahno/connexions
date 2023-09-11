@@ -92,7 +92,7 @@ const (
 	ParameterInBody = "body"
 )
 
-func NewDocumentFromFileFactory(provider SchemaProvider) func(string) (Document, error) {
+func NewDocumentFromFileFactory(provider SchemaProvider) func(filePath string) (Document, error) {
 	switch provider {
 	case KinOpenAPIProvider:
 		return NewKinDocumentFromFile
@@ -101,8 +101,4 @@ func NewDocumentFromFileFactory(provider SchemaProvider) func(string) (Document,
 	default:
 		return NewLibOpenAPIDocumentFromFile
 	}
-}
-
-func (op *BaseOperation) WithCache() Operationer {
-	return nil
 }

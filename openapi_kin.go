@@ -113,11 +113,16 @@ func (op *KinOperation) GetRequestBody() (*Schema, string) {
 	}
 
 	// Get first defined
-	for contentType, mediaType := range contentTypes {
-		return NewSchemaFromKin(mediaType.Schema.Value, op.parseConfig), contentType
+	var content *Schema
+	var contentType string
+
+	for contentTyp, mediaType := range contentTypes {
+		content = NewSchemaFromKin(mediaType.Schema.Value, op.parseConfig)
+		contentType = contentTyp
+		break
 	}
 
-	return nil, ""
+	return content, contentType
 }
 
 func (op *KinOperation) GetResponse() *OpenAPIResponse {
@@ -202,11 +207,16 @@ func (op *KinOperation) getContent(types map[string]*openapi3.MediaType) (*opena
 		}
 	}
 
-	for contentType, mediaType := range types {
-		return mediaType.Schema.Value, contentType
+	var content *openapi3.Schema
+	var contentType string
+
+	for contentTyp, mediaType := range types {
+		content = mediaType.Schema.Value
+		contentType = contentTyp
+		break
 	}
 
-	return nil, ""
+	return content, contentType
 }
 
 func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
@@ -350,7 +360,7 @@ func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 			if len(subSchema.Type) > 0 {
 				impliedType = subSchema.Type
 			}
-			if impliedType == "" && subSchema.Items != nil && subSchema.Items.Value != nil && len(subSchema.Items.Value.Properties) > 0 {
+			if impliedType == "" && subSchema.Items != nil && subSchema.Items.Value != nil {
 				impliedType = TypeArray
 			}
 			if impliedType == "" {
@@ -424,6 +434,7 @@ func pickKinSchemaProxy(items []*openapi3.SchemaRef) *openapi3.SchemaRef {
 			fstNonEmpty = item
 		}
 
+		// prefer reference
 		if item.Ref != "" {
 			return item
 		}

@@ -38,6 +38,12 @@ func TestGetRandomSliceValue(t *testing.T) {
 
 		assert.Contains(slice, res)
 	})
+
+	t.Run("empty", func(t *testing.T) {
+		var slice []int
+		res := GetRandomSliceValue(slice)
+		assert.Equal(0, res)
+	})
 }
 
 func TestSliceContains(t *testing.T) {

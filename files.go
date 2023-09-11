@@ -90,23 +90,18 @@ type UploadedFile struct {
 // GetRequestFile gets an uploaded file from a request.
 func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 	// Get the uploaded file
-	file, handler, _ := r.FormFile(fieldName)
+	file, header, _ := r.FormFile(fieldName)
 	if file != nil {
 		defer file.Close()
 	} else {
 		return nil, nil
 	}
 
-	file, err := handler.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
 	reader := bufio.NewReader(file)
 	buff := bytes.NewBuffer(make([]byte, 0))
 	part := make([]byte, 1024)
 	count := 0
+	var err error
 
 	for {
 		if count, err = reader.Read(part); err != nil {
@@ -121,9 +116,9 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 
 	return &UploadedFile{
 		Content:   buff.Bytes(),
-		Filename:  handler.Filename,
-		Extension: filepath.Ext(handler.Filename),
-		Size:      handler.Size,
+		Filename:  header.Filename,
+		Extension: filepath.Ext(header.Filename),
+		Size:      header.Size,
 	}, nil
 }
 

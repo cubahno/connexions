@@ -18,6 +18,10 @@ func TestLibV2Document(t *testing.T) {
 		assert.Equal("2.0", doc.GetVersion())
 	})
 
+	t.Run("Provider", func(t *testing.T) {
+		assert.Equal(LibOpenAPIProvider, doc.Provider())
+	})
+
 	t.Run("GetResources", func(t *testing.T) {
 		res := doc.GetResources()
 		expected := map[string][]string{

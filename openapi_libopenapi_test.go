@@ -37,6 +37,18 @@ func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
 		assert.Nil(res)
 		assert.NotNil(err)
 	})
+
+	t.Run("circular-swagger", func(t *testing.T) {
+		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-circular-with-references-v2.yml"))
+		assert.NotNil(res)
+		assert.NoError(err)
+	})
+
+	t.Run("error-swagger", func(t *testing.T) {
+		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-invalid-v2.yml"))
+		assert.Nil(res)
+		assert.Error(err)
+	})
 }
 
 func TestNewSchemaFromLibOpenAPI(t *testing.T) {
@@ -551,6 +563,32 @@ func TestMergeLibOpenAPISubSchemas(t *testing.T) {
 		assert.NotNil(res)
 		assert.NotNil(res.Type)
 		assert.Equal(TypeObject, res.Type[0])
+	})
+
+	t.Run("RecursiveCall", func(t *testing.T) {
+		libSchema := doc.Model.Components.Schemas["Connexions"].Schema()
+		assert.NotNil(libSchema)
+
+		expectedProps := []string{
+			"name",
+			"age",
+			"address",
+			"employeeId",
+			"neighbors",
+			"severity",
+			"previousAddresses",
+		}
+
+		res, _ := mergeLibOpenAPISubSchemas(libSchema)
+		assert.NotNil(res)
+		assert.NotNil(res.Type)
+		assert.Equal(TypeObject, res.Type[0])
+
+		var props []string
+		for k, _ := range res.Properties {
+			props = append(props, k)
+		}
+		assert.ElementsMatch(expectedProps, props)
 	})
 }
 

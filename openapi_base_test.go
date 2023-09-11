@@ -341,3 +341,30 @@ func TestOperation(t *testing.T) {
 		})
 	}
 }
+
+func TestNewDocumentFromFileFactory(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+	filePath := filepath.Join("test_fixtures", "document-petstore.yml")
+
+	t.Run("KinOpenAPIProvider", func(t *testing.T) {
+		res, err := NewDocumentFromFileFactory(KinOpenAPIProvider)(filePath)
+		assert.Nil(err)
+		assert.Equal(KinOpenAPIProvider, res.Provider())
+		assert.Greater(len(res.GetResources()), 0)
+	})
+
+	t.Run("LibOpenAPIProvider", func(t *testing.T) {
+		res, err := NewDocumentFromFileFactory(LibOpenAPIProvider)(filePath)
+		assert.Nil(err)
+		assert.Equal(LibOpenAPIProvider, res.Provider())
+		assert.Greater(len(res.GetResources()), 0)
+	})
+
+	t.Run("unknown-fallbacks-to-LibOpenAPIProvider", func(t *testing.T) {
+		res, err := NewDocumentFromFileFactory("unknown")(filePath)
+		assert.Nil(err)
+		assert.Equal(LibOpenAPIProvider, res.Provider())
+		assert.Greater(len(res.GetResources()), 0)
+	})
+}

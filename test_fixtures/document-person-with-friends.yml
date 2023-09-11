@@ -83,6 +83,22 @@ paths:
         required: true
         content:
 
+  /person/{id}/connections:
+    get:
+      operationId: connectPersonByIdAction
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connexions'
+
+    post:
+      summary: Submit data with an empty request body
+      responses:
+        '200':
+          description: Data submitted successfully
+
 components:
   schemas:
     Error:
@@ -350,3 +366,14 @@ components:
             - type: array
               items:
                 $ref: '#/components/schemas/State'
+
+    Connexions:
+      allOf:
+        - $ref: '#/components/schemas/Person'
+        - $ref: '#/components/schemas/Employee'
+        - type: object
+          allOf:
+            - $ref: '#/components/schemas/PersonFeatures'
+      not:
+        allOf:
+          - $ref: '#/components/schemas/Person'
