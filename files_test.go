@@ -44,47 +44,60 @@ func TestFileProperties(t *testing.T) {
 }
 
 func TestGetRequestFile(t *testing.T) {
-	// Create a mock request with a file field
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	fileContents := []byte("test file contents")
-	fileName := "test.txt"
-	part, _ := writer.CreateFormFile("file", fileName)
-	part.Write(fileContents)
-	writer.Close()
+	assert := assert2.New(t)
 
-	req := httptest.NewRequest("POST", "/", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	t.Run("happy-path", func(t *testing.T) {
+		// Create a mock request with a file field
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		fileContents := []byte("test file contents")
+		fileName := "test.txt"
+		part, _ := writer.CreateFormFile("file", fileName)
+		part.Write(fileContents)
+		writer.Close()
 
-	// Initialize a response recorder and handler
-	rr := httptest.NewRecorder()
+		req := httptest.NewRequest("POST", "/", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	// Perform the request
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		file, err := GetRequestFile(r, "file")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// Initialize a response recorder and handler
+		rr := httptest.NewRecorder()
 
-		// Assuming you want to validate the result
-		if file != nil {
-			// Perform your assertions here
-			if string(file.Content) != string(fileContents) ||
-				file.Filename != fileName ||
-				file.Extension != filepath.Ext(fileName) ||
-				file.Size != int64(len(fileContents)) {
-				t.Errorf("Unexpected file attributes")
+		// Perform the request
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			file, err := GetRequestFile(r, "file")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
+
+			// Assuming you want to validate the result
+			if file != nil {
+				// Perform your assertions here
+				if string(file.Content) != string(fileContents) ||
+					file.Filename != fileName ||
+					file.Extension != filepath.Ext(fileName) ||
+					file.Size != int64(len(fileContents)) {
+					t.Errorf("Unexpected file attributes")
+				}
+			}
+		})
+
+		handler.ServeHTTP(rr, req)
+
+		// Check the response status code
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 	})
 
-	handler.ServeHTTP(rr, req)
+	t.Run("no-file", func(t *testing.T) {
+		body := &bytes.Buffer{}
+		req := httptest.NewRequest("POST", "/", body)
+		res, err := GetRequestFile(req, "file")
 
-	// Check the response status code
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
+		assert.Nil(res)
+		assert.Nil(err)
+	})
 }
 
 func TestGetPropertiesFromFilePath(t *testing.T) {
@@ -94,28 +107,32 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 	t.Parallel()
 
-	t.Run("openapi-root", func(t *testing.T) {
-		t.SkipNow()
+	t.Run("openapi-root-missing-file", func(t *testing.T) {
 		filePath := paths.Services + "/.openapi/index.yml"
-		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
-
-		assert.Equal(&FileProperties{
-			ServiceName: "",
-			Prefix:      "",
-			IsOpenAPI:   true,
-			FilePath:    filePath,
-			FileName:    "index.yml",
-			Extension:   ".yml",
-			ContentType: "application/x-yaml",
-		}, props)
+		props, err := GetPropertiesFromFilePath(filePath, appCfg)
+		assert.Nil(props)
+		assert.Error(err)
 	})
 
 	t.Run("openapi-nested", func(t *testing.T) {
-		t.SkipNow()
-		filePath := paths.Services + "/.openapi/nice/dice/rice/index.yml"
-		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
+		baseDir := t.TempDir()
+		appConfig := NewDefaultAppConfig(baseDir)
+		ps := appConfig.Paths
 
-		assert.Equal(&FileProperties{
+		dir := filepath.Join(ps.Services, ".openapi", "nice", "dice", "rice")
+		_ = os.MkdirAll(dir, 0755)
+
+		filePath := filepath.Join(dir, "index.yml")
+		contents, _ := os.ReadFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		err := SaveFile(filePath, contents)
+		assert.NoError(err)
+
+		props, err := GetPropertiesFromFilePath(filePath, appConfig)
+
+		assert.NoError(err)
+		assert.NotNil(props.Spec)
+
+		expectedProps := &FileProperties{
 			ServiceName: "nice",
 			IsOpenAPI:   true,
 			Prefix:      "/nice/dice/rice",
@@ -123,7 +140,8 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			FileName:    "index.yml",
 			Extension:   ".yml",
 			ContentType: "application/x-yaml",
-		}, props)
+		}
+		AssertJSONEqual(t, expectedProps, props)
 	})
 
 	t.Run("service-root-direct", func(t *testing.T) {
@@ -142,7 +160,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		}, props)
 	})
 
-	// result should as above, in the .root
+	// result should be as above, in the .root
 	t.Run("service-direct", func(t *testing.T) {
 		filePath := paths.Services + "/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
@@ -156,6 +174,23 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			FileName:    "users.html",
 			Extension:   ".html",
 			ContentType: "text/html; charset=utf-8",
+		}, props)
+	})
+
+	// result should be as above, in the .root
+	t.Run("service-direct-index", func(t *testing.T) {
+		filePath := paths.Services + "/index.json"
+		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
+
+		AssertJSONEqual(t, &FileProperties{
+			ServiceName: "",
+			Prefix:      "",
+			Resource:    "/",
+			Method:      http.MethodGet,
+			FilePath:    filePath,
+			FileName:    "index.json",
+			Extension:   ".json",
+			ContentType: "application/json",
 		}, props)
 	})
 
@@ -338,10 +373,26 @@ func TestComposeFileSavePath(t *testing.T) {
 }
 
 func TestSaveFile(t *testing.T) {
-	t.SkipNow()
 	assert := assert2.New(t)
 
-	assert.True(true)
+	t.Run("happy-path", func(t *testing.T) {
+		contents := []byte("test file contents")
+		filePath := filepath.Join(t.TempDir(), "a", "b", "c", "test.txt")
+		err := SaveFile(filePath, contents)
+		assert.NoError(err)
+	})
+
+	t.Run("invalid-dir", func(t *testing.T) {
+		filePath := filepath.Join("/root", "a", "test.txt")
+		err := SaveFile(filePath, []byte(""))
+		assert.Error(err)
+	})
+
+	t.Run("invalid-path", func(t *testing.T) {
+		filePath := filepath.Join("/root", "test.txt")
+		err := SaveFile(filePath, []byte(""))
+		assert.Error(err)
+	})
 }
 
 func TestCopyFile(t *testing.T) {
@@ -360,6 +411,23 @@ func TestCopyFile(t *testing.T) {
 		assert.Nil(err)
 		_, err = os.Stat(dest)
 		assert.Nil(err)
+	})
+
+	t.Run("invalid-source", func(t *testing.T) {
+		err := CopyFile("/non-existent", "/")
+		assert.Error(err)
+	})
+
+	t.Run("invalid-dest-dir", func(t *testing.T) {
+		src := filepath.Join("test_fixtures", "operation.yml")
+		err := CopyFile(src, "/root/foo/op.yml")
+		assert.Error(err)
+	})
+
+	t.Run("invalid-dest-path", func(t *testing.T) {
+		src := filepath.Join("test_fixtures", "operation.yml")
+		err := CopyFile(src, "/root")
+		assert.Error(err)
 	})
 }
 
@@ -380,45 +448,63 @@ func TestCopyDirectory(t *testing.T) {
 		_, err = os.Stat(filepath.Join(base2, "subdir11", "subdir12", "test1.txt"))
 		assert.Nil(err)
 	})
+
+	t.Run("invalid-source", func(t *testing.T) {
+		err := CopyDirectory("/non-existent", "/")
+		assert.Error(err)
+	})
 }
 
 func TestCleanupServiceFileStructure(t *testing.T) {
-	tempDir := t.TempDir()
+	assert := assert2.New(t)
 
-	// Create some subdirectories and files in the tempDir
-	subDir1 := filepath.Join(tempDir, "subdir1")
-	subDir2 := filepath.Join(tempDir, "subdir2")
-	emptySubDir := filepath.Join(tempDir, "emptysubdir")
-	err := os.Mkdir(subDir1, 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.Mkdir(subDir2, 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.Mkdir(emptySubDir, 0755)
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("happy-path", func(t *testing.T) {
+		tempDir := t.TempDir()
 
-	err = CleanupServiceFileStructure(tempDir)
-	if err != nil {
-		t.Errorf("Expected no error, but got: %v", err)
-	}
+		// Create some subdirectories and files in the tempDir
+		subDir1 := filepath.Join(tempDir, "subdir1")
+		subDir2 := filepath.Join(tempDir, "subdir2")
+		emptySubDir := filepath.Join(tempDir, "emptysubdir")
+		err := os.Mkdir(subDir1, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = os.Mkdir(subDir2, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = os.Mkdir(emptySubDir, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// Verify that emptySubDir has been removed
-	if _, err := os.Stat(emptySubDir); !os.IsNotExist(err) {
-		t.Error("Expected emptySubDir to be removed, but it still exists")
-	}
+		err = CleanupServiceFileStructure(tempDir)
+		if err != nil {
+			t.Errorf("Expected no error, but got: %v", err)
+		}
 
-	// Verify that subDir1 and subDir2 still exist
-	if _, err := os.Stat(subDir1); !os.IsNotExist(err) {
-		t.Error("Expected subDir1 to be removed, but it still exists")
-	}
-	if _, err := os.Stat(subDir2); !os.IsNotExist(err) {
-		t.Error("Expected subDir2 to be removed, but it still exists")
-	}
+		// Verify that emptySubDir has been removed
+		if _, err := os.Stat(emptySubDir); !os.IsNotExist(err) {
+			t.Error("Expected emptySubDir to be removed, but it still exists")
+		}
+
+		// Verify that subDir1 and subDir2 still exist
+		if _, err := os.Stat(subDir1); !os.IsNotExist(err) {
+			t.Error("Expected subDir1 to be removed, but it still exists")
+		}
+		if _, err := os.Stat(subDir2); !os.IsNotExist(err) {
+			t.Error("Expected subDir2 to be removed, but it still exists")
+		}
+	})
+
+	t.Run("file-insteadof-dir", func(t *testing.T) {
+		tempDir := t.TempDir()
+		f := filepath.Join(tempDir, "file.txt")
+		_ = SaveFile(f, []byte("test"))
+
+		err := CleanupServiceFileStructure(f)
+		assert.Nil(err)
+	})
 }
 
 func TestIsEmptyDir(t *testing.T) {
@@ -448,7 +534,12 @@ func TestIsYamlType(t *testing.T) {
 
 func TestExtractZip(t *testing.T) {
 	assert := assert2.New(t)
-	tempDir := t.TempDir()
+
+	getFileDirs := func(baseDir string) []string {
+		return []string{
+			filepath.Join(baseDir, "empty-dir"),
+		}
+	}
 
 	getFilePaths := func(baseDir string) []string {
 		return []string{
@@ -463,6 +554,79 @@ func TestExtractZip(t *testing.T) {
 		}
 	}
 
+	createZip := func(dir string) string {
+		var createdFiles []string
+
+		for _, dirPath := range getFileDirs(dir) {
+			if err := os.MkdirAll(dirPath, 0755); err != nil {
+				t.FailNow()
+			}
+			createdFiles = append(createdFiles, dirPath)
+		}
+
+		for _, filePath := range getFilePaths(dir) {
+			// Ensure the directory exists
+			dir := filepath.Dir(filePath)
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				t.FailNow()
+			}
+
+			// Create the file
+			file, err := os.Create(filePath)
+			if err != nil {
+				t.FailNow()
+			}
+			file.Close()
+
+			createdFiles = append(createdFiles, filePath)
+		}
+
+		zipPath := filepath.Join(dir, "test.zip")
+		zipFile, err := os.Create(zipPath)
+		if err != nil {
+			t.Fatalf("Failed to create zip file: %v", err)
+		}
+		defer zipFile.Close()
+
+		zipWriter := zip.NewWriter(zipFile)
+
+		for _, filePath := range createdFiles {
+			file, err := os.Open(filePath)
+			if err != nil {
+				t.Fatalf("Failed to open file: %v", err)
+			}
+			defer file.Close()
+
+			// Get the relative path for the zip entry
+			relPath, err := filepath.Rel(dir, filePath)
+			if err != nil {
+				t.Fatalf("Failed to get relative path: %v", err)
+			}
+
+			zipEntry, err := zipWriter.Create(relPath)
+			if err != nil {
+				t.Fatalf("Failed to create zip entry: %v", err)
+			}
+
+			// Copy the file contents to the zip entry
+			inf, _ := file.Stat()
+			if inf.IsDir() {
+				continue
+			}
+
+			_, err = io.Copy(zipEntry, file)
+			if err != nil {
+				t.Fatalf("Failed to copy to zip entry: %v", err)
+			}
+		}
+
+		if err := zipWriter.Close(); err != nil {
+			t.Fatalf("Failed to close zip writer: %v", err)
+		}
+
+		return zipPath
+	}
+
 	expectedFilePaths := func(baseDir string) []string {
 		return []string{
 			filepath.Join(baseDir, "take-this", "index.json"),
@@ -474,90 +638,46 @@ func TestExtractZip(t *testing.T) {
 		}
 	}
 
-	var createdFiles []string
-	for _, filePath := range getFilePaths(tempDir) {
-		// Ensure the directory exists
-		dir := filepath.Dir(filePath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			t.FailNow()
-		}
+	t.Run("happy-path", func(t *testing.T) {
+		zipPath := createZip(t.TempDir())
 
-		// Create the file
-		file, err := os.Create(filePath)
+		zipReader, err := zip.OpenReader(zipPath)
 		if err != nil {
-			t.FailNow()
+			t.Fatalf("Failed to open zip filePath: %v", err)
 		}
-		file.Close()
+		defer zipReader.Close()
 
-		createdFiles = append(createdFiles, filePath)
-	}
-
-	zipPath := filepath.Join(tempDir, "test.zip")
-	zipFile, err := os.Create(zipPath)
-	if err != nil {
-		t.Fatalf("Failed to create zip file: %v", err)
-	}
-	defer zipFile.Close()
-
-	zipWriter := zip.NewWriter(zipFile)
-
-	for _, filePath := range createdFiles {
-		file, err := os.Open(filePath)
+		// Extract and copy the zip contents
+		targetDir := t.TempDir()
+		err = ExtractZip(&zipReader.Reader, targetDir, []string{"take-this", "take-too"})
 		if err != nil {
-			t.Fatalf("Failed to open file: %v", err)
-		}
-		defer file.Close()
-
-		// Get the relative path for the zip entry
-		relPath, err := filepath.Rel(tempDir, filePath)
-		if err != nil {
-			t.Fatalf("Failed to get relative path: %v", err)
+			t.Fatalf("Error extracting and copying files: %v", err)
 		}
 
-		zipEntry, err := zipWriter.Create(relPath)
-		if err != nil {
-			t.Fatalf("Failed to create zip entry: %v", err)
-		}
-
-		// Copy the file contents to the zip entry
-		_, err = io.Copy(zipEntry, file)
-		if err != nil {
-			t.Fatalf("Failed to copy to zip entry: %v", err)
-		}
-	}
-
-	if err := zipWriter.Close(); err != nil {
-		t.Fatalf("Failed to close zip writer: %v", err)
-	}
-
-	// Open the mock zip file
-	zipReader, err := zip.OpenReader(zipPath)
-	if err != nil {
-		t.Fatalf("Failed to open zip filePath: %v", err)
-	}
-	defer zipReader.Close()
-
-	// Extract and copy the zip contents
-
-	targetDir := t.TempDir()
-	err = ExtractZip(&zipReader.Reader, targetDir, []string{"take-this", "take-too"})
-	if err != nil {
-		t.Fatalf("Error extracting and copying files: %v", err)
-	}
-
-	var extracted []string
-	filepath.WalkDir(targetDir, func(path string, info os.DirEntry, err error) error {
-		if info != nil && info.IsDir() {
+		var extracted []string
+		filepath.WalkDir(targetDir, func(path string, info os.DirEntry, err error) error {
+			if info != nil && info.IsDir() {
+				return nil
+			}
+			extracted = append(extracted, path)
 			return nil
-		}
-		extracted = append(extracted, path)
-		return nil
+		})
+
+		// Check if the target directory contains the extracted file
+		expected := expectedFilePaths(targetDir)
+
+		assert.ElementsMatch(expected, extracted)
 	})
 
-	// Check if the target directory contains the extracted file
-	expected := expectedFilePaths(targetDir)
+	t.Run("invalid-dest", func(t *testing.T) {
+		zipPath := createZip(t.TempDir())
+		zipReader, _ := zip.OpenReader(zipPath)
+		defer zipReader.Close()
 
-	assert.ElementsMatch(expected, extracted)
+		dest := filepath.Join("/root", "test")
+		res := ExtractZip(&zipReader.Reader, dest, []string{"take-this", "take-too"})
+		assert.Error(res)
+	})
 }
 
 func TestGetFileHash(t *testing.T) {

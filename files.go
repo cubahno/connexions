@@ -129,53 +129,60 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 
 // GetPropertiesFromFilePath gets properties of a file from its path.
 func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FileProperties, error) {
-	fileName := path.Base(filePath)
-	ext := strings.ToLower(filepath.Ext(fileName))
-	contentType := mime.TypeByExtension(ext)
-	resource := ""
-
 	s := strings.TrimPrefix(strings.Replace(filePath, appCfg.Paths.Services, "", 1), "/")
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
 
 	if serviceName == RootOpenAPIName {
-		parts = parts[1:]
-		serviceName = parts[0]
-		prefix := ""
-
-		// root level service
-		if len(parts) == 1 {
-			serviceName = ""
-			prefix = ""
-		} else {
-			// if dirs are present, service name is the first dir
-			serviceName = parts[0]
-			prefix = "/" + strings.Join(parts, "/")
-			prefix = strings.TrimSuffix(prefix, "/"+fileName)
-			prefix = strings.TrimSuffix(prefix, "/")
-		}
-
-		doc, err := NewDocumentFromFileFactory(appCfg.SchemaProvider)(filePath)
-		if err != nil {
-			return nil, err
-		}
-
-		if doc.GetVersion() == "" {
-			return nil, ErrNoPathsInSchema
-		}
-
-		return &FileProperties{
-			ServiceName:          serviceName,
-			Prefix:               prefix,
-			IsOpenAPI:            true,
-			FilePath:             filePath,
-			FileName:             fileName,
-			Extension:            ext,
-			ContentType:          contentType,
-			Spec:                 doc,
-			ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
-		}, nil
+		return getPropertiesFromOpenAPIFile(filePath, parts[1:], appCfg)
 	}
+
+	return getPropertiesFromFixedFile(serviceName, filePath, parts)
+}
+
+func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *AppConfig) (*FileProperties, error) {
+	fileName := path.Base(filePath)
+	ext := strings.ToLower(filepath.Ext(fileName))
+	contentType := mime.TypeByExtension(ext)
+
+	serviceName := pathParts[0]
+	prefix := ""
+
+	// root level service
+	if len(pathParts) == 1 {
+		serviceName = ""
+		prefix = ""
+	} else {
+		// if dirs are present, service name is the first dir
+		serviceName = pathParts[0]
+		prefix = "/" + strings.Join(pathParts, "/")
+		prefix = strings.TrimSuffix(prefix, "/"+fileName)
+		prefix = strings.TrimSuffix(prefix, "/")
+	}
+
+	doc, err := NewDocumentFromFileFactory(appCfg.SchemaProvider)(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FileProperties{
+		ServiceName:          serviceName,
+		Prefix:               prefix,
+		IsOpenAPI:            true,
+		FilePath:             filePath,
+		FileName:             fileName,
+		Extension:            ext,
+		ContentType:          contentType,
+		Spec:                 doc,
+		ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
+	}, nil
+}
+
+func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) (*FileProperties, error) {
+	fileName := path.Base(filePath)
+	ext := strings.ToLower(filepath.Ext(fileName))
+	contentType := mime.TypeByExtension(ext)
+	resource := ""
 
 	method := http.MethodGet
 	prefix := ""
@@ -327,10 +334,8 @@ func SaveFile(filePath string, data []byte) error {
 	}
 
 	_, err = dest.Write(data)
-	if err != nil {
-		return err
-	}
-	return nil
+
+	return err
 }
 
 // CopyFile copies a file from srcPath to destPath.
@@ -355,11 +360,7 @@ func CopyFile(srcPath, destPath string) error {
 	defer destFile.Close()
 
 	_, err = io.Copy(destFile, srcFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // CopyDirectory copies a directory recursively.
@@ -369,16 +370,13 @@ func CopyDirectory(src, dest string) error {
 			return err
 		}
 
-		relPath, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-
-		destPath := filepath.Join(dest, relPath)
 		if info.IsDir() {
-			return os.MkdirAll(destPath, os.ModePerm)
+			return os.MkdirAll(dest, os.ModePerm)
 		}
 
+		// compose dest file path, we never get an error here
+		relPath, _ := filepath.Rel(src, path)
+		destPath := filepath.Join(dest, relPath)
 		return CopyFile(path, destPath)
 	})
 }
@@ -396,10 +394,7 @@ func CleanupServiceFileStructure(servicePath string) error {
 			return nil
 		}
 		if isEmpty {
-			if err := os.Remove(path); err != nil {
-				log.Printf("Error removing empty directory: %s\n", err.Error())
-				return nil
-			}
+			_ = os.Remove(path)
 			log.Printf("Removed empty directory: %s\n", path)
 			return nil
 		}
@@ -466,14 +461,15 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 
 			targetPath := filepath.Join(targetDir, filePath)
 
-			if zipFile.FileInfo().IsDir() {
-				err := os.MkdirAll(targetPath, zipFile.FileInfo().Mode())
-				if err != nil {
-					errCh <- err
-					return
-				}
-				return
-			}
+			// inf := zipFile.FileInfo()
+			// if inf.IsDir() {
+			// 	err := os.MkdirAll(targetPath, zipFile.FileInfo().Mode())
+			// 	if err != nil {
+			// 		errCh <- err
+			// 		return
+			// 	}
+			// 	return
+			// }
 
 			// Create the parent directory if it doesn't exist
 			parentDir := filepath.Dir(targetPath)
