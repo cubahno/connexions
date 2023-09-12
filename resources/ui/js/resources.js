@@ -36,7 +36,7 @@ export const show = match => {
                 const num = i + 1;
                 let icon = ``;
                 if (overwrites) {
-                    icon = ` <span title="overwrites" style="text-decoration: none;">🔁</span>`;
+                    icon = ` <span title="overwrites" class="overwrites-icon">🔁</span>`;
                 }
 
                 const row = document.createElement('tr');

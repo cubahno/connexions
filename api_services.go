@@ -104,6 +104,19 @@ type RouteDescription struct {
 	ContentType string          `json:"contentType"`
 	Overwrites  bool            `json:"overwrites"`
 	File        *FileProperties `json:"-"`
+	mu 		sync.Mutex
+}
+
+func (r *RouteDescription) SetOverwrites(others RouteDescriptions) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, other := range others {
+		if other.Path == r.Path && other.Method == r.Method {
+			r.Overwrites = true
+			break
+		}
+	}
 }
 
 type RouteDescriptions []*RouteDescription
@@ -243,12 +256,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var addRoutes []*RouteDescription
 		for _, route := range routes {
-			for _, rd := range h.router.Services[fileProps.ServiceName].Routes {
-				if rd.Path == route.Path && rd.Method == route.Method {
-					route.Overwrites = true
-					break
-				}
-			}
+			route.SetOverwrites(service.Routes)
 			addRoutes = append(addRoutes, route)
 		}
 

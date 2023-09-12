@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func RegisterFixedService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
+func RegisterFixedService(fileProps *FileProperties, router *Router) (RouteDescriptions, error) {
 	fmt.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
@@ -25,16 +25,16 @@ func RegisterFixedService(fileProps *FileProperties, router *Router) ([]*RouteDe
 		router.Method(fileProps.Method, resource, createFixedResponseHandler(fileProps, router.Config))
 	}
 
-	return []*RouteDescription{
-		{
-			Method: fileProps.Method,
-			// add only resource to the RouteDescription, it's used only for UI purposes
-			Path:        fileProps.Resource,
-			Type:        FixedRouteType,
-			ContentType: fileProps.ContentType,
-			File:        fileProps,
-		},
-	}, nil
+	rd := &RouteDescription{
+		Method: fileProps.Method,
+		// add only resource to the RouteDescription, it's used only for UI purposes
+		Path:        fileProps.Resource,
+		Type:        FixedRouteType,
+		ContentType: fileProps.ContentType,
+		File:        fileProps,
+	}
+
+	return RouteDescriptions{rd}, nil
 }
 
 func createFixedResponseHandler(fileProps *FileProperties, config *Config) http.HandlerFunc {

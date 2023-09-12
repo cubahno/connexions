@@ -473,3 +473,11 @@ a.service-settings-link {
 .copy-icon {
     margin-right: 4px;
 }
+
+.overwrites-icon {
+    text-decoration: none;
+    position: relative;
+    left: -10px;
+    bottom: -6px;
+    font-size: 14px;
+}

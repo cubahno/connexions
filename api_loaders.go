@@ -99,6 +99,8 @@ func LoadServices(router *Router) error {
 					Name: props.ServiceName,
 				}
 				services[props.ServiceName] = svc
+			} else {
+				rs[0].SetOverwrites(svc.Routes)
 			}
 			svc.AddRoutes(rs)
 		}(fileProps)
