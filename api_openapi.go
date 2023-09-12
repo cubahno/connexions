@@ -16,10 +16,10 @@ type ResourceGeneratePayload struct {
 
 // RegisterOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
-func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
+func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) (RouteDescriptions, error) {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
-	res := make([]*RouteDescription, 0)
+	res := make(RouteDescriptions, 0)
 
 	doc := fileProps.Spec
 	if doc == nil {
@@ -46,6 +46,7 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) ([]*RouteD
 			})
 		}
 	}
+	res.Sort()
 
 	return res, nil
 }

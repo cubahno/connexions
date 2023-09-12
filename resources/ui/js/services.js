@@ -3,7 +3,6 @@ import * as commons from './commons.js';
 import * as navi from "./navi.js";
 import * as services from './services.js';
 import * as resources from "./resources.js";
-import {contextEditContainer} from "./config.js";
 
 export const newForm = () => {
     console.log(`add new service`);

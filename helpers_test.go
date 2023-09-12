@@ -1,10 +1,13 @@
 package connexions
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
+	"io"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 	"testing"
@@ -145,4 +148,35 @@ func SetupApp(appDir string) (*Router, error) {
 	}
 
 	return NewRouter(cfg), nil
+}
+
+func UnmarshallResponse[T any](t *testing.T, res *bytes.Buffer) *T {
+	target := new(T)
+	err := json.Unmarshal(res.Bytes(), &target)
+	if err != nil {
+		t.Errorf("Error unmarshaling JSON: %v\n", err)
+		t.FailNow()
+	}
+	return target
+}
+
+func AddTestFileToForm(writer *multipart.Writer, fieldName, filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	baseName := filepath.Base(filePath)
+
+	part, err := writer.CreateFormFile(fieldName, baseName)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

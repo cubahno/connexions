@@ -42,7 +42,7 @@ func CreateServiceRoutes(router *Router) error {
 
 type ServiceItem struct {
 	Name         string              `json:"name"`
-	Routes       []*RouteDescription `json:"routes"`
+	Routes       RouteDescriptions `json:"routes"`
 	OpenAPIFiles []*FileProperties   `json:"-"`
 	mu           sync.Mutex
 }
@@ -64,7 +64,7 @@ func (i *ServiceItem) AddOpenAPIFile(file *FileProperties) {
 	i.OpenAPIFiles = append(i.OpenAPIFiles, file)
 }
 
-func (i *ServiceItem) AddRoutes(routes []*RouteDescription) {
+func (i *ServiceItem) AddRoutes(routes RouteDescriptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -102,6 +102,35 @@ type RouteDescription struct {
 	Type        string          `json:"type"`
 	ContentType string          `json:"contentType"`
 	File        *FileProperties `json:"-"`
+}
+
+type RouteDescriptions []*RouteDescription
+
+func (rs RouteDescriptions) Sort() {
+	sort.SliceStable(rs, func(i, j int) bool {
+		a := rs[i]
+		b := rs[j]
+
+		if a.Path != b.Path {
+			return a.Path < b.Path
+		}
+		methodOrder := map[string]int{
+			http.MethodGet:  1,
+			http.MethodPost: 2,
+			"default":       3,
+		}
+		m1 := methodOrder[a.Method]
+		if m1 == 0 {
+			m1 = methodOrder["default"]
+		}
+
+		m2 := methodOrder[b.Method]
+		if m2 == 0 {
+			m2 = methodOrder["default"]
+		}
+
+		return m1 < m2
+	})
 }
 
 type ServiceListResponse struct {
@@ -168,9 +197,11 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isOpenAPI := r.FormValue("isOpenApi") == "true"
+
 	payload := &ServicePayload{
 		Name:        r.FormValue("name"),
-		IsOpenAPI:   r.FormValue("isOpenApi") == "true",
+		IsOpenAPI:   isOpenAPI,
 		Method:      r.FormValue("method"),
 		Path:        r.FormValue("path"),
 		Response:    []byte(r.FormValue("response")),
@@ -184,9 +215,9 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var routes []*RouteDescription
+	var routes RouteDescriptions
 
-	if payload.IsOpenAPI {
+	if isOpenAPI {
 		routes, err = RegisterOpenAPIRoutes(fileProps, h.router)
 	} else {
 		routes, err = RegisterOverwriteService(fileProps, h.router)
@@ -202,6 +233,9 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		service = &ServiceItem{
 			Name:   fileProps.ServiceName,
 			Routes: routes,
+		}
+		if len(h.router.Services) == 0 {
+			h.router.Services = make(map[string]*ServiceItem)
 		}
 		h.router.Services[fileProps.ServiceName] = service
 	} else {
@@ -223,6 +257,10 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 			h.router.Services[fileProps.ServiceName].Routes, addRoutes...)
 	}
 
+	if isOpenAPI {
+		service.AddOpenAPIFile(fileProps)
+	}
+
 	h.success("Resource saved!", w)
 }
 
@@ -238,31 +276,6 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	routes := service.Routes
-
-	sort.SliceStable(routes, func(i, j int) bool {
-		a := routes[i]
-		b := routes[j]
-
-		if a.Path != b.Path {
-			return a.Path < b.Path
-		}
-		methodOrder := map[string]int{
-			http.MethodGet:  1,
-			http.MethodPost: 2,
-			"default":       3,
-		}
-		m1 := methodOrder[a.Method]
-		if m1 == 0 {
-			m1 = methodOrder["default"]
-		}
-
-		m2 := methodOrder[b.Method]
-		if m2 == 0 {
-			m2 = methodOrder["default"]
-		}
-
-		return m1 < m2
-	})
 
 	names := make([]string, 0, len(service.OpenAPIFiles))
 	for _, f := range service.OpenAPIFiles {

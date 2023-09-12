@@ -60,7 +60,7 @@ app:
 
 		assert.Equal(8080, router.Config.App.Port)
 		var response map[string]interface{}
-		if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		if err = json.NewDecoder(w.Body).Decode(&response); err != nil {
 			t.Fatalf("Failed to decode JSON response: %v", err)
 		}
 		assert.Equal(true, response["success"])

@@ -139,7 +139,6 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			FilePath:    filePath,
 			FileName:    "index.yml",
 			Extension:   ".yml",
-			ContentType: "application/x-yaml",
 		}
 		AssertJSONEqual(t, expectedProps, props)
 	})

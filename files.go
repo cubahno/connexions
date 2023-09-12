@@ -138,7 +138,6 @@ func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FilePropert
 func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *AppConfig) (*FileProperties, error) {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
-	contentType := mime.TypeByExtension(ext)
 
 	serviceName := pathParts[0]
 	prefix := ""
@@ -161,13 +160,14 @@ func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *A
 	}
 
 	return &FileProperties{
-		ServiceName:          serviceName,
-		Prefix:               prefix,
-		IsOpenAPI:            true,
-		FilePath:             filePath,
-		FileName:             fileName,
-		Extension:            ext,
-		ContentType:          contentType,
+		ServiceName: serviceName,
+		Prefix:      prefix,
+		IsOpenAPI:   true,
+		FilePath:    filePath,
+		FileName:    fileName,
+		Extension:   ext,
+		// set content type empty, because it will be set by the corresponding resource
+		ContentType:          "",
 		Spec:                 doc,
 		ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
 	}, nil
