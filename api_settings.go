@@ -51,7 +51,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 	}
 
 	configPath := h.router.Config.App.Paths.ConfigFile
-	file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
