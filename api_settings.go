@@ -50,16 +50,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	configPath := h.router.Config.App.Paths.ConfigFile
-	file, err := os.OpenFile(configPath, os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		h.error(http.StatusInternalServerError, err.Error(), w)
-		return
-	}
-	defer file.Close()
-
-	_, err = file.Write(payload)
-	if err != nil {
+	if err = os.WriteFile(h.router.Config.App.Paths.ConfigFile, payload, 0644); err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}

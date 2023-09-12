@@ -11,6 +11,16 @@ import (
 	"testing"
 )
 
+func TestCreateSettingsRoutes_Disabled(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+	router, _ := SetupApp(t.TempDir())
+	router.Config.App.DisableUI = true
+
+	CreateSettingsRoutes(router)
+	assert.Equal(0, len(router.Mux.Routes()))
+}
+
 func TestSettingsHandler(t *testing.T) {
 	assert := assert2.New(t)
 
@@ -100,7 +110,7 @@ app:
 	})
 }
 
-func TestSettingsHandler_Put_ErrorReadingConfig(t *testing.T) {
+func TestSettingsHandler_Put_ErrorWriting(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -108,7 +118,9 @@ func TestSettingsHandler_Put_ErrorReadingConfig(t *testing.T) {
 	err = CreateSettingsRoutes(router)
 	assert.Nil(err)
 
-	router.Config.App.Paths.ConfigFile = "non-existent.yml"
+	// set as read-only
+	err = os.Chmod(router.Config.App.Paths.ConfigFile, 0400)
+	assert.Nil(err)
 
 	payload := `
 app:
@@ -123,5 +135,27 @@ app:
 
 	assert.Equal(500, w.Code)
 	assert.Equal(false, response["success"])
-	assert.Equal("open non-existent.yml: no such file or directory", response["message"])
+	assert.True(strings.HasSuffix(response["message"].(string), "resources/config.yml: permission denied"))
+}
+
+func TestSettingsHandler_Post_ErrorCopyFile(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	assert.Nil(err)
+	err = CreateSettingsRoutes(router)
+	assert.Nil(err)
+
+	router.Config.App.Paths.ConfigFile = "non-existent.yml"
+
+	req := httptest.NewRequest("POST", "/.settings", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	var response map[string]any
+	_ = json.NewDecoder(w.Body).Decode(&response)
+
+	assert.Equal(500, w.Code)
+	assert.Equal(false, response["success"])
+	assert.Equal("Failed to copy file contents", response["message"])
 }
