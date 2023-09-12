@@ -122,7 +122,10 @@ func SetupApp(appDir string) (*Router, error) {
 	}
 
 	err = CopyDirectory("resources", filepath.Join(appDir, "resources"))
-	// err := os.MkdirAll(filepath.Join(appDir, "resources", "samples"), 0755)
+	if err != nil {
+		return nil, err
+	}
+	err = CopyFile(filepath.Join(appDir, "resources", "config.yml.dist"), filepath.Join(appDir, "resources", "config.yml"))
 	if err != nil {
 		return nil, err
 	}
