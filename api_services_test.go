@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -193,4 +194,74 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 		},
 	}
 	AssertJSONEqual(t, expected, svc)
+}
+
+
+func TestServiceHandler_save_fixed(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	// prepare payload
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	_ = writer.WriteField("name", "petstore")
+	_ = writer.WriteField("path", "/pets/update/{tag}")
+	_ = writer.WriteField("method", http.MethodPatch)
+	_ = writer.WriteField("response", `{"hallo":"welt!"}`)
+	_ = writer.WriteField("contentType", "json")
+
+	assert.Nil(err)
+	_ = writer.Close()
+
+	// serve
+	req := httptest.NewRequest("POST", "/.services", &body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := *UnmarshallResponse[map[string]any](t, w.Body)
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/json", w.Header().Get("Content-Type"))
+	assert.Equal(true, resp["success"].(bool))
+	assert.Equal("Resource saved!", resp["message"].(string))
+
+	svc := router.Services["petstore"]
+	targetPath := filepath.Join(router.Config.App.Paths.Services, "petstore", "patch", "pets", "update", "{tag}", "index.json")
+	expectedFileProps := &FileProperties{
+		ServiceName:          "petstore",
+		IsOpenAPI:            false,
+		Method:               http.MethodPatch,
+		Prefix:               "/petstore",
+		Resource:             "/pets/update/{tag}",
+		FilePath:             targetPath,
+		FileName:             "index.json",
+		Extension:            ".json",
+		ContentType:          "application/json",
+	}
+	expected := &ServiceItem{
+		Name: "petstore",
+		Routes: []*RouteDescription{
+			{
+				Method: http.MethodPatch,
+				Path:   "/pets/update/{tag}",
+				Type:   OverwriteRouteType,
+				File:  expectedFileProps,
+				ContentType: "application/json",
+			},
+		},
+	}
+	AssertJSONEqual(t, expected, svc)
+
+	content, err := os.ReadFile(targetPath)
+	assert.Nil(err)
+	assert.Equal(`{"hallo":"welt!"}`, string(content))
 }
