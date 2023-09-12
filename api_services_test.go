@@ -196,7 +196,6 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 	AssertJSONEqual(t, expected, svc)
 }
 
-
 func TestServiceHandler_save_fixed(t *testing.T) {
 	assert := assert2.New(t)
 
@@ -237,24 +236,24 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 	svc := router.Services["petstore"]
 	targetPath := filepath.Join(router.Config.App.Paths.Services, "petstore", "patch", "pets", "update", "{tag}", "index.json")
 	expectedFileProps := &FileProperties{
-		ServiceName:          "petstore",
-		IsOpenAPI:            false,
-		Method:               http.MethodPatch,
-		Prefix:               "/petstore",
-		Resource:             "/pets/update/{tag}",
-		FilePath:             targetPath,
-		FileName:             "index.json",
-		Extension:            ".json",
-		ContentType:          "application/json",
+		ServiceName: "petstore",
+		IsOpenAPI:   false,
+		Method:      http.MethodPatch,
+		Prefix:      "/petstore",
+		Resource:    "/pets/update/{tag}",
+		FilePath:    targetPath,
+		FileName:    "index.json",
+		Extension:   ".json",
+		ContentType: "application/json",
 	}
 	expected := &ServiceItem{
 		Name: "petstore",
 		Routes: []*RouteDescription{
 			{
-				Method: http.MethodPatch,
-				Path:   "/pets/update/{tag}",
-				Type:   OverwriteRouteType,
-				File:  expectedFileProps,
+				Method:      http.MethodPatch,
+				Path:        "/pets/update/{tag}",
+				Type:        FixedRouteType,
+				File:        expectedFileProps,
 				ContentType: "application/json",
 			},
 		},

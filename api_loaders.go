@@ -16,7 +16,7 @@ func LoadServices(router *Router) error {
 	var mu sync.Mutex
 
 	openAPIFiles := make([]*FileProperties, 0)
-	overwriteFiles := make([]*FileProperties, 0)
+	fixedFiles := make([]*FileProperties, 0)
 	appCfg := router.Config.App
 
 	err := filepath.Walk(appCfg.Paths.Services, func(filePath string, info os.FileInfo, err error) error {
@@ -39,7 +39,7 @@ func LoadServices(router *Router) error {
 		if fileProps.IsOpenAPI {
 			openAPIFiles = append(openAPIFiles, fileProps)
 		} else {
-			overwriteFiles = append(overwriteFiles, fileProps)
+			fixedFiles = append(fixedFiles, fileProps)
 		}
 
 		return nil
@@ -78,8 +78,8 @@ func LoadServices(router *Router) error {
 
 	wg.Wait()
 
-	println("Registering overwrite services...")
-	for _, fileProps := range overwriteFiles {
+	println("Registering fixed services...")
+	for _, fileProps := range fixedFiles {
 		wg.Add(1)
 
 		go func(props *FileProperties) {
@@ -87,7 +87,7 @@ func LoadServices(router *Router) error {
 			mu.Lock()
 			defer mu.Unlock()
 
-			rs, err := RegisterOverwriteService(props, router)
+			rs, err := RegisterFixedService(props, router)
 			if err != nil {
 				log.Println(err.Error())
 				return

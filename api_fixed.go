@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
-	fmt.Printf("Registering overwrite %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
+func RegisterFixedService(fileProps *FileProperties, router *Router) ([]*RouteDescription, error) {
+	fmt.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName,
 		fileProps.Resource)
 
 	baseResource := fileProps.Prefix + fileProps.Resource
@@ -22,7 +22,7 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 
 	// register all routes
 	for _, resource := range resources {
-		router.Method(fileProps.Method, resource, createOverwriteResponseHandler(fileProps, router.Config))
+		router.Method(fileProps.Method, resource, createFixedResponseHandler(fileProps, router.Config))
 	}
 
 	return []*RouteDescription{
@@ -30,14 +30,14 @@ func RegisterOverwriteService(fileProps *FileProperties, router *Router) ([]*Rou
 			Method: fileProps.Method,
 			// add only resource to the RouteDescription, it's used only for UI purposes
 			Path:        fileProps.Resource,
-			Type:        OverwriteRouteType,
+			Type:        FixedRouteType,
 			ContentType: fileProps.ContentType,
 			File:        fileProps,
 		},
 	}, nil
 }
 
-func createOverwriteResponseHandler(fileProps *FileProperties, config *Config) http.HandlerFunc {
+func createFixedResponseHandler(fileProps *FileProperties, config *Config) http.HandlerFunc {
 	svcConfig := config.GetServiceConfig(fileProps.ServiceName)
 
 	return func(w http.ResponseWriter, r *http.Request) {

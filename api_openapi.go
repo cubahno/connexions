@@ -9,8 +9,6 @@ import (
 )
 
 type ResourceGeneratePayload struct {
-	Resource     string         `json:"resource"`
-	Method       string         `json:"method"`
 	Replacements map[string]any `json:"replacements"`
 }
 

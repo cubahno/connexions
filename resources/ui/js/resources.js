@@ -32,11 +32,11 @@ export const show = match => {
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
 
-            for (const { method, path, type, contentType } of endpoints) {
+            for (const { method, path, type, overwrites, contentType } of endpoints) {
                 const num = i + 1;
                 let icon = ``;
-                if (type === `overwrite`) {
-                    // icon = ` <span title="overwrites" style="text-decoration: none;">🔁</span>`;
+                if (overwrites) {
+                    icon = ` <span title="overwrites" style="text-decoration: none;">🔁</span>`;
                 }
 
                 const row = document.createElement('tr');
@@ -58,7 +58,7 @@ export const show = match => {
                 row.appendChild(pathCell);
 
                 const editCell = document.createElement('td');
-                if (type === `overwrite` && commons.isResourceEditable(contentType)) {
+                if (type === `fixed` && commons.isResourceEditable(contentType)) {
                     editCell.innerHTML =`<a href="#/services/${service}/${num}/edit">✎</a>`;
                     editCell.className = 'edit-resource';
                     editCell.title = `Edit resource ${method} ${path}`;
@@ -69,14 +69,13 @@ export const show = match => {
                 row.appendChild(editCell);
 
                 const rmCell = document.createElement('td');
-                if (type === `overwrite`) {
-                    //rmCell.innerHTML = `🔁`;
+                if (type === `fixed`) {
                     rmCell.innerHTML = `✖`;
                     rmCell.className = 'remove-resource';
                     rmCell.title = `Remove resource ${method} ${path}`;
                     rmCell.onclick = () => {
                         if (confirm(`Are you sure you want to remove resource ${method} ${path}?\nAll files will be deleted!`)) {
-                            fetch(`${config.serviceUrl}/${service}/resources/${method.toLowerCase()}?path=${path}`, {
+                            fetch(`${config.serviceUrl}/${service}/resources/${num-1}`, {
                                 method: 'DELETE'
                             })
                                 .then(res => res.json())
@@ -102,20 +101,20 @@ export const show = match => {
             if (ix !== undefined) {
                 navi.applySelection(`resource-${ix}`, 'selected-resource');
                 if (action === `edit`) {
-                    edit(service, endpoints[ix - 1].method, endpoints[ix - 1].path);
+                    edit(service, ix - 1);
                 } else if (action === `result`) {
-                    generateResult(service, endpoints[ix - 1].path, endpoints[ix - 1].method);
+                    generateResult(service, ix - 1, endpoints[ix - 1].path, endpoints[ix - 1].method);
                 }
             }
         });
 }
 
-export const generateResult = (service, path, method) => {
+export const generateResult = (service, ix, path, method) => {
     console.log(`loadResource: ${method} /${service}${path}`);
 
     const onDone = () => {
         config.generatorCont.style.display = 'block';
-        config.resourceRefreshBtn.onclick = () => generateResult(service, path, method);
+        config.resourceRefreshBtn.onclick = () => generateResult(service, ix);
         config.resourceRefreshBtn.style.display = 'block';
     }
     commons.hideMessage();
@@ -129,14 +128,12 @@ export const generateResult = (service, path, method) => {
     }
     document.getElementById(`resource-edit-container`).style.display = 'none';
 
-    fetch(`${config.serviceUrl}/${service}`, {
+    fetch(`${config.serviceUrl}/${service}/${ix}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            resource: path,
-            method: method,
             replacements: replacements,
         }),
     })
@@ -213,15 +210,15 @@ export const generateResult = (service, path, method) => {
         }).then(onDone);
 }
 
-const edit = (service, method, path) => {
-    console.log(`editResource: ${method} /${service}${path}`);
+const edit = (service, ix) => {
+    console.log(`editResource: #${ix+1}`);
     const cont = document.getElementById('resource-edit-container');
     navi.applySelection(`service-${service}`, 'selected-service');
     document.getElementById(`generator-container`).style.display = 'none';
     const editor = commons.getEditorForm(`res-selected-text-response`, `res-response-content-type`);
 
     cont.style.display = 'block';
-    fetch(`${config.serviceUrl}/${service}/resources/${method.toLowerCase()}?path=${path}`)
+    fetch(`${config.serviceUrl}/${service}/resources/${ix}`)
         .then(res => res.json())
         .then(res => {
             document.getElementById(`res-endpoint-path`).value = res.path;

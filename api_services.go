@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -31,19 +32,19 @@ func CreateServiceRoutes(router *Router) error {
 		if !router.Config.App.DisableSwaggerUI {
 			r.Get("/{name}/spec", handler.spec)
 		}
-		r.Post("/{name}", handler.generate)
+		r.Post("/{name}/{id}", handler.generate)
 		r.Delete("/{name}", handler.deleteService)
-		r.Get("/{name}/resources/{method}", handler.getResource)
-		r.Delete("/{name}/resources/{method}", handler.deleteResource)
+		r.Get("/{name}/resources/{id}", handler.getResource)
+		r.Delete("/{name}/resources/{id}", handler.deleteResource)
 	})
 
 	return nil
 }
 
 type ServiceItem struct {
-	Name         string              `json:"name"`
+	Name         string            `json:"name"`
 	Routes       RouteDescriptions `json:"routes"`
-	OpenAPIFiles []*FileProperties   `json:"-"`
+	OpenAPIFiles []*FileProperties `json:"-"`
 	mu           sync.Mutex
 }
 
@@ -90,8 +91,8 @@ type ServicePayload struct {
 }
 
 const (
-	OpenAPIRouteType   = "openapi"
-	OverwriteRouteType = "overwrite"
+	OpenAPIRouteType = "openapi"
+	FixedRouteType   = "fixed"
 )
 
 // RouteDescription describes a route for the UI Application.
@@ -101,6 +102,7 @@ type RouteDescription struct {
 	Path        string          `json:"path"`
 	Type        string          `json:"type"`
 	ContentType string          `json:"contentType"`
+	Overwrites  bool            `json:"overwrites"`
 	File        *FileProperties `json:"-"`
 }
 
@@ -220,7 +222,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	if isOpenAPI {
 		routes, err = RegisterOpenAPIRoutes(fileProps, h.router)
 	} else {
-		routes, err = RegisterOverwriteService(fileProps, h.router)
+		routes, err = RegisterFixedService(fileProps, h.router)
 	}
 
 	if err != nil {
@@ -241,16 +243,13 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var addRoutes []*RouteDescription
 		for _, route := range routes {
-			exists := false
 			for _, rd := range h.router.Services[fileProps.ServiceName].Routes {
 				if rd.Path == route.Path && rd.Method == route.Method {
-					exists = true
+					route.Overwrites = true
 					break
 				}
 			}
-			if !exists {
-				addRoutes = append(addRoutes, route)
-			}
+			addRoutes = append(addRoutes, route)
 		}
 
 		h.router.Services[fileProps.ServiceName].Routes = append(
@@ -339,30 +338,31 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		name = ""
 	}
 
-	method := strings.ToUpper(payload.Method)
-	if !IsValidHTTPVerb(method) {
-		NewAPIJSONResponse(http.StatusBadRequest, "Invalid method", w)
-		return
-	}
-
 	service := h.router.Services[name]
 	if service == nil {
 		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
+	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		h.error(400, "Invalid resource id", w)
+		return
+	}
+
+	isValidIx := ix >= 0 && ix < len(service.Routes)
+	if !isValidIx {
+		h.error(404, "Resource not found", w)
+		return
+	}
+
+	rd := service.Routes[ix]
+	fileProps := rd.File
+
 	config := h.router.Config
 	serviceCfg := config.GetServiceConfig(name)
 
 	res := map[string]any{}
-
-	var fileProps *FileProperties
-	for _, r := range service.Routes {
-		if r.Method == method && r.Path == payload.Resource {
-			fileProps = r.File
-			break
-		}
-	}
 
 	if fileProps == nil {
 		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
@@ -378,7 +378,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 
 	replaceResource := &Resource{
 		Service:           name,
-		Path:              payload.Resource,
+		Path:              rd.Path,
 		ContextData:       contexts,
 		ContextAreaPrefix: config.App.ContextAreaPrefix,
 	}
@@ -402,15 +402,15 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	spec := fileProps.Spec
 	operation := spec.FindOperation(&FindOperationOptions{
 		Service:  name,
-		Resource: payload.Resource,
-		Method:   strings.ToUpper(payload.Method),
+		Resource: rd.Path,
+		Method:   strings.ToUpper(rd.Method),
 	})
 	if operation == nil {
 		NewAPIJSONResponse(http.StatusMethodNotAllowed, NewErrorMessage(ErrResourceMethodNotFound), w)
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	req := NewRequestFromOperation(fileProps.Prefix, payload.Resource, payload.Method, operation, valueReplacer)
+	req := NewRequestFromOperation(fileProps.Prefix, rd.Path, rd.Method, operation, valueReplacer)
 
 	res["request"] = req
 	res["response"] = NewResponseFromOperation(operation, valueReplacer)
@@ -458,26 +458,19 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	method := chi.URLParam(r, "method")
-	if method == "" || !IsValidHTTPVerb(method) {
-		h.error(400, "Invalid method", w)
-		return
-	}
-	method = strings.ToUpper(method)
-
-	path := r.URL.Query().Get("path")
-	if path == "" {
-		h.error(400, "Invalid path", w)
+	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		h.error(400, "Invalid resource id", w)
 		return
 	}
 
-	var rd *RouteDescription
-	for _, route := range service.Routes {
-		if route.Method == method && route.Path == path {
-			rd = route
-			break
-		}
+	isValidIx := ix >= 0 && ix < len(service.Routes)
+	if !isValidIx {
+		h.error(404, "Resource not found", w)
+		return
 	}
+
+	rd := service.Routes[ix]
 
 	if rd == nil {
 		h.error(404, "Resource not found", w)
@@ -519,31 +512,27 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	method := chi.URLParam(r, "method")
-	if method == "" || !IsValidHTTPVerb(method) {
-		h.error(400, "Invalid method", w)
-		return
-	}
-	method = strings.ToUpper(method)
-
-	path := r.URL.Query().Get("path")
-	if path == "" {
-		h.error(400, "Invalid path", w)
+	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		h.error(400, "Invalid resource id", w)
 		return
 	}
 
-	for i, route := range service.Routes {
-		if route.Method == method && route.Path == path {
-			if err := os.Remove(route.File.FilePath); err != nil {
-				h.error(500, err.Error(), w)
-				return
-			}
-			service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, i)
-			break
-		}
+	isValidIx := ix >= 0 && ix < len(service.Routes)
+	if !isValidIx {
+		h.error(404, "Resource not found", w)
+		return
 	}
 
-	h.success(fmt.Sprintf("Resource %s deleted!", path), w)
+	rd := service.Routes[ix]
+
+	if err := os.Remove(rd.File.FilePath); err != nil {
+		h.error(500, err.Error(), w)
+		return
+	}
+	service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
+
+	h.success(fmt.Sprintf("Resource %s deleted!", rd.Path), w)
 }
 
 type ServiceDescription struct {

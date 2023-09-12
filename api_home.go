@@ -47,7 +47,7 @@ type HomeHandler struct {
 }
 
 func createHomeHandlerFunc(router *Router) http.HandlerFunc {
-	resDir := router.Config.App.Paths.Contexts
+	resDir := router.Config.App.Paths.Resources
 	uiPath := filepath.Join(resDir, "ui")
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 // fileServer conveniently sets up a http.FileServer handler to serve
 // static files from a http.FileSystem.
 func fileServer(url string, router *Router) {
-	resDir := router.Config.App.Paths.Contexts
+	resDir := router.Config.App.Paths.Resources
 	uiPath := filepath.Join(resDir, "ui")
 
 	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
