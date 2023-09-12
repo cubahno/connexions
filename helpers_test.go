@@ -130,16 +130,6 @@ func SetupApp(appDir string) (*Router, error) {
 		return nil, err
 	}
 
-	currentCfg, err := os.ReadFile(filepath.Join("resources", "config.yml"))
-	if err != nil {
-		return nil, err
-	}
-
-	err = SaveFile(filepath.Join(appDir, "resources", "config.yml"), currentCfg)
-	if err != nil {
-		return nil, err
-	}
-
 	cfg, err := NewConfig(appDir)
 	if err != nil {
 		return nil, err
