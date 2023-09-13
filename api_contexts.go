@@ -3,7 +3,7 @@ package connexions
 import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -96,7 +96,7 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := io.ReadAll(r.Body)
 	fmt.Println("Request Body:", string(body))
 
 	name := r.FormValue("name")

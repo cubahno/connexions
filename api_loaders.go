@@ -87,11 +87,7 @@ func LoadServices(router *Router) error {
 			mu.Lock()
 			defer mu.Unlock()
 
-			rs, err := RegisterFixedService(props, router)
-			if err != nil {
-				log.Println(err.Error())
-				return
-			}
+			route := registerFixedService(props, router)
 
 			svc, ok := services[props.ServiceName]
 			if !ok {
@@ -99,10 +95,8 @@ func LoadServices(router *Router) error {
 					Name: props.ServiceName,
 				}
 				services[props.ServiceName] = svc
-			} else {
-				rs[0].SetOverwrites(svc.Routes)
 			}
-			svc.AddRoutes(rs)
+			svc.AddRoutes(RouteDescriptions{route})
 		}(fileProps)
 	}
 

@@ -18,6 +18,10 @@ export const show = match => {
     fetch(`${config.serviceUrl}/${service}`)
         .then(res => res.json())
         .then(data => {
+            if (data.success === false) {
+                commons.showSuccessOrError(data.message, data.success);
+                return;
+            }
             navi.applySelection(`service-${service}`, 'selected-service');
 
             const endpoints = data['endpoints'];

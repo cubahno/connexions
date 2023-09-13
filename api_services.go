@@ -65,6 +65,8 @@ func (i *ServiceItem) AddOpenAPIFile(file *FileProperties) {
 	i.OpenAPIFiles = append(i.OpenAPIFiles, file)
 }
 
+// AddRoutes adds routes to the service.
+// There's no check for duplicates.
 func (i *ServiceItem) AddRoutes(routes RouteDescriptions) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -72,6 +74,20 @@ func (i *ServiceItem) AddRoutes(routes RouteDescriptions) {
 	if len(i.Routes) == 0 {
 		i.Routes = make([]*RouteDescription, 0)
 	}
+
+	for _, route := range routes {
+		if route.Type != FixedRouteType {
+			continue
+		}
+		// check if the route overwrites other routes
+		for _, r := range i.Routes {
+			if r.Path == route.Path && r.Method == route.Method {
+				route.Overwrites = true
+				break
+			}
+		}
+	}
+
 	i.Routes = append(i.Routes, routes...)
 }
 
@@ -104,23 +120,13 @@ type RouteDescription struct {
 	ContentType string          `json:"contentType"`
 	Overwrites  bool            `json:"overwrites"`
 	File        *FileProperties `json:"-"`
-	mu 		sync.Mutex
-}
-
-func (r *RouteDescription) SetOverwrites(others RouteDescriptions) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for _, other := range others {
-		if other.Path == r.Path && other.Method == r.Method {
-			r.Overwrites = true
-			break
-		}
-	}
+	mu          sync.Mutex
 }
 
 type RouteDescriptions []*RouteDescription
 
+// Sort sorts the routes by path and method.
+// The order is: GET, POST, other methods (alphabetically)
 func (rs RouteDescriptions) Sort() {
 	sort.SliceStable(rs, func(i, j int) bool {
 		a := rs[i]
@@ -157,9 +163,9 @@ type ServiceEmbedded struct {
 }
 
 type ServiceResourcesResponse struct {
-	Service          *ServiceEmbedded    `json:"service"`
-	Endpoints        []*RouteDescription `json:"endpoints"`
-	OpenAPISpecNames []string            `json:"openapiSpecNames"`
+	Service          *ServiceEmbedded  `json:"service"`
+	Endpoints        RouteDescriptions `json:"endpoints"`
+	OpenAPISpecNames []string          `json:"openapiSpecNames"`
 }
 
 type ServiceHandler struct {
@@ -234,13 +240,13 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 	if isOpenAPI {
 		routes, err = RegisterOpenAPIRoutes(fileProps, h.router)
+		if err != nil {
+			h.error(http.StatusBadRequest, err.Error(), w)
+			return
+		}
 	} else {
-		routes, err = RegisterFixedService(fileProps, h.router)
-	}
-
-	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
-		return
+		route := registerFixedService(fileProps, h.router)
+		routes = RouteDescriptions{route}
 	}
 
 	service, ok := h.router.Services[fileProps.ServiceName]
@@ -256,12 +262,10 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var addRoutes []*RouteDescription
 		for _, route := range routes {
-			route.SetOverwrites(service.Routes)
 			addRoutes = append(addRoutes, route)
 		}
 
-		h.router.Services[fileProps.ServiceName].Routes = append(
-			h.router.Services[fileProps.ServiceName].Routes, addRoutes...)
+		h.router.Services[fileProps.ServiceName].AddRoutes(addRoutes)
 	}
 
 	if isOpenAPI {
@@ -278,7 +282,7 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 	}
 	service := h.router.Services[name]
 	if service == nil {
-		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
+		h.error(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
@@ -308,26 +312,21 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if service == nil {
-		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
+		h.error(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
+	// TODO(cubahno): handle multiple spec files in the UI
 	openAPIFiles := service.OpenAPIFiles
-	if len(openAPIFiles) == 0 {
-		NewAPIJSONResponse(http.StatusNotFound, "No Spec files attached", w)
+	if len(openAPIFiles) == 0 || openAPIFiles[0] == nil {
+		h.error(http.StatusNotFound, "No Spec files attached", w)
 		return
 	}
 
-	// TODO(igor): handle multiple spec files in the UI
 	fileProps := openAPIFiles[0]
-	if fileProps == nil {
-		NewAPIJSONResponse(http.StatusNotFound, "Service spec not found", w)
-		return
-	}
-
 	content, err := os.ReadFile(fileProps.FilePath)
 	if err != nil {
-		NewAPIJSONResponse(http.StatusInternalServerError, NewErrorMessage(err), w)
+		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
 

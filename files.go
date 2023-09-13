@@ -2,7 +2,6 @@ package connexions
 
 import (
 	"archive/zip"
-	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
@@ -97,25 +96,13 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 		return nil, nil
 	}
 
-	reader := bufio.NewReader(file)
-	buff := bytes.NewBuffer(make([]byte, 0))
-	part := make([]byte, 1024)
-	count := 0
-	var err error
-
-	for {
-		if count, err = reader.Read(part); err != nil {
-			break
-		}
-		buff.Write(part[:count])
-	}
-
-	if err != io.EOF {
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, file); err != nil {
 		return nil, err
 	}
 
 	return &UploadedFile{
-		Content:   buff.Bytes(),
+		Content:   buf.Bytes(),
 		Filename:  header.Filename,
 		Extension: filepath.Ext(header.Filename),
 		Size:      header.Size,
