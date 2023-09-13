@@ -580,7 +580,7 @@ func TestGenerateQuery(t *testing.T) {
 		}
 		res := GenerateQuery(valueResolver, params)
 
-		// TODO(igor): fix order of query params
+		// TODO(cubahno): fix order of query params
 		assert.Contains([]string{"id=123&file-id=foo", "file-id=foo&id=123"}, res)
 	})
 

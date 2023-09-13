@@ -118,7 +118,7 @@ export const generateResult = (service, ix, path, method) => {
 
     const onDone = () => {
         config.generatorCont.style.display = 'block';
-        config.resourceRefreshBtn.onclick = () => generateResult(service, ix);
+        config.resourceRefreshBtn.onclick = () => generateResult(service, ix, path, method);
         config.resourceRefreshBtn.style.display = 'block';
     }
     commons.hideMessage();

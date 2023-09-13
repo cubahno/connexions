@@ -318,7 +318,7 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 
 	// fast track with value and correctly resolved type
 	if valueResolver != nil && len(state.NamePath) > 0 {
-		// TODO(igor): remove IsCorrectlyReplacedType, resolver should do it.
+		// TODO(cubahno): remove IsCorrectlyReplacedType, resolver should do it.
 		if res := valueResolver(schema, state); res != nil && IsCorrectlyReplacedType(res, schema.Type) {
 			return res
 		}

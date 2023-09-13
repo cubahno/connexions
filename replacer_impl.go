@@ -18,7 +18,7 @@ const (
 )
 
 func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
-	// TODO(igor): check how to handle other content schemas
+	// TODO(cubahno): check how to handle other content schemas
 	if ctx.Schema == nil {
 		return true
 	}

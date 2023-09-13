@@ -416,12 +416,7 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
-		name = ""
-	}
-
-	service := h.router.Services[name]
+	service := h.getService(r)
 	if service == nil {
 		h.error(404, "Service not found", w)
 		return
@@ -432,9 +427,9 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delete(h.router.Services, name)
+	delete(h.router.Services, service.Name)
 
-	h.success(fmt.Sprintf("Service %s deleted!", name), w)
+	h.success(fmt.Sprintf("Service %s deleted!", service.Name), w)
 }
 
 func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
@@ -559,7 +554,7 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 		return nil, ErrInvalidURLResource
 	}
 
-	// TODO(igor): check if doesn't match ui route
+	// TODO(cubahno): check if doesn't match ui route
 	if service == "" && path == "" {
 		return nil, ErrInvalidURLResource
 	}
