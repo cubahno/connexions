@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -44,8 +45,12 @@ func NewRouter(config *Config) *Router {
 
 func GetJSONPayload[T any](req *http.Request) (*T, error) {
 	var payload T
-	err := json.NewDecoder(req.Body).Decode(&payload)
-	if err != nil {
+	// if len(req.Body) == 0 {
+	// 	return &payload, nil
+	// }
+	dec := json.NewDecoder(req.Body)
+	err := dec.Decode(&payload)
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 

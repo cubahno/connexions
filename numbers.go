@@ -2,6 +2,7 @@ package connexions
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 )
 
@@ -17,11 +18,16 @@ func IsNumber(value interface{}) bool {
 }
 
 func IsInteger(value interface{}) bool {
-	switch value.(type) {
+	switch v := value.(type) {
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64:
 		return true
+	case float32:
+		return v == float32(math.Trunc(float64(v)))
+	case float64:
+		return value == math.Trunc(v)
 	default:
+
 		return false
 	}
 }

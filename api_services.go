@@ -106,6 +106,11 @@ type ServicePayload struct {
 	File        *UploadedFile `json:"file"`
 }
 
+type GenerateResponse struct {
+	Request  *Request  `json:"request"`
+	Response *Response `json:"response"`
+}
+
 const (
 	OpenAPIRouteType = "openapi"
 	FixedRouteType   = "fixed"
@@ -276,11 +281,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
-		name = ""
-	}
-	service := h.router.Services[name]
+	service := h.getService(r)
 	if service == nil {
 		h.error(http.StatusNotFound, "Service not found", w)
 		return
@@ -305,12 +306,7 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-	service := h.router.Services[name]
-	if name == RootServiceName {
-		name = ""
-	}
-
+	service := h.getService(r)
 	if service == nil {
 		h.error(http.StatusNotFound, "Service not found", w)
 		return
@@ -334,32 +330,21 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
-	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
-	if err != nil {
-		NewAPIJSONResponse(http.StatusBadRequest, NewErrorMessage(err), w)
-		return
-	}
-
-	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
-		name = ""
-	}
-
-	service := h.router.Services[name]
+	service := h.getService(r)
 	if service == nil {
-		NewAPIJSONResponse(http.StatusNotFound, "Service not found", w)
+		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrServiceNotFound), w)
 		return
 	}
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		h.error(400, "Invalid resource id", w)
+	if err != nil || (ix < 0 || ix >= len(service.Routes)) {
+		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
 		return
 	}
 
-	isValidIx := ix >= 0 && ix < len(service.Routes)
-	if !isValidIx {
-		h.error(404, "Resource not found", w)
+	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
+	if err != nil {
+		NewAPIJSONResponse(http.StatusBadRequest, NewErrorMessage(err), w)
 		return
 	}
 
@@ -367,9 +352,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	fileProps := rd.File
 
 	config := h.router.Config
-	serviceCfg := config.GetServiceConfig(name)
+	serviceCfg := config.GetServiceConfig(service.Name)
 
-	res := map[string]any{}
+	res := &GenerateResponse{}
 
 	if fileProps == nil {
 		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
@@ -384,7 +369,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	contexts := CollectContexts(serviceCtxs, h.router.Contexts, payload.Replacements)
 
 	replaceResource := &Resource{
-		Service:           name,
+		Service:           service.Name,
 		Path:              rd.Path,
 		ContextData:       contexts,
 		ContextAreaPrefix: config.App.ContextAreaPrefix,
@@ -395,12 +380,12 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !fileProps.IsOpenAPI {
-		res["request"] = newRequestFromFixedResource(
+		res.Request = newRequestFromFixedResource(
 			fileProps.Prefix+fileProps.Resource,
 			fileProps.Method,
 			fileProps.ContentType,
 			valueReplacer)
-		res["response"] = newResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		res.Response = newResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		NewAPIJSONResponse(http.StatusOK, res, w)
 		return
@@ -408,19 +393,21 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 
 	spec := fileProps.Spec
 	operation := spec.FindOperation(&FindOperationOptions{
-		Service:  name,
+		Service:  service.Name,
 		Resource: rd.Path,
 		Method:   strings.ToUpper(rd.Method),
 	})
+
 	if operation == nil {
 		NewAPIJSONResponse(http.StatusMethodNotAllowed, NewErrorMessage(ErrResourceMethodNotFound), w)
+		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
 	req := NewRequestFromOperation(fileProps.Prefix, rd.Path, rd.Method, operation, valueReplacer)
 
-	res["request"] = req
-	res["response"] = NewResponseFromOperation(operation, valueReplacer)
+	res.Request = req
+	res.Response = NewResponseFromOperation(operation, valueReplacer)
 
 	NewAPIJSONResponse(http.StatusOK, res, w)
 }
@@ -454,12 +441,7 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
-		name = ""
-	}
-
-	service := h.router.Services[name]
+	service := h.getService(r)
 	if service == nil {
 		h.error(404, "Service not found", w)
 		return
@@ -508,12 +490,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
-		name = ""
-	}
-
-	service := h.router.Services[name]
+	service := h.getService(r)
 	if service == nil {
 		h.error(404, "Service not found", w)
 		return
@@ -540,6 +517,18 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
 
 	h.success(fmt.Sprintf("Resource %s deleted!", rd.Path), w)
+}
+
+func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	name := chi.URLParam(r, "name")
+	if name == RootServiceName {
+		name = ""
+	}
+
+	return h.router.Services[name]
 }
 
 type ServiceDescription struct {

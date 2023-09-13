@@ -53,6 +53,8 @@ func TestIsInteger(t *testing.T) {
 		{uint16(65535), true},
 		{uint32(4294967295), true},
 		{uint64(18446744073709551615), true},
+		{float32(3), true},
+		{float64(3), true},
 		{float32(3.14), false},
 		{float64(math.Pi), false},
 		{"hello", false},

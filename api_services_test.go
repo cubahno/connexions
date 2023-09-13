@@ -2,6 +2,8 @@ package connexions
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
 	"mime/multipart"
 	"net/http"
@@ -603,4 +605,338 @@ func TestServiceHandler_spec_happyPath(t *testing.T) {
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("text/plain", w.Header().Get("Content-Type"))
 	assert.True(strings.HasPrefix(resp, `openapi: "3.0.0"`))
+}
+
+func TestServiceHandler_generate_unknownService(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	req := httptest.NewRequest("POST", "/.services/"+RootServiceName+"/0", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
+	assert.Equal(http.StatusNotFound, w.Code)
+	assert.Equal(ErrServiceNotFound.Error(), resp.Message)
+}
+
+func TestServiceHandler_generate_invalidIndex(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+		},
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	req := httptest.NewRequest("POST", "/.services/petstore/x", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
+	assert.Equal(http.StatusNotFound, w.Code)
+	assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+}
+
+func TestServiceHandler_generate_invalidPayload(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodGet,
+					Path:   "/pets",
+					Type:   OpenAPIRouteType,
+				},
+			},
+		},
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	payload := strings.NewReader(`{"replacements": 1}`)
+
+	req := httptest.NewRequest("POST", "/.services/petstore/0", payload)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
+	assert.Equal(http.StatusBadRequest, w.Code)
+	assert.True(strings.HasPrefix(resp.Message, "json: cannot unmarshal number into Go struct field"))
+}
+
+func TestServiceHandler_generate_fileNotFound(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodGet,
+					Path:   "/pets",
+					Type:   OpenAPIRouteType,
+				},
+			},
+		},
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
+	assert.Equal(http.StatusNotFound, w.Code)
+	assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+}
+
+func TestServiceHandler_generate_methodNotAllowed(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
+	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+	assert.Nil(err)
+	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	assert.Nil(err)
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodOptions,
+					Path:   "/pets",
+					Type:   OpenAPIRouteType,
+					File:   file,
+				},
+			},
+		},
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
+	assert.Equal(http.StatusMethodNotAllowed, w.Code)
+	assert.Equal(ErrResourceMethodNotFound.Error(), resp.Message)
+}
+
+func TestServiceHandler_generate_openAPI(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
+	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+	assert.Nil(err)
+	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	assert.Nil(err)
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodPost,
+					Path:   "/pets",
+					Type:   OpenAPIRouteType,
+					File:   file,
+				},
+			},
+		},
+	}
+	router.Config.Services["petstore"].Contexts = nil
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	replacements := map[string]any{
+		"limit":  100,
+		"offset": 2,
+		"tag":    "Hund",
+		"name":   "Hans",
+		"id":     10,
+	}
+	replJs, _ := json.Marshal(replacements)
+	payload := strings.NewReader(fmt.Sprintf(`{"replacements": %s}`, replJs))
+
+	req := httptest.NewRequest("POST", "/.services/petstore/0", payload)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	expected := &GenerateResponse{
+		Request: &Request{
+			Method:      http.MethodPost,
+			Path:        "/petstore/pets",
+			Body:        `{"tag":"Hund","name":"Hans"}`,
+			ContentType: "application/json",
+			Query:       "",
+			Examples: &ContentExample{
+				CURL: `--data-raw '{"name":"Hans","tag":"Hund"}'`,
+			},
+		},
+		Response: &Response{
+			Content:     []byte(`{"id":10,"name":"Hans","tag":"Hund"}`),
+			ContentType: "application/json",
+			StatusCode:  http.StatusOK,
+			Headers: http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+		},
+	}
+
+	resp := *UnmarshallResponse[GenerateResponse](t, w.Body)
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/json", w.Header().Get("Content-Type"))
+
+	assert.Equal(expected.Request.Method, resp.Request.Method)
+	assert.Equal(expected.Request.Path, resp.Request.Path)
+	assert.Equal(expected.Request.ContentType, resp.Request.ContentType)
+	assert.Equal(expected.Request.Query, resp.Request.Query)
+
+	assert.Equal(expected.Response.Content, resp.Response.Content)
+	assert.Equal(expected.Response.ContentType, resp.Response.ContentType)
+	assert.Equal(expected.Response.StatusCode, resp.Response.StatusCode)
+	assert.Equal(expected.Response.Headers, resp.Response.Headers)
+
+	reqBody := make(map[string]any)
+	_ = json.Unmarshal([]byte(resp.Request.Body), &reqBody)
+	assert.Equal(map[string]any{
+		"name": "Hans",
+		"tag":  "Hund",
+	}, reqBody)
+
+	respBody := make(map[string]any)
+	_ = json.Unmarshal(resp.Response.Content, &respBody)
+	assert.Equal(map[string]any{
+		"id":   float64(10),
+		"name": "Hans",
+		"tag":  "Hund",
+	}, respBody)
+}
+
+func TestServiceHandler_generate_fixed(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
+	err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	assert.Nil(err)
+	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	assert.Nil(err)
+	if err != nil {
+		t.FailNow()
+	}
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodPost,
+					Path:   "/pets",
+					Type:   FixedRouteType,
+					File:   file,
+				},
+			},
+		},
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	expected := &GenerateResponse{
+		Request: &Request{
+			Method:      http.MethodPost,
+			Path:        "/petstore/pets",
+			ContentType: "application/json",
+		},
+		Response: &Response{
+			Content:     []byte(`{"id":1,"name":"Bulbasaur","tag":"beedrill"}`),
+			ContentType: "application/json",
+			StatusCode:  http.StatusOK,
+			Headers: http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+		},
+	}
+
+	resp := *UnmarshallResponse[GenerateResponse](t, w.Body)
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/json", w.Header().Get("Content-Type"))
+
+	assert.Equal(expected.Request.Method, resp.Request.Method)
+	assert.Equal(expected.Request.Path, resp.Request.Path)
+	assert.Equal(expected.Request.ContentType, resp.Request.ContentType)
+	assert.Equal(expected.Request.Query, resp.Request.Query)
+
+	assert.Equal(expected.Response.ContentType, resp.Response.ContentType)
+	assert.Equal(expected.Response.StatusCode, resp.Response.StatusCode)
+	assert.Equal(expected.Response.Headers, resp.Response.Headers)
+
+	respBody := make(map[string]any)
+	_ = json.Unmarshal(resp.Response.Content, &respBody)
+	assert.Equal(map[string]any{
+		"id":   float64(1),
+		"name": "Bulbasaur",
+		"tag":  "beedrill",
+	}, respBody)
 }

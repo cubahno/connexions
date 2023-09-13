@@ -17,7 +17,7 @@ func TestCreateSettingsRoutes_Disabled(t *testing.T) {
 	router, _ := SetupApp(t.TempDir())
 	router.Config.App.DisableUI = true
 
-	CreateSettingsRoutes(router)
+	_ = CreateSettingsRoutes(router)
 	assert.Equal(0, len(router.Mux.Routes()))
 }
 
