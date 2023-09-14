@@ -9,24 +9,24 @@ import (
 type BaseHandler struct {
 }
 
-func (h *BaseHandler) SimpleResponse(w http.ResponseWriter) *SimpleResponse {
-	return &SimpleResponse{
-		w: w,
-	}
-}
-
 func (h *BaseHandler) JSONResponse(w http.ResponseWriter) *JSONResponse {
 	return &JSONResponse{
-		w: w,
+		&BaseResponse{w: w},
 	}
 }
 
 func (h *BaseHandler) success(message string, w http.ResponseWriter) {
-	h.SimpleResponse(w).WithMessage(message).WithSuccess(true).Send()
+	h.JSONResponse(w).Send(&SimpleResponse{
+		Message: message,
+		Success: true,
+	})
 }
 
 func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
-	h.SimpleResponse(w).WithMessage(message).WithStatusCode(code).WithSuccess(false).Send()
+	h.JSONResponse(w).WithStatusCode(code).Send(&SimpleResponse{
+		Message: message,
+		Success:false,
+	})
 }
 
 func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
@@ -45,7 +45,7 @@ func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool
 
 	err := errConfig.GetError()
 	if err != 0 {
-		NewAPIResponse(err, []byte("Random config error"), w)
+		NewAPIResponse(w).WithStatusCode(err).Send([]byte("Random config error"))
 		return true
 	}
 

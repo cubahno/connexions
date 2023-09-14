@@ -269,7 +269,10 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		h.SimpleResponse(w).WithError(ErrServiceNotFound).WithStatusCode(http.StatusNotFound).Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{
+			Message: ErrServiceNotFound.Error(),
+			Success: false,
+		})
 		return
 	}
 
@@ -291,13 +294,19 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	for _, targetDir := range targets {
 		err := os.RemoveAll(targetDir)
 		if err != nil {
-			h.SimpleResponse(w).WithError(err).WithStatusCode(http.StatusInternalServerError).Send()
+			h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
+				Message: err.Error(),
+				Success: false,
+			})
 			return
 		}
 	}
 
 	delete(h.router.Services, service.Name)
-	h.SimpleResponse(w).WithMessage("Service deleted!").Send()
+	h.JSONResponse(w).Send(&SimpleResponse{
+		Message: "Service deleted!",
+		Success: true,
+	})
 }
 
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
@@ -321,7 +330,7 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NewAPIResponse(http.StatusOK, content, w, SetAPIResponseContentType("text/plain"))
+	NewAPIResponse(w).WithHeader("content-type", "text/plain").Send(content)
 }
 
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
@@ -410,12 +419,18 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 // getResource returns the resource contents for editing.
 // Only fixed resources are allowed to be edited since they represent single resource in comparison to OpemAPI spec.
 func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
-	svcNotFound := h.SimpleResponse(w).WithError(ErrServiceNotFound).WithStatusCode(http.StatusNotFound)
-	resNotFound := h.SimpleResponse(w).WithError(ErrResourceNotFound).WithStatusCode(http.StatusNotFound)
+	svcErr := &SimpleResponse{
+		Message: ErrServiceNotFound.Error(),
+		Success: false,
+	}
+	resErr := &SimpleResponse{
+		Message: ErrResourceNotFound.Error(),
+		Success: false,
+	}
 
 	service := h.getService(r)
 	if service == nil {
-		svcNotFound.Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(svcErr)
 		return
 	}
 
@@ -427,43 +442,53 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 		(ix < 0 || ix >= len(service.Routes)) ||
 		service.Routes[ix] == nil ||
 		service.Routes[ix].File == nil {
-		resNotFound.Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(resErr)
 		return
 	}
 
 	rd := service.Routes[ix]
 	if rd.Type != FixedRouteType {
-		h.SimpleResponse(w).WithError(ErrOnlyFixedResourcesAllowedEditing).WithStatusCode(http.StatusBadRequest).Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
+			Message: ErrOnlyFixedResourcesAllowedEditing.Error(),
+			Success: false,
+		})
 		return
 	}
 
 	content, err := os.ReadFile(rd.File.FilePath)
 	if err != nil {
-		h.SimpleResponse(w).WithError(err).WithStatusCode(http.StatusInternalServerError).Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
+			Message: err.Error(),
+			Success: false,
+		})
 		return
 	}
 
-	res := &ResourceResponse{
+	h.JSONResponse(w).Send(&ResourceResponse{
 		Method:      rd.Method,
 		Path:        rd.File.Prefix + rd.File.Resource,
 		Extension:   strings.TrimPrefix(rd.File.Extension, "."),
 		ContentType: rd.File.ContentType,
 		Content:     string(content),
-	}
-
-	h.JSONResponse(w).Send(res)
+	})
 }
 
 func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		h.SimpleResponse(w).WithError(ErrServiceNotFound).WithStatusCode(http.StatusNotFound).Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{
+			Message: ErrServiceNotFound.Error(),
+			Success: false,
+		})
 		return
 	}
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || (ix < 0 || ix >= len(service.Routes)) {
-		h.SimpleResponse(w).WithError(ErrResourceNotFound).WithStatusCode(http.StatusNotFound).Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{
+			Message: ErrResourceNotFound.Error(),
+			Success: false,
+		})
 		return
 	}
 
@@ -472,20 +497,29 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 
 	rd := service.Routes[ix]
 	if rd.Type != FixedRouteType {
-		h.SimpleResponse(w).WithError(ErrOnlyFixedResourcesAllowedEditing).WithStatusCode(http.StatusBadRequest).Send()
+		h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
+			Message: ErrOnlyFixedResourcesAllowedEditing.Error(),
+			Success: false,
+		})
 		return
 	}
 
 	if rd.File != nil && rd.File.FilePath != "" {
 		if err = os.Remove(rd.File.FilePath); err != nil {
-			h.SimpleResponse(w).WithError(err).WithStatusCode(http.StatusInternalServerError).Send()
+			h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
+				Message: err.Error(),
+				Success: false,
+			})
 			return
 		}
 	}
 
 	service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
 
-	h.SimpleResponse(w).WithMessage("Resource deleted!").Send()
+	h.JSONResponse(w).Send(&SimpleResponse{
+		Message: "Resource deleted!",
+		Success: true,
+	})
 }
 
 func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {

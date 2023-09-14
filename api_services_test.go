@@ -509,7 +509,9 @@ func TestServiceHandler_deleteService_errors(t *testing.T) {
 
 	t.Run("error-removing-dir", func(t *testing.T) {
 		fileDir := filepath.Join(router.Config.App.Paths.Services, "petstore")
-		_ = os.Chmod(fileDir, 0400)
+		err = os.Chmod(fileDir, 0400)
+		assert.Nil(err)
+
 		filePath := filepath.Join(fileDir, "get", "pets", "index.json")
 		router.Services = map[string]*ServiceItem{
 			"petstore": {
