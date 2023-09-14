@@ -6,33 +6,27 @@ import (
 	"time"
 )
 
-type SimpleResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-}
-
 type BaseHandler struct {
 }
 
+func (h *BaseHandler) SimpleResponse(w http.ResponseWriter) *SimpleResponse {
+	return &SimpleResponse{
+		w: w,
+	}
+}
+
+func (h *BaseHandler) JSONResponse(w http.ResponseWriter) *JSONResponse {
+	return &JSONResponse{
+		w: w,
+	}
+}
+
 func (h *BaseHandler) success(message string, w http.ResponseWriter) {
-	NewAPIJSONResponse(http.StatusOK, SimpleResponse{
-		Success: true,
-		Message: message,
-	}, w)
+	h.SimpleResponse(w).WithMessage(message).WithSuccess(true).Send()
 }
 
 func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
-	NewAPIJSONResponse(code, SimpleResponse{
-		Success: false,
-		Message: message,
-	}, w)
-}
-
-func (h *BaseHandler) fromError(code int, message error, w http.ResponseWriter) {
-	NewAPIJSONResponse(code, SimpleResponse{
-		Success: false,
-		Message: message.Error(),
-	}, w)
+	h.SimpleResponse(w).WithMessage(message).WithStatusCode(code).WithSuccess(false).Send()
 }
 
 func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {

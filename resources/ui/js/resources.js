@@ -79,7 +79,7 @@ export const show = match => {
                     rmCell.title = `Remove resource ${method} ${path}`;
                     rmCell.onclick = () => {
                         if (confirm(`Are you sure you want to remove resource ${method} ${path}?\nAll files will be deleted!`)) {
-                            fetch(`${config.serviceUrl}/${service}/resources/${num-1}`, {
+                            fetch(`${config.serviceUrl}/${service}/${num-1}`, {
                                 method: 'DELETE'
                             })
                                 .then(res => res.json())
@@ -222,7 +222,7 @@ const edit = (service, ix) => {
     const editor = commons.getEditorForm(`res-selected-text-response`, `res-response-content-type`);
 
     cont.style.display = 'block';
-    fetch(`${config.serviceUrl}/${service}/resources/${ix}`)
+    fetch(`${config.serviceUrl}/${service}/${ix}`)
         .then(res => res.json())
         .then(res => {
             document.getElementById(`res-endpoint-path`).value = res.path;

@@ -1,7 +1,6 @@
 package connexions
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -29,13 +28,13 @@ func CreateServiceRoutes(router *Router) error {
 		r.Get("/", handler.list)
 		r.Post("/", handler.save)
 		r.Get("/{name}", handler.resources)
+		r.Delete("/{name}", handler.deleteService)
 		if !router.Config.App.DisableSwaggerUI {
 			r.Get("/{name}/spec", handler.spec)
 		}
 		r.Post("/{name}/{id}", handler.generate)
-		r.Delete("/{name}", handler.deleteService)
-		r.Get("/{name}/resources/{id}", handler.getResource)
-		r.Delete("/{name}/resources/{id}", handler.deleteResource)
+		r.Get("/{name}/{id}", handler.getResource)
+		r.Delete("/{name}/{id}", handler.deleteResource)
 	})
 
 	return nil
@@ -91,26 +90,6 @@ func (i *ServiceItem) AddRoutes(routes RouteDescriptions) {
 	i.Routes = append(i.Routes, routes...)
 }
 
-type ServiceItemResponse struct {
-	Name             string   `json:"name"`
-	OpenAPIResources []string `json:"openApiResources"`
-}
-
-type ServicePayload struct {
-	Name        string        `json:"name"`
-	IsOpenAPI   bool          `json:"isOpenApi"`
-	Method      string        `json:"method"`
-	Path        string        `json:"path"`
-	Response    []byte        `json:"response"`
-	ContentType string        `json:"contentType"`
-	File        *UploadedFile `json:"file"`
-}
-
-type GenerateResponse struct {
-	Request  *Request  `json:"request"`
-	Response *Response `json:"response"`
-}
-
 const (
 	OpenAPIRouteType = "openapi"
 	FixedRouteType   = "fixed"
@@ -159,20 +138,6 @@ func (rs RouteDescriptions) Sort() {
 	})
 }
 
-type ServiceListResponse struct {
-	Items []*ServiceItemResponse `json:"items"`
-}
-
-type ServiceEmbedded struct {
-	Name string `json:"name"`
-}
-
-type ServiceResourcesResponse struct {
-	Service          *ServiceEmbedded  `json:"service"`
-	Endpoints        RouteDescriptions `json:"endpoints"`
-	OpenAPISpecNames []string          `json:"openapiSpecNames"`
-}
-
 type ServiceHandler struct {
 	*BaseHandler
 	router *Router
@@ -204,7 +169,7 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 		Items: items,
 	}
 
-	NewAPIJSONResponse(http.StatusOK, res, w)
+	h.JSONResponse(w).Send(res)
 }
 
 func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
@@ -244,11 +209,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	var routes RouteDescriptions
 
 	if isOpenAPI {
-		routes, err = RegisterOpenAPIRoutes(fileProps, h.router)
-		if err != nil {
-			h.error(http.StatusBadRequest, err.Error(), w)
-			return
-		}
+		routes = RegisterOpenAPIRoutes(fileProps, h.router)
 	} else {
 		route := registerFixedService(fileProps, h.router)
 		routes = RouteDescriptions{route}
@@ -302,7 +263,41 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	NewAPIJSONResponse(http.StatusOK, res, w)
+	h.JSONResponse(w).Send(res)
+}
+
+func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
+	service := h.getService(r)
+	if service == nil {
+		h.SimpleResponse(w).WithError(ErrServiceNotFound).WithStatusCode(http.StatusNotFound).Send()
+		return
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	var targets []string
+	paths := h.router.Config.App.Paths
+	name := service.Name
+	if name == "" {
+		targets = append(targets, paths.ServicesOpenAPI)
+		targets = append(targets, paths.ServicesFixedRoot)
+	}
+
+	for _, route := range service.Routes {
+		targets = append(targets, route.File.FilePath)
+	}
+
+	for _, targetDir := range targets {
+		err := os.RemoveAll(targetDir)
+		if err != nil {
+			h.SimpleResponse(w).WithError(err).WithStatusCode(http.StatusInternalServerError).Send()
+			return
+		}
+	}
+
+	delete(h.router.Services, service.Name)
+	h.SimpleResponse(w).WithMessage("Service deleted!").Send()
 }
 
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
@@ -332,19 +327,19 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrServiceNotFound), w)
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(NewErrorMessage(ErrServiceNotFound))
 		return
 	}
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || (ix < 0 || ix >= len(service.Routes)) {
-		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(NewErrorMessage(ErrResourceNotFound))
 		return
 	}
 
 	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
 	if err != nil {
-		NewAPIJSONResponse(http.StatusBadRequest, NewErrorMessage(err), w)
+		h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(NewErrorMessage(err))
 		return
 	}
 
@@ -357,7 +352,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res := &GenerateResponse{}
 
 	if fileProps == nil {
-		NewAPIJSONResponse(http.StatusNotFound, NewErrorMessage(ErrResourceNotFound), w)
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(NewErrorMessage(ErrResourceNotFound))
 		return
 	}
 
@@ -387,7 +382,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 			valueReplacer)
 		res.Response = newResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
-		NewAPIJSONResponse(http.StatusOK, res, w)
+		h.JSONResponse(w).Send(res)
 		return
 	}
 
@@ -399,7 +394,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if operation == nil {
-		NewAPIJSONResponse(http.StatusMethodNotAllowed, NewErrorMessage(ErrResourceMethodNotFound), w)
+		h.JSONResponse(w).WithStatusCode(http.StatusMethodNotAllowed).Send(NewErrorMessage(ErrResourceMethodNotFound))
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
@@ -409,109 +404,88 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res.Request = req
 	res.Response = NewResponseFromOperation(operation, valueReplacer)
 
-	NewAPIJSONResponse(http.StatusOK, res, w)
+	h.JSONResponse(w).Send(res)
 }
 
-func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	service := h.getService(r)
-	if service == nil {
-		h.error(404, "Service not found", w)
-		return
-	}
-
-	if err := deleteService(service, h.router.Config.App.Paths); err != nil {
-		h.error(500, err.Error(), w)
-		return
-	}
-
-	delete(h.router.Services, service.Name)
-
-	h.success(fmt.Sprintf("Service %s deleted!", service.Name), w)
-}
-
+// getResource returns the resource contents for editing.
+// Only fixed resources are allowed to be edited since they represent single resource in comparison to OpemAPI spec.
 func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	svcNotFound := h.SimpleResponse(w).WithError(ErrServiceNotFound).WithStatusCode(http.StatusNotFound)
+	resNotFound := h.SimpleResponse(w).WithError(ErrResourceNotFound).WithStatusCode(http.StatusNotFound)
 
 	service := h.getService(r)
 	if service == nil {
-		h.error(404, "Service not found", w)
+		svcNotFound.Send()
 		return
 	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		h.error(400, "Invalid resource id", w)
-		return
-	}
-
-	isValidIx := ix >= 0 && ix < len(service.Routes)
-	if !isValidIx {
-		h.error(404, "Resource not found", w)
+	if err != nil ||
+		(ix < 0 || ix >= len(service.Routes)) ||
+		service.Routes[ix] == nil ||
+		service.Routes[ix].File == nil {
+		resNotFound.Send()
 		return
 	}
 
 	rd := service.Routes[ix]
-
-	if rd == nil {
-		h.error(404, "Resource not found", w)
-		return
-	}
-
-	if rd.File == nil {
-		h.error(404, "Resource file not found", w)
+	if rd.Type != FixedRouteType {
+		h.SimpleResponse(w).WithError(ErrOnlyFixedResourcesAllowedEditing).WithStatusCode(http.StatusBadRequest).Send()
 		return
 	}
 
 	content, err := os.ReadFile(rd.File.FilePath)
 	if err != nil {
-		h.error(500, err.Error(), w)
+		h.SimpleResponse(w).WithError(err).WithStatusCode(http.StatusInternalServerError).Send()
 		return
 	}
 
-	res := make(map[string]any)
-	res["method"] = rd.Method
-	res["path"] = rd.File.Prefix + rd.File.Resource
-	res["extension"] = strings.TrimPrefix(rd.File.Extension, ".")
-	res["contentType"] = rd.File.ContentType
-	res["content"] = string(content)
-	NewAPIJSONResponse(http.StatusOK, res, w)
+	res := &ResourceResponse{
+		Method:      rd.Method,
+		Path:        rd.File.Prefix + rd.File.Resource,
+		Extension:   strings.TrimPrefix(rd.File.Extension, "."),
+		ContentType: rd.File.ContentType,
+		Content:     string(content),
+	}
+
+	h.JSONResponse(w).Send(res)
 }
 
 func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	service := h.getService(r)
 	if service == nil {
-		h.error(404, "Service not found", w)
+		h.SimpleResponse(w).WithError(ErrServiceNotFound).WithStatusCode(http.StatusNotFound).Send()
 		return
 	}
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		h.error(400, "Invalid resource id", w)
+	if err != nil || (ix < 0 || ix >= len(service.Routes)) {
+		h.SimpleResponse(w).WithError(ErrResourceNotFound).WithStatusCode(http.StatusNotFound).Send()
 		return
 	}
 
-	isValidIx := ix >= 0 && ix < len(service.Routes)
-	if !isValidIx {
-		h.error(404, "Resource not found", w)
-		return
-	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	rd := service.Routes[ix]
-
-	if err := os.Remove(rd.File.FilePath); err != nil {
-		h.error(500, err.Error(), w)
+	if rd.Type != FixedRouteType {
+		h.SimpleResponse(w).WithError(ErrOnlyFixedResourcesAllowedEditing).WithStatusCode(http.StatusBadRequest).Send()
 		return
 	}
+
+	if rd.File != nil && rd.File.FilePath != "" {
+		if err = os.Remove(rd.File.FilePath); err != nil {
+			h.SimpleResponse(w).WithError(err).WithStatusCode(http.StatusInternalServerError).Send()
+			return
+		}
+	}
+
 	service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
 
-	h.success(fmt.Sprintf("Resource %s deleted!", rd.Path), w)
+	h.SimpleResponse(w).WithMessage("Resource deleted!").Send()
 }
 
 func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
@@ -551,11 +525,6 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	}
 
 	if !IsValidURLResource(path) {
-		return nil, ErrInvalidURLResource
-	}
-
-	// TODO(cubahno): check if doesn't match ui route
-	if service == "" && path == "" {
 		return nil, ErrInvalidURLResource
 	}
 
@@ -600,6 +569,7 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 		_ = os.RemoveAll(filePath)
 		return nil, err
 	}
+
 	if !prefixValidator(fileProps.Prefix) || !prefixValidator(path) {
 		_ = os.RemoveAll(filePath)
 		return nil, ErrReservedPrefix
@@ -608,25 +578,44 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	return fileProps, nil
 }
 
-func deleteService(service *ServiceItem, paths *Paths) error {
-	var targets []string
+type ServiceItemResponse struct {
+	Name             string   `json:"name"`
+	OpenAPIResources []string `json:"openApiResources"`
+}
 
-	name := service.Name
-	if name == "" {
-		targets = append(targets, paths.ServicesOpenAPI)
-		targets = append(targets, paths.ServicesFixedRoot)
-	}
+type ServicePayload struct {
+	Name        string        `json:"name"`
+	IsOpenAPI   bool          `json:"isOpenApi"`
+	Method      string        `json:"method"`
+	Path        string        `json:"path"`
+	Response    []byte        `json:"response"`
+	ContentType string        `json:"contentType"`
+	File        *UploadedFile `json:"file"`
+}
 
-	for _, route := range service.Routes {
-		targets = append(targets, route.File.FilePath)
-	}
+type GenerateResponse struct {
+	Request  *Request  `json:"request"`
+	Response *Response `json:"response"`
+}
 
-	for _, targetDir := range targets {
-		err := os.RemoveAll(targetDir)
-		if err != nil {
-			return err
-		}
-	}
+type ServiceListResponse struct {
+	Items []*ServiceItemResponse `json:"items"`
+}
 
-	return nil
+type ServiceEmbedded struct {
+	Name string `json:"name"`
+}
+
+type ServiceResourcesResponse struct {
+	Service          *ServiceEmbedded  `json:"service"`
+	Endpoints        RouteDescriptions `json:"endpoints"`
+	OpenAPISpecNames []string          `json:"openapiSpecNames"`
+}
+
+type ResourceResponse struct {
+	Method      string `json:"method"`
+	Path        string `json:"path"`
+	Extension   string `json:"extension"`
+	ContentType string `json:"contentType"`
+	Content     string `json:"content"`
 }

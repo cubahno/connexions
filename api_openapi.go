@@ -14,15 +14,12 @@ type ResourceGeneratePayload struct {
 
 // RegisterOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
-func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) (RouteDescriptions, error) {
+func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescriptions {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
 	res := make(RouteDescriptions, 0)
 
 	doc := fileProps.Spec
-	if doc == nil {
-		return nil, ErrOpenAPISpecIsEmpty
-	}
 
 	handler := &OpenAPIHandler{
 		router:    router,
@@ -46,10 +43,11 @@ func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) (RouteDesc
 	}
 	res.Sort()
 
-	return res, nil
+	return res
 }
 
 type OpenAPIHandler struct {
+	*BaseHandler
 	router    *Router
 	spec      Document
 	fileProps *FileProperties
@@ -70,7 +68,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		Method:   r.Method,
 	})
 	if operation == nil {
-		NewAPIJSONResponse(http.StatusNotFound, ErrResourceNotFound, w)
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(ErrResourceNotFound)
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)

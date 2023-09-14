@@ -124,7 +124,7 @@ func TestServiceHandler_list(t *testing.T) {
 	AssertJSONEqual(t, expected, res)
 }
 
-func TestServiceHandler_save_formError(t *testing.T) {
+func TestServiceHandler_save_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -136,51 +136,42 @@ func TestServiceHandler_save_formError(t *testing.T) {
 	err = CreateServiceRoutes(router)
 	assert.Nil(err)
 
-	// serve
-	req := httptest.NewRequest("POST", "/.services", strings.NewReader("InvalidMultipartData"))
-	req.Header.Set("Content-Type", "multipart/form-data; boundary=invalidboundary")
-	w := httptest.NewRecorder()
+	t.Run("form-error", func(t *testing.T) {
+		// serve
+		req := httptest.NewRequest("POST", "/.services", strings.NewReader("InvalidMultipartData"))
+		req.Header.Set("Content-Type", "multipart/form-data; boundary=invalidboundary")
+		w := httptest.NewRecorder()
 
-	router.ServeHTTP(w, req)
+		router.ServeHTTP(w, req)
 
-	assert.Equal(400, w.Code)
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal("application/json", w.Header().Get("Content-Type"))
-	assert.Equal(false, resp["success"].(bool))
-	assert.Equal("multipart: NextPart: EOF", resp["message"].(string))
-}
+		assert.Equal(400, w.Code)
+		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp["success"].(bool))
+		assert.Equal("multipart: NextPart: EOF", resp["message"].(string))
+	})
 
-func TestServiceHandler_save_saveError(t *testing.T) {
-	assert := assert2.New(t)
+	t.Run("save-error", func(t *testing.T) {
+		// prepare payload
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
 
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
+		_ = writer.WriteField("name", "petstore")
+		_ = writer.WriteField("method", "X")
+		_ = writer.Close()
 
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
+		// serve
+		req := httptest.NewRequest("POST", "/.services", &body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
 
-	// prepare payload
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
+		router.ServeHTTP(w, req)
 
-	_ = writer.WriteField("name", "petstore")
-	_ = writer.WriteField("method", "X")
-	_ = writer.Close()
-
-	// serve
-	req := httptest.NewRequest("POST", "/.services", &body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal(400, w.Code)
-	assert.Equal(false, resp["success"].(bool))
-	assert.Equal("invalid HTTP verb", resp["message"].(string))
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(400, w.Code)
+		assert.Equal(false, resp.Success)
+		assert.Equal("invalid HTTP verb", resp.Message)
+	})
 }
 
 func TestServiceHandler_save_openAPI(t *testing.T) {
@@ -406,7 +397,7 @@ func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
 	AssertJSONEqual(t, expected, svc)
 }
 
-func TestServiceHandler_resources_unknownService(t *testing.T) {
+func TestServiceHandler_resources_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -418,15 +409,17 @@ func TestServiceHandler_resources_unknownService(t *testing.T) {
 	err = CreateServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("GET", "/.services/"+RootServiceName, nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	t.Run("unknown-service", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.services/"+RootServiceName, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal(http.StatusNotFound, w.Code)
-	assert.Equal("application/json", w.Header().Get("Content-Type"))
-	assert.Equal(false, resp["success"].(bool))
-	assert.Equal("Service not found", resp["message"].(string))
+		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp["success"].(bool))
+		assert.Equal("Service not found", resp["message"].(string))
+	})
 }
 
 func TestServiceHandler_resources(t *testing.T) {
@@ -437,6 +430,9 @@ func TestServiceHandler_resources(t *testing.T) {
 		t.Errorf("Error setting up app: %v", err)
 		t.FailNow()
 	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
 
 	routes := RouteDescriptions{
 		{
@@ -469,14 +465,11 @@ func TestServiceHandler_resources(t *testing.T) {
 		},
 	}
 
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
-
 	req := httptest.NewRequest("GET", "/.services/petstore", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	expected := ServiceResourcesResponse{
+	expected := &ServiceResourcesResponse{
 		Endpoints: routes,
 		Service: &ServiceEmbedded{
 			Name: "petstore",
@@ -484,13 +477,13 @@ func TestServiceHandler_resources(t *testing.T) {
 		OpenAPISpecNames: []string{"index-pets.yml"},
 	}
 
-	resp := *UnmarshallResponse[ServiceResourcesResponse](t, w.Body)
+	resp := UnmarshallResponse[ServiceResourcesResponse](t, w.Body)
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("application/json", w.Header().Get("Content-Type"))
 	assert.Equal(expected, resp)
 }
 
-func TestServiceHandler_spec_unknownService(t *testing.T) {
+func TestServiceHandler_deleteService_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -502,16 +495,51 @@ func TestServiceHandler_spec_unknownService(t *testing.T) {
 	err = CreateServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("GET", "/.services/"+RootServiceName+"/spec", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	t.Run("not-found", func(t *testing.T) {
+		req := httptest.NewRequest("DELETE", "/.services/x", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal(http.StatusNotFound, w.Code)
-	assert.Equal("Service not found", resp["message"].(string))
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrServiceNotFound.Error(), resp.Message)
+	})
+
+	t.Run("error-removing-dir", func(t *testing.T) {
+		fileDir := filepath.Join(router.Config.App.Paths.Services, "petstore")
+		_ = os.Chmod(fileDir, 0400)
+		filePath := filepath.Join(fileDir, "get", "pets", "index.json")
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: []*RouteDescription{
+					{
+						File: &FileProperties{
+							FilePath: filePath,
+						},
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("DELETE", "/.services/petstore", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusInternalServerError, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.True(strings.HasSuffix(resp.Message, "permission denied"))
+
+		// allow to clean up
+		_ = os.Chmod(fileDir, 0777)
+	})
 }
 
-func TestServiceHandler_spec_noSpecFilesAttached(t *testing.T) {
+func TestServiceHandler_deleteService(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -521,38 +549,15 @@ func TestServiceHandler_spec_noSpecFilesAttached(t *testing.T) {
 	}
 
 	router.Services = map[string]*ServiceItem{
-		"petstore": {
-			Name: "petstore",
-		},
-	}
-
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
-
-	req := httptest.NewRequest("GET", "/.services/petstore/spec", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal(http.StatusNotFound, w.Code)
-	assert.Equal("No Spec files attached", resp["message"].(string))
-}
-
-func TestServiceHandler_spec_errorReadingSpec(t *testing.T) {
-	assert := assert2.New(t)
-
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
-
-	router.Services = map[string]*ServiceItem{
-		"petstore": {
-			Name: "petstore",
-			OpenAPIFiles: []*FileProperties{
+		"": {
+			Name: "",
+			Routes: []*RouteDescription{
 				{
-					Prefix: "index-pets.yml",
+					Method: http.MethodGet,
+					Path:   "/pets",
+					File: &FileProperties{
+						FilePath: filepath.Join(router.Config.App.Paths.Services, "get", "pets", "index.json"),
+					},
 				},
 			},
 		},
@@ -561,13 +566,75 @@ func TestServiceHandler_spec_errorReadingSpec(t *testing.T) {
 	err = CreateServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("GET", "/.services/petstore/spec", nil)
+	req := httptest.NewRequest("DELETE", "/.services/"+RootServiceName, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal(http.StatusInternalServerError, w.Code)
-	assert.Equal("open : no such file or directory", resp["message"].(string))
+	resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/json", w.Header().Get("Content-Type"))
+	assert.Equal(true, resp.Success)
+	assert.Equal("Service deleted!", resp.Message)
+}
+
+func TestServiceHandler_spec_errors(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	t.Run("unknown-service", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.services/"+RootServiceName+"/spec", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("Service not found", resp.Message)
+	})
+
+	t.Run("no-spec-attached", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+			},
+		}
+
+		req := httptest.NewRequest("GET", "/.services/petstore/spec", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("No Spec files attached", resp["message"].(string))
+	})
+
+	t.Run("error-reading-spec", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				OpenAPIFiles: []*FileProperties{
+					{
+						Prefix: "index-pets.yml",
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("GET", "/.services/petstore/spec", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		assert.Equal(http.StatusInternalServerError, w.Code)
+		assert.Equal("open : no such file or directory", resp["message"].(string))
+	})
 }
 
 func TestServiceHandler_spec_happyPath(t *testing.T) {
@@ -607,7 +674,7 @@ func TestServiceHandler_spec_happyPath(t *testing.T) {
 	assert.True(strings.HasPrefix(resp, `openapi: "3.0.0"`))
 }
 
-func TestServiceHandler_generate_unknownService(t *testing.T) {
+func TestServiceHandler_generate_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -619,151 +686,109 @@ func TestServiceHandler_generate_unknownService(t *testing.T) {
 	err = CreateServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("POST", "/.services/"+RootServiceName+"/0", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+	t.Run("unknown-service", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/.services/"+RootServiceName+"/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
-	assert.Equal(http.StatusNotFound, w.Code)
-	assert.Equal(ErrServiceNotFound.Error(), resp.Message)
-}
+		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal(ErrServiceNotFound.Error(), resp.Message)
+	})
 
-func TestServiceHandler_generate_invalidIndex(t *testing.T) {
-	assert := assert2.New(t)
+	t.Run("invalid-ix", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+			},
+		}
 
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
+		req := httptest.NewRequest("POST", "/.services/petstore/x", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	router.Services = map[string]*ServiceItem{
-		"petstore": {
-			Name: "petstore",
-		},
-	}
+		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+	})
 
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
-
-	req := httptest.NewRequest("POST", "/.services/petstore/x", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
-	assert.Equal(http.StatusNotFound, w.Code)
-	assert.Equal(ErrResourceNotFound.Error(), resp.Message)
-}
-
-func TestServiceHandler_generate_invalidPayload(t *testing.T) {
-	assert := assert2.New(t)
-
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
-
-	router.Services = map[string]*ServiceItem{
-		"petstore": {
-			Name: "petstore",
-			Routes: RouteDescriptions{
-				{
-					Method: http.MethodGet,
-					Path:   "/pets",
-					Type:   OpenAPIRouteType,
+	t.Run("invalid-payload", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodGet,
+						Path:   "/pets",
+						Type:   OpenAPIRouteType,
+					},
 				},
 			},
-		},
-	}
+		}
 
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
+		payload := strings.NewReader(`{"replacements": 1}`)
 
-	payload := strings.NewReader(`{"replacements": 1}`)
+		req := httptest.NewRequest("POST", "/.services/petstore/0", payload)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	req := httptest.NewRequest("POST", "/.services/petstore/0", payload)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		assert.Equal(http.StatusBadRequest, w.Code)
+		assert.True(strings.HasPrefix(resp.Message, "json: cannot unmarshal number into Go struct field"))
+	})
 
-	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
-	assert.Equal(http.StatusBadRequest, w.Code)
-	assert.True(strings.HasPrefix(resp.Message, "json: cannot unmarshal number into Go struct field"))
-}
-
-func TestServiceHandler_generate_fileNotFound(t *testing.T) {
-	assert := assert2.New(t)
-
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
-
-	router.Services = map[string]*ServiceItem{
-		"petstore": {
-			Name: "petstore",
-			Routes: RouteDescriptions{
-				{
-					Method: http.MethodGet,
-					Path:   "/pets",
-					Type:   OpenAPIRouteType,
+	t.Run("file-not-found", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodGet,
+						Path:   "/pets",
+						Type:   OpenAPIRouteType,
+					},
 				},
 			},
-		},
-	}
+		}
 
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
+		req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+	})
 
-	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
-	assert.Equal(http.StatusNotFound, w.Code)
-	assert.Equal(ErrResourceNotFound.Error(), resp.Message)
-}
+	t.Run("method-not-allowed", func(t *testing.T) {
+		filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
+		err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+		assert.Nil(err)
+		file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+		assert.Nil(err)
 
-func TestServiceHandler_generate_methodNotAllowed(t *testing.T) {
-	assert := assert2.New(t)
-
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
-
-	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
-	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
-	assert.Nil(err)
-
-	router.Services = map[string]*ServiceItem{
-		"petstore": {
-			Name: "petstore",
-			Routes: RouteDescriptions{
-				{
-					Method: http.MethodOptions,
-					Path:   "/pets",
-					Type:   OpenAPIRouteType,
-					File:   file,
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodOptions,
+						Path:   "/pets",
+						Type:   OpenAPIRouteType,
+						File:   file,
+					},
 				},
 			},
-		},
-	}
+		}
 
-	err = CreateServiceRoutes(router)
-	assert.Nil(err)
+		req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	resp := *UnmarshallResponse[ErrorMessage](t, w.Body)
-	assert.Equal(http.StatusMethodNotAllowed, w.Code)
-	assert.Equal(ErrResourceMethodNotFound.Error(), resp.Message)
+		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		assert.Equal(http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(ErrResourceMethodNotFound.Error(), resp.Message)
+	})
 }
 
 func TestServiceHandler_generate_openAPI(t *testing.T) {
@@ -834,7 +859,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 		},
 	}
 
-	resp := *UnmarshallResponse[GenerateResponse](t, w.Body)
+	resp := UnmarshallResponse[GenerateResponse](t, w.Body)
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("application/json", w.Header().Get("Content-Type"))
 
@@ -919,7 +944,7 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 		},
 	}
 
-	resp := *UnmarshallResponse[GenerateResponse](t, w.Body)
+	resp := UnmarshallResponse[GenerateResponse](t, w.Body)
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("application/json", w.Header().Get("Content-Type"))
 
@@ -939,4 +964,376 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 		"name": "Bulbasaur",
 		"tag":  "beedrill",
 	}, respBody)
+}
+
+func TestServiceHandler_getResource_errors(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	t.Run("unknown-service", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.services/x/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrServiceNotFound.Error(), resp.Message)
+	})
+
+	t.Run("invalid-ix", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodPost,
+						Path:   "/pets",
+						Type:   FixedRouteType,
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("GET", "/.services/petstore/x", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+	})
+
+	t.Run("error-reading-file", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodPost,
+						Path:   "/pets",
+						Type:   FixedRouteType,
+						File: &FileProperties{
+							FilePath: "unknown",
+						},
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("GET", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusInternalServerError, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal("open unknown: no such file or directory", resp.Message)
+	})
+
+	t.Run("not-fixed-resource", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodPost,
+						Path:   "/pets",
+						Type:   OpenAPIRouteType,
+						File:   &FileProperties{},
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("GET", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusBadRequest, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrOnlyFixedResourcesAllowedEditing.Error(), resp.Message)
+	})
+}
+
+func TestServiceHandler_getResource(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
+	_ = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	fileContents, _ := os.ReadFile(filePath)
+	fileProps, _ := GetPropertiesFromFilePath(filePath, router.Config.App)
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodPost,
+					Path:   "/pets",
+					Type:   FixedRouteType,
+					File:   fileProps,
+				},
+			},
+		},
+	}
+
+	req := httptest.NewRequest("GET", "/.services/petstore/0", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	expected := &ResourceResponse{
+		Method:      http.MethodPost,
+		Path:        "/petstore/pets",
+		Extension:   "json",
+		ContentType: "application/json",
+		Content:     string(fileContents),
+	}
+
+	resp := UnmarshallResponse[ResourceResponse](t, w.Body)
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/json", w.Header().Get("Content-Type"))
+	assert.Equal(expected, resp)
+}
+
+func TestServiceHandler_deleteResource_errors(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	t.Run("unknown-service", func(t *testing.T) {
+		req := httptest.NewRequest("DELETE", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrServiceNotFound.Error(), resp.Message)
+	})
+
+	t.Run("invalid-ix", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodPost,
+						Path:   "/pets",
+						Type:   FixedRouteType,
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("DELETE", "/.services/petstore/x", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusNotFound, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+	})
+
+	t.Run("not-fixed-resource", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodPost,
+						Path:   "/pets",
+						Type:   OpenAPIRouteType,
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("DELETE", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusBadRequest, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal(ErrOnlyFixedResourcesAllowedEditing.Error(), resp.Message)
+	})
+
+	t.Run("error reading file", func(t *testing.T) {
+		router.Services = map[string]*ServiceItem{
+			"petstore": {
+				Name: "petstore",
+				Routes: RouteDescriptions{
+					{
+						Method: http.MethodPost,
+						Path:   "/pets",
+						Type:   FixedRouteType,
+						File: &FileProperties{
+							FilePath: "unknown",
+						},
+					},
+				},
+			},
+		}
+
+		req := httptest.NewRequest("DELETE", "/.services/petstore/0", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+		assert.Equal(http.StatusInternalServerError, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(false, resp.Success)
+		assert.Equal("remove unknown: no such file or directory", resp.Message)
+	})
+
+}
+
+func TestServiceHandler_deleteResource(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = CreateServiceRoutes(router)
+	assert.Nil(err)
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+			Routes: RouteDescriptions{
+				{
+					Method: http.MethodGet,
+					Path:   "/pets",
+					Type:   FixedRouteType,
+				},
+				{
+					Method: http.MethodPost,
+					Path:   "/pets",
+					Type:   FixedRouteType,
+				},
+			},
+		},
+	}
+
+	req := httptest.NewRequest("DELETE", "/.services/petstore/1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/json", w.Header().Get("Content-Type"))
+	assert.Equal(true, resp.Success)
+	assert.Equal("Resource deleted!", resp.Message)
+
+	assert.Equal(1, len(router.Services["petstore"].Routes))
+	assert.Equal(http.MethodGet, router.Services["petstore"].Routes[0].Method)
+	assert.Equal("/pets", router.Services["petstore"].Routes[0].Path)
+}
+
+func TestSaveService_errors(t *testing.T) {
+	assert := assert2.New(t)
+
+	appDir := t.TempDir()
+	appCfg := NewDefaultAppConfig(appDir)
+	_, _ = SetupApp(appDir)
+
+	t.Run("invalid-url-resource", func(t *testing.T) {
+		payload := &ServicePayload{
+			Method: http.MethodPatch,
+			Path:   "/{}",
+		}
+		res, err := saveService(payload, appCfg)
+		assert.Nil(res)
+		assert.Equal(ErrInvalidURLResource, err)
+	})
+
+	t.Run("empty-openapi-content", func(t *testing.T) {
+		payload := &ServicePayload{
+			Method:    http.MethodPatch,
+			Path:      "/x",
+			Name:      "",
+			IsOpenAPI: true,
+		}
+		res, err := saveService(payload, appCfg)
+		assert.Nil(res)
+		assert.Equal(ErrOpenAPISpecIsEmpty, err)
+	})
+
+	t.Run("savefile-error", func(t *testing.T) {
+		_ = os.Chmod(appDir, 0400)
+		payload := &ServicePayload{
+			Method:   http.MethodPatch,
+			Path:     "/x",
+			Name:     "",
+			Response: []byte("check-check"),
+		}
+		res, err := saveService(payload, appCfg)
+		assert.Nil(res)
+		assert.Equal("error creating directories", err.Error())
+
+		_ = os.Chmod(appDir, 0777)
+	})
+
+	t.Run("err-getting-properties", func(t *testing.T) {
+		payload := &ServicePayload{
+			Method:    http.MethodPatch,
+			Path:      "/x",
+			Name:      "",
+			Response:  []byte("check-check"),
+			IsOpenAPI: true,
+		}
+		res, err := saveService(payload, appCfg)
+		assert.Nil(res)
+		assert.Equal("spec type not supported by libopenapi, sorry", err.Error())
+	})
+
+	t.Run("collides-with-sys-routes", func(t *testing.T) {
+		payload := &ServicePayload{
+			Method:   http.MethodPatch,
+			Path:     "/.services",
+			Name:     "",
+			Response: []byte("check-check"),
+		}
+		res, err := saveService(payload, appCfg)
+		assert.Nil(res)
+		assert.Equal(ErrReservedPrefix, err)
+	})
 }

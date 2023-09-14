@@ -55,13 +55,13 @@ func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 		Items: names,
 	}
 
-	NewAPIJSONResponse(http.StatusOK, res, w)
+	h.JSONResponse(w).WithStatusCode(http.StatusOK).Send(res)
 }
 
 func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if _, found := h.router.Contexts[name]; !found {
-		NewAPIJSONResponse(http.StatusNotFound, "Context not found", w)
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send("Context not found")
 		return
 	}
 

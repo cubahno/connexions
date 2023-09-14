@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+  version: "0.0.1"
+  title: Schema
+paths:
+  "/":
+    get:
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/B"
+components:
+  schemas:
+    A:
+      type: string
+      enum: ["foo", "bar"]
+    B:
+      type: string
+      oneOf:
+        - $ref: "#/components/schemas/A"
+        - type: string
+          enum: ["baz"]
+
