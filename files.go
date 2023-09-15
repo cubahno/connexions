@@ -119,7 +119,7 @@ func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FilePropert
 		return getPropertiesFromOpenAPIFile(filePath, parts[1:], appCfg)
 	}
 
-	return getPropertiesFromFixedFile(serviceName, filePath, parts)
+	return getPropertiesFromFixedFile(serviceName, filePath, parts), nil
 }
 
 func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *AppConfig) (*FileProperties, error) {
@@ -160,7 +160,7 @@ func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *A
 	}, nil
 }
 
-func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) (*FileProperties, error) {
+func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *FileProperties {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
 	contentType := mime.TypeByExtension(ext)
@@ -222,7 +222,7 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) (*
 		Extension:            ext,
 		ContentType:          contentType,
 		ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
-	}, nil
+	}
 }
 
 // ComposeFileSavePath composes a save path for a file.

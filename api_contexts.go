@@ -121,7 +121,7 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadContexts(h.router)
+	err = loadContexts(h.router)
 	if err != nil {
 		log.Println(err.Error())
 	}

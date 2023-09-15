@@ -219,7 +219,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadServices(h.router)
+	err = loadServices(h.router)
 	if err != nil {
 		h.error(500, err.Error(), w)
 		return

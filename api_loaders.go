@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-func LoadServices(router *Router) error {
+func loadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
 	var mu sync.Mutex
 
@@ -109,7 +109,7 @@ func LoadServices(router *Router) error {
 	return err
 }
 
-func LoadContexts(router *Router) error {
+func loadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	type parsed struct {

@@ -492,6 +492,10 @@ func TestServiceHandler_deleteService_errors(t *testing.T) {
 		t.FailNow()
 	}
 
+	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
+	err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	assert.Nil(err)
+
 	err = CreateServiceRoutes(router)
 	assert.Nil(err)
 

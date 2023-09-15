@@ -57,8 +57,8 @@ func NewApp(baseDir string) *App {
 	res.Router = router
 
 	bluePrints := []RouteRegister{
-		LoadServices,
-		LoadContexts,
+		loadServices,
+		loadContexts,
 
 		CreateHomeRoutes,
 		CreateServiceRoutes,
