@@ -109,6 +109,8 @@ func loadServices(router *Router) error {
 	return err
 }
 
+// loadContexts loads all contexts from the contexts directory.
+// It implements RouteRegister interface so error return is mandatory.
 func loadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
@@ -119,21 +121,23 @@ func loadContexts(router *Router) error {
 	}
 	ch := make(chan parsed, 0)
 
-	ctxDir := router.Config.App.Paths.Contexts
-	_ = filepath.Walk(ctxDir, func(filePath string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			wg.Add(1)
-
-			go func(filePath string) {
-				defer wg.Done()
-				ctx, err := ParseContextFile(filePath)
-				ch <- parsed{
-					ctx:      ctx,
-					err:      err,
-					filePath: filePath,
-				}
-			}(filePath)
+	// Walk through all files in the contexts directory
+	_ = filepath.Walk(router.Config.App.Paths.Contexts, func(filePath string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
 		}
+
+		wg.Add(1)
+
+		go func(filePath string) {
+			defer wg.Done()
+			ctx, err := ParseContextFile(filePath)
+			ch <- parsed{
+				ctx:      ctx,
+				err:      err,
+				filePath: filePath,
+			}
+		}(filePath)
 		return nil
 	})
 
@@ -149,6 +153,7 @@ func loadContexts(router *Router) error {
 	for p := range ch {
 		if p.err != nil {
 			log.Printf("Failed to parse context file %s: %s\n", p.filePath, p.err.Error())
+			continue
 		}
 		base := filepath.Base(p.filePath)
 		ext := filepath.Ext(base)
@@ -159,6 +164,7 @@ func loadContexts(router *Router) error {
 		aliases[name] = p.ctx.Aliases
 	}
 
+	// resolve aliases
 	for ctxName, requiredAliases := range aliases {
 		for ctxSourceKey, aliasTarget := range requiredAliases {
 			parts := strings.Split(aliasTarget, ".")

@@ -121,12 +121,7 @@ func SetupApp(appDir string) (*Router, error) {
 		return nil, err
 	}
 
-	err = CopyDirectory("resources", filepath.Join(appDir, "resources"))
-	if err != nil {
-		return nil, err
-	}
-
-	err = os.RemoveAll(filepath.Join(appDir, "resources", "services"))
+	err = os.Mkdir(filepath.Join(appDir, "resources", "contexts"), 0755)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +129,12 @@ func SetupApp(appDir string) (*Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = CopyFile(filepath.Join(appDir, "resources", "config.yml.dist"), filepath.Join(appDir, "resources", "config.yml"))
+
+	err = CopyFile(filepath.Join("resources", "config.yml.dist"), filepath.Join(appDir, "resources", "config.yml.dist"))
+	if err != nil {
+		return nil, err
+	}
+	err = CopyFile(filepath.Join("resources", "config.yml.dist"), filepath.Join(appDir, "resources", "config.yml"))
 	if err != nil {
 		return nil, err
 	}

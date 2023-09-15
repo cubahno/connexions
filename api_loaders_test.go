@@ -88,5 +88,29 @@ func TestLoadServices_errorGettingFileProps(t *testing.T) {
 }
 
 func TestLoadContexts(t *testing.T) {
+    assert := assert2.New(t)
 
+    router, err := SetupApp(t.TempDir())
+    if err != nil {
+        t.Errorf("Error setting up app: %v", err)
+        t.FailNow()
+    }
+
+    files := []string{
+        filepath.Join("test_fixtures", "context-common.yml"),
+        filepath.Join("test_fixtures", "context-petstore.yml"),
+        filepath.Join("test_fixtures", "context-invalid.yml"),
+    }
+
+    // copy files
+    for _, file := range files {
+        err = CopyFile(file, filepath.Join(router.Config.App.Paths.Contexts, filepath.Base(file)))
+        assert.Nil(err)
+    }
+
+    // no error to evaluate
+    _ = loadContexts(router)
+
+    res := router.Contexts
+    assert.Equal(2, len(res))
 }

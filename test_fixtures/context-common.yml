@@ -1,0 +1,15 @@
+ids:
+  uuid: 12345678-1234-1234-1234-123456789012
+  _id$: 1212
+
+money:
+  currency: EUR
+  amount: 100.00
+
+names:
+  women: ["Jane", "Sarah"]
+  men: ["John", "Hans"]
+
+# self-reference is also possible
+id: "alias:context-common.ids.uuid"
+name: "alias:context-common.women.0"

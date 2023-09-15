@@ -13,6 +13,10 @@ type ParsedContextResult struct {
 	Aliases map[string]string
 }
 
+// ParseContextFile parses a YAML file and returns a map of context properties.
+// Filename without extension is used as the context namespace and can be referenced:
+// - in service config
+// - when creating aliases
 func ParseContextFile(filePath string) (*ParsedContextResult, error) {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
