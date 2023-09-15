@@ -27,7 +27,7 @@ func (h *BaseHandler) success(message string, w http.ResponseWriter) {
 func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
 	h.JSONResponse(w).WithStatusCode(code).Send(&SimpleResponse{
 		Message: message,
-		Success:false,
+		Success: false,
 	})
 }
 
@@ -47,7 +47,7 @@ func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool
 
 	err := errConfig.GetError()
 	if err != 0 {
-		NewAPIResponse(w).WithStatusCode(err).Send([]byte("Random config error"))
+		NewAPIResponse(w).WithStatusCode(err).WithHeader("content-type", "text/plain").Send([]byte("Random config error"))
 		return true
 	}
 

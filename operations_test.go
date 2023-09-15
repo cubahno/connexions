@@ -365,14 +365,14 @@ func TestNewResponseFromOperation(t *testing.T) {
 		res := NewResponseFromOperation(operation, valueResolver)
 
 		expectedHeaders := http.Header{
-			"Content-Type": []string{"text/plain"},
+			"Content-Type": []string{"application/json"},
 			"Location":     []string{"https://example.com/users/123"},
 		}
 
 		assert.Equal(200, res.StatusCode)
 		assert.Equal(expectedHeaders, res.Headers)
 
-		assert.Equal("text/plain", res.ContentType)
+		assert.Equal("application/json", res.ContentType)
 		assert.Nil(res.Content)
 	})
 

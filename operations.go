@@ -167,7 +167,7 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 	contentSchema := response.Content
 	contentType := response.ContentType
 	if contentType == "" {
-		contentType = "text/plain"
+		contentType = "application/json"
 	}
 
 	headers.Set("content-type", contentType)

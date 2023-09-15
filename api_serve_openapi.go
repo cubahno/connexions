@@ -18,15 +18,12 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 
 	res := make(RouteDescriptions, 0)
 
-	doc := fileProps.Spec
-
 	handler := &OpenAPIHandler{
 		router:    router,
-		spec:      doc,
 		fileProps: fileProps,
 	}
 
-	for resName, resMethods := range doc.GetResources() {
+	for resName, resMethods := range fileProps.Spec.GetResources() {
 		for _, method := range resMethods {
 			// register route
 			router.MethodFunc(method, fileProps.Prefix+resName, handler.serve)
@@ -48,13 +45,12 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 type OpenAPIHandler struct {
 	*BaseHandler
 	router    *Router
-	spec      Document
 	fileProps *FileProperties
 }
 
 func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	prefix := h.fileProps.Prefix
-	doc := h.spec
+	doc := h.fileProps.Spec
 	config := h.router.Config
 	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
 
@@ -67,10 +63,9 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		Method:   r.Method,
 	})
 	if operation == nil {
-		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{
-			Message: ErrResourceNotFound.Error(),
-			Success: false,
-		})
+		// edge case: we get here only if the file gets removed while router is running.
+		// not json response because if path doesn't exist, it's just plain 404.
+		h.Response(w).WithStatusCode(http.StatusNotFound).Send([]byte(ErrResourceNotFound.Error()))
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
@@ -124,9 +119,6 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	res := h.Response(w).WithStatusCode(response.StatusCode)
 
 	// set headers
-	if response.Headers.Get("Content-Type") == "" {
-		response.Headers.Set("Content-Type", response.ContentType)
-	}
 	for name, values := range response.Headers {
 		for _, value := range values {
 			res = res.WithHeader(name, value)

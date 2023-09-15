@@ -38,10 +38,10 @@ func NewRouter(config *Config) *Router {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	return &Router{
-		Mux:    r,
-		Config: config,
-		Services: make(map[string]*ServiceItem),
-		Contexts: make(map[string]map[string]any),
+		Mux:          r,
+		Config:       config,
+		Services:     make(map[string]*ServiceItem),
+		Contexts:     make(map[string]map[string]any),
 		ContextNames: make([]map[string]string, 0),
 	}
 }

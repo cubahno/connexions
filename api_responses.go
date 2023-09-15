@@ -23,7 +23,7 @@ func NewAPIResponse(w http.ResponseWriter) *APIResponse {
 	}
 }
 
-func (r *APIResponse) WithHeader(key string, value string) *APIResponse{
+func (r *APIResponse) WithHeader(key string, value string) *APIResponse {
 	if len(r.headers) == 0 {
 		r.headers = make(map[string]string)
 	}
