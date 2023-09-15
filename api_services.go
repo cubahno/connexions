@@ -211,7 +211,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	if isOpenAPI {
 		routes = registerOpenAPIRoutes(fileProps, h.router)
 	} else {
-		route := registerFixedService(fileProps, h.router)
+		route := registerFixedRoute(fileProps, h.router)
 		routes = RouteDescriptions{route}
 	}
 

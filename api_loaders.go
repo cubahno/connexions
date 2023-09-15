@@ -83,7 +83,7 @@ func LoadServices(router *Router) error {
 			mu.Lock()
 			defer mu.Unlock()
 
-			route := registerFixedService(props, router)
+			route := registerFixedRoute(props, router)
 
 			svc, ok := services[props.ServiceName]
 			if !ok {

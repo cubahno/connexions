@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func registerFixedService(fileProps *FileProperties, router *Router) *RouteDescription {
+func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescription {
 	fmt.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
 
 	baseResource := fileProps.Prefix + fileProps.Resource
