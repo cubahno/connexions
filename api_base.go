@@ -9,10 +9,12 @@ import (
 type BaseHandler struct {
 }
 
+func (h *BaseHandler) Response(w http.ResponseWriter) *APIResponse {
+	return NewAPIResponse(w)
+}
+
 func (h *BaseHandler) JSONResponse(w http.ResponseWriter) *JSONResponse {
-	return &JSONResponse{
-		&BaseResponse{w: w},
-	}
+	return NewJSONResponse(w)
 }
 
 func (h *BaseHandler) success(message string, w http.ResponseWriter) {

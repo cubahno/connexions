@@ -40,6 +40,9 @@ func NewRouter(config *Config) *Router {
 	return &Router{
 		Mux:    r,
 		Config: config,
+		Services: make(map[string]*ServiceItem),
+		Contexts: make(map[string]map[string]any),
+		ContextNames: make([]map[string]string, 0),
 	}
 }
 

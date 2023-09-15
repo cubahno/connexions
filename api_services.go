@@ -209,7 +209,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	var routes RouteDescriptions
 
 	if isOpenAPI {
-		routes = RegisterOpenAPIRoutes(fileProps, h.router)
+		routes = registerOpenAPIRoutes(fileProps, h.router)
 	} else {
 		route := registerFixedService(fileProps, h.router)
 		routes = RouteDescriptions{route}

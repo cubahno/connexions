@@ -58,7 +58,7 @@ func LoadServices(router *Router) error {
 			defer mu.Unlock()
 
 			// TODO(cubahno): collect first, then register
-			rs := RegisterOpenAPIRoutes(props, router)
+			rs := registerOpenAPIRoutes(props, router)
 
 			svc, ok := services[props.ServiceName]
 			if !ok {

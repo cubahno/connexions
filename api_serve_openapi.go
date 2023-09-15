@@ -3,7 +3,6 @@ package connexions
 import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -12,9 +11,9 @@ type ResourceGeneratePayload struct {
 	Replacements map[string]any `json:"replacements"`
 }
 
-// RegisterOpenAPIRoutes adds spec routes to the router and
+// registerOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
-func RegisterOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescriptions {
+func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescriptions {
 	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
 	res := make(RouteDescriptions, 0)
@@ -68,7 +67,10 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		Method:   r.Method,
 	})
 	if operation == nil {
-		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(ErrResourceNotFound)
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{
+			Message: ErrResourceNotFound.Error(),
+			Success: false,
+		})
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
@@ -77,9 +79,10 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	if serviceCfg.Validate.Request && reqBody != nil {
 		err := ValidateRequest(r, reqBody, contentType)
 		if err != nil {
-			log.Printf("error validating request: %v\n", err)
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(err.Error()))
+			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
+				Message: "Invalid request: " + err.Error(),
+				Success: false,
+			})
 			return
 		}
 	}
@@ -105,16 +108,20 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	if serviceCfg.Validate.Response {
 		err := ValidateResponse(r, response, operation)
 		if err != nil {
-			log.Printf("error validating response: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("Invalid response: " + err.Error()))
+			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
+				Message: "Invalid response: " + err.Error(),
+				Success: false,
+			})
 			return
 		}
 	}
 
-	if handled := handleErrorAndLatency(serviceCfg, w); handled {
+	// return error if configured
+	if handleErrorAndLatency(serviceCfg, w) {
 		return
 	}
+
+	res := h.Response(w).WithStatusCode(response.StatusCode)
 
 	// set headers
 	if response.Headers.Get("Content-Type") == "" {
@@ -122,12 +129,9 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	for name, values := range response.Headers {
 		for _, value := range values {
-			w.Header().Set(name, value)
+			res = res.WithHeader(name, value)
 		}
 	}
-	w.WriteHeader(response.StatusCode)
-	_, err := w.Write(response.Content)
-	if err != nil {
-		log.Printf("error writing response: %v", err)
-	}
+
+	res.Send(response.Content)
 }
