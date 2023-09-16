@@ -203,3 +203,19 @@ func CreateTestZip(files map[string]string) *bytes.Buffer {
 	zipWriter.Close()
 	return &buf
 }
+
+func CreateTestMapFormReader(data map[string]string) (*multipart.Writer, *bytes.Buffer) {
+	var bodyBuffer bytes.Buffer
+	writer := multipart.NewWriter(&bodyBuffer)
+
+	for k, v := range data {
+		err := writer.WriteField(k, v)
+		if err != nil {
+			return nil, nil
+		}
+	}
+
+	writer.Close()
+
+	return writer, &bodyBuffer
+}

@@ -1,9 +1,11 @@
 package connexions
 
 import (
+    "fmt"
     assert2 "github.com/stretchr/testify/assert"
     "net/http"
     "net/http/httptest"
+    "os"
     "path/filepath"
     "testing"
 )
@@ -18,7 +20,7 @@ func TestCreateContextRoutes_Disabled(t *testing.T) {
     assert.Equal(0, len(router.Mux.Routes()))
 }
 
-func TestContextHandler(t *testing.T) {
+func TestContextHandler_list(t *testing.T) {
     assert := assert2.New(t)
 
     router, err := SetupApp(t.TempDir())
@@ -52,6 +54,19 @@ func TestContextHandler(t *testing.T) {
         delete(router.Contexts, "bob")
         delete(router.Contexts, "alice")
     })
+}
+
+func TestContextHandler_details(t *testing.T) {
+    assert := assert2.New(t)
+
+    router, err := SetupApp(t.TempDir())
+    if err != nil {
+        t.Errorf("Error setting up app: %v", err)
+        t.FailNow()
+    }
+
+    err = CreateContextRoutes(router)
+    assert.Nil(err)
 
     t.Run("details", func(t *testing.T) {
         router.Contexts["bob"] = map[string]any{}
@@ -83,5 +98,226 @@ func TestContextHandler(t *testing.T) {
             Success: false,
             Message: "Context not found",
         }, resp)
+    })
+}
+
+func TestContextHandler_delete(t *testing.T) {
+    assert := assert2.New(t)
+
+    router, err := SetupApp(t.TempDir())
+    if err != nil {
+        t.Errorf("Error setting up app: %v", err)
+        t.FailNow()
+    }
+
+    err = CreateContextRoutes(router)
+    assert.Nil(err)
+
+    t.Run("happy-path", func(t *testing.T) {
+        router.Contexts["bob"] = map[string]any{}
+        bobPath := filepath.Join(router.Config.App.Paths.Contexts, "bob.yml")
+        err = CopyFile(filepath.Join("test_fixtures", "context-petstore.yml"), bobPath)
+        if err != nil {
+            t.Errorf("Error copying file: %v", err)
+            t.FailNow()
+        }
+        req := httptest.NewRequest("DELETE", "/.contexts/bob", nil)
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        assert.Equal(http.StatusOK, w.Code)
+        assert.Equal("application/json", w.Header().Get("Content-Type"))
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(&SimpleResponse{
+            Success: true,
+            Message: "Context deleted!",
+        }, resp)
+
+        _, err = os.ReadFile(bobPath)
+        assert.NotNil(err)
+
+        _, ok := router.Contexts["bob"]
+        assert.False(ok)
+    })
+
+    t.Run("ctx-not-found", func(t *testing.T) {
+        req := httptest.NewRequest(http.MethodDelete, "/.contexts/bob", nil)
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        assert.Equal(http.StatusNotFound, w.Code)
+        assert.Equal("application/json", w.Header().Get("Content-Type"))
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(&SimpleResponse{
+            Success: false,
+            Message: "Context not found",
+        }, resp)
+    })
+
+    t.Run("file-not-found", func(t *testing.T) {
+        router.Contexts["bob"] = map[string]any{}
+
+        req := httptest.NewRequest(http.MethodDelete, "/.contexts/bob", nil)
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        assert.Equal(http.StatusInternalServerError, w.Code)
+        assert.Equal("application/json", w.Header().Get("Content-Type"))
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(&SimpleResponse{
+            Success: false,
+            Message: fmt.Sprintf("remove %s/bob.yml: no such file or directory", router.Config.App.Paths.Contexts),
+        }, resp)
+
+        delete(router.Contexts, "bob")
+    })
+}
+
+func TestContextHandler_save(t *testing.T) {
+    assert := assert2.New(t)
+
+    router, err := SetupApp(t.TempDir())
+    if err != nil {
+        t.Errorf("Error setting up app: %v", err)
+        t.FailNow()
+    }
+
+    err = CreateContextRoutes(router)
+    assert.Nil(err)
+
+    t.Run("empty-contents", func(t *testing.T) {
+        writer, payload := CreateTestMapFormReader(map[string]string{
+            "name": "bob",
+        })
+        req := httptest.NewRequest(http.MethodPut, "/.contexts", payload)
+        req.Header.Set("Content-Type", writer.FormDataContentType())
+
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(&SimpleResponse{
+            Success: true,
+            Message: "Context saved",
+        }, resp)
+
+        var contexts []string
+        for name, _ := range router.Contexts {
+            contexts = append(contexts, name)
+        }
+        assert.Equal([]string{"bob"}, contexts)
+        _, err = os.ReadFile(filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
+        assert.Nil(err)
+    })
+
+    t.Run("not-empty-contents", func(t *testing.T) {
+        yamlCont := `name: Bob
+age: 30
+address: 123 Main St
+`
+        writer, payload := CreateTestMapFormReader(map[string]string{
+            "name": "bob",
+            "content": yamlCont,
+        })
+        req := httptest.NewRequest(http.MethodPut, "/.contexts", payload)
+        req.Header.Set("Content-Type", writer.FormDataContentType())
+
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(&SimpleResponse{
+            Success: true,
+            Message: "Context saved",
+        }, resp)
+
+        var contexts []string
+        for name, _ := range router.Contexts {
+            contexts = append(contexts, name)
+        }
+        assert.Equal([]string{"bob"}, contexts)
+        c, err := os.ReadFile(filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
+        assert.Nil(err)
+        assert.Equal(yamlCont, string(c))
+    })
+}
+
+func TestContextHandler_save_errors(t *testing.T) {
+    assert := assert2.New(t)
+
+    router, err := SetupApp(t.TempDir())
+    if err != nil {
+        t.Errorf("Error setting up app: %v", err)
+        t.FailNow()
+    }
+
+    err = CreateContextRoutes(router)
+    assert.Nil(err)
+
+    t.Run("missing-name", func(t *testing.T) {
+        req := httptest.NewRequest(http.MethodPut, "/.contexts", nil)
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(&SimpleResponse{
+            Success: false,
+            Message: "Name is required",
+        }, resp)
+    })
+
+    t.Run("invalid-name", func(t *testing.T) {
+        writer, payload := CreateTestMapFormReader(map[string]string{
+            "name": "bob.yml",
+        })
+        req := httptest.NewRequest(http.MethodPut, "/.contexts", payload)
+        req.Header.Set("Content-Type", writer.FormDataContentType())
+
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(http.StatusBadRequest, w.Code)
+        assert.Equal(&SimpleResponse{
+            Success: false,
+            Message: "Invalid name: must be alpha-numeric, _, - and not exceed 20 chars",
+        }, resp)
+    })
+
+    t.Run("invalid-yaml", func(t *testing.T) {
+        writer, payload := CreateTestMapFormReader(map[string]string{
+            "name": "bob",
+            "content": "1",
+        })
+        req := httptest.NewRequest(http.MethodPut, "/.contexts", payload)
+        req.Header.Set("Content-Type", writer.FormDataContentType())
+
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(http.StatusBadRequest, w.Code)
+        assert.False(resp.Success)
+        assert.Contains(resp.Message, "Invalid context: yaml: unmarshal errors:")
+    })
+
+    t.Run("folder-permissions-error", func(t *testing.T) {
+        writer, payload := CreateTestMapFormReader(map[string]string{
+            "name": "bob",
+        })
+        req := httptest.NewRequest(http.MethodPut, "/.contexts", payload)
+        req.Header.Set("Content-Type", writer.FormDataContentType())
+
+        _ = os.Chmod(router.Config.App.Paths.Contexts, 0000)
+        defer os.Chmod(router.Config.App.Paths.Contexts, 0755)
+
+        w := httptest.NewRecorder()
+        router.ServeHTTP(w, req)
+
+        resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+        assert.Equal(http.StatusInternalServerError, w.Code)
+        assert.False(resp.Success)
+        assert.Contains(resp.Message, "error creating file")
     })
 }

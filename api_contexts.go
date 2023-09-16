@@ -3,11 +3,11 @@ package connexions
 import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -86,25 +86,22 @@ func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.router.RemoveContext(name)
-	h.success("Context deleted", w)
+	h.success("Context deleted!", w)
 }
 
 func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	err := r.ParseMultipartForm(10 * 1024 * 1024)
-	if err != nil {
-		h.error(400, err.Error(), w)
+	name := r.FormValue("name")
+	if name == "" {
+		h.error(http.StatusBadRequest, "Name is required", w)
 		return
 	}
 
-	body, _ := io.ReadAll(r.Body)
-	fmt.Println("Request Body:", string(body))
-
-	name := r.FormValue("name")
-	if name == "" {
-		h.error(400, "Name is required", w)
+	match, _ := regexp.MatchString("^[a-zA-Z0-9_-]+$", name)
+	if !match || len(name) > 20 {
+		h.error(http.StatusBadRequest, "Invalid name: must be alpha-numeric, _, - and not exceed 20 chars", w)
 		return
 	}
 
@@ -113,21 +110,19 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 
 	// ignore result as we need to reload them all because of the possible cross-references in aliases
-	_, err = ParseContextFromBytes([]byte(content))
+	_, err := ParseContextFromBytes([]byte(content))
 	if err != nil {
-		h.error(400, "Invalid context: "+err.Error(), w)
+		h.error(http.StatusBadRequest, "Invalid context: "+err.Error(), w)
 		return
 	}
 
-	if err := SaveFile(filePath, []byte(content)); err != nil {
-		h.error(500, err.Error(), w)
+	if err = SaveFile(filePath, []byte(content)); err != nil {
+		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
 
-	err = loadContexts(h.router)
-	if err != nil {
-		log.Println(err.Error())
-	}
+	// there's no error
+	_ = loadContexts(h.router)
 
 	h.success("Context saved", w)
 }
