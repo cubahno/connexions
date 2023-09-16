@@ -51,6 +51,7 @@ type HomeHandler struct {
 // Used to capture the template execution result.
 type bufferedWriter struct {
 	buf []byte
+	statusCode int
 }
 
 func newBufferedResponseWriter() *bufferedWriter {
@@ -63,6 +64,15 @@ func (bw *bufferedWriter) Write(p []byte) (int, error) {
 	bw.buf = append(bw.buf, p...)
 	return len(p), nil
 }
+
+func (bw *bufferedWriter) Header() http.Header {
+	return http.Header{}
+}
+
+func (bw *bufferedWriter) WriteHeader(statusCode int) {
+	bw.statusCode = statusCode
+}
+
 
 func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 	uiPath := router.Config.App.Paths.UI

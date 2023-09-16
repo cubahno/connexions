@@ -112,7 +112,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// return error if configured
-	if handleErrorAndLatency(serviceCfg, w) {
+	if HandleErrorAndLatency(serviceCfg, w) {
 		return
 	}
 

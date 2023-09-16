@@ -31,7 +31,7 @@ func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
 	})
 }
 
-func handleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
+func HandleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
 	if svcConfig.Latency > 0 {
 		log.Printf("Encountered latency of %s\n", svcConfig.Latency)
 

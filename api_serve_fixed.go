@@ -38,7 +38,7 @@ func createFixedResponseHandler(fileProps *FileProperties, config *Config) http.
 	svcConfig := config.GetServiceConfig(fileProps.ServiceName)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if handleErrorAndLatency(svcConfig, w) {
+		if HandleErrorAndLatency(svcConfig, w) {
 			return
 		}
 
