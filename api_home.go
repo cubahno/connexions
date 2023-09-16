@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 func CreateHomeRoutes(router *Router) error {
@@ -46,9 +47,25 @@ type HomeHandler struct {
 	mu     sync.Mutex
 }
 
+// bufferedWriter is a writer that captures the response.
+// Used to capture the template execution result.
+type bufferedWriter struct {
+	buf []byte
+}
+
+func newBufferedResponseWriter() *bufferedWriter {
+	return &bufferedWriter{
+		buf: make([]byte, 0, 1024),
+	}
+}
+
+func (bw *bufferedWriter) Write(p []byte) (int, error) {
+	bw.buf = append(bw.buf, p...)
+	return len(p), nil
+}
+
 func createHomeHandlerFunc(router *Router) http.HandlerFunc {
-	resDir := router.Config.App.Paths.Resources
-	uiPath := filepath.Join(resDir, "ui")
+	uiPath := router.Config.App.Paths.UI
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", uiPath)))
@@ -71,11 +88,16 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 			},
 		}
 
-		err = tmpl.Execute(w, data)
+		// Create a buffered writer to capture the template execution result.
+		buf := newBufferedResponseWriter()
+
+		err = tmpl.Execute(buf, data)
 		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			http.Error(w, ErrInternalServer.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		NewAPIResponse(w).WithHeader("Content-Type", "text/html; charset=utf-8").Send(buf.buf)
 	}
 }
 
@@ -103,11 +125,11 @@ func docsServer(url string, router *Router) {
 }
 
 func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
-	// Specify the path to the folder you want to zip
 	resourcePath := h.router.Config.App.Paths.Resources
+	asFilename := fmt.Sprintf("connexions-%s.zip", time.Now().Format("2006-01-02"))
 
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=download.zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", asFilename))
 
 	zipWriter := zip.NewWriter(w)
 	defer zipWriter.Close()
@@ -123,14 +145,8 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Exclude empty directories
-		if info.IsDir() {
-			isEmpty, err := IsEmptyDir(path)
-			if err != nil {
-				return err
-			}
-			if isEmpty {
-				return nil
-			}
+		if info.IsDir() && IsEmptyDir(path) {
+			return nil
 		}
 
 		fileInfo, err := info.Info()
@@ -173,21 +189,18 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 		if !info.IsDir() {
 			file, err := os.Open(path)
 			if err != nil {
-				return err
+				log.Printf("Failed to open file %s: %s\n", path, err.Error())
+				return nil
 			}
 			defer file.Close()
 
-			_, err = io.Copy(zipEntry, file)
-			if err != nil {
-				return err
-			}
+			_, _ = io.Copy(zipEntry, file)
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		log.Println("Error:", err)
 		http.Error(w, "Failed to create zip file", http.StatusInternalServerError)
 	}
 }
@@ -197,14 +210,19 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "Error uploading file", http.StatusBadRequest)
+		h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
+			Message: err.Error(),
+			Success: false,
+		})
 		return
 	}
 	defer file.Close()
 
 	zipReader, err := zip.NewReader(file, r.ContentLength)
 	if err != nil {
-		http.Error(w, "Error reading zip file", http.StatusInternalServerError)
+		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
+			Message: err.Error(),
+		})
 		return
 	}
 
@@ -215,15 +233,20 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = ExtractZip(zipReader, h.router.Config.App.Paths.Resources, only)
 	if err != nil {
-		http.Error(w, "Error extracting and copying files", http.StatusInternalServerError)
+		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
+			Message: err.Error(),
+		})
 		return
 	}
 
 	err = loadServices(h.router)
 	if err != nil {
-		h.error(500, err.Error(), w)
+		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{Message: err.Error()})
 		return
 	}
+
+	// there's never an error
+	_ = loadContexts(h.router)
 
 	h.success("Imported successfully!", w)
 }

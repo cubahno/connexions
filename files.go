@@ -371,11 +371,7 @@ func CleanupServiceFileStructure(servicePath string) error {
 			return nil
 		}
 
-		isEmpty, err := IsEmptyDir(path)
-		if err != nil {
-			return nil
-		}
-		if isEmpty {
+		if IsEmptyDir(path) {
 			_ = os.Remove(path)
 			log.Printf("Removed empty directory: %s\n", path)
 			return nil
@@ -386,12 +382,12 @@ func CleanupServiceFileStructure(servicePath string) error {
 }
 
 // IsEmptyDir checks if a directory is empty.
-func IsEmptyDir(path string) (bool, error) {
+func IsEmptyDir(path string) bool {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return false, err
+		return false
 	}
-	return len(entries) == 0, nil
+	return len(entries) == 0
 }
 
 // IsJsonType checks if the content is a valid JSON document.

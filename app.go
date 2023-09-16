@@ -27,6 +27,7 @@ type Paths struct {
 	Services          string
 	ServicesOpenAPI   string
 	ServicesFixedRoot string
+	UI                string
 	ConfigFile        string
 }
 

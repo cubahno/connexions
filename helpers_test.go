@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -181,4 +182,24 @@ func AddTestFileToForm(writer *multipart.Writer, fieldName, filePath string) err
 	}
 
 	return nil
+}
+
+func CreateTestZip(files map[string]string) *bytes.Buffer {
+	var buf bytes.Buffer
+	zipWriter := zip.NewWriter(&buf)
+
+	if len(files) == 0 {
+		files = map[string]string{
+			"file1.txt": "This is file 1 content.",
+			"file2.txt": "This is file 2 content.",
+		}
+	}
+
+	for name, contents := range files {
+		file, _ := zipWriter.Create(name)
+		file.Write([]byte(contents))
+	}
+
+	zipWriter.Close()
+	return &buf
 }

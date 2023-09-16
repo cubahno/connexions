@@ -17,4 +17,8 @@ var (
 	ErrUnexpectedFormDataType           = errors.New("expected map[string]any for multipart/form-data")
 	ErrUnexpectedFormURLEncodedType     = errors.New("expected map[string]any for x-www-form-urlencoded")
 	ErrOnlyFixedResourcesAllowedEditing = errors.New("only fixed resources are allowed editing")
+	ErrInternalServer                   = errors.New("internal server error")
+	ErrFileUpload                       = errors.New("error uploading file")
+	ErrExtractingFiles                  = errors.New("error extracting files")
+	ErrReadingZipFile                   = errors.New("error reading zip file")
 )

@@ -142,8 +142,9 @@ func NewPaths(baseDir string) *Paths {
 		Docs:              filepath.Join(resDir, "docs"),
 		Samples:           filepath.Join(resDir, "samples"),
 		Services:          svcDir,
-		ServicesOpenAPI:   filepath.Join(svcDir, ".openapi"),
-		ServicesFixedRoot: filepath.Join(svcDir, ".root"),
+		ServicesOpenAPI:   filepath.Join(svcDir, RootOpenAPIName),
+		ServicesFixedRoot: filepath.Join(svcDir, RootServiceName),
+		UI:                filepath.Join(resDir, "ui"),
 		ConfigFile:        filepath.Join(resDir, "config.yml"),
 	}
 }
