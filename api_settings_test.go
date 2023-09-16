@@ -38,11 +38,7 @@ func TestSettingsHandler(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		// Check the response status code
-		if w.Code != http.StatusOK {
-			t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
-		}
-
+		assert.Equal(http.StatusOK, w.Code)
 		assert.Equal("application/x-yaml", w.Header().Get("Content-Type"))
 		assert.Greater(w.Body.Len(), 0)
 	})

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -51,17 +52,19 @@ func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 		names = append(names, name)
 	}
 
-	res := &ContextListResponse{
-		Items: names,
-	}
+	sort.SliceStable(names, func(i, j int) bool {
+		return names[i] < names[j]
+	})
 
-	h.JSONResponse(w).WithStatusCode(http.StatusOK).Send(res)
+	h.JSONResponse(w).Send(ContextListResponse{
+		Items: names,
+	})
 }
 
 func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if _, found := h.router.Contexts[name]; !found {
-		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send("Context not found")
+		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{Message: "Context not found"})
 		return
 	}
 
