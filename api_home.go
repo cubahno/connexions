@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func CreateHomeRoutes(router *Router) error {
+func createHomeRoutes(router *Router) error {
 	if router.Config.App.DisableUI {
 		return nil
 	}
@@ -50,7 +50,7 @@ type HomeHandler struct {
 // bufferedWriter is a writer that captures the response.
 // Used to capture the template execution result.
 type bufferedWriter struct {
-	buf []byte
+	buf        []byte
 	statusCode int
 }
 
@@ -72,7 +72,6 @@ func (bw *bufferedWriter) Header() http.Header {
 func (bw *bufferedWriter) WriteHeader(statusCode int) {
 	bw.statusCode = statusCode
 }
-
 
 func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 	uiPath := router.Config.App.Paths.UI

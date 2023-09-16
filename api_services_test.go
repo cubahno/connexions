@@ -20,7 +20,7 @@ func TestCreateServiceRoutes_Disabled(t *testing.T) {
 	router, _ := SetupApp(t.TempDir())
 	router.Config.App.DisableUI = true
 
-	_ = CreateServiceRoutes(router)
+	_ = createServiceRoutes(router)
 	assert.Equal(0, len(router.Mux.Routes()))
 }
 
@@ -89,7 +89,7 @@ func TestServiceHandler_list(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	// add services
@@ -133,7 +133,7 @@ func TestServiceHandler_save_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("form-error", func(t *testing.T) {
@@ -183,7 +183,7 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	// prepare payload
@@ -264,7 +264,7 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	// prepare payload
@@ -333,7 +333,7 @@ func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	router.Services = map[string]*ServiceItem{
@@ -406,7 +406,7 @@ func TestServiceHandler_resources_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
@@ -431,7 +431,7 @@ func TestServiceHandler_resources(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	routes := RouteDescriptions{
@@ -496,7 +496,7 @@ func TestServiceHandler_deleteService_errors(t *testing.T) {
 	err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("not-found", func(t *testing.T) {
@@ -569,7 +569,7 @@ func TestServiceHandler_deleteService(t *testing.T) {
 		},
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	req := httptest.NewRequest("DELETE", "/.services/"+RootServiceName, nil)
@@ -592,7 +592,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
@@ -667,7 +667,7 @@ func TestServiceHandler_spec_happyPath(t *testing.T) {
 		},
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	req := httptest.NewRequest("GET", "/.services/petstore/spec", nil)
@@ -689,7 +689,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
@@ -827,7 +827,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	}
 	router.Config.Services["petstore"].Contexts = nil
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	replacements := map[string]any{
@@ -927,7 +927,7 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 		},
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	req := httptest.NewRequest("POST", "/.services/petstore/0", nil)
@@ -981,7 +981,7 @@ func TestServiceHandler_getResource_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
@@ -1085,7 +1085,7 @@ func TestServiceHandler_getResource(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
@@ -1134,7 +1134,7 @@ func TestServiceHandler_deleteResource_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
@@ -1238,7 +1238,7 @@ func TestServiceHandler_deleteResource(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateServiceRoutes(router)
+	err = createServiceRoutes(router)
 	assert.Nil(err)
 
 	router.Services = map[string]*ServiceItem{

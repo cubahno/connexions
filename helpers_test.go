@@ -140,10 +140,7 @@ func SetupApp(appDir string) (*Router, error) {
 		return nil, err
 	}
 
-	cfg, err := NewConfig(appDir)
-	if err != nil {
-		return nil, err
-	}
+	cfg := MustConfig(appDir)
 
 	err = MustFileStructure(cfg.App.Paths)
 	if err != nil {

@@ -119,8 +119,7 @@ app:
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(err)
+		cfg := MustConfig(tempDir)
 
 		// replace port
 		ymlContent, _ := yaml.Marshal(cfg)
@@ -130,6 +129,27 @@ app:
 
 		cfg.Reload()
 		assert.Equal(9000, cfg.App.Port)
+	})
+
+	t.Run("Reload-invalid", func(t *testing.T) {
+		tempDir := t.TempDir()
+		contents := `
+app:
+  port: 8000`
+		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+
+		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		err := os.WriteFile(filePath, []byte(contents), 0644)
+		assert.Nil(err)
+
+		cfg := MustConfig(tempDir)
+
+		// replace with invalid
+		_ = os.WriteFile(filePath, []byte(`1`), 0644)
+
+		cfg.Reload()
+		// port didn't change
+		assert.Equal(8000, cfg.App.Port)
 	})
 }
 
@@ -262,8 +282,7 @@ services:
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(err)
+		cfg := MustConfig(tempDir)
 		assert.Equal(expected, cfg)
 	})
 
@@ -278,8 +297,7 @@ app:
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(err)
+		cfg := MustConfig(tempDir)
 
 		// check live config is triggered
 		ymlContent, _ := yaml.Marshal(cfg)
@@ -309,8 +327,7 @@ services:
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(err)
+		cfg := MustConfig(tempDir)
 
 		// check live config is triggered
 		ymlContent, _ := yaml.Marshal(cfg)
@@ -341,9 +358,9 @@ services:
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(cfg)
-		assert.NotNil(err)
+		cfg := MustConfig(tempDir)
+		assert.NotNil(cfg)
+		assert.Equal(tempDir, cfg.baseDir)
 	})
 
 	t.Run("transformation-error", func(t *testing.T) {
@@ -357,17 +374,16 @@ app:
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(cfg)
-		assert.NotNil(err)
+		cfg := MustConfig(tempDir)
+		assert.NotNil(cfg)
+		assert.Equal(2200, cfg.App.Port)
 	})
 
 	t.Run("file-not-found", func(t *testing.T) {
 		tempDir := t.TempDir()
 
-		cfg, err := NewConfig(tempDir)
-		assert.Nil(cfg)
-		assert.NotNil(err)
+		cfg := MustConfig(tempDir)
+		assert.NotNil(cfg)
 	})
 }
 

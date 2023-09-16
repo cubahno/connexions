@@ -2,6 +2,7 @@ package connexions
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"log"
 	"math/rand"
 	"net/http"
@@ -31,13 +32,7 @@ type Paths struct {
 	ConfigFile        string
 }
 
-func NewApp(baseDir string) *App {
-	config, err := NewConfig(baseDir)
-	if err != nil {
-		log.Printf("Failed to load config file: %s\n", err.Error())
-		config = NewDefaultConfig(baseDir)
-	}
-
+func NewApp(config *Config) *App {
 	paths := config.App.Paths
 	res := &App{
 		Paths: paths,
@@ -48,11 +43,13 @@ func NewApp(baseDir string) *App {
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	err = MustFileStructure(paths)
-	if err != nil {
-		panic(err)
+	if config.App.CreateFileStructure {
+		err := MustFileStructure(paths)
+		if err != nil {
+			panic(err)
+		}
+		_ = CleanupServiceFileStructure(paths.Services)
 	}
-	_ = CleanupServiceFileStructure(paths.Services)
 
 	router := NewRouter(config)
 	res.Router = router
@@ -61,10 +58,10 @@ func NewApp(baseDir string) *App {
 		loadServices,
 		loadContexts,
 
-		CreateHomeRoutes,
-		CreateServiceRoutes,
-		CreateContextRoutes,
-		CreateSettingsRoutes,
+		createHomeRoutes,
+		createServiceRoutes,
+		createContextRoutes,
+		createSettingsRoutes,
 	}
 	res.BluePrints = bluePrints
 
@@ -80,29 +77,43 @@ func NewApp(baseDir string) *App {
 
 // MustFileStructure creates the necessary directories and files
 func MustFileStructure(paths *Paths) error {
-	dirs := []string{paths.Services, paths.Contexts}
+	dirs := []string{paths.Resources, paths.Samples, paths.Services, paths.Contexts}
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			log.Println("Creating service directory and configuration for the first time")
 			if err := os.Mkdir(dir, os.ModePerm); err != nil {
 				return err
 			}
-		} else {
-			return nil
+
+			if dir == paths.Resources {
+				log.Println("Copying sample config file")
+
+				srcPath := fmt.Sprintf("%s.dist", paths.ConfigFile)
+
+				// if file system has no config file, create one
+				if _, err = os.Stat(paths.ConfigFile); os.IsNotExist(err) {
+					// read dist config file
+					configContent, err := os.ReadFile(srcPath)
+					if err != nil {
+						def := &Config{}
+						def.EnsureConfigValues()
+						configContent, _ = yaml.Marshal(def.App)
+					}
+
+					if err := SaveFile(paths.ConfigFile, configContent); err != nil {
+						return err
+					}
+				}
+				continue
+			}
+
+			if dir == paths.Services {
+				log.Println("Copying sample content to service directory")
+				if err := CopyDirectory(paths.Samples, paths.Services); err != nil {
+					return err
+				}
+				continue
+			}
 		}
-	}
-
-	log.Println("Copying sample content to service directory")
-	if err := CopyDirectory(paths.Samples, paths.Services); err != nil {
-		return err
-	}
-
-	log.Println("Copying sample config file")
-
-	destPath := paths.ConfigFile
-	srcPath := fmt.Sprintf("%s.dist", destPath)
-	if err := CopyFile(srcPath, destPath); err != nil {
-		return err
 	}
 
 	log.Println("Done!")

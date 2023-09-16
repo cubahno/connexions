@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-func CreateContextRoutes(router *Router) error {
+func createContextRoutes(router *Router) error {
 	if router.Config.App.DisableUI || router.Config.App.ContextURL == "" {
 		return nil
 	}

@@ -18,6 +18,9 @@ app:
   # - kin-openapi: https://github.com/getkin/kin-openapi
   schemaProvider: libopenapi
 
+  # pre-create the file structure for the resources
+  createFileStructure: true
+
 services:
   # service name is the first part of the path.
   # e.g. /petstore/v1/pets -> petstore

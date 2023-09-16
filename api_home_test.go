@@ -23,7 +23,7 @@ func TestCreateHomeRoutes(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateHomeRoutes(router)
+	err = createHomeRoutes(router)
 	assert.Nil(err)
 	_ = CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
 
@@ -97,7 +97,7 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateHomeRoutes(router)
+	err = createHomeRoutes(router)
 	assert.Nil(err)
 
 	createReqBody := func(fieldName, fileName string, contents []byte) (*multipart.Writer, *bytes.Buffer) {
@@ -210,7 +210,7 @@ func TestCreateHomeRoutes_export_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateHomeRoutes(router)
+	err = createHomeRoutes(router)
 	assert.Nil(err)
 
 	os.Chmod(router.Config.App.Paths.Resources, 0000)
@@ -234,7 +234,7 @@ func TestCreateHomeRoutes_disabled(t *testing.T) {
 	}
 
 	router.Config.App.DisableUI = true
-	err = CreateHomeRoutes(router)
+	err = createHomeRoutes(router)
 	assert.Nil(err)
 	_ = CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
 
@@ -254,7 +254,7 @@ func TestCreateHomeRoutes_errors(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateHomeRoutes(router)
+	err = createHomeRoutes(router)
 	assert.Nil(err)
 
 	t.Run("missing-template", func(t *testing.T) {

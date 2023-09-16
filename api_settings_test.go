@@ -17,7 +17,7 @@ func TestCreateSettingsRoutes_Disabled(t *testing.T) {
 	router, _ := SetupApp(t.TempDir())
 	router.Config.App.DisableUI = true
 
-	_ = CreateSettingsRoutes(router)
+	_ = createSettingsRoutes(router)
 	assert.Equal(0, len(router.Mux.Routes()))
 }
 
@@ -30,7 +30,7 @@ func TestSettingsHandler(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = CreateSettingsRoutes(router)
+	err = createSettingsRoutes(router)
 	assert.Nil(err)
 
 	t.Run("get", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestSettingsHandler_Put_ErrorWriting(t *testing.T) {
 
 	router, err := SetupApp(t.TempDir())
 	assert.Nil(err)
-	err = CreateSettingsRoutes(router)
+	err = createSettingsRoutes(router)
 	assert.Nil(err)
 
 	// set as read-only
@@ -139,7 +139,7 @@ func TestSettingsHandler_Post_ErrorCopyFile(t *testing.T) {
 
 	router, err := SetupApp(t.TempDir())
 	assert.Nil(err)
-	err = CreateSettingsRoutes(router)
+	err = createSettingsRoutes(router)
 	assert.Nil(err)
 
 	router.Config.App.Paths.ConfigFile = "non-existent.yml"

@@ -123,7 +123,7 @@ func loadContexts(router *Router) error {
 
 	// Walk through all files in the contexts directory
 	_ = filepath.Walk(router.Config.App.Paths.Contexts, func(filePath string, info os.FileInfo, err error) error {
-		if info.IsDir() {
+		if info == nil || info.IsDir() {
 			return nil
 		}
 

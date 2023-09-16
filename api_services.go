@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-func CreateServiceRoutes(router *Router) error {
+func createServiceRoutes(router *Router) error {
 	if router.Config.App.DisableUI || router.Config.App.ServiceURL == "" {
 		return nil
 	}

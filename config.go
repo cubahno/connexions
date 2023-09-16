@@ -22,8 +22,9 @@ type Config struct {
 	// e.g. /petstore/v1/pets -> petstore
 	// in case, there's no service name, the name ".root" will be used.
 	Services map[string]*ServiceConfig `koanf:"services"`
-	baseDir  string                    `koanf:"-"`
-	mu       sync.Mutex
+
+	baseDir string `koanf:"-"`
+	mu      sync.Mutex
 }
 
 type ServiceConfig struct {
@@ -129,6 +130,12 @@ type AppConfig struct {
 
 	// Paths is the paths to various resource directories.
 	Paths *Paths `json:"-" koanf:"-"`
+
+	// CreateFileStructure is a flag whether to create the initial resources file structure:
+	// contexts, services, etc.
+	// It will also copy sample files from the samples directory into services.
+	// Default: true in config.dist.yml which gets initially copied to config.yml.
+	CreateFileStructure bool `koanf:"createFileStructure"`
 }
 
 func NewPaths(baseDir string) *Paths {
@@ -169,6 +176,9 @@ func (c *Config) GetApp() *AppConfig {
 // GetServiceConfig returns the config for a service.
 // If the service is not found, it returns a default config.
 func (c *Config) GetServiceConfig(service string) *ServiceConfig {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	res, ok := c.Services[service]
 	if !ok {
 		res = &ServiceConfig{}
@@ -306,28 +316,33 @@ func (s *ServiceError) GetError() int {
 	return defaultErrorCode
 }
 
-// NewConfig creates a new config from a YAML file path.
-// It also creates a watcher for the file and reloads the config on change.
-func NewConfig(baseDir string) (*Config, error) {
+// MustConfig creates a new config from a YAML file path.
+// In case it file does not exist or has incorrect YAML:
+// - it creates a new default config
+//
+// Koanf has a file watcher, but its easier to control the changes with a manual reload.
+func MustConfig(baseDir string) *Config {
 	paths := NewPaths(baseDir)
 	filePath := paths.ConfigFile
+
+	fallback := NewDefaultConfig(baseDir)
 
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
-		return nil, err
+		return fallback
 	}
 
 	cfg := &Config{}
 	transformed := cfg.transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
-		return nil, err
+		return fallback
 	}
 	cfg.EnsureConfigValues()
 	cfg.App.Paths = paths
 	cfg.baseDir = baseDir
 
-	return cfg, nil
+	return cfg
 }
 
 // NewConfigFromContent creates a new config from a YAML file content.

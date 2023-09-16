@@ -4,6 +4,8 @@ IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 
+MIN_COVERAGE = 99
+
 define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
 endef
@@ -16,9 +18,22 @@ test:
 		go test -race ./... -coverprofile .testCoverage.txt -count=1; \
 	fi;
 
+.PHONY: test-with-check-coverage
+test-with-check-coverage: test
+	@coverage=$$(go tool cover -func=.testCoverage.txt | awk '/^total:/{print $$3}' | tr -d '%'); \
+	if [ "$$(echo "$$coverage < $(MIN_COVERAGE)" | bc -l)" -eq 1 ]; then \
+	  echo "Code coverage is less than $(MIN_COVERAGE)%."; \
+	  exit 1; \
+	fi
+
 .PHONY: clean
 clean:
 	rm -rf ${build_dir}
+
+.PHONY: tidy
+tidy:
+	@go fmt ./...
+	@go mod tidy -v
 
 .PHONY: build
 build: clean

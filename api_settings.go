@@ -16,7 +16,7 @@ type SettingsHandler struct {
 	mu     sync.Mutex
 }
 
-func CreateSettingsRoutes(router *Router) error {
+func createSettingsRoutes(router *Router) error {
 	if router.Config.App.DisableUI || router.Config.App.SettingsURL == "" {
 		return nil
 	}
