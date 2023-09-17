@@ -149,7 +149,7 @@ func replaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 
 func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
-	if !ok {
+	if !ok || schema == nil {
 		return nil
 	}
 
@@ -174,7 +174,7 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 
 func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
-	if !ok {
+	if !ok || schema == nil {
 		return nil
 	}
 	faker := ctx.Faker
@@ -192,7 +192,7 @@ func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 
 func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
-	if !ok {
+	if !ok || schema == nil {
 		return nil
 	}
 	return schema.Example
@@ -206,7 +206,7 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 	}
 
 	schema, ok := openAPISchema.(*Schema)
-	if !ok {
+	if !ok || schema == nil {
 		return res
 	}
 
@@ -293,7 +293,7 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 
 func ReplaceFromSchemaFallback(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
-	if !ok {
+	if !ok || schema == nil {
 		return nil
 	}
 	return schema.Default

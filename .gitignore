@@ -6,4 +6,6 @@
 .testCoverage.txt
 resources/services
 resources/config.yml
+resources/test/specs/**/*
+!resources/test/specs/petstore.yml
 site

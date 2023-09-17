@@ -45,10 +45,7 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	if len(errs) > 0 {
 		for i := range errs {
 			if circError, ok := errs[i].(*resolver.ResolvingError); ok {
-				log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
-					circError.Error(),
-					circError.CircularReference.LoopPoint.Node.Line,
-					circError.CircularReference.IsPolymorphicResult)
+				log.Printf("Message: %s\n", circError)
 				return &LibV3Document{
 					DocumentModel: model,
 				}, nil

@@ -13,20 +13,20 @@ endef
 .PHONY: test
 test:
 	@if [ "$(with_docker)" = "true" ]; then \
-		$(call docker-cmd, sh -c "/wait && go test -tags=unit -race ./... -coverprofile .testCoverage.txt -count=1"); \
+		$(call docker-cmd, sh -c "/wait && go test -race ./... -coverprofile .testCoverage.txt -count=1"); \
 	else \
-		go test -tags=unit -race ./... -count=1; \
+		go test -race ./... -coverprofile .testCoverage.txt -count=1; \
 	fi;
 
 .PHONY: test-integration
 test-integration:
-	@go test -tags=integration ./... -coverprofile .testCoverage.txt -count=1
+	@go test -tags=integration ./... -count=1
 
 .PHONY: test-with-check-coverage
 test-with-check-coverage: test
 	@coverage=$$(go tool cover -func=.testCoverage.txt | awk '/^total:/{print $$3}' | tr -d '%'); \
 	if [ "$$(echo "$$coverage < $(MIN_COVERAGE)" | bc -l)" -eq 1 ]; then \
-	  echo "Code coverage is less than $(MIN_COVERAGE)%."; \
+	  echo "Code coverage $$coverage% is less than $(MIN_COVERAGE)%."; \
 	  exit 1; \
 	fi
 

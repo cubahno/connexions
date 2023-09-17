@@ -32,6 +32,10 @@ func (d *LibV3Document) GetVersion() string {
 func (d *LibV3Document) GetResources() map[string][]string {
 	res := make(map[string][]string)
 
+	if d.DocumentModel == nil || d.Model.Paths == nil {
+		return res
+	}
+
 	for name, path := range d.Model.Paths.PathItems {
 		res[name] = make([]string, 0)
 		for method, _ := range path.GetOperations() {

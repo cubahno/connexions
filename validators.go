@@ -74,8 +74,11 @@ func ExtractPlaceholders(input string) []string {
 func ValidateRequest(req *http.Request, body *Schema, contentType string) error {
 	inp := &openapi3filter.RequestValidationInput{Request: req}
 	schema := openapi3.NewSchema()
-	current, _ := json.Marshal(body)
-	_ = schema.UnmarshalJSON(current)
+
+	if body != nil {
+		current, _ := json.Marshal(body)
+		_ = schema.UnmarshalJSON(current)
+	}
 
 	reqBody := openapi3.NewRequestBody().WithSchema(
 		schema,
@@ -93,6 +96,12 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 		return nil
 	}
 
+	// fast track for no response
+	resSchema := operation.GetResponse()
+	if resSchema == nil || res.Content == nil {
+		return nil
+	}
+
 	inp := &openapi3filter.RequestValidationInput{
 		Request: req,
 		Route: &routers.Route{
@@ -107,6 +116,7 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 	}
 
 	responseValidationInput.SetBodyBytes(res.Content)
+
 	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
 

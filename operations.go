@@ -83,7 +83,9 @@ func EncodeContent(content any, contentType string) ([]byte, error) {
 
 	default:
 		switch content.(type) {
-		case string, []byte:
+		case []byte:
+			return content.([]byte), nil
+		case string:
 			return content.([]byte), nil
 		}
 	}
