@@ -13,10 +13,14 @@ endef
 .PHONY: test
 test:
 	@if [ "$(with_docker)" = "true" ]; then \
-		$(call docker-cmd, sh -c "/wait && go test -race ./... -coverprofile .testCoverage.txt -count=1"); \
+		$(call docker-cmd, sh -c "/wait && go test -tags=unit -race ./... -coverprofile .testCoverage.txt -count=1"); \
 	else \
-		go test -race ./... -coverprofile .testCoverage.txt -count=1; \
+		go test -tags=unit -race ./... -count=1; \
 	fi;
+
+.PHONY: test-integration
+test-integration:
+	@go test -tags=integration ./... -coverprofile .testCoverage.txt -count=1
 
 .PHONY: test-with-check-coverage
 test-with-check-coverage: test
