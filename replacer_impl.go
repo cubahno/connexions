@@ -3,6 +3,7 @@ package connexions
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -331,6 +332,22 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 	reqMax := schema.Maximum
 	multOf := schema.MultipleOf
 
+	expectedEnums := make(map[string]bool)
+	// remove random nulls from enum values
+	for _, v := range schema.Enum {
+		if v != nil {
+			// we can't have floats as keys in the map, so we convert them to strings
+			expectedEnums[fmt.Sprintf("%v", v)] = true
+		}
+	}
+
+	vStr := fmt.Sprintf("%v", value)
+	if len(expectedEnums) > 0 && !expectedEnums[vStr] {
+		enumed := GetRandomKeyFromMap(expectedEnums)
+		f, _ := strconv.ParseFloat(enumed, 64)
+		return f
+	}
+
 	if multOf != 0 {
 		value = float64(int(value/multOf)) * multOf
 	}
@@ -346,10 +363,12 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 	return value
 }
 
+// ReplaceFromSchemaFallback is the last resort to get a value from the schema.
 func ReplaceFromSchemaFallback(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
 	if !ok || schema == nil {
 		return nil
 	}
+
 	return schema.Default
 }

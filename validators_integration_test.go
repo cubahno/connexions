@@ -72,7 +72,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 		fails++
 	}
 
-	fmt.Pprintf("Success: %d, Fails: %d\n", success, fails)
+	fmt.Printf("Success: %d, Fails: %d\n", success, fails)
 	if fails > 0 {
 		t.Errorf("Failed to validate %d resources", fails)
 		for _, res := range failsDescr {

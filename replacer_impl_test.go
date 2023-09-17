@@ -735,7 +735,6 @@ func TestApplySchemaConstraints(t *testing.T) {
 		res := ApplySchemaConstraints(schema, 6)
 		assert.Equal(int64(6), res)
 	})
-
 }
 
 func TestApplySchemaStringConstraints(t *testing.T) {
@@ -893,6 +892,24 @@ func TestApplySchemaNumberConstraints(t *testing.T) {
 		}
 		res := applySchemaNumberConstraints(schema, 100)
 		assert.Equal(21.0, res)
+	})
+
+	t.Run("enum-ints", func(t *testing.T) {
+		schema := &Schema{
+			Type:       TypeNumber,
+			Enum: []any{10, 20, 30},
+		}
+		res := applySchemaNumberConstraints(schema, 100)
+		assert.Contains([]float64{10, 20, 30}, res)
+	})
+
+	t.Run("enum-floats", func(t *testing.T) {
+		schema := &Schema{
+			Type:       TypeNumber,
+			Enum: []any{10.1, 20.2, 30.3},
+		}
+		res := applySchemaNumberConstraints(schema, 100)
+		assert.Contains([]float64{10.1, 20.2, 30.3}, res)
 	})
 }
 

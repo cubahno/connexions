@@ -770,7 +770,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 				map[string]any{
 					"id":       123,
 					"name":     "noda-123",
-					"children": nil,
+					"children": []any{},
 				},
 			},
 		}
@@ -831,7 +831,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			"parent": map[string]any{
 				"id":     123,
 				"name":   "noda-123",
-				"parent": nil,
+				"parent": map[string]any{},
 			},
 		}
 		assert.Equal(expected, res)

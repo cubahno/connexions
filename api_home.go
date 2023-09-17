@@ -77,7 +77,12 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 	uiPath := router.Config.App.Paths.UI
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles(fmt.Sprintf("%s/index.html", uiPath)))
+		tpl, err := template.ParseFiles(fmt.Sprintf("%s/index.html", uiPath))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tmpl := template.Must(tpl, nil)
 		config := router.Config.App
 
 		type TemplateData struct {

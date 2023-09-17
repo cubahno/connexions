@@ -327,11 +327,19 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 	}
 
 	if schema.Type == TypeObject {
-		return GenerateContentObject(schema, valueResolver, state)
+		obj := GenerateContentObject(schema, valueResolver, state)
+		if obj == nil && !schema.Nullable {
+			obj = map[string]any{}
+		}
+		return obj
 	}
 
 	if schema.Type == TypeArray {
-		return GenerateContentArray(schema, valueResolver, state)
+		arr := GenerateContentArray(schema, valueResolver, state)
+		if arr == nil && !schema.Nullable {
+			arr = []any{}
+		}
+		return arr
 	}
 
 	// try to resolve anything
