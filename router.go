@@ -33,9 +33,9 @@ type ErrorResponse struct {
 func NewRouter(config *Config) *Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(ConditionalLoggingMiddleware(config))
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Timeout(10 * time.Second))
 
 	return &Router{
 		Mux:          r,
