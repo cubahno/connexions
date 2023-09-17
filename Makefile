@@ -20,7 +20,7 @@ test:
 
 .PHONY: test-integration
 test-integration:
-	@go test -tags=integration ./... -count=1
+	@go test -race -tags=integration ./... -count=1
 
 .PHONY: test-with-check-coverage
 test-with-check-coverage: test

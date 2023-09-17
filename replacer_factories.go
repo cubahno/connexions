@@ -3,6 +3,7 @@ package connexions
 import (
 	"github.com/jaswdr/faker"
 	"reflect"
+	"sync"
 )
 
 type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
@@ -44,12 +45,17 @@ func NewReplaceContext(schema any, state *ReplaceState, resource *Resource) *Rep
 }
 
 func CreateValueReplacerFactory(fns []Replacer) ValueReplacerFactory {
+	var mu sync.Mutex
+
 	return func(resource *Resource) ValueReplacer {
 		if resource == nil {
 			resource = &Resource{}
 		}
 
 		return func(content any, state *ReplaceState) any {
+			mu.Lock()
+			defer mu.Unlock()
+
 			if state == nil {
 				state = &ReplaceState{}
 			}

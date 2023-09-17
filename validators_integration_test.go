@@ -30,6 +30,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	ch := make(chan validationResult, 0)
 	specDir := filepath.Join("resources", "test", "specs")
+	replacerFactory := CreateValueReplacerFactory(Replacers)
 
 	_ = filepath.Walk(specDir, func(filePath string, info os.FileInfo, fileErr error) error {
 		if info == nil || info.IsDir() {
@@ -40,7 +41,14 @@ func TestValidateResponse_Integration(t *testing.T) {
 
 		go func(filePath string) {
 			defer wg.Done()
-			validateFile(filePath, ch)
+			base := filepath.Base(filePath)
+			service := strings.TrimSuffix(base, filepath.Ext(base))
+			replacer := replacerFactory(&Resource{
+				Service:     service,
+				ContextData: []map[string]any{},
+			})
+
+			validateFile(filePath, replacer, ch)
 		}(filePath)
 
 		return nil
@@ -88,13 +96,12 @@ func TestValidateResponse_Integration(t *testing.T) {
 	}
 }
 
-func validateFile(filePath string, ch chan<- validationResult) {
+func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationResult) {
 	fileName := filepath.Base(filePath)
 	// there should be a simple way to tmp skip some specs
 	if fileName[0] == '-' {
 		return
 	}
-	replacerFactory := CreateValueReplacerFactory(Replacers)
 
 	doc, err := NewDocumentFromFileFactory(KinOpenAPIProvider)(filePath)
 	if err != nil {
@@ -104,11 +111,6 @@ func validateFile(filePath string, ch chan<- validationResult) {
 		}
 		return
 	}
-
-	replacer := replacerFactory(&Resource{
-		Service:     filepath.Base(fileName),
-		ContextData: []map[string]any{},
-	})
 
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
