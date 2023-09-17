@@ -192,6 +192,26 @@ func TestValidateResponse(t *testing.T) {
 		assert.Contains(err.Error(), "value must be an integer")
 	})
 
+	t.Run("invalid-type-but-unsupported-response-type", func(t *testing.T) {
+		op := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), op)
+		op.Responses["200"].Value.Content["text/markdown"] = op.Responses["200"].Value.Content["application/json"]
+		delete(op.Responses["200"].Value.Content, "application/json")
+
+		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
+		res := &Response{
+			StatusCode: http.StatusOK,
+			Headers: http.Header{
+				"Content-Type": []string{"text/markdown"},
+			},
+			Content:     []byte(`{"id": "1", "email": "jane.doe@email"}`),
+			ContentType: "text/markdown",
+		}
+
+		err := ValidateResponse(req, res, op)
+		assert.Nil(err)
+	})
+
 	t.Run("no-headers-not-validated", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
 		res := &Response{

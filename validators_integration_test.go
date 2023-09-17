@@ -75,13 +75,14 @@ func TestValidateResponse_Integration(t *testing.T) {
 	fmt.Printf("Success: %d, Fails: %d\n", success, fails)
 	if fails > 0 {
 		t.Errorf("Failed to validate %d resources", fails)
-		for _, res := range failsDescr {
+		for i, res := range failsDescr {
+			fmt.Printf("Fail %d:\n====================\n", i+1)
 			if res.docErr != "" {
-				t.Errorf("Document error in file: %s\n%s\n\n", res.file, res.docErr)
+				fmt.Printf("Document error in file: %s\n%s\n\n", res.file, res.docErr)
 				continue
 			}
 			if res.reqErr != "" || res.respErr != "" {
-				t.Errorf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
+				fmt.Printf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
 				if res.reqErr != "" {
 					fmt.Printf("Request error: %s\n", res.reqErr)
 				}
@@ -90,7 +91,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 				}
 			}
 
-			println()
+			fmt.Printf("==========================\n\n")
 		}
 	}
 }
@@ -113,7 +114,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
-			println(fmt.Sprintf("Validating %s %s", method, resource))
+			println(fmt.Sprintf("Validating [%s]: %s %s", fileName, method, resource))
 			operation := doc.FindOperation(&FindOperationOptions{
 				Resource: resource,
 				Method:   method,
