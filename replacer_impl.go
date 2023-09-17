@@ -248,7 +248,9 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 	// remove random nulls from enum values
 	for _, v := range schema.Enum {
 		if v != nil {
-			expectedEnums[v.(string)] = true
+			// values can be numbers in the schema too, make sure we get strings here
+			// otherwise we'll get a panic if validation is on.
+			expectedEnums[fmt.Sprintf("%v", v)] = true
 		}
 	}
 
