@@ -15,6 +15,7 @@ import (
 )
 
 func CreateSchemaFromYAMLFile(t *testing.T, filePath string, target any) {
+	t.Helper()
 	cont, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Errorf("Error reading file: %v", err)
@@ -53,6 +54,7 @@ func CreateSchemaFromYAMLFile(t *testing.T, filePath string, target any) {
 }
 
 func CreateOperationFromYAMLFile(t *testing.T, filePath string, target any) {
+	t.Helper()
 	cont, err := os.ReadFile(filePath)
 	if err != nil {
 		t.Errorf("Error reading file: %v", err)
@@ -88,6 +90,7 @@ func CreateOperationFromYAMLFile(t *testing.T, filePath string, target any) {
 }
 
 func CreateKinSchemaFromString(t *testing.T, src string) *openapi3.Schema {
+	t.Helper()
 	schema := openapi3.NewSchema()
 	err := json.Unmarshal([]byte(src), schema)
 	if err != nil {
@@ -98,10 +101,12 @@ func CreateKinSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 }
 
 func CreateSchemaFromString(t *testing.T, src string) *Schema {
+	t.Helper()
 	return NewSchemaFromKin(CreateKinSchemaFromString(t, src), nil)
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {
+	t.Helper()
 	expectedJSON, _ := json.Marshal(expected)
 	actualJSON, _ := json.Marshal(actual)
 
@@ -151,6 +156,7 @@ func SetupApp(appDir string) (*Router, error) {
 }
 
 func UnmarshallResponse[T any](t *testing.T, res *bytes.Buffer) *T {
+	t.Helper()
 	target := new(T)
 	err := json.Unmarshal(res.Bytes(), &target)
 	if err != nil {
