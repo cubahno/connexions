@@ -157,6 +157,13 @@ func TestEncodeContent(t *testing.T) {
 		assert.Equal(content, result)
 	})
 
+	t.Run("string-content", func(t *testing.T) {
+		content := "hallo, welt!"
+		result, err := EncodeContent(content, "x-unknown")
+		assert.NoError(err)
+		assert.Equal(content, string(result))
+	})
+
 	t.Run("Unknown Content Type", func(t *testing.T) {
 		content := 123
 		result, err := EncodeContent(content, "x-unknown")

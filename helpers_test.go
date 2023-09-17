@@ -8,11 +8,30 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"io"
+	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+// Custom testingLogWriter that discards log output
+type testingLogWriter struct{}
+
+func (lw *testingLogWriter) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
+
+func TestMain(m *testing.M) {
+	// Disable global log output for tests
+	_ = os.Setenv("DISABLE_LOGGER", "true")
+	log.SetOutput(&testingLogWriter{})
+
+	// Run tests
+	code := m.Run()
+
+	os.Exit(code)
+}
 
 func CreateSchemaFromYAMLFile(t *testing.T, filePath string, target any) {
 	t.Helper()

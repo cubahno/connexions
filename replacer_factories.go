@@ -70,7 +70,7 @@ func CreateValueReplacerFactory(fns []Replacer) ValueReplacerFactory {
 			for _, fn := range fns {
 				res := fn(ctx)
 				if res != nil && ctx.Schema != nil {
-					if !HasCorrectSchemaType(ctx, res) {
+					if !HasCorrectSchemaValue(ctx, res) {
 						continue
 					}
 					res = ApplySchemaConstraints(ctx.Schema, res)
@@ -94,8 +94,8 @@ func CreateValueReplacerFactory(fns []Replacer) ValueReplacerFactory {
 	}
 }
 
-func IsCorrectlyReplacedType(value any, needed string) bool {
-	switch needed {
+func IsCorrectlyReplacedType(value any, neededType string) bool {
+	switch neededType {
 	case TypeString:
 		_, ok := value.(string)
 		return ok

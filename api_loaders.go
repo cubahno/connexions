@@ -1,10 +1,7 @@
 package connexions
 
 import (
-	"fmt"
-	"github.com/go-chi/chi/v5"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,7 +71,7 @@ func loadServices(router *Router) error {
 
 	wg.Wait()
 
-	println("Registering fixed services...")
+	log.Printf("Registering fixed services...\n")
 	for _, fileProps := range fixedFiles {
 		wg.Add(1)
 
@@ -99,12 +96,7 @@ func loadServices(router *Router) error {
 	wg.Wait()
 	router.Services = services
 
-	println("Registered routes:")
-	_ = chi.Walk(router, func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-		fmt.Printf("[%s]:\t%s\n", method, route)
-		return nil
-	})
-	println()
+	log.Println("Registered routes.")
 
 	return err
 }

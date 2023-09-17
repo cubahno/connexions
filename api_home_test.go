@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -108,7 +109,7 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 
 		file, err := writer.CreateFormFile(fieldName, fileName)
 		if err != nil {
-			fmt.Println("Error creating form file:", err)
+			log.Printf("Error creating form file: %s\n", err)
 			return nil, nil
 		}
 

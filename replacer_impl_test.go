@@ -12,25 +12,85 @@ func TestHasCorrectSchemaType(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("nil-schema", func(t *testing.T) {
-		res := HasCorrectSchemaType(NewReplaceContext(nil, nil, nil), "nice")
+		res := HasCorrectSchemaValue(NewReplaceContext(nil, nil, nil), "nice")
 		assert.True(res)
 	})
 
 	t.Run("not-a-schema", func(t *testing.T) {
-		res := HasCorrectSchemaType(NewReplaceContext("not-a-schema", nil, nil), "nice")
+		res := HasCorrectSchemaValue(NewReplaceContext("not-a-schema", nil, nil), "nice")
 		assert.True(res)
 	})
 
 	t.Run("string-type-ok", func(t *testing.T) {
 		schema := &Schema{Type: TypeString}
-		res := HasCorrectSchemaType(NewReplaceContext(schema, nil, nil), "nice")
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "nice")
 		assert.True(res)
 	})
 
 	t.Run("string-type-error", func(t *testing.T) {
 		schema := &Schema{Type: TypeString}
-		res := HasCorrectSchemaType(NewReplaceContext(schema, nil, nil), 123)
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123)
 		assert.False(res)
+	})
+
+	t.Run("int32-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Format: "int32"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123)
+		assert.True(res)
+	})
+
+	t.Run("int32-bad", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Format: "int32"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), fake.Int64())
+		assert.False(res)
+	})
+
+	t.Run("int64-ok-small", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Format: "int64"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123)
+		assert.True(res)
+	})
+
+	t.Run("int64-ok-big", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Format: "int64"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), fake.Int64())
+		assert.True(res)
+	})
+
+	t.Run("int64-bad", func(t *testing.T) {
+		schema := &Schema{Type: TypeNumber, Format: "int64"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123.1)
+		assert.False(res)
+	})
+
+	t.Run("string-date-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeString, Format: "date"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-01-01")
+		assert.True(res)
+	})
+
+	t.Run("string-date-bad", func(t *testing.T) {
+		schema := &Schema{Type: TypeString, Format: "date"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-13-01")
+		assert.False(res)
+	})
+
+	t.Run("string-datetime-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeString, Format: "date-time"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-01-01T15:04:05.000Z")
+		assert.True(res)
+	})
+
+	t.Run("string-datetime-bad", func(t *testing.T) {
+		schema := &Schema{Type: TypeString, Format: "date-time"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-01-01T25:04:05.000Z")
+		assert.False(res)
+	})
+
+	t.Run("string-with-unknown-format", func(t *testing.T) {
+		schema := &Schema{Type: TypeString, Format: "x"}
+		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "xxx")
+		assert.True(res)
 	})
 }
 
@@ -191,6 +251,51 @@ func TestReplaceFromContext(t *testing.T) {
 		}
 		res := ReplaceFromContext(NewReplaceContext(schema, state, resource))
 		assert.Nil(res)
+	})
+}
+
+func TestCastToSchemaFormat(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("no-schema", func(t *testing.T) {
+		res := CastToSchemaFormat(NewReplaceContext(nil, nil, nil), 123)
+		assert.Equal(123, res)
+	})
+
+	t.Run("int32-ok", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeNumber,
+			Format: "int32",
+		}
+		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.0)
+		assert.Equal(int32(123), res)
+	})
+
+	t.Run("int32-not", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeNumber,
+			Format: "int32",
+		}
+		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.4)
+		assert.Equal(123.4, res)
+	})
+
+	t.Run("int64-ok", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeNumber,
+			Format: "int64",
+		}
+		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.0)
+		assert.Equal(int64(123), res)
+	})
+
+	t.Run("int64-not", func(t *testing.T) {
+		schema := &Schema{
+			Type: TypeNumber,
+			Format: "int64",
+		}
+		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.4)
+		assert.Equal(123.4, res)
 	})
 }
 
@@ -498,6 +603,28 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		assert.Greater(len(value), 6)
 		assert.Contains(value, ".")
 		assert.True(strings.HasPrefix(value, "http"))
+	})
+
+	t.Run("int32", func(t *testing.T) {
+		schema := &Schema{
+			Format: "int32",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		v, ok := ToInt32(res)
+		assert.True(ok)
+		assert.Greater(v, int32(0))
+	})
+
+	t.Run("int64", func(t *testing.T) {
+		schema := &Schema{
+			Format: "int64",
+		}
+		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		assert.NotNil(res)
+		v, ok := ToInt64(res)
+		assert.True(ok)
+		assert.Greater(v, int64(0))
 	})
 }
 

@@ -1,0 +1,11 @@
+operationId: createUser
+parameters:
+  - name: userId
+    in: path
+    description: The unique identifier of the user.
+    required: true
+    schema:
+      type: string
+responses:
+  '200':
+    description: User account successfully created.

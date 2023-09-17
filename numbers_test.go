@@ -107,6 +107,94 @@ func TestToFloat64(t *testing.T) {
 	assert.NotNil(err)
 }
 
+func TestToInt32(t *testing.T) {
+	assert := assert2.New(t)
+
+	okTests := []struct {
+		input    interface{}
+		expected int32
+	}{
+		{30, 30},
+		{int8(21), 21},
+		{int16(42), 42},
+		{int32(42), 42},
+		{int64(123456), 123456},
+		{uint(12), 12},
+		{uint8(255), 255},
+		{uint16(255), 255},
+		{uint32(255), 255},
+		{uint64(255), 255},
+		{int64(123456), 123456},
+		{float32(3.0), 3},
+		{float64(3.0), 3},
+	}
+
+	for _, test := range okTests {
+		result, ok := ToInt32(test.input)
+		assert.True(ok)
+		assert.Equal(test.expected, result)
+	}
+
+	notOkTests := []struct {
+		input    interface{}
+	}{
+		{"30"},
+		{"hello"},
+		{true},
+	}
+
+	for _, test := range notOkTests {
+		result, ok := ToInt32(test.input)
+		assert.False(ok)
+		assert.Equal(int32(0), result)
+	}
+}
+
+func TestToInt64(t *testing.T) {
+	assert := assert2.New(t)
+
+	okTests := []struct {
+		input    interface{}
+		expected int64
+	}{
+		{30, 30},
+		{int8(21), 21},
+		{int16(31), 31},
+		{int32(32), 32},
+		{int64(33), 33},
+		{uint(21), 21},
+		{uint8(34), 34},
+		{uint16(35), 35},
+		{uint32(36), 36},
+		{uint64(37), 37},
+		{float32(3.0), 3},
+		{float64(3.0), 3},
+	}
+
+	for _, test := range okTests {
+		result, ok := ToInt64(test.input)
+		if !ok {
+			t.Errorf("Expected %v to be ok", test.input)
+			t.Fail()
+		}
+		assert.Equal(test.expected, result)
+	}
+
+	notOkTests := []struct {
+		input    interface{}
+	}{
+		{"30"},
+		{"hello"},
+		{true},
+	}
+
+	for _, test := range notOkTests {
+		result, ok := ToInt64(test.input)
+		assert.False(ok)
+		assert.Equal(int64(0), result)
+	}
+}
+
 func TestRemovePointer(t *testing.T) {
 	assert := assert2.New(t)
 

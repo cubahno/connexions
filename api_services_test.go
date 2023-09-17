@@ -876,7 +876,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	assert.Equal(expected.Request.ContentType, resp.Request.ContentType)
 	assert.Equal(expected.Request.Query, resp.Request.Query)
 
-	assert.Equal(expected.Response.Content, resp.Response.Content)
+	assert.Equal(string(expected.Response.Content), string(resp.Response.Content))
 	assert.Equal(expected.Response.ContentType, resp.Response.ContentType)
 	assert.Equal(expected.Response.StatusCode, resp.Response.StatusCode)
 	assert.Equal(expected.Response.Headers, resp.Response.Headers)

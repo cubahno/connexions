@@ -1,8 +1,8 @@
 package connexions
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -14,7 +14,7 @@ type ResourceGeneratePayload struct {
 // registerOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
 func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescriptions {
-	fmt.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
+	log.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
 	res := make(RouteDescriptions, 0)
 

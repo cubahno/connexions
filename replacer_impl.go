@@ -17,7 +17,8 @@ const (
 	NULL = "__null__"
 )
 
-func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
+// HasCorrectSchemaValue checks if the value is of the correct type and format.
+func HasCorrectSchemaValue(ctx *ReplaceContext, value any) bool {
 	// TODO(cubahno): check how to handle other content schemas
 	if ctx.Schema == nil {
 		return true
@@ -27,7 +28,31 @@ func HasCorrectSchemaType(ctx *ReplaceContext, value any) bool {
 		return true
 	}
 
-	return IsCorrectlyReplacedType(value, schema.Type)
+	if !IsCorrectlyReplacedType(value, schema.Type) {
+		return false
+	}
+
+	reqFormat := schema.Format
+	if reqFormat == "" {
+		return true
+	}
+
+	switch reqFormat {
+	case "int32":
+		_, ok = ToInt32(value)
+		return ok
+	case "int64":
+		_, ok = ToInt64(value)
+		return ok
+	case "date":
+		v, err := time.Parse("2006-01-02", value.(string))
+		return err == nil && !v.IsZero()
+	case "date-time", "datetime":
+		v, err := time.Parse("2006-01-02T15:04:05.000Z", value.(string))
+		return err == nil && !v.IsZero()
+	default:
+		return true
+	}
 }
 
 func ReplaceInHeaders(ctx *ReplaceContext) any {
@@ -75,11 +100,33 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 
 	for _, data := range ctx.Resource.ContextData {
 		if res := ReplaceValueWithContext(snakedNamePath, data); res != nil {
-			return res
+			return CastToSchemaFormat(ctx, res)
 		}
 	}
 
 	return nil
+}
+
+func CastToSchemaFormat(ctx *ReplaceContext, value any) any {
+	schema, ok := ctx.Schema.(*Schema)
+	if !ok || schema == nil {
+		return value
+	}
+
+	switch schema.Format {
+	case "int32":
+		if v, ok := ToInt32(value); ok {
+			return v
+		}
+		return value
+	case "int64":
+		if v, ok := ToInt64(value); ok {
+			return v
+		}
+		return value
+	default:
+		return value
+	}
 }
 
 func ReplaceValueWithContext(path []string, contextData any) interface{} {
@@ -168,6 +215,12 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 		return ctx.Faker.Internet().Domain()
 	case "uri", "url":
 		return ctx.Faker.Internet().URL()
+	case "int32":
+		conv, _ := ToInt32(ctx.Faker.UInt32())
+		return conv
+	case "int64":
+		conv, _ := ToInt64(ctx.Faker.UInt64())
+		return conv
 	}
 	return nil
 }

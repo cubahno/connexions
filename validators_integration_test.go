@@ -72,17 +72,16 @@ func TestValidateResponse_Integration(t *testing.T) {
 		fails++
 	}
 
-	println(fmt.Sprintf("Success: %d, Fails: %d", success, fails))
+	fmt.Pprintf("Success: %d, Fails: %d\n", success, fails)
 	if fails > 0 {
 		t.Errorf("Failed to validate %d resources", fails)
 		for _, res := range failsDescr {
 			if res.docErr != "" {
-				fmt.Printf("Document error in file: %s\n%s\n", res.file, res.docErr)
-				println()
+				t.Errorf("Document error in file: %s\n%s\n\n", res.file, res.docErr)
 				continue
 			}
 			if res.reqErr != "" || res.respErr != "" {
-				fmt.Printf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
+				t.Errorf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
 				if res.reqErr != "" {
 					fmt.Printf("Request error: %s\n", res.reqErr)
 				}

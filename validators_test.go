@@ -204,6 +204,23 @@ func TestValidateResponse(t *testing.T) {
 		err := ValidateResponse(req, res, operation)
 		assert.Nil(err)
 	})
+
+	t.Run("no-response-schema", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "http://example.com/api/resource", nil)
+		res := &Response{
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			Headers: http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+		}
+
+		op := &KinOperation{Operation: openapi3.NewOperation()}
+		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-without-response.yml"), op)
+
+		err := ValidateResponse(req, res, op)
+		assert.Nil(err)
+	})
 }
 
 func TestValidateStringWithPattern(t *testing.T) {

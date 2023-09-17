@@ -1,13 +1,13 @@
 package connexions
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
 
 func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescription {
-	fmt.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
+	log.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
 
 	baseResource := fileProps.Prefix + fileProps.Resource
 	resources := []string{baseResource}

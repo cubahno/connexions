@@ -98,7 +98,7 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 
 	// fast track for no response
 	resSchema := operation.GetResponse()
-	if resSchema == nil || res.Content == nil {
+	if (resSchema == nil || resSchema.Content == nil) && res.Content == nil {
 		return nil
 	}
 

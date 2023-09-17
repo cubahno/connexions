@@ -55,53 +55,6 @@ func TestCreateValueReplacerFactory(t *testing.T) {
 		res := fn("foo", nil)
 		assert.Nil(res)
 	})
-
-	// t.Run("from-example", func(t *testing.T) {
-	// 	schema := CreateSchemaFromString(t, `{"type": "string", "example": "foo"}`)
-	// 	res := fn(schema, nil)
-	// 	assert.Equal(t, "foo", res)
-	// })
-
-	// t.Run("string", func(t *testing.T) {
-	// 	schema := CreateSchemaFromString(t, `{"type": "string"}`)
-	// 	res := fn(schema, nil)
-	//
-	// 	v, ok := res.(string)
-	// 	assert.True(ok)
-	// 	assert.Greater(t, len(v), 0)
-	// })
-	//
-	// t.Run("integer", func(t *testing.T) {
-	// 	schema := CreateSchemaFromString(t, `{"type": "integer"}`)
-	// 	res := fn(schema, nil)
-	//
-	// 	v, ok := res.(int64)
-	// 	assert.True(ok)
-	// 	assert.Greater(v, int64(0))
-	// })
-	//
-	// t.Run("number", func(t *testing.T) {
-	// 	schema := CreateSchemaFromString(t, `{"type": "number"}`)
-	// 	res := fn(schema, nil)
-	//
-	// 	v, ok := res.(float64)
-	// 	assert.True(ok)
-	// 	assert.Greater(v, float64(0))
-	// })
-	//
-	// t.Run("boolean", func(t *testing.T) {
-	// 	schema := CreateSchemaFromString(t, `{"type": "boolean"}`)
-	// 	res := fn(schema, nil)
-	//
-	// 	_, ok := res.(bool)
-	// 	assert.True(ok)
-	// })
-	//
-	// t.Run("unknown", func(t *testing.T) {
-	// 	schema := CreateSchemaFromString(t, `{"type": "x"}`)
-	// 	res := fn(schema, nil)
-	// 	assert.Nil(res)
-	// })
 }
 
 func TestIsCorrectlyReplacedType(t *testing.T) {

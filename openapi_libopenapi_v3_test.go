@@ -8,6 +8,16 @@ import (
 	"testing"
 )
 
+func TestLibV3Document(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("empty", func(t *testing.T) {
+		doc := &LibV3Document{}
+		res := doc.GetResources()
+		assert.Equal(0, len(res))
+	})
+}
+
 func TestLibV3Operation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()

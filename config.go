@@ -270,9 +270,9 @@ func (c *Config) Reload() {
 		log.Printf("error unmarshalling config: %v\n", err)
 		return
 	}
-	k.Print()
 
 	log.Println("Configuration reloaded!")
+	log.Println(k.Sprint())
 }
 
 // GetError returns an error code based on the chance and error weights.

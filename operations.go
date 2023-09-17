@@ -82,11 +82,11 @@ func EncodeContent(content any, contentType string) ([]byte, error) {
 		return yaml.Marshal(content)
 
 	default:
-		switch content.(type) {
+		switch v := content.(type) {
 		case []byte:
-			return content.([]byte), nil
+			return v, nil
 		case string:
-			return content.([]byte), nil
+			return []byte(v), nil
 		}
 	}
 
