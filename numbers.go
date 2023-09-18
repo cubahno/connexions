@@ -52,12 +52,16 @@ func ToInt32(value any) (int32, bool) {
 		if v <= math.MaxInt32 {
 			return int32(v), true
 		}
+		return 0, false
 	case uint8:
 		return int32(v), true
 	case uint16:
 		return int32(v), true
 	case uint32:
-		return int32(v), true
+		if v <= math.MaxInt32 {
+			return int32(v), true
+		}
+		return 0, false
 	case uint64:
 		if v <= math.MaxInt32 {
 			return int32(v), true

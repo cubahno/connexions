@@ -3,6 +3,7 @@ package connexions
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -217,11 +218,9 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 	case "uri", "url":
 		return ctx.Faker.Internet().URL()
 	case "int32":
-		conv, _ := ToInt32(ctx.Faker.UInt32())
-		return conv
+		return int32(math.Abs(float64(ctx.Faker.Int32())))
 	case "int64":
-		conv, _ := ToInt64(ctx.Faker.UInt64())
-		return conv
+		return int64(math.Abs(float64(ctx.Faker.Int64())))
 	}
 	return nil
 }
