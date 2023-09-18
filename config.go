@@ -144,19 +144,23 @@ type AppConfig struct {
 
 func NewPaths(baseDir string) *Paths {
 	resDir := filepath.Join(baseDir, "resources")
-	svcDir := filepath.Join(resDir, "services")
+	dataDir := filepath.Join(resDir, "data")
+	svcDir := filepath.Join(dataDir, "services")
 
 	return &Paths{
 		Base:              baseDir,
 		Resources:         resDir,
-		Contexts:          filepath.Join(resDir, "contexts"),
-		Docs:              filepath.Join(resDir, "docs"),
-		Samples:           filepath.Join(resDir, "samples"),
+
+		Data:              dataDir,
+		Contexts:          filepath.Join(dataDir, "contexts"),
+		ConfigFile:        filepath.Join(dataDir, "config.yml"),
 		Services:          svcDir,
 		ServicesOpenAPI:   filepath.Join(svcDir, RootOpenAPIName),
 		ServicesFixedRoot: filepath.Join(svcDir, RootServiceName),
+
+		Docs:              filepath.Join(resDir, "docs"),
+		Samples:           filepath.Join(resDir, "samples"),
 		UI:                filepath.Join(resDir, "ui"),
-		ConfigFile:        filepath.Join(resDir, "config.yml"),
 	}
 }
 

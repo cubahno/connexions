@@ -43,6 +43,9 @@ services:
     # parse the first 6 levels of the schema
     maxLevels: 6
 
+    # if schema has more than 2 levels of recursion, stop parsing
+    maxRecursionLevels: 2
+
     # validate all incoming requests and outgoing responses to conform to the schema
     validate:
       request: true

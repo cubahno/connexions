@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -80,7 +79,7 @@ app:
 
 	t.Run("post", func(t *testing.T) {
 		// save invalid config
-		filePath := filepath.Join(router.Config.App.Paths.Resources, "config.yml")
+		filePath := router.Config.App.Paths.ConfigFile
 		err = SaveFile(filePath, []byte(""))
 		assert.Nil(err)
 
@@ -133,7 +132,7 @@ app:
 
 	assert.Equal(500, w.Code)
 	assert.Equal(false, response["success"])
-	assert.True(strings.HasSuffix(response["message"].(string), "resources/config.yml: permission denied"))
+	assert.True(strings.HasSuffix(response["message"].(string), "resources/data/config.yml: permission denied"))
 }
 
 func TestSettingsHandler_Post_ErrorCopyFile(t *testing.T) {

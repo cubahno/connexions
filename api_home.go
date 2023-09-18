@@ -139,7 +139,7 @@ func docsServer(url string, router *Router) {
 }
 
 func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
-	resourcePath := h.router.Config.App.Paths.Resources
+	resourcePath := h.router.Config.App.Paths.Data
 	asFilename := fmt.Sprintf("connexions-%s.zip", time.Now().Format("2006-01-02"))
 
 	w.Header().Set("Content-Type", "application/zip")
@@ -245,7 +245,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		path.Base(h.router.Config.App.Paths.Contexts),
 	}
 
-	err = ExtractZip(zipReader, h.router.Config.App.Paths.Resources, only)
+	err = ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
 	if err != nil {
 		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
 			Message: err.Error(),

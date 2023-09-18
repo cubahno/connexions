@@ -104,6 +104,7 @@ func TestConfig(t *testing.T) {
 
 	t.Run("Reload", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `
 app:
   port: 8000
@@ -115,9 +116,9 @@ app:
   disableSwaggerUI: true
   contextAreaPrefix: from-
 `
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		_ = os.MkdirAll(paths.Data, os.ModePerm)
 
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
@@ -135,12 +136,13 @@ app:
 
 	t.Run("Reload-invalid", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `
 app:
   port: 8000`
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		_ = os.MkdirAll(paths.Data, os.ModePerm)
 
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
@@ -214,6 +216,7 @@ func TestNewConfig(t *testing.T) {
 
 	t.Run("happy-path", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `
 app:
   port: 8000
@@ -253,7 +256,7 @@ services:
 				DisableSwaggerUI:  true,
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
-				Paths:             NewPaths(tempDir),
+				Paths:             paths,
 			},
 			Services: map[string]*ServiceConfig{
 				"foo": {
@@ -278,9 +281,9 @@ services:
 			},
 		}
 
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
+		_ = os.MkdirAll(paths.Data, os.ModePerm)
 
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
@@ -290,12 +293,13 @@ services:
 
 	t.Run("invalid-type-update-dont-kill", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `
 app:
   port: 8000
 `
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		_ = os.MkdirAll(paths.Data, os.ModePerm)
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
@@ -315,6 +319,7 @@ app:
 
 	t.Run("invalid-yaml-transform-dont-kill", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `
 app:
   port: 8000
@@ -324,8 +329,8 @@ services:
     errors:
       chance: 50%
 `
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		_ = os.MkdirAll(filepath.Join(paths.Data), os.ModePerm)
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
@@ -354,9 +359,10 @@ services:
 
 	t.Run("invalid-yaml", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `1`
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		_ = os.MkdirAll(paths.Data, os.ModePerm)
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
@@ -367,12 +373,13 @@ services:
 
 	t.Run("transformation-error", func(t *testing.T) {
 		tempDir := t.TempDir()
+		paths := NewPaths(tempDir)
 		contents := `
 app:
   port: xxx
 `
-		_ = os.MkdirAll(filepath.Join(tempDir, "resources"), os.ModePerm)
-		filePath := filepath.Join(tempDir, "resources", "config.yml")
+		_ = os.MkdirAll(paths.Data, os.ModePerm)
+		filePath := paths.ConfigFile
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 

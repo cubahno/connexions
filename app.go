@@ -22,6 +22,7 @@ type App struct {
 type Paths struct {
 	Base              string
 	Resources         string
+	Data              string
 	Contexts          string
 	Docs              string
 	Samples           string
@@ -77,7 +78,7 @@ func NewApp(config *Config) *App {
 
 // MustFileStructure creates the necessary directories and files
 func MustFileStructure(paths *Paths) error {
-	dirs := []string{paths.Resources, paths.Samples, paths.Services, paths.Contexts}
+	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts}
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.Mkdir(dir, os.ModePerm); err != nil {
