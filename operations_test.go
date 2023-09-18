@@ -919,18 +919,6 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		assert.Nil(kid["children"])
 		assert.Nil(kid["parent"])
 	})
-
-	t.Run("schema-with-pattern", func(t *testing.T) {
-		valueResolver := func(schema any, state *ReplaceState) any {
-			return "04"
-		}
-		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-pattern.yml"), target)
-		schema := NewSchemaFromKin(target, nil)
-
-		res := GenerateContentFromSchema(schema, valueResolver, &ReplaceState{NamePath: []string{"expiryMonth"}})
-		assert.Equal("04", res)
-	})
 }
 
 func TestGenerateContentObject(t *testing.T) {

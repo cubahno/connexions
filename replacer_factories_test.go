@@ -55,6 +55,22 @@ func TestCreateValueReplacerFactory(t *testing.T) {
 		res := fn("foo", nil)
 		assert.Nil(res)
 	})
+
+	t.Run("schema-with-pattern", func(t *testing.T) {
+		schema := CreateSchemaFromString(t, `{"type": "string", "pattern": "^((0[1-9])|(1[0-2]))$"}`)
+		fn := CreateValueReplacerFactory([]Replacer{func(ctx *ReplaceContext) any {
+			if len(ctx.State.NamePath) == 0 {
+				return "01"
+			}
+			return "foo"
+		}})(nil)
+
+		res1 := fn(schema, nil)
+		assert.Equal("01", res1)
+
+		res2 := fn(schema, &ReplaceState{NamePath: []string{"foo"}})
+		assert.Nil(res2)
+	})
 }
 
 func TestIsCorrectlyReplacedType(t *testing.T) {
