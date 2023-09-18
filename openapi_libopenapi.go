@@ -83,20 +83,21 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		return nil
 	}
 
-	if !IsSliceUnique(refPath) {
+	if GetSliceMaxRepetitionNumber(refPath) > parseConfig.MaxRecursionLevels {
 		return nil
 	}
 
-	schema, mergedReference := mergeLibOpenAPISubSchemas(schema)
+	merged, mergedReference := mergeLibOpenAPISubSchemas(schema)
 
 	typ := ""
-	if len(schema.Type) > 0 {
-		typ = schema.Type[0]
+	if len(merged.Type) > 0 {
+		typ = merged.Type[0]
 	}
+	typ = FixSchemaTypeTypos(typ)
 
 	var items *Schema
-	if schema.Items != nil && schema.Items.IsA() {
-		libItems := schema.Items.A
+	if merged.Items != nil && merged.Items.IsA() {
+		libItems := merged.Items.A
 		sub := libItems.Schema()
 		ref := libItems.GetReference()
 		items = newSchemaFromLibOpenAPI(sub,
@@ -106,8 +107,8 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	}
 
 	properties := make(map[string]*Schema)
-	for propName, sProxy := range schema.Properties {
-		if parseConfig.OnlyRequired && !SliceContains(schema.Required, propName) {
+	for propName, sProxy := range merged.Properties {
+		if parseConfig.OnlyRequired && !SliceContains(merged.Required, propName) {
 			continue
 		}
 		properties[propName] = newSchemaFromLibOpenAPI(sProxy.Schema(),
@@ -117,34 +118,39 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	}
 
 	var not *Schema
-	if schema.Not != nil {
-		not = newSchemaFromLibOpenAPI(schema.Not.Schema(), parseConfig, refPath, namePath)
+	if merged.Not != nil {
+		not = newSchemaFromLibOpenAPI(merged.Not.Schema(), parseConfig, refPath, namePath)
+	}
+
+	// this can happen with the circular references
+	if typ == TypeArray && items == nil {
+		return nil
 	}
 
 	return &Schema{
 		Type:          typ,
 		Items:         items,
-		MultipleOf:    RemovePointer(schema.MultipleOf),
-		Maximum:       RemovePointer(schema.Maximum),
-		Minimum:       RemovePointer(schema.Minimum),
-		MaxLength:     RemovePointer(schema.MaxLength),
-		MinLength:     RemovePointer(schema.MinLength),
-		Pattern:       schema.Pattern,
-		Format:        schema.Format,
-		MaxItems:      RemovePointer(schema.MaxItems),
-		MinItems:      RemovePointer(schema.MinItems),
-		MaxProperties: RemovePointer(schema.MaxProperties),
-		MinProperties: RemovePointer(schema.MinProperties),
-		Required:      schema.Required,
-		Enum:          schema.Enum,
+		MultipleOf:    RemovePointer(merged.MultipleOf),
+		Maximum:       RemovePointer(merged.Maximum),
+		Minimum:       RemovePointer(merged.Minimum),
+		MaxLength:     RemovePointer(merged.MaxLength),
+		MinLength:     RemovePointer(merged.MinLength),
+		Pattern:       merged.Pattern,
+		Format:        merged.Format,
+		MaxItems:      RemovePointer(merged.MaxItems),
+		MinItems:      RemovePointer(merged.MinItems),
+		MaxProperties: RemovePointer(merged.MaxProperties),
+		MinProperties: RemovePointer(merged.MinProperties),
+		Required:      merged.Required,
+		Enum:          merged.Enum,
 		Properties:    properties,
 		Not:           not,
-		Default:       schema.Default,
-		Nullable:      RemovePointer(schema.Nullable),
-		ReadOnly:      schema.ReadOnly,
-		WriteOnly:     schema.WriteOnly,
-		Example:       schema.Example,
-		Deprecated:    RemovePointer(schema.Deprecated),
+		Default:       merged.Default,
+		Nullable:      RemovePointer(merged.Nullable),
+		ReadOnly:      merged.ReadOnly,
+		WriteOnly:     merged.WriteOnly,
+		Example:       merged.Example,
+		Deprecated:    RemovePointer(merged.Deprecated),
 	}
 }
 

@@ -80,6 +80,38 @@ func TestSliceUnique(t *testing.T) {
 	})
 }
 
+func TestGetSliceMaxNotUniqueNumber(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("base", func(t *testing.T) {
+		slice := []string{"a", "b", "c", "a", "b", "c"}
+		res := GetSliceMaxRepetitionNumber(slice)
+
+		assert.Equal(1, res)
+	})
+
+	t.Run("ints", func(t *testing.T) {
+		slice := []int{1, 1, 1, 2, 2, 3, 4, 5}
+		res := GetSliceMaxRepetitionNumber(slice)
+
+		assert.Equal(2, res)
+	})
+
+	t.Run("unique", func(t *testing.T) {
+		slice := []string{"a", "b", "c"}
+		res := GetSliceMaxRepetitionNumber(slice)
+
+		assert.Equal(0, res)
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		var slice []string
+		res := GetSliceMaxRepetitionNumber(slice)
+
+		assert.Equal(0, res)
+	})
+}
+
 func TestIsSliceUnique(t *testing.T) {
 	assert := assert2.New(t)
 

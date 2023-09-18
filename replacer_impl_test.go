@@ -265,7 +265,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 
 	t.Run("int32-ok", func(t *testing.T) {
 		schema := &Schema{
-			Type: TypeNumber,
+			Type:   TypeNumber,
 			Format: "int32",
 		}
 		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.0)
@@ -274,7 +274,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 
 	t.Run("int32-not", func(t *testing.T) {
 		schema := &Schema{
-			Type: TypeNumber,
+			Type:   TypeNumber,
 			Format: "int32",
 		}
 		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.4)
@@ -283,7 +283,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 
 	t.Run("int64-ok", func(t *testing.T) {
 		schema := &Schema{
-			Type: TypeNumber,
+			Type:   TypeNumber,
 			Format: "int64",
 		}
 		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.0)
@@ -292,7 +292,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 
 	t.Run("int64-not", func(t *testing.T) {
 		schema := &Schema{
-			Type: TypeNumber,
+			Type:   TypeNumber,
 			Format: "int64",
 		}
 		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.4)
@@ -898,7 +898,7 @@ func TestApplySchemaNumberConstraints(t *testing.T) {
 
 	t.Run("enum-ints", func(t *testing.T) {
 		schema := &Schema{
-			Type:       TypeNumber,
+			Type: TypeNumber,
 			Enum: []any{10, 20, 30},
 		}
 		res := applySchemaNumberConstraints(schema, 100)
@@ -907,7 +907,7 @@ func TestApplySchemaNumberConstraints(t *testing.T) {
 
 	t.Run("enum-floats", func(t *testing.T) {
 		schema := &Schema{
-			Type:       TypeNumber,
+			Type: TypeNumber,
 			Enum: []any{10.1, 20.2, 30.3},
 		}
 		res := applySchemaNumberConstraints(schema, 100)

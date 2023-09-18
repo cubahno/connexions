@@ -318,10 +318,13 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 		state = &ReplaceState{}
 	}
 
-	// fast track with value and correctly resolved type
-	if valueResolver != nil && len(state.NamePath) > 0 {
+	// fast track with value and correctly resolved type for primitive types
+	if valueResolver != nil && len(state.NamePath) > 0 && schema.Type != TypeObject && schema.Type != TypeArray {
 		// TODO(cubahno): remove IsCorrectlyReplacedType, resolver should do it.
 		if res := valueResolver(schema, state); res != nil && IsCorrectlyReplacedType(res, schema.Type) {
+			if res == NULL {
+				return nil
+			}
 			return res
 		}
 	}
@@ -344,7 +347,11 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 
 	// try to resolve anything
 	if valueResolver != nil {
-		return valueResolver(schema, state)
+		res := valueResolver(schema, state)
+		if res == NULL {
+			return nil
+		}
+		return res
 	}
 
 	return nil
@@ -383,14 +390,14 @@ func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *Re
 	var res []any
 
 	for i := 1; i < 10; i++ {
+		if i > take {
+			break
+		}
 		item := GenerateContentFromSchema(schema.Items, valueReplacer, state.NewFrom(state).WithElementIndex(i))
 		if item == nil {
 			continue
 		}
 		res = append(res, item)
-		if i >= take {
-			break
-		}
 	}
 
 	if len(res) == 0 {

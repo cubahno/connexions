@@ -1,0 +1,106 @@
+openapi: 3.0.1
+info:
+  title: UC Riverside Organization Structure API
+  description: The Organization Structure API allows clients to query information
+    regarding the UCR organizational structure hierarchy such as Organization, Division,
+    and Department level information and how they relate.
+  version: v1
+servers:
+- url: https://apigwqa.ucr.edu
+- url: https://apigw.ucr.edu
+security:
+- apiKey: []
+paths:
+  /api/org-api/v1/organization/{acctStructureCode}:
+    get:
+      tags:
+      - Accountability Structure Service
+      summary: Get Organization Structure By Code
+      operationId: acctstructure/{acctStructureCode}
+      parameters:
+      - name: acctStructureCode
+        in: path
+        description: The organization code that identifies a single accountability
+          structure
+        required: true
+        schema:
+          type: string
+      - name: X-Application-Tenant
+        in: header
+        description: Tenant IDP. Defaults to UC Riverside if not specified
+        schema:
+          type: string
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgByIdResponseWrapperModel'
+        400:
+          description: Invalid parameters provided
+          content: {}
+        401:
+          description: Authorization information is missing or invalid.
+          content: {}
+components:
+  schemas:
+    OrgByIdResponseWrapperModel:
+      type: object
+      properties:
+        response:
+          $ref: '#/components/schemas/OrgModel'
+        success:
+          type: boolean
+    OrgModel:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Structure type
+          enum:
+          - Department
+          - Division
+          - Organization
+        parent:
+          $ref: '#/components/schemas/OrgModel'
+          example:
+              type: "string"
+              code: "string"
+              description: "string"
+              isActive: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrgModel'
+          example:
+            - type: "string"
+              code: "string"
+              description: "string"
+              isActive: true
+            - type: "string"
+              code: "string"
+              description: "string"
+              isActive: true
+    OrgResponseModel:
+      type: object
+      properties:
+        itemList:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrgModel'
+        count:
+          type: integer
+          format: int32
+    OrgResponseWrapperModel:
+      type: object
+      properties:
+        response:
+          $ref: '#/components/schemas/OrgResponseModel'
+        success:
+          type: boolean
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      name: Authorization
+      in: header

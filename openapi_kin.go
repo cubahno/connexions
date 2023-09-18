@@ -253,9 +253,12 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		return nil
 	}
 
-	if !IsSliceUnique(refPath) {
+	if GetSliceMaxRepetitionNumber(refPath) > parseConfig.MaxRecursionLevels {
 		return nil
 	}
+
+	typ := merged.Type
+	typ = FixSchemaTypeTypos(typ)
 
 	var items *Schema
 	if merged.Items != nil && merged.Items.Value != nil {
@@ -279,8 +282,18 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		}
 	}
 
+	var not *Schema
+	if merged.Not != nil {
+		not = newSchemaFromKin(merged.Not.Value, parseConfig, refPath, namePath)
+	}
+
+	// this can happen with the circular references
+	if merged.Type == TypeArray && items == nil {
+		return nil
+	}
+
 	return &Schema{
-		Type:          merged.Type,
+		Type:          typ,
 		Items:         items,
 		MultipleOf:    RemovePointer(merged.MultipleOf),
 		Maximum:       RemovePointer(merged.Max),
@@ -296,6 +309,7 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		Required:      merged.Required,
 		Enum:          merged.Enum,
 		Properties:    properties,
+		Not:           not,
 		Default:       merged.Default,
 		Nullable:      merged.Nullable,
 		ReadOnly:      merged.ReadOnly,

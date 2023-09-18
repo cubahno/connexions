@@ -144,6 +144,88 @@ func TestNewSchemaFromKin(t *testing.T) {
 		res := newSchemaFromKin(target, &ParseConfig{}, []string{"#/components/User", "#/components/User"}, []string{"user", "id"})
 		assert.Nil(res)
 	})
+
+	t.Run("WithParseConfig-max-recursive-levels", func(t *testing.T) {
+		kinDoc, err := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-circular-ucr.yml"))
+		assert.Nil(err)
+		doc := kinDoc.(*KinDocument)
+		kinSchema := doc.Components.Schemas["OrgByIdResponseWrapperModel"].Value
+		assert.NotNil(kinSchema)
+
+		res := NewSchemaFromKin(kinSchema, &ParseConfig{MaxRecursionLevels: 1})
+
+		expected := &Schema{
+			Type: TypeObject,
+			Properties: map[string]*Schema{
+				"success": {
+					Type: TypeBoolean,
+				},
+				"response": {
+					Type: TypeObject,
+					Properties: map[string]*Schema{
+						"type": {
+							Type: TypeString,
+							Enum: []any{
+								"Department",
+								"Division",
+								"Organization",
+							},
+						},
+						"parent": {
+							Type: TypeObject,
+							Properties: map[string]*Schema{
+								"children": nil,
+								"parent":   nil,
+								"type": {
+									Type: TypeString,
+									Enum: []any{
+										"Department",
+										"Division",
+										"Organization",
+									},
+								},
+							},
+						},
+						"children": {
+							Type: TypeArray,
+							Items: &Schema{
+								Type: TypeObject,
+								Properties: map[string]*Schema{
+									"parent":   nil,
+									"children": nil,
+									"type": {
+										Type: TypeString,
+										Enum: []any{
+											"Department",
+											"Division",
+											"Organization",
+										},
+									},
+								},
+							},
+							Example: []any{
+								map[string]any{
+									"type":        "string",
+									"code":        "string",
+									"description": "string",
+									"isActive":    true,
+								},
+								map[string]any{
+									"type":        "string",
+									"code":        "string",
+									"description": "string",
+									"isActive":    true,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		assert.NotNil(res)
+		AssertJSONEqual(t, expected, res)
+	})
 }
 
 func TestMergeKinSubSchemas(t *testing.T) {

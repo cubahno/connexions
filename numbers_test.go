@@ -136,11 +136,13 @@ func TestToInt32(t *testing.T) {
 	}
 
 	notOkTests := []struct {
-		input    interface{}
+		input interface{}
 	}{
 		{"30"},
 		{"hello"},
 		{true},
+		{^uint(0) >> 1},
+		{^uint32(0)>>1 + 1},
 	}
 
 	for _, test := range notOkTests {
@@ -181,7 +183,7 @@ func TestToInt64(t *testing.T) {
 	}
 
 	notOkTests := []struct {
-		input    interface{}
+		input interface{}
 	}{
 		{"30"},
 		{"hello"},

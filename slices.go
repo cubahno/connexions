@@ -12,6 +12,7 @@ func SliceDeleteAtIndex[T any](slice []T, index int) []T {
 	return append(slice[:index], slice[index+1:]...)
 }
 
+// GetRandomSliceValue returns a random value from the given slice.
 func GetRandomSliceValue[T any](slice []T) T {
 	var res T
 	if len(slice) == 0 {
@@ -20,6 +21,7 @@ func GetRandomSliceValue[T any](slice []T) T {
 	return slice[rand.Intn(len(slice))]
 }
 
+// SliceContains returns true if the given slice contains the given value.
 func SliceContains[T comparable](slice []T, value T) bool {
 	for _, item := range slice {
 		if item == value {
@@ -29,6 +31,7 @@ func SliceContains[T comparable](slice []T, value T) bool {
 	return false
 }
 
+// SliceUnique returns a new slice with unique values from the given slice.
 func SliceUnique[T comparable](slice []T) []T {
 	visited := make(map[T]bool)
 	var result []T
@@ -41,6 +44,7 @@ func SliceUnique[T comparable](slice []T) []T {
 	return result
 }
 
+// IsSliceUnique returns true if all values in the given slice are unique.
 func IsSliceUnique[T comparable](path []T) bool {
 	visited := make(map[T]bool)
 	for _, item := range path {
@@ -52,6 +56,37 @@ func IsSliceUnique[T comparable](path []T) bool {
 	return true
 }
 
+// GetSliceMaxRepetitionNumber returns the maximum number of non-unique values in the given slice.
+func GetSliceMaxRepetitionNumber[T comparable](values []T) int {
+	max := 0
+
+	if len(values) == 0 || len(values) == 1 {
+		return max
+	}
+
+	visited := make(map[T]int)
+	for _, item := range values {
+		if _, ok := visited[item]; ok {
+			visited[item]++
+		} else {
+			visited[item] = 1
+		}
+	}
+
+	for _, value := range visited {
+		if value > max {
+			max = value
+		}
+	}
+
+	if max > 0 {
+		max--
+	}
+
+	return max
+}
+
+// AppendSliceFirstNonEmpty appends the first non-empty value to the given slice.
 func AppendSliceFirstNonEmpty[T comparable](data []T, value ...T) []T {
 	var empty T
 

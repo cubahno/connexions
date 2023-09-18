@@ -121,8 +121,7 @@ properties:
         items:
             type: object
             properties:
-                relatives:
-                    type: array
+                relatives: null
                 user:
                     type: object
                     properties:
@@ -158,8 +157,7 @@ properties:
                         address:
                             type: object
                             properties:
-                                neighbors:
-                                    type: array
+                                neighbors: null
                                 supervisor: null
                         user:
                             type: object
@@ -172,8 +170,7 @@ properties:
                     address:
                         type: object
                         properties:
-                            neighbors:
-                                type: array
+                            neighbors: null
                             supervisor: null
                     user:
                         type: object
@@ -493,6 +490,88 @@ required: [name]
 		expectedYaml, actualYaml, rendered := GetLibYamlExpectations(t, res, expected)
 		assert.Greater(len(rendered), 0)
 		assert.Equal(expectedYaml, actualYaml)
+	})
+
+	t.Run("WithParseConfig-max-recursive-levels", func(t *testing.T) {
+		libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-circular-ucr.yml"))
+		assert.Nil(err)
+		doc := libDoc.(*LibV3Document)
+		libSchema := doc.Model.Components.Schemas["OrgByIdResponseWrapperModel"].Schema()
+		assert.NotNil(libSchema)
+
+		res := NewSchemaFromLibOpenAPI(libSchema, &ParseConfig{MaxRecursionLevels: 1})
+
+		expected := &Schema{
+			Type: TypeObject,
+			Properties: map[string]*Schema{
+				"success": {
+					Type: TypeBoolean,
+				},
+				"response": {
+					Type: TypeObject,
+					Properties: map[string]*Schema{
+						"type": {
+							Type: TypeString,
+							Enum: []any{
+								"Department",
+								"Division",
+								"Organization",
+							},
+						},
+						"parent": {
+							Type: TypeObject,
+							Properties: map[string]*Schema{
+								"children": nil,
+								"parent":   nil,
+								"type": {
+									Type: TypeString,
+									Enum: []any{
+										"Department",
+										"Division",
+										"Organization",
+									},
+								},
+							},
+						},
+						"children": {
+							Type: TypeArray,
+							Items: &Schema{
+								Type: TypeObject,
+								Properties: map[string]*Schema{
+									"parent":   nil,
+									"children": nil,
+									"type": {
+										Type: TypeString,
+										Enum: []any{
+											"Department",
+											"Division",
+											"Organization",
+										},
+									},
+								},
+							},
+							Example: []any{
+								map[string]any{
+									"type":        "string",
+									"code":        "string",
+									"description": "string",
+									"isActive":    true,
+								},
+								map[string]any{
+									"type":        "string",
+									"code":        "string",
+									"description": "string",
+									"isActive":    true,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		assert.NotNil(res)
+		AssertJSONEqual(t, expected, res)
 	})
 }
 

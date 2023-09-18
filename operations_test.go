@@ -680,6 +680,51 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		assert.Equal(expected, res)
 	})
 
+	t.Run("with-empty-not-nullable-array", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return NULL
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }`)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
+
+		expected := make([]any, 0)
+		assert.Equal(expected, res)
+	})
+
+	t.Run("with-empty-but-nullable-array", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return NULL
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type": "array",
+			"nullable": true,
+            "items": {
+                "type": "string"
+            }
+        }`)
+		res := GenerateContentFromSchema(schema, valueResolver, nil)
+		assert.Nil(res)
+	})
+
+	t.Run("fast-track-resolve-null-string", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return NULL
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type": "string"
+        }`)
+		res := GenerateContentFromSchema(schema, valueResolver, &ReplaceState{NamePath: []string{"name"}})
+		assert.Nil(res)
+	})
+
 	t.Run("with-nested-all-of", func(t *testing.T) {
 		valueResolver := func(schema any, state *ReplaceState) any {
 			switch state.NamePath[len(state.NamePath)-1] {
@@ -707,11 +752,11 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		assert.Equal(expected, res)
 	})
 
-	t.Run("fast-track-used-with-object", func(t *testing.T) {
+	t.Run("fast-track-not-used-with-object", func(t *testing.T) {
 		dice := map[string]string{"nice": "very nice", "rice": "good rice"}
 
 		valueResolver := func(schema any, state *ReplaceState) any {
-			switch state.NamePath[0] {
+			switch state.NamePath[len(state.NamePath)-1] {
 			case "nice":
 				return "not so nice"
 			case "rice":
@@ -740,7 +785,10 @@ func TestGenerateContentFromSchema(t *testing.T) {
         }`)
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
-		expected := map[string]any{"dice": dice}
+		expected := map[string]any{"dice": map[string]any{
+			"nice": "not so nice",
+			"rice": "not a rice",
+		}}
 		assert.Equal(expected, res)
 	})
 
@@ -770,7 +818,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 				map[string]any{
 					"id":       123,
 					"name":     "noda-123",
-					"children": []any{},
+					"children": nil,
 				},
 			},
 		}
@@ -835,6 +883,53 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			},
 		}
 		assert.Equal(expected, res)
+	})
+
+	t.Run("with-circular-level-1", func(t *testing.T) {
+		valueReplacer := CreateValueReplacerFactory(Replacers)(&Resource{})
+		filePath := filepath.Join("test_fixtures", "document-circular-ucr.yml")
+		doc, err := NewKinDocumentFromFile(filePath)
+		assert.Nil(err)
+
+		operation := doc.FindOperation(&FindOperationOptions{"", "/api/org-api/v1/organization/{acctStructureCode}", http.MethodGet, nil})
+		operation.WithParseConfig(&ParseConfig{MaxRecursionLevels: 1})
+		resp := operation.GetResponse()
+		schema := resp.Content
+		res := GenerateContentFromSchema(schema, valueReplacer, nil)
+
+		orgs := []string{"Division", "Department", "Organization"}
+		v := res.(map[string]any)
+
+		assert.NotNil(res)
+		assert.Contains([]bool{true, false}, v["success"])
+
+		r := v["response"].(map[string]any)
+		parent := r["parent"].(map[string]any)
+		assert.Contains(orgs, parent["type"])
+		assert.Nil(parent["children"])
+		assert.Nil(parent["parent"])
+
+		typ := r["type"]
+		assert.Contains(orgs, typ)
+
+		children := r["children"].([]any)
+		assert.Equal(1, len(children))
+		kid := children[0].(map[string]any)
+		assert.Contains(orgs, kid["type"])
+		assert.Nil(kid["children"])
+		assert.Nil(kid["parent"])
+	})
+
+	t.Run("schema-with-pattern", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return "04"
+		}
+		target := openapi3.NewSchema()
+		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-pattern.yml"), target)
+		schema := NewSchemaFromKin(target, nil)
+
+		res := GenerateContentFromSchema(schema, valueResolver, &ReplaceState{NamePath: []string{"expiryMonth"}})
+		assert.Equal("04", res)
 	})
 }
 

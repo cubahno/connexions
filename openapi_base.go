@@ -102,3 +102,17 @@ func NewDocumentFromFileFactory(provider SchemaProvider) func(filePath string) (
 		return NewLibOpenAPIDocumentFromFile
 	}
 }
+
+// FixSchemaTypeTypos fixes common typos in schema types.
+func FixSchemaTypeTypos(typ string) string {
+	switch typ {
+	case "int":
+		return TypeInteger
+	case "float":
+		return TypeNumber
+	case "bool":
+		return TypeBoolean
+	}
+
+	return typ
+}

@@ -74,6 +74,10 @@ type ParseConfig struct {
 	// MaxLevels is the maximum level to parse.
 	MaxLevels int `koanf:"maxLevels"`
 
+	// MaxRecursionLevels is the maximum level to parse recursively.
+	// 0 means no recursion: property will get nil value.
+	MaxRecursionLevels int `koanf:"maxRecursionLevels"`
+
 	// OnlyRequired is a flag whether to include only required fields.
 	// If the spec contains deep references, this might significantly speed up parsing.
 	OnlyRequired bool `koanf:"onlyRequired"`

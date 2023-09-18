@@ -370,3 +370,26 @@ func TestNewDocumentFromFileFactory(t *testing.T) {
 		assert.Greater(len(res.GetResources()), 0)
 	})
 }
+
+func TestFixSchemaTypeTypos(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
+	type testCase struct {
+		name     string
+		expected string
+	}
+
+	testCases := []testCase{
+		{"int", TypeInteger},
+		{"float", TypeNumber},
+		{"bool", TypeBoolean},
+		{"unknown", "unknown"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := FixSchemaTypeTypos(tc.name)
+			assert.Equal(tc.expected, res)
+		})
+	}
+}
