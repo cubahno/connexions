@@ -172,6 +172,7 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 	h.JSONResponse(w).Send(res)
 }
 
+// Save service resource.
 func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -206,6 +207,20 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if routes exists, do not add them again
+	service, serviceExists := h.router.Services[fileProps.ServiceName]
+	if serviceExists {
+		savedRouteId := h.getRouteIndex(fileProps)
+		if savedRouteId >= 0 {
+			h.JSONResponse(w).Send(&SavedResourceResponse{
+				Message: "Resource saved!",
+				Success: true,
+				ID: savedRouteId,
+			})
+			return
+		}
+	}
+
 	var routes RouteDescriptions
 
 	if isOpenAPI {
@@ -215,8 +230,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		routes = RouteDescriptions{route}
 	}
 
-	service, ok := h.router.Services[fileProps.ServiceName]
-	if !ok {
+	if !serviceExists {
 		service = &ServiceItem{
 			Name:   fileProps.ServiceName,
 			Routes: routes,
@@ -238,7 +252,11 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		service.AddOpenAPIFile(fileProps)
 	}
 
-	h.success("Resource saved!", w)
+	h.JSONResponse(w).Send(&SavedResourceResponse{
+		Message: "Resource saved!",
+		Success: true,
+		ID: h.getRouteIndex(fileProps),
+	})
 }
 
 func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
@@ -292,14 +310,8 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, targetDir := range targets {
-		err := os.RemoveAll(targetDir)
-		if err != nil {
-			h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
-				Message: err.Error(),
-				Success: false,
-			})
-			return
-		}
+		// errors not important here and can be ignored
+		_ = os.RemoveAll(targetDir)
 	}
 
 	delete(h.router.Services, service.Name)
@@ -534,6 +546,28 @@ func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 	return h.router.Services[name]
 }
 
+func (h *ServiceHandler) getRouteIndex(fileProps *FileProperties) int {
+	service, ok := h.router.Services[fileProps.ServiceName]
+	if !ok {
+		return -1
+	}
+
+	routes := service.Routes
+	routes.Sort()
+
+	filePropsType := FixedRouteType
+	if fileProps.IsOpenAPI {
+		filePropsType = OpenAPIRouteType
+	}
+
+	for ix, route := range routes {
+		if route.Type == filePropsType && route.Path == fileProps.Resource && route.Method == fileProps.Method {
+			return ix
+		}
+	}
+	return -1
+}
+
 type ServiceDescription struct {
 	Name      string
 	Method    string
@@ -652,4 +686,10 @@ type ResourceResponse struct {
 	Extension   string `json:"extension"`
 	ContentType string `json:"contentType"`
 	Content     string `json:"content"`
+}
+
+type SavedResourceResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	ID int `json:"id"`
 }

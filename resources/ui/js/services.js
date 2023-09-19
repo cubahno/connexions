@@ -3,6 +3,7 @@ import * as commons from './commons.js';
 import * as navi from "./navi.js";
 import * as services from './services.js';
 import * as resources from "./resources.js";
+import {showError} from "./commons.js";
 
 export const newForm = () => {
     console.log(`add new service`);
@@ -177,12 +178,21 @@ export async function saveWithoutFile(event) {
 
     await save(formData).then(res => {
         if (res.success) {
+            const ix = res.id + 1;
             const hashParams = location.hash.split(`/`);
             const service = hashParams[2];
-            const ix = hashParams[3];
+            const oldIx = hashParams[3];
 
             console.log(`reloading service ${service} resources`);
-            resources.show({params: {name: service, ix: ix, action: `edit`}});
+            location.hash = `#/services/${service}/${ix}/edit`;
+            // if (ix === oldIx) {
+            //
+            // } else {
+            //     location.hash = `#/services/${service}/${ix}`;
+            // }
+            location.reload(true);
+        } else {
+            showError(res.message)
         }
     });
 }

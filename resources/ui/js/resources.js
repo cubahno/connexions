@@ -3,6 +3,7 @@ import * as commons from './commons.js';
 import * as validators from './validators.js';
 import * as navi from "./navi.js";
 import * as services from "./services.js";
+import {loadPage} from "./navi.js";
 
 export const show = match => {
     services.show();
@@ -84,8 +85,15 @@ export const show = match => {
                             })
                                 .then(res => res.json())
                                 .then(res => {
-                                    commons.showSuccessOrError(res.message, res.success)
-                                    show(match);
+                                    const hashParams = location.hash.split(`/`);
+                                    const service = hashParams[2];
+                                    if (res.success) {
+                                        location.hash = `#/services/${service}`;
+                                        location.reload(true);
+                                    }
+                                    window.setTimeout(_ => {
+                                        commons.showSuccessOrError(res.message, res.success);
+                                    }, 100);
                                 });
                         }
                     }
@@ -101,7 +109,6 @@ export const show = match => {
             config.fixedServiceContainer.style.display = 'block';
 
             // onLoad
-
             if (ix !== undefined) {
                 navi.applySelection(`resource-${ix}`, 'selected-resource');
                 if (action === `edit`) {

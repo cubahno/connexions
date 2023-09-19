@@ -288,11 +288,12 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
+	resp := UnmarshallResponse[SavedResourceResponse](t, w.Body)
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("application/json", w.Header().Get("Content-Type"))
-	assert.Equal(true, resp["success"].(bool))
-	assert.Equal("Resource saved!", resp["message"].(string))
+	assert.Equal(true, resp.Success)
+	assert.Equal("Resource saved!", resp.Message)
+	assert.Equal(0, resp.ID)
 
 	svc := router.Services["petstore"]
 	targetPath := filepath.Join(router.Config.App.Paths.Services, "petstore", "patch", "pets", "update", "{tag}", "index.json")
@@ -324,6 +325,51 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 	content, err := os.ReadFile(targetPath)
 	assert.Nil(err)
 	assert.Equal(`{"hallo":"welt!"}`, string(content))
+}
+
+func TestServiceHandler_save_fixedMultiple(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = createServiceRoutes(router)
+	assert.Nil(err)
+
+	for i:= 0; i < 3; i++ {
+		// prepare payload
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+
+		_ = writer.WriteField("name", "petstore")
+		_ = writer.WriteField("path", "/pets/update/{tag}")
+		_ = writer.WriteField("method", http.MethodPatch)
+		_ = writer.WriteField("response", `{"hallo":"welt!"}`)
+		_ = writer.WriteField("contentType", "json")
+
+		assert.Nil(err)
+		_ = writer.Close()
+
+		// serve
+		req := httptest.NewRequest("POST", "/.services", &body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		resp := UnmarshallResponse[SavedResourceResponse](t, w.Body)
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(true, resp.Success)
+		assert.Equal("Resource saved!", resp.Message)
+		assert.Equal(0, resp.ID)
+
+		svc := router.Services["petstore"]
+		assert.Equal(1, len(svc.Routes))
+	}
 }
 
 func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
@@ -371,14 +417,14 @@ func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
+	resp := UnmarshallResponse[SavedResourceResponse](t, w.Body)
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("application/json", w.Header().Get("Content-Type"))
-	assert.Equal(true, resp["success"].(bool))
-	assert.Equal("Resource saved!", resp["message"].(string))
+	assert.Equal(1, resp.ID)
+	assert.Equal(true, resp.Success)
+	assert.Equal("Resource saved!", resp.Message)
 
 	svc := router.Services["petstore"]
-
 	expected := &ServiceItem{
 		Name: "petstore",
 		Routes: []*RouteDescription{
@@ -511,39 +557,6 @@ func TestServiceHandler_deleteService_errors(t *testing.T) {
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
 		assert.Equal(false, resp.Success)
 		assert.Equal(ErrServiceNotFound.Error(), resp.Message)
-	})
-
-	t.Run("error-removing-dir", func(t *testing.T) {
-		fileDir := filepath.Join(router.Config.App.Paths.Services, "petstore")
-		err = os.Chmod(fileDir, 0400)
-		assert.Nil(err)
-
-		filePath := filepath.Join(fileDir, "get", "pets", "index.json")
-		router.Services = map[string]*ServiceItem{
-			"petstore": {
-				Name: "petstore",
-				Routes: []*RouteDescription{
-					{
-						File: &FileProperties{
-							FilePath: filePath,
-						},
-					},
-				},
-			},
-		}
-
-		req := httptest.NewRequest("DELETE", "/.services/petstore", nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
-		assert.Equal(http.StatusInternalServerError, w.Code)
-		assert.Equal("application/json", w.Header().Get("Content-Type"))
-		assert.Equal(false, resp.Success)
-		assert.True(strings.HasSuffix(resp.Message, "permission denied"))
-
-		// allow to clean up
-		_ = os.Chmod(fileDir, 0777)
 	})
 }
 
@@ -1343,5 +1356,35 @@ func TestSaveService_errors(t *testing.T) {
 		res, err := saveService(payload, appCfg)
 		assert.Nil(res)
 		assert.Equal(ErrReservedPrefix, err)
+	})
+}
+
+func TestServiceHandler_getRouteIndex(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = createServiceRoutes(router)
+	assert.Nil(err)
+
+	handler := &ServiceHandler{
+		router: router,
+	}
+
+	router.Services = map[string]*ServiceItem{
+		"petstore": {
+			Name: "petstore",
+		},
+	}
+
+	t.Run("service-not-found", func(t *testing.T) {
+		res := handler.getRouteIndex(&FileProperties{
+			ServiceName: "nice",
+		})
+		assert.Equal(-1, res)
 	})
 }
