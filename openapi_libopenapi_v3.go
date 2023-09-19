@@ -45,7 +45,7 @@ func (d *LibV3Document) GetResources() map[string][]string {
 	return res
 }
 
-func (d *LibV3Document) FindOperation(options *FindOperationOptions) Operationer {
+func (d *LibV3Document) FindOperation(options *OperationDescription) Operationer {
 	if options == nil {
 		return nil
 	}
@@ -63,6 +63,10 @@ func (d *LibV3Document) FindOperation(options *FindOperationOptions) Operationer
 	}
 
 	return nil
+}
+
+func (op *LibV3Operation) ID() string {
+	return op.Operation.OperationId
 }
 
 func (op *LibV3Operation) GetParameters() OpenAPIParameters {

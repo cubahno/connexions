@@ -48,7 +48,7 @@ func (d *KinDocument) GetResources() map[string][]string {
 	return res
 }
 
-func (d *KinDocument) FindOperation(options *FindOperationOptions) Operationer {
+func (d *KinDocument) FindOperation(options *OperationDescription) Operationer {
 	if options == nil {
 		return nil
 	}
@@ -64,6 +64,10 @@ func (d *KinDocument) FindOperation(options *FindOperationOptions) Operationer {
 	return &KinOperation{
 		Operation: op,
 	}
+}
+
+func (op *KinOperation) ID() string {
+	return op.Operation.OperationID
 }
 
 func (op *KinOperation) GetParameters() OpenAPIParameters {

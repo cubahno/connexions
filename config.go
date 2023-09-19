@@ -46,6 +46,9 @@ type ServiceConfig struct {
 	// Validate is the validation config.
 	// It is used to validate the request and/or response outside of the Services API.
 	Validate *ServiceValidateConfig `koanf:"validate"`
+
+	// Cache is the cache config.
+	Cache *ServiceCacheConfig `koanf:"cache"`
 }
 
 type ServiceError struct {
@@ -68,6 +71,12 @@ type ServiceValidateConfig struct {
 	// Response is a flag whether to validate the response.
 	// Default: false
 	Response bool `koanf:"response"`
+}
+
+type ServiceCacheConfig struct {
+	// Avoid multiple schema parsing by caching the parsed schema.
+	// Default: true
+	Schema bool `koanf:"schema"`
 }
 
 type ParseConfig struct {
@@ -148,8 +157,8 @@ func NewPaths(baseDir string) *Paths {
 	svcDir := filepath.Join(dataDir, "services")
 
 	return &Paths{
-		Base:              baseDir,
-		Resources:         resDir,
+		Base:      baseDir,
+		Resources: resDir,
 
 		Data:              dataDir,
 		Contexts:          filepath.Join(dataDir, "contexts"),
@@ -158,9 +167,9 @@ func NewPaths(baseDir string) *Paths {
 		ServicesOpenAPI:   filepath.Join(svcDir, RootOpenAPIName),
 		ServicesFixedRoot: filepath.Join(svcDir, RootServiceName),
 
-		Docs:              filepath.Join(resDir, "docs"),
-		Samples:           filepath.Join(resDir, "samples"),
-		UI:                filepath.Join(resDir, "ui"),
+		Docs:    filepath.Join(resDir, "docs"),
+		Samples: filepath.Join(resDir, "samples"),
+		UI:      filepath.Join(resDir, "ui"),
 	}
 }
 
@@ -200,6 +209,12 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 		res.Validate = &ServiceValidateConfig{
 			Request:  true,
 			Response: false,
+		}
+	}
+
+	if res.Cache == nil {
+		res.Cache = &ServiceCacheConfig{
+			Schema: true,
 		}
 	}
 

@@ -39,19 +39,19 @@ func TestDocument(t *testing.T) {
 		})
 
 		t.Run("FindOperation", func(t *testing.T) {
-			op := doc.FindOperation(&FindOperationOptions{"", "/pets", "GET", nil})
+			op := doc.FindOperation(&OperationDescription{"", "/pets", "GET"})
 			assert.NotNil(op)
 
 			assert.Equal(2, len(op.GetParameters()))
 		})
 
 		t.Run("FindOperation-res-not-found", func(t *testing.T) {
-			op := doc.FindOperation(&FindOperationOptions{"", "/pets2", "GET", nil})
+			op := doc.FindOperation(&OperationDescription{"", "/pets2", "GET"})
 			assert.Nil(op)
 		})
 
 		t.Run("FindOperation-method-not-found", func(t *testing.T) {
-			op := doc.FindOperation(&FindOperationOptions{"", "/pets", "PATCH", nil})
+			op := doc.FindOperation(&OperationDescription{"", "/pets", "PATCH"})
 			assert.Nil(op)
 		})
 	}
@@ -81,7 +81,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetParameters", func(t *testing.T) {
-			op := doc.FindOperation(&FindOperationOptions{"", "/pets", "GET", nil})
+			op := doc.FindOperation(&OperationDescription{"", "/pets", "GET"})
 			params := op.GetParameters()
 
 			expected := OpenAPIParameters{
@@ -114,7 +114,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetRequestBody", func(t *testing.T) {
-			op := doc.FindOperation(&FindOperationOptions{"", "/pets", "POST", nil})
+			op := doc.FindOperation(&OperationDescription{"", "/pets", "POST"})
 			body, contentType := op.GetRequestBody()
 
 			expectedBody := &Schema{
@@ -139,7 +139,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetResponse", func(t *testing.T) {
-			op := doc.FindOperation(&FindOperationOptions{"", "/pets", "GET", nil})
+			op := doc.FindOperation(&OperationDescription{"", "/pets", "GET"})
 			res := op.GetResponse()
 			content := res.Content
 			contentType := res.ContentType
@@ -162,7 +162,7 @@ func TestOperation(t *testing.T) {
 		libDocWithFriends,
 	} {
 		t.Run("GetRequestBody-empty", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "POST", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "POST"})
 			body, contentType := op.GetRequestBody()
 
 			assert.Nil(body)
@@ -170,7 +170,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetRequestBody-empty-content", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "DELETE", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "DELETE"})
 			body, contentType := op.GetRequestBody()
 
 			assert.Nil(body)
@@ -178,7 +178,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetRequestBody-with-xml-type", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "PATCH", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "PATCH"})
 			body, contentType := op.GetRequestBody()
 
 			expectedBody := &Schema{
@@ -201,7 +201,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetResponse-first-defined-non-default", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}", "GET", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}", "GET"})
 			assert.NotNil(op)
 
 			res := op.GetResponse()
@@ -245,7 +245,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetResponse-default-used", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}", "PUT", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}", "PUT"})
 			assert.NotNil(op)
 
 			res := op.GetResponse()
@@ -275,7 +275,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetResponse-empty", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}", "PATCH", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}", "PATCH"})
 			assert.NotNil(op)
 
 			res := op.GetResponse()
@@ -288,7 +288,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("GetResponse-non-predefined", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "GET", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "GET"})
 			assert.NotNil(op)
 
 			res := op.GetResponse()
@@ -317,7 +317,7 @@ func TestOperation(t *testing.T) {
 		})
 
 		t.Run("WithParseConfig", func(t *testing.T) {
-			op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "GET", nil})
+			op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "GET"})
 			assert.NotNil(op)
 			op = op.WithParseConfig(&ParseConfig{OnlyRequired: true})
 

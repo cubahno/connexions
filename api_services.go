@@ -396,7 +396,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spec := fileProps.Spec
-	operation := spec.FindOperation(&FindOperationOptions{
+	operation := spec.FindOperation(&OperationDescription{
 		Service:  service.Name,
 		Resource: rd.Path,
 		Method:   strings.ToUpper(rd.Method),

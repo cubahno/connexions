@@ -25,6 +25,14 @@ func TestKinOperation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
+	t.Run("ID", func(t *testing.T) {
+		operation := &KinOperation{Operation: &openapi3.Operation{
+			OperationID: "findNice",
+		}}
+		res := operation.ID()
+		assert.Equal("findNice", res)
+	})
+
 	t.Run("GetParameters-nil-case", func(t *testing.T) {
 		operation := &KinOperation{Operation: &openapi3.Operation{
 			Parameters: openapi3.Parameters{

@@ -41,7 +41,7 @@ func TestLibV2Document(t *testing.T) {
 	})
 
 	t.Run("FindOperation", func(t *testing.T) {
-		op := doc.FindOperation(&FindOperationOptions{"", "/pet/findByStatus", "GET", nil})
+		op := doc.FindOperation(&OperationDescription{"", "/pet/findByStatus", "GET"})
 		assert.NotNil(op)
 		libOp, ok := op.(*LibV2Operation)
 		assert.True(ok)
@@ -52,12 +52,12 @@ func TestLibV2Document(t *testing.T) {
 	})
 
 	t.Run("FindOperation-res-not-found", func(t *testing.T) {
-		op := doc.FindOperation(&FindOperationOptions{"", "/pets2", "GET", nil})
+		op := doc.FindOperation(&OperationDescription{"", "/pets2", "GET"})
 		assert.Nil(op)
 	})
 
 	t.Run("FindOperation-method-not-found", func(t *testing.T) {
-		op := doc.FindOperation(&FindOperationOptions{"", "/pet", "PATCH", nil})
+		op := doc.FindOperation(&OperationDescription{"", "/pet", "PATCH"})
 		assert.Nil(op)
 	})
 }
@@ -70,13 +70,19 @@ func TestLibV2Operation(t *testing.T) {
 	docWithFriends, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-person-with-friends-v2.yml"))
 	assert.Nil(err)
 
+	t.Run("ID", func(t *testing.T) {
+		operation := &LibV2Operation{Operation: &v2high.Operation{OperationId: "findNice"}}
+		res := operation.ID()
+		assert.Equal("findNice", res)
+	})
+
 	t.Run("FindOperation-with-no-options", func(t *testing.T) {
 		op := doc.FindOperation(nil)
 		assert.Nil(op)
 	})
 
 	t.Run("GetParameters", func(t *testing.T) {
-		op := doc.FindOperation(&FindOperationOptions{"", "/pet/findByStatus", "GET", nil})
+		op := doc.FindOperation(&OperationDescription{"", "/pet/findByStatus", "GET"})
 		params := op.GetParameters()
 
 		expected := OpenAPIParameters{
@@ -107,7 +113,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetRequestBody", func(t *testing.T) {
-		op := doc.FindOperation(&FindOperationOptions{"", "/pet", "POST", nil})
+		op := doc.FindOperation(&OperationDescription{"", "/pet", "POST"})
 		assert.NotNil(op)
 		body, contentType := op.GetRequestBody()
 
@@ -168,7 +174,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetRequestBody-empty", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "POST", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "POST"})
 		body, contentType := op.GetRequestBody()
 
 		assert.Nil(body)
@@ -176,7 +182,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetRequestBody-empty-content", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "DELETE", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "DELETE"})
 		assert.NotNil(op)
 		body, contentType := op.GetRequestBody()
 
@@ -185,7 +191,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetRequestBody-with-xml-type", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "PATCH", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "PATCH"})
 		body, contentType := op.GetRequestBody()
 
 		expectedBody := &Schema{
@@ -205,7 +211,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetResponse", func(t *testing.T) {
-		op := doc.FindOperation(&FindOperationOptions{"", "/pet/findByStatus", "GET", nil})
+		op := doc.FindOperation(&OperationDescription{"", "/pet/findByStatus", "GET"})
 		assert.NotNil(op)
 		res := op.GetResponse()
 		content := res.Content
@@ -224,7 +230,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetResponse-first-defined-non-default", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}", "GET", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}", "GET"})
 		assert.NotNil(op)
 
 		res := op.GetResponse()
@@ -269,7 +275,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetResponse-default-used", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}", "PUT", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}", "PUT"})
 		assert.NotNil(op)
 
 		res := op.GetResponse()
@@ -296,7 +302,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetResponse-empty", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}", "PATCH", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}", "PATCH"})
 		assert.NotNil(op)
 
 		res := op.GetResponse()
@@ -307,7 +313,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("GetResponse-non-predefined", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "GET", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "GET"})
 		assert.NotNil(op)
 
 		res := op.GetResponse()
@@ -333,7 +339,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("WithParseConfig", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "GET", nil})
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "GET"})
 		assert.NotNil(op)
 		op = op.WithParseConfig(&ParseConfig{OnlyRequired: true})
 
@@ -356,7 +362,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("parseParameter", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "GET", nil}).(*LibV2Operation)
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "GET"}).(*LibV2Operation)
 		assert.NotNil(op)
 
 		minimum := 1
@@ -413,7 +419,7 @@ func TestLibV2Operation(t *testing.T) {
 	})
 
 	t.Run("parseParameter-with-schema", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&FindOperationOptions{"", "/person/{id}/find", "GET", nil}).(*LibV2Operation)
+		op := docWithFriends.FindOperation(&OperationDescription{"", "/person/{id}/find", "GET"}).(*LibV2Operation)
 		assert.NotNil(op)
 		libDoc, ok := docWithFriends.(*LibV2Document)
 		assert.True(ok)

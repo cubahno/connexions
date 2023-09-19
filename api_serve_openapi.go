@@ -11,6 +11,13 @@ type ResourceGeneratePayload struct {
 	Replacements map[string]any `json:"replacements"`
 }
 
+type OpenAPIHandler struct {
+	*BaseHandler
+	router    *Router
+	fileProps *FileProperties
+	cache     CacheStorage
+}
+
 // registerOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
 func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescriptions {
@@ -21,6 +28,7 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 	handler := &OpenAPIHandler{
 		router:    router,
 		fileProps: fileProps,
+		cache:     NewMemoryStorage(),
 	}
 
 	for resName, resMethods := range fileProps.Spec.GetResources() {
@@ -42,12 +50,6 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 	return res
 }
 
-type OpenAPIHandler struct {
-	*BaseHandler
-	router    *Router
-	fileProps *FileProperties
-}
-
 func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	prefix := h.fileProps.Prefix
 	doc := h.fileProps.Spec
@@ -55,18 +57,24 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	serviceCfg := config.GetServiceConfig(h.fileProps.ServiceName)
 
 	ctx := chi.RouteContext(r.Context())
+
 	resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 
-	operation := doc.FindOperation(&FindOperationOptions{
+	findOptions := &OperationDescription{
 		Service:  h.fileProps.ServiceName,
 		Resource: resourceName,
 		Method:   r.Method,
-	})
+	}
+	operation := doc.FindOperation(findOptions)
 	if operation == nil {
 		// edge case: we get here only if the file gets removed while router is running.
 		// not json response because if path doesn't exist, it's just plain 404.
 		h.Response(w).WithStatusCode(http.StatusNotFound).Send([]byte(ErrResourceNotFound.Error()))
 		return
+	}
+
+	if serviceCfg.Cache.Schema {
+		operation = NewCacheOperationAdapter(h.fileProps.ServiceName, operation, h.cache)
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 

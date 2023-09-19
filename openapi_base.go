@@ -4,10 +4,11 @@ type Document interface {
 	Provider() SchemaProvider
 	GetVersion() string
 	GetResources() map[string][]string
-	FindOperation(options *FindOperationOptions) Operationer
+	FindOperation(options *OperationDescription) Operationer
 }
 
 type Operationer interface {
+	ID() string
 	GetParameters() OpenAPIParameters
 	GetRequestBody() (*Schema, string)
 	GetResponse() *OpenAPIResponse
@@ -21,11 +22,10 @@ type OpenAPIResponse struct {
 	StatusCode  int
 }
 
-type FindOperationOptions struct {
-	Service     string
-	Resource    string
-	Method      string
-	ParseConfig *ParseConfig
+type OperationDescription struct {
+	Service  string
+	Resource string
+	Method   string
 }
 
 type OpenAPIParameter struct {

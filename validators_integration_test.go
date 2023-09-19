@@ -115,7 +115,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
 			println(fmt.Sprintf("Validating [%s]: %s %s", fileName, method, resource))
-			operation := doc.FindOperation(&FindOperationOptions{
+			operation := doc.FindOperation(&OperationDescription{
 				Resource: resource,
 				Method:   method,
 			})

@@ -90,6 +90,9 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		Request:  true,
 		Response: true,
 	}
+	svcCfg.Cache = &ServiceCacheConfig{
+		Schema: false,
+	}
 
 	router.Contexts = map[string]map[string]any{
 		"petstore": {
@@ -149,6 +152,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 	t.Run("invalid-response", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/petstore/pets", nil)
 		req.Header.Set("Content-Type", "application/json")
+
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 

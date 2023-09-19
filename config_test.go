@@ -51,6 +51,10 @@ func TestConfig(t *testing.T) {
 			Request:  true,
 			Response: false,
 		}, res.Validate)
+
+		assert.Equal(&ServiceCacheConfig{
+			Schema: true,
+		}, res.Cache)
 	})
 
 	t.Run("GetServiceConfig-Default", func(t *testing.T) {

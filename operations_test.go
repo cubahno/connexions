@@ -807,7 +807,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
-		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
+		resp := doc.FindOperation(&OperationDescription{"", "/nodes/{id}", http.MethodGet}).GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
@@ -839,7 +839,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
-		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
+		resp := doc.FindOperation(&OperationDescription{"", "/nodes/{id}", http.MethodGet}).GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
@@ -869,7 +869,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
-		resp := doc.FindOperation(&FindOperationOptions{"", "/nodes/{id}", http.MethodGet, nil}).GetResponse()
+		resp := doc.FindOperation(&OperationDescription{"", "/nodes/{id}", http.MethodGet}).GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
@@ -891,7 +891,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
-		operation := doc.FindOperation(&FindOperationOptions{"", "/api/org-api/v1/organization/{acctStructureCode}", http.MethodGet, nil})
+		operation := doc.FindOperation(&OperationDescription{"", "/api/org-api/v1/organization/{acctStructureCode}", http.MethodGet})
 		operation.WithParseConfig(&ParseConfig{MaxRecursionLevels: 1})
 		resp := operation.GetResponse()
 		schema := resp.Content
