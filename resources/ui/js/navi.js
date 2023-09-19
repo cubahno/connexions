@@ -1,4 +1,5 @@
 import * as config from './config.js';
+import {contentTitleEl} from "./config.js";
 
 export const loadPage = pageMap => {
     const currentHash = window.location.hash;
@@ -92,6 +93,7 @@ export const applySelection = (targetEl, selectionClassName) => {
 export const resetContents = () => {
     console.log(`reset contents`);
     config.homeContents.style.display = 'none';
+    config.contentTitleEl.innerHTML = '';
     config.iframeContents.src = '';
     config.iframeContents.style.display = 'none';
 

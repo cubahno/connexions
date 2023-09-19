@@ -85,7 +85,7 @@ export const show = (selected = '') => {
             const elements = document.querySelectorAll(`.remove-service`);
             elements.forEach(element => {
                 element.addEventListener(`click`, event => {
-                    const serviceName = event.target.className.split(` `)[1];
+                    const serviceName = event.target.id.replace(`remove-service-`, ``);
                     let nameLink = serviceName;
                     if (serviceName === ``) {
                         name = "/"
@@ -98,8 +98,13 @@ export const show = (selected = '') => {
                         })
                             .then(res => res.json())
                             .then(res => {
-                                commons.showSuccessOrError(res.message, res.success)
-                                show();
+                                if (res.success) {
+                                    navi.resetContents()
+                                }
+                                window.setTimeout(_ => {
+                                    commons.showSuccessOrError(res.message, res.success);
+                                }, 300)
+                                location.hash = `#/services`;
                             });
                     }
                 });
