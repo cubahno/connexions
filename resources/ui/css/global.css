@@ -49,8 +49,7 @@ h3 {
 .holy-grail-header,
 .holy-grail-left,
 .holy-grail-middle,
-.holy-grail-right,
-.holy-grail-footer {
+.holy-grail-right {
     padding: 1rem;
     border: 1px solid #ededed;
     background-color: #ededed;
@@ -95,10 +94,21 @@ h3 {
     }
 }
 
-.holy-grail-footer {
-    -ms-grid-column: 1;
-    grid-column-start: 1;
-    grid-column-end: 4;
+footer {
+    grid-column: 1 / 4;
+    padding: 1rem;
+    background-color: #ededed;
+
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 999;
+}
+
+.footer-block {
+    display: inline-block;
+    margin: 0 1rem;
 }
 
 iframe {
