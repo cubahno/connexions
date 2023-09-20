@@ -1,4 +1,4 @@
-site_name: Connexions Documentation
+site_name: " "
 theme:
   custom_dir: resources/docs
   features:
@@ -53,3 +53,16 @@ extra_css:
   - css/extra.css
 extra_javascript:
   - js/extra.js
+nav:
+  - Home:
+      - 'Home': 'index.md'
+      - 'About': 'about.md'
+      - 'Release Notes': 'release-notes.md'
+  - Services: 'services.md'
+  - Contexts: 'contexts.md'
+  - Settings: 'settings.md'
+  - Usage Examples:
+      - 'Docker': 'usage-in-docker.md'
+      - 'Docker-Compose': 'usage-in-docker-compose.md'
+      - 'As Library': 'usage-as-library.md'
+  - Contributing: 'contributing.md'

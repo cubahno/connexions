@@ -1,9 +1,8 @@
 .md-header__button.md-logo img {
-    height: auto;
     width: auto;
+    height: 60px;
 }
 
 .md-typeset h1 {
-    /*color: #ffffff;*/
     font-weight: 800;
 }
