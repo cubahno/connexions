@@ -4,6 +4,7 @@ import * as validators from './validators.js';
 import * as navi from "./navi.js";
 import * as services from "./services.js";
 import {loadPage} from "./navi.js";
+import {getCodeEditor} from "./commons.js";
 
 export const show = match => {
     services.show();
@@ -166,7 +167,13 @@ export const generateResult = (service, ix, path, method) => {
                     const jsonObject = JSON.parse(reqBody);
                     formattedBody = JSON.stringify(jsonObject, null, 2);
                 }
-                document.getElementById('request-body').textContent = formattedBody;
+
+                const reqView = commons.getCodeEditor(`request-body`, `json`);
+                reqView.setValue(formattedBody);
+                reqView.clearSelection();
+                reqView.setReadOnly(true);
+
+                //document.getElementById('request-body').textContent = formattedBody;
                 document.getElementById('request-body-container').style.display = 'block';
             }
 
@@ -199,7 +206,11 @@ export const generateResult = (service, ix, path, method) => {
                 resView = `<a href="${baseUrl}${res.request.path}" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> View</a>`;
             }
 
-            document.getElementById('response-body').innerHTML = resView;
+            const respView = commons.getCodeEditor(`response-body`, `json`);
+            respView.setValue(resView);
+            respView.clearSelection();
+            respView.setReadOnly(true);
+            // document.getElementById('response-body').innerHTML = resView;
             document.getElementById('response-body-container').style.display = 'block';
 
             const copyCodeElement = document.querySelector(".copy-code");

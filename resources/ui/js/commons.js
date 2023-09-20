@@ -42,8 +42,8 @@ export const getCodeEditor = (htmlID, mode) => {
         showPrintMargin: false,
     });
 
-    editor.setTheme("ace/theme/xcode");
-    editor.setFontSize("14px");
+    editor.setTheme(`ace/theme/${config.editor.theme}`);
+    editor.setFontSize(`${config.editor.fontSize}px`);
     editor.resize();
 
     return editor;

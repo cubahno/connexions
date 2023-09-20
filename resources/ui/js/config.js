@@ -3,6 +3,7 @@ export const homeUrl = `${url}${appConfig.homeUrl}`;
 export const serviceUrl = `${url}${appConfig.serviceUrl}`;
 export const contextUrl = `${url}${appConfig.contextUrl}`;
 export const settingsUrl = `${url}${appConfig.settingsUrl}`;
+export const editor = appConfig.editor;
 export const homeContents = document.getElementById('home-contents');
 export const serviceTable = document.getElementById('service-table');
 export const contextTable = document.getElementById('context-table');

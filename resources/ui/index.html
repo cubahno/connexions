@@ -6,7 +6,11 @@
             homeUrl: "{{.AppConfig.HomeURL}}",
             serviceUrl: "{{.AppConfig.ServiceURL}}",
             contextUrl: "{{.AppConfig.ContextURL}}",
-            settingsUrl: "{{.AppConfig.SettingsURL}}"
+            settingsUrl: "{{.AppConfig.SettingsURL}}",
+            editor: {
+                theme: "{{.AppConfig.Editor.Theme}}",
+                fontSize: "{{.AppConfig.Editor.FontSize}}",
+            },
         }
         console.log(`loaded appConfig:`, appConfig)
     </script>
@@ -191,13 +195,14 @@
                         <div id="request-body-container" style="display: none;">
                             <b>Payload:</b>
                             <br/>
-                            <pre class="code" id="request-body">&nbsp;</pre>
+                            <p id="request-body"></p>
                         </div>
+                        <br/> <br/>
 
                         <div id="response-body-container" style="display: none;">
                             <b>Response:</b>
                             <br/>
-                            <pre class="code" id="response-body">&nbsp;</pre>
+                            <p id="response-body"></p>
                         </div>
                     </div>
                 </div>

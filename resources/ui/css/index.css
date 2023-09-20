@@ -105,15 +105,15 @@ select {
     max-height: 500px;
 }
 
-.selected-service{
+.selected-service, .selected-context {
     background-color: #c0c7cb;
 }
 
-tr.selected-service {
+tr.selected-service, tr.selected-context {
     font-weight: bold;
 }
 
-tr.selected-resource {
+tr.selected-resource, tr.selected-context {
     font-weight: bold;
 }
 
@@ -480,4 +480,13 @@ a.service-settings-link {
     left: -10px;
     bottom: -6px;
     font-size: 14px;
+}
+
+#request-body {
+    min-height: 200px;
+}
+
+#response-body {
+    height: 50%;
+    min-height: 400px;
 }

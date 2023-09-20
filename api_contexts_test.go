@@ -3,7 +3,6 @@
 package connexions
 
 import (
-	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -155,24 +154,6 @@ func TestContextHandler_delete(t *testing.T) {
 			Success: false,
 			Message: "Context not found",
 		}, resp)
-	})
-
-	t.Run("file-not-found", func(t *testing.T) {
-		router.Contexts["bob"] = map[string]any{}
-
-		req := httptest.NewRequest(http.MethodDelete, "/.contexts/bob", nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(http.StatusInternalServerError, w.Code)
-		assert.Equal("application/json", w.Header().Get("Content-Type"))
-		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
-		assert.Equal(&SimpleResponse{
-			Success: false,
-			Message: fmt.Sprintf("remove %s/bob.yml: no such file or directory", router.Config.App.Paths.Contexts),
-		}, resp)
-
-		delete(router.Contexts, "bob")
 	})
 }
 

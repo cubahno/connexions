@@ -21,6 +21,12 @@ app:
   # pre-create the file structure for the resources
   createFileStructure: true
 
+  # response editor / display
+  # for a list of themes, see https://github.com/ajaxorg/ace/tree/master/src/theme
+  editor:
+    theme: chrome
+    fontSize: 12
+
 services:
   # service name is the first part of the path.
   # e.g. /petstore/v1/pets -> petstore

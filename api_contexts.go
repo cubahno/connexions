@@ -80,10 +80,7 @@ func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 	ctxDir := h.router.Config.App.Paths.Contexts
 	filePath := filepath.Join(ctxDir, fmt.Sprintf("%s.yml", name))
-	if err := os.Remove(filePath); err != nil {
-		h.error(http.StatusInternalServerError, err.Error(), w)
-		return
-	}
+	_ = os.Remove(filePath)
 
 	h.router.RemoveContext(name)
 	h.success("Context deleted!", w)

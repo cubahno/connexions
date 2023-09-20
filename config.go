@@ -149,6 +149,13 @@ type AppConfig struct {
 	// It will also copy sample files from the samples directory into services.
 	// Default: true in config.dist.yml which gets initially copied to config.yml.
 	CreateFileStructure bool `koanf:"createFileStructure"`
+
+	Editor *EditorConfig `koanf:"editor"`
+}
+
+type EditorConfig struct {
+	Theme string `koanf:"theme"`
+	FontSize int `koanf:"fontSize"`
 }
 
 func NewPaths(baseDir string) *Paths {
@@ -256,6 +263,10 @@ func (c *Config) EnsureConfigValues() {
 		app.SchemaProvider = defaultConfig.App.SchemaProvider
 	}
 
+	if app.Editor == nil {
+		app.Editor = defaultConfig.App.Editor
+	}
+
 	app.Paths = defaultConfig.App.Paths
 	c.App = app
 }
@@ -353,12 +364,14 @@ func MustConfig(baseDir string) *Config {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
+		log.Printf("error loading config. using fallback: %v\n", err)
 		return fallback
 	}
 
 	cfg := &Config{}
 	transformed := cfg.transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
+		log.Printf("error loading config. using fallback: %v\n", err)
 		return fallback
 	}
 	cfg.EnsureConfigValues()
@@ -400,6 +413,10 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 		ContextAreaPrefix: "in-",
 		SchemaProvider:    DefaultSchemaProvider,
 		Paths:             NewPaths(baseDir),
+		Editor: &EditorConfig{
+			Theme: "chrome",
+			FontSize: 12,
+		},
 	}
 }
 

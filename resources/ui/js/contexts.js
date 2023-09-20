@@ -58,7 +58,7 @@ export const show = (selected=``) => {
             const elements = document.querySelectorAll(`.remove-context`);
             elements.forEach(element => {
                 element.addEventListener(`click`, event => {
-                    const name = event.target.className.split(` `)[1];
+                    const name = event.target.id.replace(`remove-context-`, ``);
 
                     if (confirm(`Are you sure you want to remove context ${name}?\n`)) {
                         fetch(`${config.contextUrl}/${name}`, {
@@ -66,8 +66,13 @@ export const show = (selected=``) => {
                         })
                             .then(res => res.json())
                             .then(res => {
-                                commons.showSuccessOrError(res.message, res.success)
-                                show();
+                                if (res.success) {
+                                    location.hash = `#/contexts`;
+                                    location.reload(true);
+                                }
+                                window.setTimeout(_ => {
+                                    commons.showSuccessOrError(res.message, res.success);
+                                }, 100);
                             });
                     }
                 });
@@ -102,8 +107,6 @@ export const editForm = (match) => {
                 editor.setValue(res);
                 editor.clearSelection();
             })
-    } else {
-
     }
 
     config.contextEditContainer.style.display = 'block';
@@ -126,6 +129,6 @@ export const save = () => {
         body: formData,
     }).then(res => res.json()).then(res => {
         commons.showSuccessOrError(res.message, res.success);
-        show();
+        show(name);
     });
 }

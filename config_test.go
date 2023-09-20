@@ -231,6 +231,9 @@ app:
   disableUI: true
   disableSwaggerUI: true
   contextAreaPrefix: from-
+  editor:
+    theme: dark
+    fontSize: 12
 
 services:
   foo:
@@ -261,6 +264,10 @@ services:
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
 				Paths:             paths,
+				Editor: &EditorConfig{
+					Theme:    "dark",
+					FontSize: 12,
+				},
 			},
 			Services: map[string]*ServiceConfig{
 				"foo": {
@@ -427,6 +434,10 @@ app:
 				ContextAreaPrefix: "from-",
 				SchemaProvider:    DefaultSchemaProvider,
 				Paths:             NewPaths(""),
+				Editor: &EditorConfig{
+					Theme:    "chrome",
+					FontSize: 12,
+				},
 			},
 			baseDir: "",
 		}
@@ -476,6 +487,10 @@ func TestNewDefaultConfig(t *testing.T) {
 			ContextAreaPrefix: "in-",
 			SchemaProvider:    DefaultSchemaProvider,
 			Paths:             NewPaths("/app"),
+			Editor: &EditorConfig{
+				Theme:    "chrome",
+				FontSize: 12,
+			},
 		},
 		baseDir: "/app",
 	}
