@@ -139,6 +139,9 @@ func docsServer(url string, router *Router) {
 }
 
 func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	resourcePath := h.router.Config.App.Paths.Data
 	asFilename := fmt.Sprintf("connexions-%s.zip", time.Now().Format("2006-01-02"))
 
@@ -220,7 +223,17 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	err := r.ParseMultipartForm(512 * 1024 * 1024) // Limit form size to 512 MB
+	if err != nil {
+		h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
+			Message: err.Error(),
+			Success: false,
+		})
+		return
+	}
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
@@ -230,7 +243,9 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	zipReader, err := zip.NewReader(file, r.ContentLength)
 	if err != nil {

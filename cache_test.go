@@ -72,8 +72,8 @@ func TestCacheOperationAdapter(t *testing.T) {
 	})
 
 	t.Run("GetParameters", func(t *testing.T) {
+		_ = cachedAddPet.GetParameters()
 		res := cachedAddPet.GetParameters()
-		res = cachedAddPet.GetParameters()
 		assert.Equal(addPetOp.GetParameters(), res)
 
 		c, ok := storage.Get("petstore:addPet:parameters")
@@ -88,8 +88,8 @@ func TestCacheOperationAdapter(t *testing.T) {
 
 	t.Run("GetRequestBody", func(t *testing.T) {
 		opSchema, opContentType := addPetOp.GetRequestBody()
+		_, _ = cachedAddPet.GetRequestBody()
 		schema, contentType := cachedAddPet.GetRequestBody()
-		schema, contentType = cachedAddPet.GetRequestBody()
 
 		assert.Equal(opSchema, schema)
 		assert.Equal(opContentType, contentType)
@@ -111,8 +111,8 @@ func TestCacheOperationAdapter(t *testing.T) {
 	})
 
 	t.Run("GetResponse", func(t *testing.T) {
+		_ = cachedAddPet.GetResponse()
 		res := cachedAddPet.GetResponse()
-		res = cachedAddPet.GetResponse()
 		assert.Equal(addPetOp.GetResponse(), res)
 
 		c, ok := storage.Get("petstore:addPet:response")

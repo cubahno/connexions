@@ -10,6 +10,10 @@ define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
 endef
 
+.PHONY: lint
+lint:
+	golangci-lint run
+
 .PHONY: test
 test:
 	@if [ "$(with_docker)" = "true" ]; then \

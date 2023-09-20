@@ -186,7 +186,7 @@ func TestContextHandler_save(t *testing.T) {
 		}, resp)
 
 		var contexts []string
-		for name, _ := range router.Contexts {
+		for name := range router.Contexts {
 			contexts = append(contexts, name)
 		}
 		assert.Equal([]string{"bob"}, contexts)
@@ -216,7 +216,7 @@ address: 123 Main St
 		}, resp)
 
 		var contexts []string
-		for name, _ := range router.Contexts {
+		for name := range router.Contexts {
 			contexts = append(contexts, name)
 		}
 		assert.Equal([]string{"bob"}, contexts)
@@ -293,7 +293,9 @@ func TestContextHandler_save_errors(t *testing.T) {
 		req.Header.Set("Content-Type", writer.FormDataContentType())
 
 		_ = os.Chmod(router.Config.App.Paths.Contexts, 0000)
-		defer os.Chmod(router.Config.App.Paths.Contexts, 0755)
+		defer func() {
+			_ = os.Chmod(router.Config.App.Paths.Contexts, 0755)
+		}()
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)

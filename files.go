@@ -126,8 +126,8 @@ func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *A
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
 
-	serviceName := pathParts[0]
 	prefix := ""
+	var serviceName string
 
 	// root level service
 	if len(pathParts) == 1 {
@@ -172,12 +172,10 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	if serviceName == RootServiceName {
 		parts = parts[1:]
 		serviceName = parts[0]
-		prefix = ""
 
 		// root service
 		if IsValidHTTPVerb(serviceName) {
 			method = strings.ToUpper(serviceName)
-			serviceName = ""
 			parts = parts[1:]
 		}
 	}

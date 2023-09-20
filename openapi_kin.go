@@ -41,7 +41,7 @@ func (d *KinDocument) GetResources() map[string][]string {
 	res := make(map[string][]string)
 	for resName, pathItem := range d.Paths {
 		res[resName] = make([]string, 0)
-		for method, _ := range pathItem.Operations() {
+		for method := range pathItem.Operations() {
 			res[resName] = append(res[resName], method)
 		}
 	}

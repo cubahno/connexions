@@ -145,7 +145,7 @@ func TestOperation(t *testing.T) {
 			contentType := res.ContentType
 
 			var props []string
-			for name, _ := range content.Items.Properties {
+			for name := range content.Items.Properties {
 				props = append(props, name)
 			}
 

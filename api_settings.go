@@ -38,10 +38,15 @@ func createSettingsRoutes(router *Router) error {
 }
 
 func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	http.ServeFile(w, r, h.router.Config.App.Paths.ConfigFile)
 }
 
 func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	payload, _ := io.ReadAll(r.Body)
 
 	_, err := NewConfigFromContent(payload)
@@ -61,6 +66,9 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 
 // Restore settings from config.yml.dist
 func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	dest := h.router.Config.App.Paths.ConfigFile
 	src := fmt.Sprintf("%s.dist", dest)
 

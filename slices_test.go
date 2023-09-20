@@ -34,7 +34,6 @@ func TestGetRandomSliceValue(t *testing.T) {
 	})
 
 	t.Run("any", func(t *testing.T) {
-		type i int
 		slice := []any{"a", "b", "c"}
 		res := GetRandomSliceValue(slice)
 

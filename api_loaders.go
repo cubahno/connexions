@@ -111,7 +111,7 @@ func loadContexts(router *Router) error {
 		err      error
 		filePath string
 	}
-	ch := make(chan parsed, 0)
+	ch := make(chan parsed)
 
 	// Walk through all files in the contexts directory
 	_ = filepath.Walk(router.Config.App.Paths.Contexts, func(filePath string, info os.FileInfo, err error) error {

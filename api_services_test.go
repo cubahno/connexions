@@ -339,7 +339,7 @@ func TestServiceHandler_save_fixedMultiple(t *testing.T) {
 	err = createServiceRoutes(router)
 	assert.Nil(err)
 
-	for i:= 0; i < 3; i++ {
+	for i := 0; i < 3; i++ {
 		// prepare payload
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)

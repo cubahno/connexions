@@ -81,7 +81,9 @@ func TestMustFileStructure(t *testing.T) {
 		}
 
 		_ = os.Chmod(paths.Samples, 0000)
-		defer os.Chmod(paths.Samples, 0777)
+		defer func() {
+			_ = os.Chmod(paths.Samples, 0777)
+		}()
 
 		err = MustFileStructure(paths)
 		assert.Error(err)
@@ -96,7 +98,9 @@ func TestMustFileStructure(t *testing.T) {
 
 		// dist file won't be read
 		_ = os.Chmod(dist, 0000)
-		defer os.Chmod(dist, 0777)
+		defer func() {
+			_ = os.Chmod(dist, 0777)
+		}()
 
 		err := MustFileStructure(paths)
 		assert.Nil(err)

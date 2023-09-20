@@ -113,8 +113,8 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 			return nil, nil
 		}
 
-		file.Write(contents)
-		writer.Close()
+		_, _ = file.Write(contents)
+		_ = writer.Close()
 
 		return writer, &requestBody
 	}
@@ -144,7 +144,7 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 		}
 
 		var contexts []string
-		for contextName, _ := range router.Contexts {
+		for contextName := range router.Contexts {
 			contexts = append(contexts, contextName)
 		}
 
@@ -216,7 +216,7 @@ func TestCreateHomeRoutes_export_errors(t *testing.T) {
 	err = createHomeRoutes(router)
 	assert.Nil(err)
 
-	os.Chmod(router.Config.App.Paths.Resources, 0000)
+	_ = os.Chmod(router.Config.App.Paths.Resources, 0000)
 
 	req := httptest.NewRequest("GET", "/.ui/export", nil)
 	w := httptest.NewRecorder()
@@ -224,7 +224,7 @@ func TestCreateHomeRoutes_export_errors(t *testing.T) {
 
 	assert.Equal(http.StatusInternalServerError, w.Code)
 
-	os.Chmod(router.Config.App.Paths.Resources, 0777)
+	_ = os.Chmod(router.Config.App.Paths.Resources, 0777)
 }
 
 func TestCreateHomeRoutes_disabled(t *testing.T) {

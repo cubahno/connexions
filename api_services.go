@@ -104,7 +104,6 @@ type RouteDescription struct {
 	ContentType string          `json:"contentType"`
 	Overwrites  bool            `json:"overwrites"`
 	File        *FileProperties `json:"-"`
-	mu          sync.Mutex
 }
 
 type RouteDescriptions []*RouteDescription
@@ -215,7 +214,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 			h.JSONResponse(w).Send(&SavedResourceResponse{
 				Message: "Resource saved!",
 				Success: true,
-				ID: savedRouteId,
+				ID:      savedRouteId,
 			})
 			return
 		}
@@ -255,7 +254,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	h.JSONResponse(w).Send(&SavedResourceResponse{
 		Message: "Resource saved!",
 		Success: true,
-		ID: h.getRouteIndex(fileProps),
+		ID:      h.getRouteIndex(fileProps),
 	})
 }
 
@@ -691,5 +690,5 @@ type ResourceResponse struct {
 type SavedResourceResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
-	ID int `json:"id"`
+	ID      int    `json:"id"`
 }

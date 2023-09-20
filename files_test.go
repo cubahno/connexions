@@ -55,8 +55,8 @@ func TestGetRequestFile(t *testing.T) {
 		fileContents := []byte("test file contents")
 		fileName := "test.txt"
 		part, _ := writer.CreateFormFile("file", fileName)
-		part.Write(fileContents)
-		writer.Close()
+		_, _ = part.Write(fileContents)
+		_ = writer.Close()
 
 		req := httptest.NewRequest("POST", "/", body)
 		req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -401,9 +401,9 @@ func TestCopyFile(t *testing.T) {
 
 	t.Run("happy-path", func(t *testing.T) {
 		base1 := t.TempDir()
-		os.MkdirAll(filepath.Join(base1, "subdir11", "subdir12"), 0755)
+		_ = os.MkdirAll(filepath.Join(base1, "subdir11", "subdir12"), 0755)
 		src := filepath.Join(base1, "subdir11", "test1.txt")
-		os.WriteFile(src, []byte("test"), 0644)
+		_ = os.WriteFile(src, []byte("test"), 0644)
 
 		base2 := t.TempDir()
 		dest := filepath.Join(base2, "subdir11", "subdir2", "target.txt")
@@ -437,9 +437,9 @@ func TestCopyDirectory(t *testing.T) {
 
 	t.Run("happy-path", func(t *testing.T) {
 		base1 := t.TempDir()
-		os.MkdirAll(filepath.Join(base1, "subdir11", "subdir12"), 0755)
-		os.WriteFile(filepath.Join(base1, "subdir11", "test1.txt"), []byte("test"), 0644)
-		os.WriteFile(filepath.Join(base1, "subdir11", "subdir12", "test1.txt"), []byte("test"), 0644)
+		_ = os.MkdirAll(filepath.Join(base1, "subdir11", "subdir12"), 0755)
+		_ = os.WriteFile(filepath.Join(base1, "subdir11", "test1.txt"), []byte("test"), 0644)
+		_ = os.WriteFile(filepath.Join(base1, "subdir11", "subdir12", "test1.txt"), []byte("test"), 0644)
 
 		base2 := t.TempDir()
 		err := CopyDirectory(base1, base2)
@@ -656,7 +656,7 @@ func TestExtractZip(t *testing.T) {
 		}
 
 		var extracted []string
-		filepath.WalkDir(targetDir, func(path string, info os.DirEntry, err error) error {
+		_ = filepath.WalkDir(targetDir, func(path string, info os.DirEntry, err error) error {
 			if info != nil && info.IsDir() {
 				return nil
 			}
@@ -690,8 +690,10 @@ func TestGetFileHash(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	file.WriteString("test")
-	defer file.Close()
+	_, _ = file.WriteString("test")
+	defer func() {
+		_ = file.Close()
+	}()
 
 	hash := GetFileHash(file)
 	assert.Nil(err)

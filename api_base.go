@@ -35,9 +35,7 @@ func HandleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool
 	if svcConfig.Latency > 0 {
 		log.Printf("Encountered latency of %s\n", svcConfig.Latency)
 
-		select {
-		case <-time.After(svcConfig.Latency):
-		}
+		time.Sleep(svcConfig.Latency)
 	}
 
 	errConfig := svcConfig.Errors

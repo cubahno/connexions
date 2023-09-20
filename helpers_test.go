@@ -68,8 +68,6 @@ func CreateSchemaFromYAMLFile(t *testing.T, filePath string, target any) {
 		t.Errorf("Error parsing JSON: %v", err)
 		t.FailNow()
 	}
-
-	return
 }
 
 func CreateOperationFromYAMLFile(t *testing.T, filePath string, target any) {
@@ -218,10 +216,10 @@ func CreateTestZip(files map[string]string) *bytes.Buffer {
 
 	for name, contents := range files {
 		file, _ := zipWriter.Create(name)
-		file.Write([]byte(contents))
+		_, _ = file.Write([]byte(contents))
 	}
 
-	zipWriter.Close()
+	_ = zipWriter.Close()
 	return &buf
 }
 

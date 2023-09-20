@@ -154,8 +154,8 @@ type AppConfig struct {
 }
 
 type EditorConfig struct {
-	Theme string `koanf:"theme"`
-	FontSize int `koanf:"fontSize"`
+	Theme    string `koanf:"theme"`
+	FontSize int    `koanf:"fontSize"`
 }
 
 func NewPaths(baseDir string) *Paths {
@@ -414,7 +414,7 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 		SchemaProvider:    DefaultSchemaProvider,
 		Paths:             NewPaths(baseDir),
 		Editor: &EditorConfig{
-			Theme: "chrome",
+			Theme:    "chrome",
 			FontSize: 12,
 		},
 	}

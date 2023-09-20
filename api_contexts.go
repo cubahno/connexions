@@ -48,7 +48,7 @@ type ContextHandler struct {
 
 func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 	var names []string
-	for name, _ := range h.router.Contexts {
+	for name := range h.router.Contexts {
 		names = append(names, name)
 	}
 

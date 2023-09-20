@@ -108,8 +108,4 @@ func (r *JSONResponse) Send(data any) {
 type SimpleResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
-
-	statusCode int
-	headers    map[string]string
-	w          http.ResponseWriter
 }

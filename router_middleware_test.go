@@ -13,14 +13,16 @@ func TestConditionalLoggingMiddleware(t *testing.T) {
 
 	t.Run("on", func(t *testing.T) {
 		current := os.Getenv("DISABLE_LOGGER")
-		defer os.Setenv("DISABLE_LOGGER", current)
-		os.Setenv("DISABLE_LOGGER", "false")
+		defer func() {
+			_ = os.Setenv("DISABLE_LOGGER", current)
+		}()
+		_ = os.Setenv("DISABLE_LOGGER", "false")
 		cfg := &Config{
 			App: NewDefaultAppConfig(t.TempDir()),
 		}
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Hallo, welt!"))
+			_, _ = w.Write([]byte("Hallo, welt!"))
 		})
 
 		w := newBufferedResponseWriter()

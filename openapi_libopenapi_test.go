@@ -666,7 +666,7 @@ func TestMergeLibOpenAPISubSchemas(t *testing.T) {
 		assert.Equal(TypeObject, res.Type[0])
 
 		var props []string
-		for k, _ := range res.Properties {
+		for k := range res.Properties {
 			props = append(props, k)
 		}
 		assert.ElementsMatch(expectedProps, props)

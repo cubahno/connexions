@@ -34,7 +34,7 @@ func (d *LibV2Document) GetResources() map[string][]string {
 
 	for name, path := range d.Model.Paths.PathItems {
 		res[name] = make([]string, 0)
-		for method, _ := range path.GetOperations() {
+		for method := range path.GetOperations() {
 			res[name] = append(res[name], strings.ToUpper(method))
 		}
 	}
@@ -51,7 +51,7 @@ func (d *LibV2Document) FindOperation(options *OperationDescription) Operationer
 	}
 
 	for m, op := range path.GetOperations() {
-		if strings.ToUpper(m) == strings.ToUpper(options.Method) {
+		if strings.EqualFold(m, options.Method) {
 			return &LibV2Operation{
 				Operation:   op,
 				ParseConfig: d.ParseConfig,

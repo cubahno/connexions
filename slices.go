@@ -66,11 +66,7 @@ func GetSliceMaxRepetitionNumber[T comparable](values []T) int {
 
 	visited := make(map[T]int)
 	for _, item := range values {
-		if _, ok := visited[item]; ok {
-			visited[item]++
-		} else {
-			visited[item] = 1
-		}
+		visited[item]++
 	}
 
 	for _, value := range visited {
