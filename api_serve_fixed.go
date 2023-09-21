@@ -42,6 +42,13 @@ func createFixedResponseHandler(fileProps *FileProperties, config *Config) http.
 			return
 		}
 
+		// TODO(cubahno): add context
+		valueReplacer := fileProps.ValueReplacerFactory(&Resource{
+			Service: fileProps.ServiceName,
+			Path:    fileProps.Resource,
+		})
+		generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+
 		http.ServeFile(w, r, fileProps.FilePath)
 	}
 }

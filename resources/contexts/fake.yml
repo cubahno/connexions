@@ -33,9 +33,11 @@ address:
   street_number: "alias:fake.address.building_number"
   street_suffix: "fake:"
   zip_code: "alias:fake.address.post_code"
+
 app:
   name: "fake:"
   version: "fake:"
+
 beer:
   name: "fake:"
   style: "fake:"
@@ -44,13 +46,17 @@ beer:
   alcohol: "fake:"
   ibu: "fake:"
   big: "fake:"
+
 binary:
   binary_string: "fake:"
+
 blood:
   name: "fake:"
+
 boolean:
   bool_int: "fake:"
   bool_string: "fake:"
+
 car:
   maker: "fake:"
   model: "fake:"
@@ -58,6 +64,7 @@ car:
   fuel_type: "fake:"
   transmissions_gear: "fake:"
   plate: "fake:"
+
 color:
   hex: "fake:"
   rgb: "fake:"
@@ -65,49 +72,61 @@ color:
   css: "fake:"
   safe_color_name: "fake:"
   color_name: "fake:"
+
 company:
   catch_phrase: "fake:"
   bs: "fake:"
   suffix: "fake:"
   name: "fake:"
   job_title: "fake:"
+
 crypto:
   bech32_address: "fake:"
   bitcoin_address: "fake:"
   ethereum_address: "fake:"
+
 currency:
   currency: "fake:"
   code: "fake:"
   number: "fake:"
   country: "fake:"
   currency_and_code: "fake:"
+
 directory:
   drive_letter: "fake:"
+
 emoji:
   emoji: "fake:"
   emoji_code: "fake:"
+
 file:
   extension: "fake:"
   file_name_with_extension: "fake:"
   absolute_file_path: "fake:"
   absolute_file_path_for_unix: "fake:"
   absolute_file_path_for_windows: "fake:"
+
 food:
   fruit: "fake:"
   vegetable: "fake:"
+
 gamer:
   tag: "fake:"
+
 gender:
   name: "fake:"
   abbr: "fake:"
+
 genre:
   name: "fake:"
   description:
   name_with_description: "fake:"
+
 hash:
   sha256: "fake:"
   sha512: "fake:"
   md5: "fake:"
+
 internet:
   user: "fake:"
   password: "fake:"
@@ -127,22 +146,25 @@ internet:
   http_method: "fake:"
   query: "fake:"
   status_code: "fake:"
-uuid:
-  v4: "fake:"
+
 language:
   default: "fake:"
   language_abbr: "fake:"
   programming_language: "fake:"
+
 lorem:
   default: "fake:"
   word: "fake:"
+
 mimetype:
   mime_type: "fake:"
+
 music:
   default: "fake:"
   name: "fake:"
   author: "fake:"
   genre: "fake:"
+
 payment:
   credit_card:
     credit_card: "alias:fake.payment.credit_card.number"
@@ -153,6 +175,7 @@ payment:
   credit_card_number: "alias:fake.payment.credit_card.number"
   credit_card_expiration_date:
   credit_card_expiration_date_string: "alias:fake.payment.credit_card.expiration_date"
+
 person:
   name: "fake:"
   first_name: "fake:"
@@ -174,12 +197,14 @@ pet:
   dog: "fake:"
   cat: "fake:"
   name: "fake:"
+
 phone:
   area_code: "fake:"
   exchange_code: "fake:"
   number: "fake:"
   toll_free_number: "fake:"
   e164_number: "fake:"
+
 time:
   unix: "fake:"
   am_pm: "fake:"
@@ -188,6 +213,10 @@ time:
   year: "fake:"
   century: "fake:"
   timezone: "fake:"
+
+uuid:
+  v4: "fake:"
+
 user_agent:
   default: "fake:"
   internet_explorer: "fake:"
@@ -195,6 +224,7 @@ user_agent:
   firefox: "fake:"
   opera: "fake:"
   safari: "fake:"
+
 youtube:
   url: "fake:"
   shared_url: "fake:"

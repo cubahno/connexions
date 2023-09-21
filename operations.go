@@ -495,6 +495,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 
 		for _, placeholder := range placeHolders {
 			name := placeholder[1 : len(placeholder)-1]
+			// TODO(cubahno): implement dotted path
 			res := valueReplacer(name, state.NewFrom(state).WithName(name))
 			if res != nil {
 				newKey := fmt.Sprintf("%s%s%s", string(placeholder[0]), name, string(placeholder[len(placeholder)-1]))
