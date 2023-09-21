@@ -56,8 +56,8 @@ func NewApp(config *Config) *App {
 	res.Router = router
 
 	bluePrints := []RouteRegister{
-		loadServices,
 		loadContexts,
+		loadServices,
 
 		createHomeRoutes,
 		createServiceRoutes,

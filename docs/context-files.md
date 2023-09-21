@@ -308,3 +308,19 @@ it will be replaced with:
 ```
 
 Please note that types will be correctly resolved as well: `id` is unsigned int8.<br/>
+
+It;s possible to use multiple placeholders in a single value:
+```json
+{
+  "id": 123,
+  "nameWithId": "{name}-{id}"
+}
+```
+
+will be replaced with:
+```json
+{
+  "id": 123,
+  "nameWithId": "doggie-123"
+}
+```

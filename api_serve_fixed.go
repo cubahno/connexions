@@ -50,7 +50,10 @@ func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.
 			return
 		}
 
-		generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		if content := generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer); content != nil {
+			NewJSONResponse(w).WithHeader("Content-Type", fileProps.ContentType).Send(content)
+			return
+		}
 
 		http.ServeFile(w, r, fileProps.FilePath)
 	}
