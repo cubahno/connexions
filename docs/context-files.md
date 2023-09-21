@@ -35,7 +35,7 @@ name: "doggie"
 tag: "dog"
 ```
 
-So, in case of `json` response:
+So, in case of `json` response, the replacement will look like this:
 ```json
 {
   "id": "123e4567-e89b-12d3-a456-426614174000",
@@ -85,7 +85,7 @@ owner_person:
   name: "Jane Doe"
 ``` 
     
-Please note that keys inside context files should be `snake_case`.<br/>
+The keys inside context files should be `snake_case`.<br/>
 
 Our response would look like:<br/>
 ```json
@@ -116,9 +116,9 @@ owner_person:
 ``` 
 
 All available `fakes` are shipped with the distribution.<br/>
-Please take a look at the `contexts/fakes` file for the [full list](https://github.com/cubahno/connexions/blob/master/resources/contexts/fake.yml).<br/>
+ `contexts/fakes` file has the [full list](https://github.com/cubahno/connexions/blob/master/resources/contexts/fake.yml).<br/>
 
-Please not the syntax: `fake:path.with.dot`.<br/>
+**The syntax** is `fake:path.with.dot`.<br/>
 
 It is possible to use not only dynamic values but dynamic keys as well:
 ```yaml
@@ -170,8 +170,8 @@ pet_name: "alias:petstore.name"
 ```
 
 **The syntax** is `alias:<context-file>.<dotted.path>`.<br/>
-Please take a look at the `contexts/common` [file](https://github.com/cubahno/connexions/blob/master/resources/contexts/common.yml) 
-for some commonly used aliases.<br/>
+Some commonly used alias located in `contexts/common` [file](https://github.com/cubahno/connexions/blob/master/resources/contexts/common.yml) 
+<br/>
 
 If the `alias` won't point to any target property, it will be used as-is, so you can notice the issue.<br/>
 
@@ -232,7 +232,7 @@ app:
 
 
 ### Wiring
-The filenames are completely arbitrary, and there's no magic involved which contexts are used for any particular service.<br/>
+The filenames are completely arbitrary, and there's no magic involved in regards to which contexts are used for any particular service.<br/>
 You need to set the corresponding configuration manually in the config file or using the UI.<br/><br/>
 Each distribution ships with the defaults contexts, in case there's no configuration for service provided - default will be used.<br/><br/>
 
@@ -307,9 +307,9 @@ it will be replaced with:
 }
 ```
 
-Please note that types will be correctly resolved as well: `id` is unsigned int8.<br/>
+The types will be correctly resolved as well: `id` is unsigned int8.<br/>
 
-It;s possible to use multiple placeholders in a single value:
+It's possible to use multiple placeholders in a single value:
 ```json
 {
   "id": 123,
