@@ -13,9 +13,10 @@ type ResourceGeneratePayload struct {
 
 type OpenAPIHandler struct {
 	*BaseHandler
-	router    *Router
-	fileProps *FileProperties
-	cache     CacheStorage
+	router        *Router
+	fileProps     *FileProperties
+	cache         CacheStorage
+	valueReplacer ValueReplacer
 }
 
 // registerOpenAPIRoutes adds spec routes to the router and
@@ -25,10 +26,21 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 
 	res := make(RouteDescriptions, 0)
 
+	config := router.Config
+	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
+
+	serviceCtxs := serviceCfg.Contexts
+	if len(serviceCtxs) == 0 {
+		serviceCtxs = router.ContextNames
+	}
+	contexts := CollectContexts(serviceCtxs, router.Contexts, nil)
+	valueReplacer := CreateValueReplacer(config, contexts)
+
 	handler := &OpenAPIHandler{
-		router:    router,
-		fileProps: fileProps,
-		cache:     NewMemoryStorage(),
+		router:        router,
+		fileProps:     fileProps,
+		cache:         NewMemoryStorage(),
+		valueReplacer: valueReplacer,
 	}
 
 	for resName, resMethods := range fileProps.Spec.GetResources() {
@@ -90,24 +102,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var valueReplacer ValueReplacer
-	if h.fileProps.ValueReplacerFactory != nil {
-		serviceCtxs := serviceCfg.Contexts
-		if len(serviceCtxs) == 0 {
-			serviceCtxs = h.router.ContextNames
-		}
-
-		contexts := CollectContexts(serviceCtxs, h.router.Contexts, nil)
-
-		valueReplacer = h.fileProps.ValueReplacerFactory(&Resource{
-			Service:           strings.Trim(prefix, "/"),
-			Path:              resourceName,
-			ContextData:       contexts,
-			ContextAreaPrefix: config.App.ContextAreaPrefix,
-		})
-	}
-
-	response := NewResponseFromOperation(operation, valueReplacer)
+	response := NewResponseFromOperation(operation, h.valueReplacer)
 	if serviceCfg.Validate.Response {
 		err := ValidateResponse(r, response, operation)
 		if err != nil {

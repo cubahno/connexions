@@ -13,84 +13,84 @@ func TestHasCorrectSchemaType(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("nil-schema", func(t *testing.T) {
-		res := HasCorrectSchemaValue(NewReplaceContext(nil, nil, nil), "nice")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(nil), "nice")
 		assert.True(res)
 	})
 
 	t.Run("not-a-schema", func(t *testing.T) {
-		res := HasCorrectSchemaValue(NewReplaceContext("not-a-schema", nil, nil), "nice")
+		res := HasCorrectSchemaValue(NewTestReplaceContext("not-a-schema"), "nice")
 		assert.True(res)
 	})
 
 	t.Run("string-type-ok", func(t *testing.T) {
 		schema := &Schema{Type: TypeString}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "nice")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), "nice")
 		assert.True(res)
 	})
 
 	t.Run("string-type-error", func(t *testing.T) {
 		schema := &Schema{Type: TypeString}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123)
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), 123)
 		assert.False(res)
 	})
 
 	t.Run("int32-ok", func(t *testing.T) {
 		schema := &Schema{Type: TypeNumber, Format: "int32"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123)
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), 123)
 		assert.True(res)
 	})
 
 	t.Run("int32-bad", func(t *testing.T) {
 		schema := &Schema{Type: TypeNumber, Format: "int32"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), fake.Int64())
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), fake.Int64())
 		assert.False(res)
 	})
 
 	t.Run("int64-ok-small", func(t *testing.T) {
 		schema := &Schema{Type: TypeNumber, Format: "int64"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123)
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), 123)
 		assert.True(res)
 	})
 
 	t.Run("int64-ok-big", func(t *testing.T) {
 		schema := &Schema{Type: TypeNumber, Format: "int64"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), fake.Int64())
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), fake.Int64())
 		assert.True(res)
 	})
 
 	t.Run("int64-bad", func(t *testing.T) {
 		schema := &Schema{Type: TypeNumber, Format: "int64"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), 123.1)
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), 123.1)
 		assert.False(res)
 	})
 
 	t.Run("string-date-ok", func(t *testing.T) {
 		schema := &Schema{Type: TypeString, Format: "date"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-01-01")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), "2020-01-01")
 		assert.True(res)
 	})
 
 	t.Run("string-date-bad", func(t *testing.T) {
 		schema := &Schema{Type: TypeString, Format: "date"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-13-01")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), "2020-13-01")
 		assert.False(res)
 	})
 
 	t.Run("string-datetime-ok", func(t *testing.T) {
 		schema := &Schema{Type: TypeString, Format: "date-time"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-01-01T15:04:05.000Z")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), "2020-01-01T15:04:05.000Z")
 		assert.True(res)
 	})
 
 	t.Run("string-datetime-bad", func(t *testing.T) {
 		schema := &Schema{Type: TypeString, Format: "date-time"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "2020-01-01T25:04:05.000Z")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), "2020-01-01T25:04:05.000Z")
 		assert.False(res)
 	})
 
 	t.Run("string-with-unknown-format", func(t *testing.T) {
 		schema := &Schema{Type: TypeString, Format: "x"}
-		res := HasCorrectSchemaValue(NewReplaceContext(schema, nil, nil), "xxx")
+		res := HasCorrectSchemaValue(NewTestReplaceContext(schema), "xxx")
 		assert.True(res)
 	})
 }
@@ -102,14 +102,15 @@ func TestReplaceInHeaders(t *testing.T) {
 		state := &ReplaceState{
 			NamePath: []string{"userID"},
 		}
-		resource := &Resource{
-			ContextData: []map[string]any{
+		res := ReplaceInHeaders(&ReplaceContext{
+			Faker: fake,
+			State: state,
+			Data: []map[string]any{
 				{
 					"user_id": "1234",
 				},
 			},
-		}
-		res := ReplaceInHeaders(NewReplaceContext(nil, state, resource))
+		})
 		assert.Nil(res)
 	})
 
@@ -118,9 +119,11 @@ func TestReplaceInHeaders(t *testing.T) {
 			NamePath: []string{"userID"},
 			IsHeader: true,
 		}
-		resource := &Resource{
-			ContextAreaPrefix: "in-",
-			ContextData: []map[string]any{
+		res := ReplaceInHeaders(&ReplaceContext{
+			Faker:      fake,
+			State:      state,
+			AreaPrefix: "in-",
+			Data: []map[string]any{
 				{
 					"user_id": "1234",
 					"in-header": map[string]string{
@@ -128,8 +131,7 @@ func TestReplaceInHeaders(t *testing.T) {
 					},
 				},
 			},
-		}
-		res := ReplaceInHeaders(NewReplaceContext(nil, state, resource))
+		})
 		assert.Equal("5678", res)
 	})
 }
@@ -142,14 +144,15 @@ func TestReplaceInPath(t *testing.T) {
 			NamePath:    []string{"userID"},
 			IsPathParam: false,
 		}
-		resource := &Resource{
-			ContextData: []map[string]any{
+		res := ReplaceInPath(&ReplaceContext{
+			Faker: fake,
+			State: state,
+			Data: []map[string]any{
 				{
 					"user_id": "1234",
 				},
 			},
-		}
-		res := ReplaceInPath(NewReplaceContext(nil, state, resource))
+		})
 		assert.Nil(res)
 	})
 
@@ -158,9 +161,11 @@ func TestReplaceInPath(t *testing.T) {
 			NamePath:    []string{"userID"},
 			IsPathParam: true,
 		}
-		resource := &Resource{
-			ContextAreaPrefix: "in-",
-			ContextData: []map[string]any{
+		res := ReplaceInPath(&ReplaceContext{
+			Faker:      fake,
+			State:      state,
+			AreaPrefix: "in-",
+			Data: []map[string]any{
 				{
 					"user_id": "1234",
 					"in-path": map[string]string{
@@ -168,8 +173,7 @@ func TestReplaceInPath(t *testing.T) {
 					},
 				},
 			},
-		}
-		res := ReplaceInPath(NewReplaceContext(nil, state, resource))
+		})
 		assert.Equal("5678", res)
 	})
 
@@ -178,15 +182,16 @@ func TestReplaceInPath(t *testing.T) {
 			NamePath:    []string{"userID"},
 			IsPathParam: true,
 		}
-		resource := &Resource{
-			ContextAreaPrefix: "in-",
-			ContextData: []map[string]any{
+		res := ReplaceInPath(&ReplaceContext{
+			Faker:      fake,
+			State:      state,
+			AreaPrefix: "in-",
+			Data: []map[string]any{
 				{
 					"user_id": "1234",
 				},
 			},
-		}
-		res := ReplaceInPath(NewReplaceContext(nil, state, resource))
+		})
 		assert.Nil(res)
 	})
 }
@@ -199,14 +204,15 @@ func TestReplaceInArea(t *testing.T) {
 			NamePath:    []string{"userID"},
 			IsPathParam: true,
 		}
-		resource := &Resource{
-			ContextData: []map[string]any{
+		res := replaceInArea(&ReplaceContext{
+			Faker: fake,
+			State: state,
+			Data: []map[string]any{
 				{
 					"user_id": "1234",
 				},
 			},
-		}
-		res := replaceInArea(NewReplaceContext(nil, state, resource), "path")
+		}, "path")
 		assert.Nil(res)
 	})
 }
@@ -221,16 +227,19 @@ func TestReplaceFromContext(t *testing.T) {
 		state := &ReplaceState{
 			NamePath: []string{"Person", "dateOfBirth"},
 		}
-		resource := &Resource{
-			ContextData: []map[string]any{
+
+		res := ReplaceFromContext(&ReplaceContext{
+			Faker:  fake,
+			Schema: schema,
+			State:  state,
+			Data: []map[string]any{
 				{
 					"person": map[string]any{
 						"date_of_birth": "1980-01-01",
 					},
 				},
 			},
-		}
-		res := ReplaceFromContext(NewReplaceContext(schema, state, resource))
+		})
 		assert.Equal("1980-01-01", res)
 	})
 
@@ -241,16 +250,18 @@ func TestReplaceFromContext(t *testing.T) {
 		state := &ReplaceState{
 			NamePath: []string{"Person", "dateOfBirth"},
 		}
-		resource := &Resource{
-			ContextData: []map[string]any{
+		res := ReplaceFromContext(&ReplaceContext{
+			Faker:  fake,
+			Schema: schema,
+			State:  state,
+			Data: []map[string]any{
 				{
 					"people": map[string]any{
 						"date_of_birth": "1980-01-01",
 					},
 				},
 			},
-		}
-		res := ReplaceFromContext(NewReplaceContext(schema, state, resource))
+		})
 		assert.Nil(res)
 	})
 }
@@ -259,7 +270,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("no-schema", func(t *testing.T) {
-		res := CastToSchemaFormat(NewReplaceContext(nil, nil, nil), 123)
+		res := CastToSchemaFormat(NewTestReplaceContext(nil), 123)
 		assert.Equal(123, res)
 	})
 
@@ -268,7 +279,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 			Type:   TypeNumber,
 			Format: "int32",
 		}
-		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.0)
+		res := CastToSchemaFormat(NewTestReplaceContext(schema), 123.0)
 		assert.Equal(int32(123), res)
 	})
 
@@ -277,7 +288,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 			Type:   TypeNumber,
 			Format: "int32",
 		}
-		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.4)
+		res := CastToSchemaFormat(NewTestReplaceContext(schema), 123.4)
 		assert.Equal(123.4, res)
 	})
 
@@ -286,7 +297,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 			Type:   TypeNumber,
 			Format: "int64",
 		}
-		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.0)
+		res := CastToSchemaFormat(NewTestReplaceContext(schema), 123.0)
 		assert.Equal(int64(123), res)
 	})
 
@@ -295,7 +306,7 @@ func TestCastToSchemaFormat(t *testing.T) {
 			Type:   TypeNumber,
 			Format: "int64",
 		}
-		res := CastToSchemaFormat(NewReplaceContext(schema, nil, nil), 123.4)
+		res := CastToSchemaFormat(NewTestReplaceContext(schema), 123.4)
 		assert.Equal(123.4, res)
 	})
 }
@@ -520,7 +531,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("not-a-schema", func(t *testing.T) {
-		res := ReplaceFromSchemaFormat(NewReplaceContext("not-a-schema", nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext("not-a-schema"))
 		assert.Nil(res)
 	})
 
@@ -528,7 +539,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "my-format",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.Nil(res)
 	})
 
@@ -536,7 +547,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "date",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.Equal(len(value), 10)
@@ -546,7 +557,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "date-time",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.Equal(len(value), 24)
@@ -556,7 +567,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "email",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.Greater(len(value), 6)
@@ -567,7 +578,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "uuid",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.Equal(len(value), 36)
@@ -577,7 +588,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "password",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.GreaterOrEqual(len(value), 6)
@@ -587,7 +598,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "hostname",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.Greater(len(value), 6)
@@ -598,7 +609,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "url",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		value, _ := res.(string)
 		assert.Greater(len(value), 6)
@@ -610,7 +621,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "int32",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		println("res:", res, "type:", fmt.Sprintf("%T", res), "value:", fmt.Sprintf("%v", res))
 		v, ok := ToInt32(res)
@@ -622,7 +633,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		schema := &Schema{
 			Format: "int64",
 		}
-		res := ReplaceFromSchemaFormat(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 		v, ok := ToInt64(res)
 		assert.True(ok)
@@ -634,41 +645,41 @@ func TestReplaceFromSchemaPrimitive(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("not-a-schema", func(t *testing.T) {
-		res := ReplaceFromSchemaPrimitive(NewReplaceContext("not-a-schema", nil, nil))
+		res := ReplaceFromSchemaPrimitive(NewTestReplaceContext("not-a-schema"))
 		assert.Nil(res)
 	})
 
 	t.Run("string", func(t *testing.T) {
 		schema := &Schema{Type: TypeString}
-		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaPrimitive(NewTestReplaceContext(schema))
 		value, _ := res.(string)
 		assert.Greater(len(value), 0)
 	})
 
 	t.Run("integer", func(t *testing.T) {
 		schema := &Schema{Type: TypeInteger}
-		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaPrimitive(NewTestReplaceContext(schema))
 		_, ok := res.(uint32)
 		assert.True(ok)
 	})
 
 	t.Run("number", func(t *testing.T) {
 		schema := &Schema{Type: TypeNumber}
-		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaPrimitive(NewTestReplaceContext(schema))
 		_, ok := res.(uint32)
 		assert.True(ok)
 	})
 
 	t.Run("boolean", func(t *testing.T) {
 		schema := &Schema{Type: TypeBoolean}
-		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaPrimitive(NewTestReplaceContext(schema))
 		_, ok := res.(bool)
 		assert.True(ok)
 	})
 
 	t.Run("other", func(t *testing.T) {
 		schema := &Schema{Type: TypeObject}
-		res := ReplaceFromSchemaPrimitive(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaPrimitive(NewTestReplaceContext(schema))
 		assert.Nil(res)
 	})
 
@@ -678,13 +689,13 @@ func TestReplaceFromSchemaExample(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("not-a-schema", func(t *testing.T) {
-		res := ReplaceFromSchemaExample(NewReplaceContext("not-a-schema", nil, nil))
+		res := ReplaceFromSchemaExample(NewTestReplaceContext("not-a-schema"))
 		assert.Nil(res)
 	})
 
 	t.Run("with-a-schema", func(t *testing.T) {
 		schema := &Schema{Example: "hallo, welt!"}
-		res := ReplaceFromSchemaExample(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaExample(NewTestReplaceContext(schema))
 		assert.Equal("hallo, welt!", res)
 	})
 }
@@ -919,13 +930,13 @@ func TestReplaceFromSchemaFallback(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("not-a-schema", func(t *testing.T) {
-		res := ReplaceFromSchemaFallback(NewReplaceContext("not-a-schema", nil, nil))
+		res := ReplaceFromSchemaFallback(NewTestReplaceContext("not-a-schema"))
 		assert.Nil(res)
 	})
 
 	t.Run("with-a-schema", func(t *testing.T) {
 		schema := &Schema{Default: "hallo, welt!"}
-		res := ReplaceFromSchemaFallback(NewReplaceContext(schema, nil, nil))
+		res := ReplaceFromSchemaFallback(NewTestReplaceContext(schema))
 		assert.Equal("hallo, welt!", res)
 	})
 }

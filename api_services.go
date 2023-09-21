@@ -376,23 +376,13 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// create ValueReplacer
 	serviceCtxs := serviceCfg.Contexts
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = h.router.ContextNames
 	}
-
 	contexts := CollectContexts(serviceCtxs, h.router.Contexts, payload.Replacements)
-
-	replaceResource := &Resource{
-		Service:           service.Name,
-		Path:              rd.Path,
-		ContextData:       contexts,
-		ContextAreaPrefix: config.App.ContextAreaPrefix,
-	}
-	var valueReplacer ValueReplacer
-	if fileProps.ValueReplacerFactory != nil {
-		valueReplacer = fileProps.ValueReplacerFactory(replaceResource)
-	}
+	valueReplacer := CreateValueReplacer(config, contexts)
 
 	if !fileProps.IsOpenAPI {
 		res.Request = newRequestFromFixedResource(

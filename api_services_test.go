@@ -213,17 +213,16 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 
 	svc := router.Services["petstore"]
 	expectedFileProps := &FileProperties{
-		ServiceName:          "petstore",
-		IsOpenAPI:            false,
-		Method:               "",
-		Prefix:               "/petstore",
-		Resource:             "",
-		FilePath:             filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yaml"),
-		FileName:             "index.yaml",
-		Extension:            ".yaml",
-		ContentType:          "application/x-yaml",
-		Spec:                 nil,
-		ValueReplacerFactory: nil,
+		ServiceName: "petstore",
+		IsOpenAPI:   false,
+		Method:      "",
+		Prefix:      "/petstore",
+		Resource:    "",
+		FilePath:    filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yaml"),
+		FileName:    "index.yaml",
+		Extension:   ".yaml",
+		ContentType: "application/x-yaml",
+		Spec:        nil,
 	}
 
 	expected := &ServiceItem{

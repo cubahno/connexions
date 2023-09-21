@@ -51,14 +51,10 @@ type FileProperties struct {
 
 	// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
 	Spec Document `json:"-"`
-
-	// ValueReplacerFactory is the factory for creating value replacers in the file or resources.
-	// Non-OpenAPI files have to have values wrapped in curly braces to be replaced.
-	ValueReplacerFactory ValueReplacerFactory `json:"-"`
 }
 
 // IsEqual compares two FileProperties structs.
-// Spec and ValueReplacerFactory are not compared.
+// Spec is not compared.
 func (f *FileProperties) IsEqual(other *FileProperties) bool {
 	return f.ServiceName == other.ServiceName &&
 		f.IsOpenAPI == other.IsOpenAPI &&
@@ -154,9 +150,8 @@ func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *A
 		FileName:    fileName,
 		Extension:   ext,
 		// set content type empty, because it will be set by the corresponding resource
-		ContentType:          "",
-		Spec:                 doc,
-		ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
+		ContentType: "",
+		Spec:        doc,
 	}, nil
 }
 
@@ -211,15 +206,14 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	}
 
 	return &FileProperties{
-		ServiceName:          serviceName,
-		Prefix:               prefix,
-		Method:               method,
-		Resource:             resource,
-		FilePath:             filePath,
-		FileName:             fileName,
-		Extension:            ext,
-		ContentType:          contentType,
-		ValueReplacerFactory: CreateValueReplacerFactory(Replacers),
+		ServiceName: serviceName,
+		Prefix:      prefix,
+		Method:      method,
+		Resource:    resource,
+		FilePath:    filePath,
+		FileName:    fileName,
+		Extension:   ext,
+		ContentType: contentType,
 	}
 }
 

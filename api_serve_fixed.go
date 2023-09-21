@@ -21,7 +21,7 @@ func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescrip
 
 	// register all routes
 	for _, resource := range resources {
-		router.Method(fileProps.Method, resource, createFixedResponseHandler(fileProps, router.Config))
+		router.Method(fileProps.Method, resource, createFixedResponseHandler(router, fileProps))
 	}
 
 	return &RouteDescription{
@@ -34,19 +34,22 @@ func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescrip
 	}
 }
 
-func createFixedResponseHandler(fileProps *FileProperties, config *Config) http.HandlerFunc {
-	svcConfig := config.GetServiceConfig(fileProps.ServiceName)
+func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.HandlerFunc {
+	config := router.Config
+	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
+
+	serviceCtxs := serviceCfg.Contexts
+	if len(serviceCtxs) == 0 {
+		serviceCtxs = router.ContextNames
+	}
+	contexts := CollectContexts(serviceCtxs, router.Contexts, nil)
+	valueReplacer := CreateValueReplacer(config, contexts)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		if HandleErrorAndLatency(svcConfig, w) {
+		if HandleErrorAndLatency(serviceCfg, w) {
 			return
 		}
 
-		// TODO(cubahno): add context
-		valueReplacer := fileProps.ValueReplacerFactory(&Resource{
-			Service: fileProps.ServiceName,
-			Path:    fileProps.Resource,
-		})
 		generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		http.ServeFile(w, r, fileProps.FilePath)

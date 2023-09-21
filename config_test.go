@@ -75,7 +75,8 @@ func TestConfig(t *testing.T) {
 
 	t.Run("EnsureConfigValues-when-empty", func(t *testing.T) {
 		cfg := &Config{
-			baseDir: "/app",
+			Replacers: Replacers,
+			baseDir:   "/app",
 		}
 		cfg.EnsureConfigValues()
 		assert.Equal(NewDefaultConfig("/app"), cfg)
@@ -83,8 +84,9 @@ func TestConfig(t *testing.T) {
 
 	t.Run("EnsureConfigValues-port-is-set", func(t *testing.T) {
 		cfg := &Config{
-			App:     &AppConfig{},
-			baseDir: "/app",
+			App:       &AppConfig{},
+			Replacers: Replacers,
+			baseDir:   "/app",
 		}
 		cfg.EnsureConfigValues()
 
@@ -97,7 +99,8 @@ func TestConfig(t *testing.T) {
 			App: &AppConfig{
 				Port: 5555,
 			},
-			baseDir: "/app",
+			Replacers: Replacers,
+			baseDir:   "/app",
 		}
 		cfg.EnsureConfigValues()
 
@@ -290,6 +293,7 @@ services:
 					},
 				},
 			},
+			Replacers: Replacers,
 		}
 
 		_ = os.MkdirAll(paths.Data, os.ModePerm)
@@ -492,7 +496,8 @@ func TestNewDefaultConfig(t *testing.T) {
 				FontSize: 12,
 			},
 		},
-		baseDir: "/app",
+		Replacers: Replacers,
+		baseDir:   "/app",
 	}
 	assert.Equal(expected, cfg)
 }

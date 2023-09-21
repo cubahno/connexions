@@ -630,6 +630,7 @@ func TestGenerateQuery(t *testing.T) {
 
 func TestGenerateContentFromSchema(t *testing.T) {
 	assert := assert2.New(t)
+	cfg := NewDefaultConfig("")
 
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
@@ -886,7 +887,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 	})
 
 	t.Run("with-circular-level-1", func(t *testing.T) {
-		valueReplacer := CreateValueReplacerFactory(Replacers)(&Resource{})
+		valueReplacer := CreateValueReplacer(cfg, nil)
 		filePath := filepath.Join("test_fixtures", "document-circular-ucr.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)

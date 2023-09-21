@@ -23,6 +23,8 @@ type Config struct {
 	// in case, there's no service name, the name ".root" will be used.
 	Services map[string]*ServiceConfig `koanf:"services"`
 
+	Replacers []Replacer `koanf:"-" json:"-" yaml:"-"`
+
 	baseDir string `koanf:"-"`
 	mu      sync.Mutex
 }
@@ -359,20 +361,20 @@ func MustConfig(baseDir string) *Config {
 	paths := NewPaths(baseDir)
 	filePath := paths.ConfigFile
 
-	fallback := NewDefaultConfig(baseDir)
+	res := NewDefaultConfig(baseDir)
 
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
 		log.Printf("error loading config. using fallback: %v\n", err)
-		return fallback
+		return res
 	}
 
-	cfg := &Config{}
+	cfg := res
 	transformed := cfg.transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
 		log.Printf("error loading config. using fallback: %v\n", err)
-		return fallback
+		return res
 	}
 	cfg.EnsureConfigValues()
 	cfg.App.Paths = paths
@@ -423,7 +425,8 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 // NewDefaultConfig creates a new default config in case the config file is missing, not found or any other error.
 func NewDefaultConfig(baseDir string) *Config {
 	return &Config{
-		App:     NewDefaultAppConfig(baseDir),
-		baseDir: baseDir,
+		App:       NewDefaultAppConfig(baseDir),
+		Replacers: Replacers,
+		baseDir:   baseDir,
 	}
 }

@@ -9,6 +9,11 @@ import (
 type BaseHandler struct {
 }
 
+// func (h *BaseHandler) CreateValueReplacer(fileProps *FileProperties, config *Config) {
+// 	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
+// 	valueReplaceFactory := CreateValueReplacer(config)
+// }
+
 func (h *BaseHandler) Response(w http.ResponseWriter) *APIResponse {
 	return NewAPIResponse(w)
 }

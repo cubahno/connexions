@@ -79,9 +79,18 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		Name: "petstore",
 	}
 
-	rs := registerOpenAPIRoutes(file, router)
+	router.Contexts = map[string]map[string]any{
+		"petstore": {
+			"id": 12,
+			// NULL allows setting nil value explicitly and skip other replacers
+			"name": NULL,
+			"tag":  "#hund",
+		},
+	}
+	router.ContextNames = []map[string]string{
+		{"petstore": ""},
+	}
 	svc.AddOpenAPIFile(file)
-	svc.AddRoutes(rs)
 	router.Services["petstore"] = svc
 
 	svcCfg := router.Config.Services[file.ServiceName]
@@ -94,17 +103,8 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		Schema: false,
 	}
 
-	router.Contexts = map[string]map[string]any{
-		"petstore": {
-			"id": 12,
-			// NULL allows setting nil value explicitly and skip other replacers
-			"name": NULL,
-			"tag":  "#hund",
-		},
-	}
-	router.ContextNames = []map[string]string{
-		{"petstore": ""},
-	}
+	rs := registerOpenAPIRoutes(file, router)
+	svc.AddRoutes(rs)
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodOptions, "/petstore/pets", nil)
@@ -202,11 +202,11 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	svc := &ServiceItem{
 		Name: "petstore",
 	}
+	svc.AddOpenAPIFile(file)
+	router.Services["petstore"] = svc
 
 	rs := registerOpenAPIRoutes(file, router)
-	svc.AddOpenAPIFile(file)
 	svc.AddRoutes(rs)
-	router.Services["petstore"] = svc
 
 	t.Run("happy-path", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/petstore/pets/12", nil)

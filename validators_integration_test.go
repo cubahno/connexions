@@ -30,7 +30,8 @@ func TestValidateResponse_Integration(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	ch := make(chan validationResult, 0)
 	specDir := filepath.Join("resources", "test", "specs")
-	replacerFactory := CreateValueReplacerFactory(Replacers)
+	cfg := NewDefaultConfig("")
+	valueReplacer := CreateValueReplacer(cfg, nil)
 
 	_ = filepath.Walk(specDir, func(filePath string, info os.FileInfo, fileErr error) error {
 		if info == nil || info.IsDir() {
@@ -41,14 +42,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 
 		go func(filePath string) {
 			defer wg.Done()
-			base := filepath.Base(filePath)
-			service := strings.TrimSuffix(base, filepath.Ext(base))
-			replacer := replacerFactory(&Resource{
-				Service:     service,
-				ContextData: []map[string]any{},
-			})
-
-			validateFile(filePath, replacer, ch)
+			validateFile(filePath, valueReplacer, ch)
 		}(filePath)
 
 		return nil

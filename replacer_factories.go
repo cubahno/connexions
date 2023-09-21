@@ -3,24 +3,16 @@ package connexions
 import (
 	"github.com/jaswdr/faker"
 	"reflect"
-	"sync"
 )
 
 type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
-type ValueReplacerFactory func(resource *Resource) ValueReplacer
 
 type ReplaceContext struct {
-	Schema   any
-	State    *ReplaceState
-	Resource *Resource
-	Faker    faker.Faker
-}
-
-type Resource struct {
-	Service           string
-	Path              string
-	ContextAreaPrefix string
-	ContextData       []map[string]any
+	Schema     any
+	State      *ReplaceState
+	AreaPrefix string
+	Data       []map[string]any
+	Faker      faker.Faker
 }
 
 var Replacers = []Replacer{
@@ -35,62 +27,43 @@ var Replacers = []Replacer{
 
 var fake = faker.New()
 
-func NewReplaceContext(schema any, state *ReplaceState, resource *Resource) *ReplaceContext {
-	return &ReplaceContext{
-		Schema:   schema,
-		State:    state,
-		Resource: resource,
-		Faker:    fake,
-	}
-}
-
-func CreateValueReplacerFactory(fns []Replacer) ValueReplacerFactory {
-	var mu sync.Mutex
-
-	return func(resource *Resource) ValueReplacer {
-		if resource == nil {
-			resource = &Resource{}
+func CreateValueReplacer(cfg *Config, contexts []map[string]any) ValueReplacer {
+	return func(content any, state *ReplaceState) any {
+		if state == nil {
+			state = &ReplaceState{}
 		}
 
-		return func(content any, state *ReplaceState) any {
-			mu.Lock()
-			defer mu.Unlock()
+		ctx := &ReplaceContext{
+			Schema:     content,
+			State:      state,
+			Faker:      fake,
+			AreaPrefix: cfg.App.ContextAreaPrefix,
+			Data:       contexts,
+		}
 
-			if state == nil {
-				state = &ReplaceState{}
-			}
-
-			ctx := &ReplaceContext{
-				Schema:   content,
-				State:    state,
-				Resource: resource,
-				Faker:    fake,
-			}
-
-			for _, fn := range fns {
-				res := fn(ctx)
-				if res != nil && ctx.Schema != nil {
-					if !HasCorrectSchemaValue(ctx, res) {
-						continue
-					}
-					res = ApplySchemaConstraints(ctx.Schema, res)
-				}
-
-				if res == nil {
+		for _, fn := range cfg.Replacers {
+			res := fn(ctx)
+			if res != nil && ctx.Schema != nil {
+				if !HasCorrectSchemaValue(ctx, res) {
 					continue
 				}
-
-				// return nil if function suggests
-				if str, ok := res.(string); ok {
-					if str == NULL {
-						return nil
-					}
-				}
-				return res
+				res = ApplySchemaConstraints(ctx.Schema, res)
 			}
 
-			return nil
+			if res == nil {
+				continue
+			}
+
+			// return nil if function suggests
+			if str, ok := res.(string); ok {
+				if str == NULL {
+					return nil
+				}
+			}
+			return res
 		}
+
+		return nil
 	}
 }
 

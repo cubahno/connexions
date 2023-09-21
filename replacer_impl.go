@@ -72,14 +72,14 @@ func ReplaceInPath(ctx *ReplaceContext) any {
 }
 
 func replaceInArea(ctx *ReplaceContext, area string) any {
-	ctxAreaPrefix := ctx.Resource.ContextAreaPrefix
+	ctxAreaPrefix := ctx.AreaPrefix
 	if ctxAreaPrefix == "" {
 		return nil
 	}
 
 	snakedNamePath := []string{ToSnakeCase(ctx.State.NamePath[0])}
 
-	for _, data := range ctx.Resource.ContextData {
+	for _, data := range ctx.Data {
 		replacements, ok := data[fmt.Sprintf("%s%s", ctxAreaPrefix, area)]
 		if !ok {
 			continue
@@ -100,7 +100,7 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 		snakedNamePath = append(snakedNamePath, ToSnakeCase(name))
 	}
 
-	for _, data := range ctx.Resource.ContextData {
+	for _, data := range ctx.Data {
 		if res := ReplaceValueWithContext(snakedNamePath, data); res != nil {
 			return CastToSchemaFormat(ctx, res)
 		}

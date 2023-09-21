@@ -238,3 +238,10 @@ func CreateTestMapFormReader(data map[string]string) (*multipart.Writer, *bytes.
 
 	return writer, &bodyBuffer
 }
+
+func NewTestReplaceContext(schema any) *ReplaceContext {
+	return &ReplaceContext{
+		Faker:  fake,
+		Schema: schema,
+	}
+}

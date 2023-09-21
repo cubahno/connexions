@@ -7,18 +7,12 @@ import (
 	"testing"
 )
 
-func TestNewReplaceContext(t *testing.T) {
-	assert := assert2.New(t)
-	res := NewReplaceContext(nil, nil, nil)
-	assert.NotNil(res.Faker)
-}
-
 func TestReplacers(t *testing.T) {
 	assert := assert2.New(t)
 	assert.Equal(7, len(Replacers))
 }
 
-func TestCreateValueReplacerFactory(t *testing.T) {
+func TestCreateValueReplacer(t *testing.T) {
 	assert := assert2.New(t)
 	fooReplacer := func(ctx *ReplaceContext) any { return "foo" }
 	intReplacer := func(ctx *ReplaceContext) any { return 1 }
@@ -26,44 +20,56 @@ func TestCreateValueReplacerFactory(t *testing.T) {
 	forceNullReplacer := func(ctx *ReplaceContext) any { return NULL }
 
 	t.Run("with-nil-state", func(t *testing.T) {
-		fn := CreateValueReplacerFactory([]Replacer{fooReplacer})(nil)
+		cfg := NewDefaultConfig("")
+		cfg.Replacers = []Replacer{fooReplacer}
+		fn := CreateValueReplacer(cfg, nil)
 		res := fn("", nil)
 		assert.Equal("foo", res)
 	})
 
 	t.Run("with-incorrect-schema-type", func(t *testing.T) {
-		fn := CreateValueReplacerFactory([]Replacer{fooReplacer, intReplacer})(nil)
+		cfg := NewDefaultConfig("")
+		cfg.Replacers = []Replacer{fooReplacer, intReplacer}
+		fn := CreateValueReplacer(cfg, nil)
 		schema := CreateSchemaFromString(t, `{"type": "integer"}`)
 		res := fn(schema, nil)
 		assert.Equal(int64(1), res)
 	})
 
 	t.Run("with-force-null", func(t *testing.T) {
-		fn := CreateValueReplacerFactory([]Replacer{forceNullReplacer, fooReplacer})(nil)
+		cfg := NewDefaultConfig("")
+		cfg.Replacers = []Replacer{forceNullReplacer, fooReplacer}
+		fn := CreateValueReplacer(cfg, nil)
 		res := fn("", nil)
 		assert.Nil(res)
 	})
 
 	t.Run("continues-on-nil", func(t *testing.T) {
-		fn := CreateValueReplacerFactory([]Replacer{nilReplacer, fooReplacer})(nil)
+		cfg := NewDefaultConfig("")
+		cfg.Replacers = []Replacer{nilReplacer, fooReplacer}
+		fn := CreateValueReplacer(cfg, nil)
 		res := fn("foo", nil)
 		assert.Equal("foo", res)
 	})
 
 	t.Run("finishes-with-nil", func(t *testing.T) {
-		fn := CreateValueReplacerFactory([]Replacer{nilReplacer, nilReplacer})(nil)
+		cfg := NewDefaultConfig("")
+		cfg.Replacers = []Replacer{nilReplacer, nilReplacer}
+		fn := CreateValueReplacer(cfg, nil)
 		res := fn("foo", nil)
 		assert.Nil(res)
 	})
 
 	t.Run("schema-with-pattern", func(t *testing.T) {
 		schema := CreateSchemaFromString(t, `{"type": "string", "pattern": "^((0[1-9])|(1[0-2]))$"}`)
-		fn := CreateValueReplacerFactory([]Replacer{func(ctx *ReplaceContext) any {
+		cfg := NewDefaultConfig("")
+		cfg.Replacers = []Replacer{func(ctx *ReplaceContext) any {
 			if len(ctx.State.NamePath) == 0 {
 				return "01"
 			}
 			return "foo"
-		}})(nil)
+		}}
+		fn := CreateValueReplacer(cfg, nil)
 
 		res1 := fn(schema, nil)
 		assert.Equal("01", res1)
