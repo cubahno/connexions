@@ -138,22 +138,21 @@ For example:
 ### Context reuse
 It is possible to reuse contexts in other contexts.<br/>
 Let's say we have context files with the following content:<br/><br/>
-`petstore.yml:` 
-```yaml
+
+```yaml title="petstore.yml"
 id: "fake:uuid4"
 name: "fake:pet.name"
 tag: "fake:gamer.tag"
 ```
 
-`person.yml`:
-```yaml
+```yaml title="person.yml"
 id: "fake:u_int8"
 name: "fake:person.name"
 ```
 
 We can refer to any property in any context file using `alias` keyword:
-`petstore.yml:`
-```yaml
+
+```yaml title="petstore.yml"
 id: "fake:uuid4"
 name: "fake:pet.name"
 tag: "fake:gamer.tag"
@@ -161,8 +160,7 @@ owner_id: "alias:person.id"
 owner_name: "alias:person.name"
 ```
 
-`person.yml`:
-```yaml
+```yaml title="person.yml"
 id: "fake:u_int8"
 name: "fake:person.name"
 pet_id: "alias:petstore.id"
@@ -195,8 +193,7 @@ There are currently no such functions but they can appear here when needed.<br/>
 ### Predefined values
 To replace property only with predefined set of values we can use list of values instead of single value.<br/>
 
-`person.yml`:
-```yaml
+```yaml title="person.yml"
 name: ["Jane", "John"]
 ```
 
@@ -238,8 +235,7 @@ Each distribution ships with the defaults contexts, in case there's no configura
 
 Let's say we have a `petstore` service and 2 contexts:
 
-`fake.yml`:
-```yaml
+```yaml title="fake.yml"
 pet:
   dog: "fake:"
   cat: "fake:"
@@ -250,23 +246,22 @@ people:
   # ... mappings
 ```
 
-`person.yml`:
-```yaml
+```yaml title="person.yml"
 id: "fake:u_int8"
 name: "fake:person.name"
 ```
 
 Fake file is unnecessary big, we can use just a portion of it:<br/>
-`config.yml`:
-```yaml
+```yaml title="config.yml"
 services:
   petstore:
-    # the name of the context to use when substituting the values in the request/response.
+   # the name of the context to use when substituting the values in the request/response.
     contexts:
       - fake: pet
       - fake: people
       - person:
 ```
+
 
 Only 2 maps will be taken from `fake` context and complete `person` context will be used.<br/>
 Replacement will be applied in the order of definition.<br/>

@@ -1,23 +1,29 @@
 site_name: " "
+repo_url: https://github.com/cubahno/connexions
+
 theme:
   custom_dir: resources/docs
   features:
     - content.code.annotate
+    - content.code.copy
+    - content.code.select
     - content.tabs.link
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.top
     - search.suggest
     - search.highlight
+    #- header.autohide
   font:
     code: Roboto Mono
     text: Roboto
   locale: en
   logo: images/connexions.png
+  favicon: images/favicon.ico
   name: material
   palette:
     - accent: indigo
-      primary: light blue
+      primary: blue
       scheme: default
       toggle:
         icon: material/weather-night
@@ -28,12 +34,8 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
-#plugins:
-#  - search:
-#    indexing: full
-#    lang: en
-#    min_search_length: 4
-#    prebuild_index: true
+plugins:
+  - search:
 markdown_extensions:
   - admonition
   - abbr
@@ -45,6 +47,12 @@ markdown_extensions:
   - pymdownx.tabbed
   - pymdownx.superfences
   - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
   - toc:
       permalink: true
 extra:
@@ -54,14 +62,14 @@ extra_css:
 extra_javascript:
   - js/extra.js
 nav:
-  - Home:
+  - Main:
       - 'Home': 'index.md'
       - 'About': 'about.md'
       - 'Release Notes': 'release-notes.md'
   - Services: 'services.md'
   - Contexts:
       - 'Working with Files': 'context-files.md'
-  - Configuration: 'configuration.md'
+  - Settings: 'settings.md'
   - Usage Examples:
       - 'Docker': 'usage-in-docker.md'
       - 'Docker-Compose': 'usage-in-docker-compose.md'
