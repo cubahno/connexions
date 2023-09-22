@@ -170,13 +170,21 @@ func (op *LibV3Operation) getContent(contentTypes map[string]*v3high.MediaType) 
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
 		if _, ok := contentTypes[contentType]; ok {
+			schemaRef := contentTypes[contentType].Schema
+			if schemaRef == nil {
+				continue
+			}
 			return contentTypes[contentType].Schema.Schema(), contentType
 		}
 	}
 
 	// If none of the priority types are found, return the first available media type
 	for contentType, mediaType := range contentTypes {
-		return mediaType.Schema.Schema(), contentType
+		schemaRef := mediaType.Schema
+		if schemaRef == nil {
+			continue
+		}
+		return schemaRef.Schema(), contentType
 	}
 
 	return nil, ""

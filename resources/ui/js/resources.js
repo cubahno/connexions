@@ -3,8 +3,6 @@ import * as commons from './commons.js';
 import * as validators from './validators.js';
 import * as navi from "./navi.js";
 import * as services from "./services.js";
-import {loadPage} from "./navi.js";
-import {getCodeEditor} from "./commons.js";
 
 export const show = match => {
     services.show();
@@ -149,8 +147,18 @@ export const generateResult = (service, ix, path, method) => {
             replacements: replacements,
         }),
     })
-        .then(res => res.json())
+        .then(async res => {
+            if (res.status === 500) {
+                commons.showError(await res.text() || `Internal server error`);
+                return;
+            }
+            return res;
+        })
+        .then(res => res && res.json())
         .then(res => {
+            if (!res) {
+                return;
+            }
             const reqPath = res["request"]["path"];
             if (reqPath) {
                 document.getElementById('request-path').innerHTML = reqPath;
@@ -168,13 +176,13 @@ export const generateResult = (service, ix, path, method) => {
                     formattedBody = JSON.stringify(jsonObject, null, 2);
                 }
 
-                const reqView = commons.getCodeEditor(`request-body`, `json`);
-                reqView.setValue(formattedBody);
-                reqView.clearSelection();
-                reqView.setReadOnly(true);
-
-                //document.getElementById('request-body').textContent = formattedBody;
-                document.getElementById('request-body-container').style.display = 'block';
+                if (formattedBody.length) {
+                    const reqView = commons.getCodeEditor(`request-body`, `json`);
+                    reqView.setValue(formattedBody);
+                    reqView.clearSelection();
+                    reqView.setReadOnly(true);
+                    document.getElementById('request-body-container').style.display = 'block';
+                }
             }
 
             const curlBlock = document.getElementById('example-curl');
@@ -203,7 +211,7 @@ export const generateResult = (service, ix, path, method) => {
                     resView = decodedBytes;
                 }
             } else if (decodedBytes) {
-                resView = `<a href="${baseUrl}${res.request.path}" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> View</a>`;
+                // resView = `<a href="${baseUrl}${res.request.path}" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> View</a>`;
             }
 
             const respView = commons.getCodeEditor(`response-body`, `json`);

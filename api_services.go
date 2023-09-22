@@ -32,8 +32,8 @@ func createServiceRoutes(router *Router) error {
 		if !router.Config.App.DisableSwaggerUI {
 			r.Get("/{name}/spec", handler.spec)
 		}
-		r.Post("/{name}/{id}", handler.generate)
 		r.Get("/{name}/{id}", handler.getResource)
+		r.Post("/{name}/{id}", handler.generate)
 		r.Delete("/{name}/{id}", handler.deleteResource)
 	})
 
@@ -347,19 +347,19 @@ func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(NewErrorMessage(ErrServiceNotFound))
+		h.error(http.StatusNotFound, ErrServiceNotFound.Error(), w)
 		return
 	}
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || (ix < 0 || ix >= len(service.Routes)) {
-		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(NewErrorMessage(ErrResourceNotFound))
+		h.error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
 		return
 	}
 
 	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
 	if err != nil {
-		h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(NewErrorMessage(err))
+		h.error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
@@ -372,7 +372,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res := &GenerateResponse{}
 
 	if fileProps == nil {
-		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(NewErrorMessage(ErrResourceNotFound))
+		h.error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
 		return
 	}
 
@@ -404,7 +404,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if operation == nil {
-		h.JSONResponse(w).WithStatusCode(http.StatusMethodNotAllowed).Send(NewErrorMessage(ErrResourceMethodNotFound))
+		h.error(http.StatusMethodNotAllowed, ErrResourceMethodNotFound.Error(), w)
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)

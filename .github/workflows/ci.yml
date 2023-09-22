@@ -19,6 +19,18 @@ jobs:
           version: v1.51.2
           args: --timeout 10m
 
+  linter-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Lint OpenAPI spec
+        uses: github/super-linter@v5
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_OPENAPI: true
+          FILTER_REGEX_INCLUDE: resources/openapi.yaml
+
   test:
     runs-on: ubuntu-latest
 

@@ -14,10 +14,10 @@ import (
 )
 
 type Request struct {
-	Headers     interface{}     `json:"headers,omitempty"`
+	Headers     any             `json:"headers,omitempty"`
 	Method      string          `json:"method,omitempty"`
 	Path        string          `json:"path,omitempty"`
-	Query       interface{}     `json:"query,omitempty"`
+	Query       any             `json:"query,omitempty"`
 	Body        string          `json:"body,omitempty"`
 	ContentType string          `json:"contentType,omitempty"`
 	Examples    *ContentExample `json:"examples,omitempty"`

@@ -1,0 +1,40 @@
+openapi: 3.0.3
+info:
+  title: Connexions
+  description: Connexions
+  version: 1.0.0
+  contact:
+    name: cubahno
+servers:
+  - url: 'https://github.com/cubahno/connexions'
+paths:
+  /contexts:
+    delete:
+      summary: Delete context
+      description: Delete context by name
+      operationId: deleteContext
+      parameters:
+        - name: name
+          in: path
+          description: Context name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+            schema:
+            $ref: '#/components/schemas/SimpleResponse'
+components:
+  schemas:
+    SimpleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Success
+        message:
+          type: string
+          description: Error message

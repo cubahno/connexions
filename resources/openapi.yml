@@ -1,0 +1,734 @@
+openapi: 3.0.3
+info:
+  title: Connexions
+  description: Connexions
+  version: 1.0.0
+  contact:
+    name: cubahno
+servers:
+  - url: 'https://github.com/cubahno/connexions'
+paths:
+  /.ui/export:
+    get:
+      summary: Export data
+      description: Export Services and Contexts in zip format
+      operationId: getExport
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: 'File to download'
+              schema:
+                type: string
+              example: 'attachment; filename="connexions-2023-09-22.zip"'
+  /.ui/import:
+    post:
+      summary: Import data
+      description: Import Services and Contexts from zip file
+      operationId: postImport
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.services:
+    get:
+      summary: Get services
+      description: Get list of served services
+      operationId: getServices
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceList'
+    post:
+      summary: Add service
+      description: Add new service
+      operationId: postService
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ServiceNew'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponseWithId'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.services/{name}:
+    get:
+      summary: Get service resources
+      description: Get service resources by name
+      operationId: getServiceResources
+      parameters:
+        - name: name
+          in: path
+          description: Service name
+          required: true
+          schema:
+            type: string
+            example: petstore
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceResourcesResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete service
+      description: Delete service by name
+      operationId: deleteService
+      parameters:
+        - name: name
+          in: path
+          description: Service name
+          required: true
+          schema:
+            type: string
+            example: petstore
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.services/{name}/spec:
+    get:
+      summary: Get service spec
+      description: Get service OpenAPI definition
+      operationId: getServiceSpec
+      parameters:
+        - name: name
+          in: path
+          description: Service name
+          required: true
+          schema:
+            type: string
+            example: petstore
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: yaml
+                example: |
+                    openapi: 3.0.3
+                    info:
+                      title: Swagger Petstore
+                      description: |
+                      This is a sample server Petstore server.
+                      You can find out more about Swagger at
+                      [http://swagger.io](http://swagger.io) or on
+                      [irc.freenode.net, #swagger](http://swagger.io/irc/).
+                      termsOfService: http://swagger.io/terms/
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.services/{name}/{id}:
+    get:
+      summary: Get service resource details
+      description: Get service resource details by name and route id
+      operationId: getServiceResource
+      parameters:
+        - name: name
+          in: path
+          description: Service name
+          required: true
+          schema:
+            type: string
+            example: petstore
+        - name: id
+          in: path
+          description: Route id
+          required: true
+          schema:
+            type: integer
+            example: 12
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceResponse'
+        '400':
+          description: Bad request returned when the resource is not of type 'fixed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Generate request and response
+      description: Generate resource parameters by name and route id
+      operationId: postServiceResource
+      parameters:
+        - name: name
+          in: path
+          description: Service name
+          required: true
+          schema:
+            type: string
+            example: petstore
+        - name: id
+          in: path
+          description: Route id
+          required: true
+          schema:
+            type: integer
+            example: 12
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeneratePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResult'
+        '400':
+          description: Bad request returned when the resource is not of type 'fixed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '405':
+          description: Method not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete resource
+      description: Delete resource by service name and route id
+      operationId: deleteServiceResource
+      parameters:
+        - name: name
+          in: path
+          description: Service name
+          required: true
+          schema:
+            type: string
+            example: petstore
+        - name: id
+          in: path
+          description: Route id
+          required: true
+          schema:
+            type: integer
+            example: 12
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '400':
+          description: Bad request returned when the resource is not of type 'fixed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.settings:
+    get:
+      summary: Get settings
+      description: Get settings
+      operationId: getSettings
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+                format: yaml
+                example: |
+                    app:
+                      name: Connexions
+                      port: 2200
+    put:
+      summary: Update settings
+      description: Update settings
+      operationId: putSettings
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: string
+              format: yaml
+              example: |
+                  app:
+                    name: Connexions
+                    port: 2201
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Restore settings
+      description: Restore initial settings
+      operationId: postSettings
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.contexts:
+    get:
+      summary: Get contexts
+      description: Get list of contexts
+      operationId: getContexts
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextListResponse'
+    put:
+      summary: Add context
+      description: Add new context or replace existing one
+      operationId: putContext
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContextPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /.contexts/{name}:
+    get:
+      summary: Get context
+      description: Get context by name
+      operationId: getContext
+      parameters:
+        - name: name
+          in: path
+          description: Context name
+          required: true
+          schema:
+              type: string
+              example: common
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+                format: yaml
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete context
+      description: Delete context by name
+      operationId: deleteContext
+      parameters:
+        - name: name
+          in: path
+          description: Context name
+          required: true
+          schema:
+            type: string
+            example: common
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimpleResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      $ref: '#/components/schemas/SimpleResponse'
+    ServiceList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+    Service:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Service name
+          example: petstore
+        openApiResources:
+          type: array
+          deprecated: true
+          items:
+            type: string
+            description: List of associated OpenAPI services
+            example: petstore
+    ServiceEmbedded:
+      type: object
+      properties:
+        name:
+          type: string
+          example: petstore
+    ServiceNew:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Service name
+          example: petstore
+        isOpenApi:
+          type: boolean
+          description: Is OpenAPI service
+          example: false
+        method:
+          $ref: '#/components/schemas/Method'
+        type:
+          $ref: '#/components/schemas/ResourceType'
+        response:
+          type: string
+          description: Response
+          example: '{"id": 1}'
+        contentType:
+          type: string
+          description: Content type
+          example: application/json
+        file:
+          type: string
+          description: Optional file
+          format: binary
+    SimpleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Success
+          example: true
+        message:
+          type: string
+          description: Error message
+          example: 'Saved!'
+    SimpleResponseWithId:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Id
+          example: 12
+        success:
+          type: boolean
+          description: Success indicator
+          example: true
+        message:
+          type: string
+          description: Success or error message
+          example: 'Saved!'
+    ServiceResourcesResponse:
+      type: object
+      properties:
+        service:
+          $ref: '#/components/schemas/ServiceEmbedded'
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteDescription'
+        openApiSpecNames:
+          deprecated: true
+          type: array
+          items:
+            type: string
+            description: List of associated OpenAPI services. Each service can have multiple OpenAPI specs.
+            example: petstore
+    ResourceResponse:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/Method'
+          description: HTTP Verb
+          example: GET
+        path:
+          description: Resource path
+          type: string
+          example: /pet/findByStatus
+        extension:
+          type: string
+          description: File extension without leading dot
+          example: json
+        contentType:
+          type: string
+          description: Content type
+          example: application/json
+        content:
+          type: string
+          description: Content
+          example: '{"id": 1}'
+    ResourceType:
+      type: string
+      enum:
+        - fixed
+        - openapi
+    Method:
+      type: string
+      enum:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - HEAD
+      - OPTIONS
+      - TRACE
+      - CONNECT
+    Map:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Map'
+    GeneratePayload:
+      type: object
+      properties:
+        replacements:
+          type: object
+          description: Replacements
+          $ref: '#/components/schemas/Map'
+          nullable: true
+          example: |
+              petId: 1
+              name: dawg
+    GenerateResult:
+      type: object
+      properties:
+        request:
+          $ref: '#/components/schemas/GenerateRequest'
+        response:
+          $ref: '#/components/schemas/GenerateResponse'
+    RouteDescription:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/Method'
+          description: HTTP Verb
+        path:
+          type: string
+          description: URL Path
+        type:
+          description: Resource type
+          $ref: '#/components/schemas/ResourceType'
+        contentType:
+          type: string
+          description: Content type
+          example: application/json
+        overwrites:
+          type: boolean
+          description: Whether this route overwrites an existing one.
+          example: false
+    GenerateRequest:
+      type: object
+      properties:
+        headers:
+          type: string
+        method:
+          $ref: '#/components/schemas/Method'
+        path:
+          type: string
+          example: /pet/findByStatus
+        query:
+          type: string
+          example: status=available
+        body:
+          type: string
+          example: '{"id": 1}'
+        contentType:
+          type: string
+          example: application/json
+        examples:
+          $ref: '#/components/schemas/GenerateRequestExamples'
+    GenerateResponse:
+      type: object
+      properties:
+        headers:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        content:
+          type: string
+          example: '{"id": 1}'
+        contentType:
+          type: string
+          example: application/json
+        statusCode:
+          type: integer
+          example: 200
+    GenerateRequestExamples:
+      type: object
+      properties:
+        curl:
+          type: string
+          example: |
+            --form 'contentType="form/multipart"'
+    ContextListResponse:
+      type: object
+      description: List of context names
+      properties:
+        items:
+          type: string
+          example: common
+    ContextPayload:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Context name
+          example: common
+        content:
+          type: string
+          format: yaml
+          description: Context content in YAML format
+          example: |
+            name: Dawg
+            description: Dawg
+            id: 12
