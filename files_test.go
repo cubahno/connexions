@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -103,47 +104,10 @@ func TestGetRequestFile(t *testing.T) {
 }
 
 func TestGetPropertiesFromFilePath(t *testing.T) {
-	assert := assert2.New(t)
 	appCfg := NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	t.Parallel()
-
-	t.Run("openapi-root-missing-file", func(t *testing.T) {
-		filePath := paths.Services + "/.openapi/index.yml"
-		props, err := GetPropertiesFromFilePath(filePath, appCfg)
-		assert.Nil(props)
-		assert.Error(err)
-	})
-
-	t.Run("openapi-nested", func(t *testing.T) {
-		baseDir := t.TempDir()
-		appConfig := NewDefaultAppConfig(baseDir)
-		ps := appConfig.Paths
-
-		dir := filepath.Join(ps.Services, ".openapi", "nice", "dice", "rice")
-		_ = os.MkdirAll(dir, 0755)
-
-		filePath := filepath.Join(dir, "index.yml")
-		contents, _ := os.ReadFile(filepath.Join("test_fixtures", "document-petstore.yml"))
-		err := SaveFile(filePath, contents)
-		assert.NoError(err)
-
-		props, err := GetPropertiesFromFilePath(filePath, appConfig)
-
-		assert.NoError(err)
-		assert.NotNil(props.Spec)
-
-		expectedProps := &FileProperties{
-			ServiceName: "nice",
-			IsOpenAPI:   true,
-			Prefix:      "/nice/dice/rice",
-			FilePath:    filePath,
-			FileName:    "index.yml",
-			Extension:   ".yml",
-		}
-		AssertJSONEqual(t, expectedProps, props)
-	})
 
 	t.Run("service-root-direct", func(t *testing.T) {
 		filePath := paths.Services + "/.root/users.html"
@@ -260,8 +224,80 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 }
 
+func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
+	assert := require.New(t)
+	appCfg := NewDefaultAppConfig("/app")
+	paths := appCfg.Paths
+
+	t.Parallel()
+
+	t.Run("root-missing-file", func(t *testing.T) {
+		filePath := paths.ServicesOpenAPI + "/index.yml"
+		props, err := GetPropertiesFromFilePath(filePath, appCfg)
+		assert.Nil(props)
+		assert.Error(err)
+	})
+
+	t.Run("nested-with-index-name", func(t *testing.T) {
+		baseDir := t.TempDir()
+		appConfig := NewDefaultAppConfig(baseDir)
+		ps := appConfig.Paths
+
+		dir := filepath.Join(ps.ServicesOpenAPI, "nice", "dice", "rice")
+		_ = os.MkdirAll(dir, 0755)
+
+		filePath := filepath.Join(dir, "index.yml")
+		contents, _ := os.ReadFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		err := SaveFile(filePath, contents)
+		assert.NoError(err)
+
+		props, err := GetPropertiesFromFilePath(filePath, appConfig)
+
+		assert.NoError(err)
+		assert.NotNil(props.Spec)
+
+		expectedProps := &FileProperties{
+			ServiceName: "nice",
+			IsOpenAPI:   true,
+			Prefix:      "/nice/dice/rice",
+			FilePath:    filePath,
+			FileName:    "index.yml",
+			Extension:   ".yml",
+		}
+		AssertJSONEqual(t, expectedProps, props)
+	})
+
+	t.Run("nested-with-any-name", func(t *testing.T) {
+		baseDir := t.TempDir()
+		appConfig := NewDefaultAppConfig(baseDir)
+		ps := appConfig.Paths
+
+		dir := filepath.Join(ps.ServicesOpenAPI, "nice", "dice")
+		_ = os.MkdirAll(dir, 0755)
+
+		filePath := filepath.Join(dir, "rice.yml")
+		contents, _ := os.ReadFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		err := SaveFile(filePath, contents)
+		assert.NoError(err)
+
+		props, err := GetPropertiesFromFilePath(filePath, appConfig)
+
+		assert.NoError(err)
+		assert.NotNil(props.Spec)
+
+		expectedProps := &FileProperties{
+			ServiceName: "nice",
+			IsOpenAPI:   true,
+			Prefix:      "/nice/dice",
+			FilePath:    filePath,
+			FileName:    "rice.yml",
+			Extension:   ".yml",
+		}
+		AssertJSONEqual(t, expectedProps, props)
+	})
+}
+
 func TestComposeFileSavePath(t *testing.T) {
-	assert := assert2.New(t)
 	t.Parallel()
 
 	type params struct {
@@ -269,7 +305,6 @@ func TestComposeFileSavePath(t *testing.T) {
 		method    string
 		resource  string
 		ext       string
-		isOpenAPI bool
 	}
 
 	appCfg := NewDefaultAppConfig("/app")
@@ -301,7 +336,6 @@ func TestComposeFileSavePath(t *testing.T) {
 				method:    "get",
 				resource:  "test-path",
 				ext:       ".json",
-				isOpenAPI: false,
 			},
 			expected: paths.Services + "/test/get/test-path/index.json",
 		},
@@ -318,29 +352,6 @@ func TestComposeFileSavePath(t *testing.T) {
 			},
 			expected: paths.Services + "/nice/patch/index.txt",
 		},
-		{
-			params: params{
-				service:   "nice",
-				method:    "patch",
-				resource:  "/dice/rice",
-				ext:       ".yml",
-				isOpenAPI: true,
-			},
-			expected: paths.Services + "/.openapi/nice/dice/rice.yml",
-		},
-		{
-			params: params{
-				isOpenAPI: true,
-			},
-			expected: paths.Services + "/.openapi/index",
-		},
-		{
-			params: params{
-				isOpenAPI: true,
-				ext:       ".yml",
-			},
-			expected: paths.Services + "/.openapi/index.yml",
-		},
 	}
 
 	for _, tc := range testCases {
@@ -350,7 +361,6 @@ func TestComposeFileSavePath(t *testing.T) {
 				Method:    tc.params.method,
 				Path:      tc.params.resource,
 				Ext:       tc.params.ext,
-				IsOpenAPI: tc.params.isOpenAPI,
 			}
 			actual := ComposeFileSavePath(descr, paths)
 			if actual != tc.expected {
@@ -359,18 +369,62 @@ func TestComposeFileSavePath(t *testing.T) {
 			}
 		})
 	}
+}
 
-	t.Run("openapi-with-prefix", func(t *testing.T) {
-		appCfg := NewDefaultAppConfig("/app")
-		paths := appCfg.Paths
-		descr := &ServiceDescription{
-			Path:      "petstore",
-			Ext:       ".yml",
-			IsOpenAPI: true,
-		}
-		res := ComposeFileSavePath(descr, paths)
-		assert.Equal(paths.Services+"/.openapi/petstore/index.yml", res)
-	})
+func TestComposeOpenAPISavePath(t *testing.T) {
+	t.Parallel()
+
+	appCfg := NewDefaultAppConfig("/app")
+	paths := appCfg.Paths
+
+	testCases := []struct {
+		params      *ServiceDescription
+		expected    string
+	}{
+		{
+			params: &ServiceDescription{},
+			expected: paths.ServicesOpenAPI + "/index",
+		},
+		{
+			params: &ServiceDescription{
+				Ext:       ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/index.yml",
+		},
+		{
+			params: &ServiceDescription{
+				Name: "petstore",
+				Ext:       ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/petstore/index.yml",
+		},
+		{
+			params: &ServiceDescription{
+				Name: "petstore",
+				Path:  "/v1",
+				Ext:       ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/petstore/v1/index.yml",
+		},
+		{
+			params: &ServiceDescription{
+				Name:   "nice",
+				Path:  "/dice/rice",
+				Ext:       ".yml",
+			},
+			expected: paths.Services + "/.openapi/nice/dice/rice/index.yml",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			actual := ComposeOpenAPISavePath(tc.params, paths.ServicesOpenAPI)
+			if actual != tc.expected {
+				t.Errorf("ComposeFileSavePath(%v): Expected: %v, Got: %v",
+					tc.params, tc.expected, actual)
+			}
+		})
+	}
 }
 
 func TestSaveFile(t *testing.T) {

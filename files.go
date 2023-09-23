@@ -264,32 +264,30 @@ func ComposeFileSavePath(descr *ServiceDescription, paths *Paths) string {
 }
 
 // ComposeOpenAPISavePath composes a save path for an OpenAPI specification.
+// The resulting filename is always index.<spec extension>.
 func ComposeOpenAPISavePath(descr *ServiceDescription, baseDir string) string {
 	resource := strings.Trim(descr.Path, "/")
-	parts := strings.Split(resource, "/")
+	resourceParts := strings.Split(resource, "/")
 	service := descr.Name
 	ext := descr.Ext
 
-	res := baseDir
+	result := baseDir
 
-	if service == "" && len(parts) > 0 {
-		service = parts[0]
-		parts = parts[1:]
+	if service == "" && len(resourceParts) > 0 {
+		service = resourceParts[0]
+		resourceParts = resourceParts[1:]
 	}
 
 	if service != "" {
-		res += "/" + service
+		result += "/" + service
 	}
 
-	resPart := "/" + strings.Join(parts, "/")
-	resPart = strings.TrimSuffix(resPart, "/")
+	resPart := "/" + strings.Join(resourceParts, "/")
+	resPart = strings.TrimSuffix(resPart, "/") + "/index"
 
-	if resPart == "" {
-		resPart = "/index"
-	}
-	res += resPart + ext
+	result += resPart + ext
 
-	return res
+	return result
 }
 
 // SaveFile saves a file to the specified path.
