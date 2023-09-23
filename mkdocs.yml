@@ -62,9 +62,6 @@ extra_javascript:
 nav:
   - Get Started:
       - 'Welcome to Connexions': 'index.md'
-      - 'About': 'about.md'
-      - 'Release Notes': 'release-notes.md'
-      - Contributing: 'contributing.md'
   - Usage:
       - Services: 'services.md'
       - 'Contexts': 'context-files.md'

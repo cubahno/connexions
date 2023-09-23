@@ -29,6 +29,7 @@ test-integration:
 .PHONY: test-with-check-coverage
 test-with-check-coverage: test
 	@coverage=$$(go tool cover -func=.testCoverage.txt | awk '/^total:/{print $$3}' | tr -d '%'); \
+	echo "Code coverage $$coverage%."; \
 	if [ "$$(echo "$$coverage < $(MIN_COVERAGE)" | bc -l)" -eq 1 ]; then \
 	  echo "Code coverage $$coverage% is less than $(MIN_COVERAGE)%."; \
 	  exit 1; \

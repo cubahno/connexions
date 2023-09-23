@@ -97,7 +97,7 @@ in-header:
   x-api-key: abcde
 ```
 
-See <a href="/context-files/#path-and-headers">Contexts</a> documentation for more details.
+See <a href="/contexts/#path-and-headers">Contexts</a> documentation for more details.
 
 Default: `in-`<br/>
 
@@ -179,7 +179,7 @@ The weights can be specified as `int` values as well and don't have to add up to
 The name of the context to use when substituting the values in the request/response.<br/>
 Applied in the order of definition.<br/>
 
-See <a href="/context-files">Contexts</a> documentation for more details on working with contexts.
+See <a href="/contexts">Contexts</a> documentation for more details on working with contexts.
 
 Default: 
 ```yaml
