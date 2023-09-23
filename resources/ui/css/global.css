@@ -37,9 +37,7 @@ h3 {
 .holy-grail-grid {
     display: -ms-grid;
     display: grid;
-    -ms-grid-columns: 1fr 4fr;
     grid-template-columns: 1fr 4fr;
-    -ms-grid-rows: 1fr 8fr;
     grid-template-rows: 1fr 8fr;
     grid-gap: 1.25rem;
     height: 100vh;
@@ -47,7 +45,6 @@ h3 {
 
 @media screen and (max-width: 60em) {
     .holy-grail-grid {
-        -ms-grid-rows: 2fr 1fr 6fr;
         grid-template-rows: 2fr 1fr 6fr;
     }
 }
@@ -63,18 +60,14 @@ h3 {
 }
 
 .holy-grail-header {
-    -ms-grid-column: 1;
     grid-column-start: 1;
     grid-column-end: 4;
-    -ms-grid-row: 1;
     grid-row-start: 1;
 }
 
 @media screen and (max-width: 60em) {
     .holy-grail-left {
-        -ms-grid-row: 2;
         grid-row-start: 2;
-        -ms-grid-column: 1;
         grid-column-start: 1;
         grid-column-end: 4;
     }
@@ -82,9 +75,7 @@ h3 {
 
 @media screen and (max-width: 60em) {
     .holy-grail-middle {
-        -ms-grid-row: 3;
         grid-row-start: 3;
-        -ms-grid-column: 1;
         grid-column-start: 1;
         grid-column-end: 4;
     }
@@ -92,9 +83,7 @@ h3 {
 
 @media screen and (max-width: 60em) {
     .right-nav {
-        -ms-grid-row: 4;
         grid-row-start: 4;
-        -ms-grid-column: 1;
         grid-column-start: 1;
         grid-column-end: 4;
     }
@@ -106,7 +95,7 @@ footer {
     width: 99%;
     padding: 1rem;
     background-color: #ededed;
-    position: fixed;
+    position: sticky;
     left: 0;
     bottom: 0;
     z-index: 999;

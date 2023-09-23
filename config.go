@@ -400,9 +400,6 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 		return nil, err
 	}
 
-	if cfg.App == nil {
-		return nil, ErrInvalidConfig
-	}
 	cfg.EnsureConfigValues()
 
 	return cfg, nil
