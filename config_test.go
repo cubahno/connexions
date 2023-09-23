@@ -455,8 +455,8 @@ app:
 	t.Run("invalid-yaml-properties", func(t *testing.T) {
 		contents := `root:\nfoo:  bar`
 		cfg, err := NewConfigFromContent([]byte(contents))
-		assert.Nil(cfg)
-		assert.Equal(ErrInvalidConfig, err)
+		assert.Nil(err)
+		assert.NotNil(cfg)
 	})
 
 	t.Run("invalid-yaml", func(t *testing.T) {

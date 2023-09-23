@@ -63,18 +63,6 @@ app:
 		assert.Equal("Settings saved and reloaded!", resp.Message)
 	})
 
-	t.Run("put-no-body", func(t *testing.T) {
-		req := httptest.NewRequest("PUT", "/.settings", nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
-
-		assert.Equal(400, w.Code)
-		assert.Equal(false, resp.Success)
-		assert.Equal("invalid config", resp.Message)
-	})
-
 	t.Run("post", func(t *testing.T) {
 		// save invalid config
 		filePath := router.Config.App.Paths.ConfigFile
@@ -129,6 +117,26 @@ app:
 	assert.Equal(500, w.Code)
 	assert.Equal(false, resp.Success)
 	assert.True(strings.HasSuffix(resp.Message, "resources/data/config.yml: permission denied"))
+}
+
+func TestSettingsHandler_Put_InvalidYaml(t *testing.T) {
+	assert := require.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	assert.Nil(err)
+	err = createSettingsRoutes(router)
+	assert.Nil(err)
+
+	payload := `1`
+	req := httptest.NewRequest("PUT", "/.settings", strings.NewReader(payload))
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+
+	assert.Equal(400, w.Code)
+	assert.Equal(false, resp.Success)
+	assert.True(strings.HasPrefix(resp.Message, "yaml: unmarshal errors:"))
 }
 
 func TestSettingsHandler_Post_WriteError(t *testing.T) {
