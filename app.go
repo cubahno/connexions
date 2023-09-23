@@ -2,7 +2,6 @@ package connexions
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"log"
 	"math/rand"
 	"net/http"
@@ -79,40 +78,11 @@ func NewApp(config *Config) *App {
 // MustFileStructure creates the necessary directories and files
 func MustFileStructure(paths *Paths) error {
 	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts}
+
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.Mkdir(dir, os.ModePerm); err != nil {
 				return err
-			}
-
-			if dir == paths.Resources {
-				log.Println("Copying sample config file")
-
-				srcPath := fmt.Sprintf("%s.dist", paths.ConfigFile)
-
-				// if file system has no config file, create one
-				if _, err = os.Stat(paths.ConfigFile); os.IsNotExist(err) {
-					// read dist config file
-					configContent, err := os.ReadFile(srcPath)
-					if err != nil {
-						def := &Config{}
-						def.EnsureConfigValues()
-						configContent, _ = yaml.Marshal(def.App)
-					}
-
-					if err := SaveFile(paths.ConfigFile, configContent); err != nil {
-						return err
-					}
-				}
-				continue
-			}
-
-			if dir == paths.Services {
-				log.Println("Copying sample content to service directory")
-				if err := CopyDirectory(paths.Samples, paths.Services); err != nil {
-					return err
-				}
-				continue
 			}
 		}
 	}

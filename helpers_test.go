@@ -139,34 +139,12 @@ func GetJSONPair(expected, actual any) (string, string) {
 }
 
 func SetupApp(appDir string) (*Router, error) {
-	err := os.MkdirAll(filepath.Join(appDir, "resources", "data"), 0755)
-	if err != nil {
-		return nil, err
-	}
-	err = os.Mkdir(filepath.Join(appDir, "resources", "data", "contexts"), 0755)
-	if err != nil {
-		return nil, err
-	}
-	err = os.Mkdir(filepath.Join(appDir, "resources", "data", "services"), 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	err = CopyFile(filepath.Join("resources", "config.yml.dist"), filepath.Join(appDir, "resources", "data", "config.yml.dist"))
-	if err != nil {
-		return nil, err
-	}
-	err = CopyFile(filepath.Join("resources", "config.yml.dist"), filepath.Join(appDir, "resources", "data", "config.yml"))
-	if err != nil {
-		return nil, err
-	}
-
 	cfg := MustConfig(appDir)
-
-	err = MustFileStructure(cfg.App.Paths)
+	err := MustFileStructure(cfg.App.Paths)
 	if err != nil {
 		return nil, err
 	}
+	_ = SaveFile(cfg.App.Paths.ConfigFile, []byte(""))
 
 	return NewRouter(cfg), nil
 }

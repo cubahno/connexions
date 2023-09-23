@@ -826,6 +826,8 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
+	router.Config.Services[file.ServiceName] = &ServiceConfig{}
+
 	router.Services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
@@ -1327,7 +1329,7 @@ func TestSaveService_errors(t *testing.T) {
 		}
 		res, err := saveService(payload, appCfg)
 		assert.Nil(res)
-		assert.Equal("error creating directories", err.Error())
+		assert.True(strings.HasSuffix(err.Error(), "resources: permission denied"))
 
 		_ = os.Chmod(appDir, 0777)
 	})

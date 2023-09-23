@@ -3,8 +3,8 @@
 package connexions
 
 import (
-	"encoding/json"
 	assert2 "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -56,12 +56,11 @@ app:
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
 
 		assert.Equal(8080, router.Config.App.Port)
-		var response map[string]interface{}
-		if err = json.NewDecoder(w.Body).Decode(&response); err != nil {
-			t.Fatalf("Failed to decode JSON response: %v", err)
-		}
-		assert.Equal(true, response["success"])
-		assert.Equal("Settings saved and reloaded!", response["message"])
+
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
+
+		assert.Equal(true, resp.Success)
+		assert.Equal("Settings saved and reloaded!", resp.Message)
 	})
 
 	t.Run("put-no-body", func(t *testing.T) {
@@ -69,12 +68,11 @@ app:
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		var response map[string]any
-		_ = json.NewDecoder(w.Body).Decode(&response)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 
 		assert.Equal(400, w.Code)
-		assert.Equal(false, response["success"])
-		assert.Equal("invalid config", response["message"])
+		assert.Equal(false, resp.Success)
+		assert.Equal("invalid config", resp.Message)
 	})
 
 	t.Run("post", func(t *testing.T) {
@@ -95,11 +93,10 @@ app:
 
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
 
-		var response map[string]any
-		_ = json.NewDecoder(w.Body).Decode(&response)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 
-		assert.Equal(true, response["success"])
-		assert.Equal("Settings restored and reloaded!", response["message"])
+		assert.Equal(true, resp.Success)
+		assert.Equal("Settings restored and reloaded!", resp.Message)
 
 		contents, err := os.ReadFile(filePath)
 		assert.Nil(err)
@@ -108,7 +105,7 @@ app:
 }
 
 func TestSettingsHandler_Put_ErrorWriting(t *testing.T) {
-	assert := assert2.New(t)
+	assert := require.New(t)
 
 	router, err := SetupApp(t.TempDir())
 	assert.Nil(err)
@@ -117,7 +114,7 @@ func TestSettingsHandler_Put_ErrorWriting(t *testing.T) {
 
 	// set as read-only
 	err = os.Chmod(router.Config.App.Paths.ConfigFile, 0400)
-	assert.Nil(err)
+	assert.NoError(err)
 
 	payload := `
 app:
@@ -127,15 +124,14 @@ app:
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	var response map[string]any
-	_ = json.NewDecoder(w.Body).Decode(&response)
+	resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 
 	assert.Equal(500, w.Code)
-	assert.Equal(false, response["success"])
-	assert.True(strings.HasSuffix(response["message"].(string), "resources/data/config.yml: permission denied"))
+	assert.Equal(false, resp.Success)
+	assert.True(strings.HasSuffix(resp.Message, "resources/data/config.yml: permission denied"))
 }
 
-func TestSettingsHandler_Post_ErrorCopyFile(t *testing.T) {
+func TestSettingsHandler_Post_WriteError(t *testing.T) {
 	assert := assert2.New(t)
 
 	router, err := SetupApp(t.TempDir())
@@ -143,16 +139,17 @@ func TestSettingsHandler_Post_ErrorCopyFile(t *testing.T) {
 	err = createSettingsRoutes(router)
 	assert.Nil(err)
 
-	router.Config.App.Paths.ConfigFile = "non-existent.yml"
+	// set as read-only
+	err = os.Chmod(router.Config.App.Paths.ConfigFile, 0400)
+	assert.NoError(err)
 
 	req := httptest.NewRequest("POST", "/.settings", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	var response map[string]any
-	_ = json.NewDecoder(w.Body).Decode(&response)
+	resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 
 	assert.Equal(500, w.Code)
-	assert.Equal(false, response["success"])
-	assert.Equal("Failed to copy file contents", response["message"])
+	assert.Equal(false, resp.Success)
+	assert.Equal("Failed to restore config contents", resp.Message)
 }

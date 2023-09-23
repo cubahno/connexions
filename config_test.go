@@ -443,6 +443,7 @@ app:
 					FontSize: 12,
 				},
 			},
+			Services: make(map[string]*ServiceConfig),
 			baseDir: "",
 		}
 
@@ -497,6 +498,7 @@ func TestNewDefaultConfig(t *testing.T) {
 			},
 		},
 		Replacers: Replacers,
+		Services: map[string]*ServiceConfig{},
 		baseDir:   "/app",
 	}
 	assert.Equal(expected, cfg)

@@ -297,14 +297,13 @@ func ComposeOpenAPISavePath(descr *ServiceDescription, baseDir string) string {
 func SaveFile(filePath string, data []byte) error {
 	dirPath := filepath.Dir(filePath)
 	// Create directories recursively
-	err := os.MkdirAll(dirPath, os.ModePerm)
-	if err != nil {
-		return ErrCreatingDirectories
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		return err
 	}
 
 	dest, err := os.Create(filePath)
 	if err != nil {
-		return ErrCreatingFile
+		return err
 	}
 
 	_, err = dest.Write(data)

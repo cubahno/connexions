@@ -12,6 +12,7 @@ var (
 	ErrInvalidURLResource               = errors.New("invalid URL resource")
 	ErrCreatingDirectories              = errors.New("error creating directories")
 	ErrCreatingFile                     = errors.New("error creating file")
+	ErrSavingFile                     = errors.New("error saving file")
 	ErrReservedPrefix                   = errors.New("reserved prefix")
 	ErrNoPathsInSchema                  = errors.New("no paths found in schema")
 	ErrUnexpectedFormDataType           = errors.New("expected map[string]any for multipart/form-data")

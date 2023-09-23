@@ -70,42 +70,6 @@ func TestMustFileStructure(t *testing.T) {
 		err := MustFileStructure(paths)
 		assert.NoError(err)
 	})
-
-	t.Run("samples-dir-permissions", func(t *testing.T) {
-		dir := t.TempDir()
-		paths := NewPaths(dir)
-
-		err := CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), paths.Samples+"/pets.yml")
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
-
-		_ = os.Chmod(paths.Samples, 0000)
-		defer func() {
-			_ = os.Chmod(paths.Samples, 0777)
-		}()
-
-		err = MustFileStructure(paths)
-		assert.Error(err)
-	})
-
-	t.Run("config-file-permissions", func(t *testing.T) {
-		dir := t.TempDir()
-		paths := NewPaths(dir)
-
-		dist := paths.ConfigFile + ".dist"
-		_, _ = os.Create(dist)
-
-		// dist file won't be read
-		_ = os.Chmod(dist, 0000)
-		defer func() {
-			_ = os.Chmod(dist, 0777)
-		}()
-
-		err := MustFileStructure(paths)
-		assert.Nil(err)
-		assert.FileExists(paths.ConfigFile)
-	})
 }
 
 func TestApp_AddBluePrint(t *testing.T) {

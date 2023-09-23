@@ -303,6 +303,6 @@ func TestContextHandler_save_errors(t *testing.T) {
 		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusInternalServerError, w.Code)
 		assert.False(resp.Success)
-		assert.Contains(resp.Message, "error creating file")
+		assert.Contains(resp.Message, "data/contexts/bob.yml: permission denied")
 	})
 }

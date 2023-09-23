@@ -9,9 +9,9 @@ WORKDIR /app
 COPY --from=builder /app/.build/server/bootstrap /usr/local/bin/api
 
 COPY resources/ui /app/resources/ui
-COPY resources/samples /app/resources/samples
-COPY resources/contexts /app/resources/contexts
-COPY resources/config.yml.dist /app/resources/config.yml.dist
+COPY resources/samples /app/resources/data/services
+COPY resources/contexts /app/resources/data/contexts
+COPY resources/openapi.yml /app/resources/openapi.yml
 
 COPY entrypoint.sh /app/entrypoint.sh
 

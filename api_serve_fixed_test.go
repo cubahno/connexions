@@ -24,6 +24,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 	assert.Nil(err)
 	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
+	router.Config.Services[file.ServiceName] = &ServiceConfig{}
 
 	rs := registerFixedRoute(file, router)
 

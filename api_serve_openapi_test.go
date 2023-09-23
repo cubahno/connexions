@@ -92,6 +92,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 	}
 	svc.AddOpenAPIFile(file)
 	router.Services["petstore"] = svc
+	router.Config.Services[file.ServiceName] = &ServiceConfig{}
 
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
@@ -181,6 +182,7 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
+	router.Config.Services[file.ServiceName] = &ServiceConfig{}
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
 	svcCfg.Validate = &ServiceValidateConfig{

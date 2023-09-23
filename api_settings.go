@@ -1,11 +1,10 @@
 package connexions
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/invopop/yaml"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 )
@@ -40,7 +39,10 @@ func createSettingsRoutes(router *Router) error {
 func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	http.ServeFile(w, r, h.router.Config.App.Paths.ConfigFile)
+
+	data, _ := yaml.Marshal(h.router.Config)
+
+	h.Response(w).WithHeader("Content-Type", "application/x-yaml").Send(data)
 }
 
 func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +57,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = os.WriteFile(h.router.Config.App.Paths.ConfigFile, payload, 0644); err != nil {
+	if err = SaveFile(h.router.Config.App.Paths.ConfigFile, payload); err != nil {
 		h.error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
@@ -64,16 +66,17 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 	h.success("Settings saved and reloaded!", w)
 }
 
-// Restore settings from config.yml.dist
+// Restore settings saving them in config.yml
 func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	dest := h.router.Config.App.Paths.ConfigFile
-	src := fmt.Sprintf("%s.dist", dest)
+	defaultCfg := NewDefaultConfig(h.router.Config.baseDir)
+	defaultBts, _ := yaml.Marshal(defaultCfg)
 
-	if err := CopyFile(src, dest); err != nil {
-		h.error(http.StatusInternalServerError, "Failed to copy file contents", w)
+	if err := SaveFile(dest, defaultBts); err != nil {
+		h.error(http.StatusInternalServerError, "Failed to restore config contents", w)
 		return
 	}
 
