@@ -4,6 +4,12 @@ body {
 *, *::before, *::after {
     box-sizing: border-box;
 }
+
+body {
+    flex-direction: column;
+    min-height: 100vh;
+}
+
 body, h1, p {
     margin: 0;
     padding: 0;
@@ -96,13 +102,13 @@ h3 {
 
 footer {
     grid-column: 1 / 4;
+
+    width: 99%;
     padding: 1rem;
     background-color: #ededed;
-
     position: fixed;
     left: 0;
     bottom: 0;
-    width: 100%;
     z-index: 999;
 }
 

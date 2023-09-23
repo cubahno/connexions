@@ -502,7 +502,6 @@ components:
           example: petstore
         openApiResources:
           type: array
-          deprecated: true
           items:
             type: string
             description: List of associated OpenAPI services
@@ -576,7 +575,6 @@ components:
           items:
             $ref: '#/components/schemas/RouteDescription'
         openApiSpecNames:
-          deprecated: true
           type: array
           items:
             type: string

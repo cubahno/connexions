@@ -1,5 +1,3 @@
-## Contexts
-
 Contexts are organized in YAML files which act more like namespaces or collections of contexts.<br/>
 Usually, file names should correspond to the name of the service or the domain.<br/>
 For example, `payments`, or `petstore`.<br/><br/>
