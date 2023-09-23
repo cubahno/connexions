@@ -1,7 +1,6 @@
 # Welcome to Connexions Documentation
 
 [![CI](https://github.com/cubahno/connexions/workflows/CI/badge.svg?event=push)](https://github.com/cubahno/connexions/actions/workflows/ci.yml?query=event%3Apush+branch%3Amaster+workflow%3ACI)
-[![GitHub Super-Linter](https://github.com/cubahno/connexions/actions/workflows/ci.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![Cov](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/cubahno/4110782af3ec09dd1ebabc3304756f1f/raw/covbadge.json)](https://github.com/cubahno/connexions/actions/workflows/ci.yml?query=event%3Apush+branch%3Amaster+workflow%3ACI)
 
 

@@ -51,7 +51,8 @@ jobs:
     - name: Test
       run: |
         make test-with-check-coverage
-        export total=$(go tool cover -func=.testCoverage.txt | awk '/^total:/{printf "%d", $3}' | tr -d '%')
+        total=$(go tool cover -func=.testCoverage.txt | awk '/^total:/{printf "%d", $3}' | tr -d '%')
+        echo "TOTAL_COVERAGE=$total" >> $GITHUB_ENV
 
     - name: "Make coverage badge"
       uses: schneegans/dynamic-badges-action@v1.4.0
@@ -60,7 +61,7 @@ jobs:
         gistID: 4110782af3ec09dd1ebabc3304756f1f
         filename: covbadge.json
         label: Coverage
-        message: ${{ env.total }}%
+        message: ${{ env.TOTAL_COVERAGE }}%
         minColorRange: 50
         maxColorRange: 90
         valColorRange: ${{ env.total }}
