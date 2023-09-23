@@ -1,5 +1,4 @@
 build_dir := ./.build
-package_dir := ${build_dir}
 IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
