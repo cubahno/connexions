@@ -64,9 +64,9 @@ nav:
       - 'Welcome to Connexions': 'index.md'
   - Usage:
       - Services: 'services.md'
-      - 'Contexts': 'context-files.md'
+      - 'Contexts': 'contexts.md'
       - Settings: 'settings.md'
   - Examples:
-      - 'Docker': 'usage-in-docker.md'
-      - 'Docker-Compose': 'usage-in-docker-compose.md'
-      - 'As Library': 'usage-as-library.md'
+      - 'Docker': 'example-docker.md'
+      - 'Docker-Compose': 'example-docker-compose.md'
+      - 'As Library': 'example-as-library.md'
