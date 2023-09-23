@@ -31,7 +31,15 @@ resources
                     └───index.json
      
 ```
-See [File structure](#file-structure) for more details.<br/>
+
+!!! note "Directory pattern"
+
+    For `non-openapi` services, the pattern is: <br/>
+    `<service-name>/<method>/<path>/<file-name-with-extension>` or <br/>
+    `<service-name>/<method>/<path>/index.json` to serve `/path` resource. <br/>
+    
+    
+    See [File structure](/services/#file-structure) for more details.<br/>
 
 
 
@@ -51,4 +59,4 @@ docker run -it --rm \
 !!! note "The example above didn't map contexts directory"
 
     Contexts are essential part to generate meaningful responses.<br/>
-    See [Contexts](#contexts) for more details.
+    See [Contexts](/contexts) for more details.
