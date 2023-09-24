@@ -200,7 +200,6 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	isOpenAPI := r.FormValue("isOpenApi") == "true"
 
 	payload := &ServicePayload{
-		Name:        r.FormValue("name"),
 		IsOpenAPI:   isOpenAPI,
 		Method:      r.FormValue("method"),
 		Path:        r.FormValue("path"),
@@ -321,7 +320,8 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 		_ = os.RemoveAll(targetDir)
 	}
 
-	delete(h.router.GetServices(), service.Name)
+	h.router.RemoveService(service.Name)
+
 	h.JSONResponse(w).Send(&SimpleResponse{
 		Message: "Service deleted!",
 		Success: true,
@@ -573,7 +573,6 @@ func (h *ServiceHandler) getRouteIndex(fileProps *FileProperties) int {
 func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
-	service := payload.Name
 	content := payload.Response
 	contentType := payload.ContentType
 	method := strings.ToUpper(payload.Method)
@@ -591,7 +590,7 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	}
 
 	ext := ""
-	if len(contentType) > 0 {
+	if contentType != "" {
 		ext = "." + contentType
 	}
 
@@ -610,7 +609,6 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	}
 
 	descr := &ServiceDescription{
-		Name:      service,
 		Method:    method,
 		Path:      path,
 		Ext:       ext,
@@ -640,27 +638,27 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	return fileProps, nil
 }
 
-type ServiceDescription struct {
-	Name      string
-	Method    string
-	Path      string
-	Ext       string
-	IsOpenAPI bool
-}
-
 type ServiceItemResponse struct {
 	Name             string   `json:"name"`
 	OpenAPIResources []string `json:"openApiResources"`
 }
 
+// ServicePayload is a struct that represents a new service payload.
 type ServicePayload struct {
-	Name        string        `json:"name"`
 	IsOpenAPI   bool          `json:"isOpenApi"`
 	Method      string        `json:"method"`
 	Path        string        `json:"path"`
 	Response    []byte        `json:"response"`
 	ContentType string        `json:"contentType"`
 	File        *UploadedFile `json:"file"`
+}
+
+// ServiceDescription is a struct created from the service payload to facilitate file path composition.
+type ServiceDescription struct {
+	Method    string
+	Path      string
+	Ext       string
+	IsOpenAPI bool
 }
 
 type GenerateResponse struct {

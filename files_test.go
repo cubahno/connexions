@@ -300,72 +300,62 @@ func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 func TestComposeFileSavePath(t *testing.T) {
 	t.Parallel()
 
-	type params struct {
-		service  string
-		method   string
-		resource string
-		ext      string
-	}
-
 	appCfg := NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	testCases := []struct {
-		description string
-		params      params
-		expected    string
+		service  *ServiceDescription
+		expected string
 	}{
 		{
-			description: "root file",
-			params: params{
-				resource: "/foo.html",
+			service: &ServiceDescription{
+				Path: "/foo.html",
 			},
 			expected: paths.Services + "/.root/get/foo.html",
 		},
 		{
-			description: "root patch file",
-			params: params{
-				method:   "patch",
-				resource: "/foo.html",
+			service: &ServiceDescription{
+				Method:   "patch",
+				Path: "/foo.html",
 			},
 			expected: paths.Services + "/.root/patch/foo.html",
 		},
 		{
-			params: params{
-				service:  "test",
-				method:   "get",
-				resource: "test-path",
-				ext:      ".json",
+			service: &ServiceDescription{
+				Method:   "get",
+				Path: "test/test-path",
+				Ext:      ".json",
 			},
 			expected: paths.Services + "/test/get/test-path/index.json",
 		},
 		{
-			params: params{
-				resource: "/foo/bar",
+			service: &ServiceDescription{
+				Path: "/foo/bar",
 			},
 			expected: paths.Services + "/foo/get/bar/index.txt",
 		},
 		{
-			params: params{
-				service: "nice",
-				method:  "patch",
+			service: &ServiceDescription{
+				Path: "/nice",
+				Method:  "patch",
 			},
 			expected: paths.Services + "/nice/patch/index.txt",
+		},
+		{
+			service: &ServiceDescription{
+				Path: "/x",
+				Ext: ".json",
+			},
+			expected: paths.Services + "/x/get/index.json",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			descr := &ServiceDescription{
-				Name:   tc.params.service,
-				Method: tc.params.method,
-				Path:   tc.params.resource,
-				Ext:    tc.params.ext,
-			}
-			actual := ComposeFileSavePath(descr, paths)
+			actual := ComposeFileSavePath(tc.service, paths)
 			if actual != tc.expected {
-				t.Errorf("ComposeFileSavePath(%v): %v - Expected: %v, Got: %v",
-					tc.params, tc.description, tc.expected, actual)
+				t.Errorf("ComposeFileSavePath(%v): - Expected: %v, Got: %v",
+					tc.service, tc.expected, actual)
 			}
 		})
 	}
@@ -378,50 +368,48 @@ func TestComposeOpenAPISavePath(t *testing.T) {
 	paths := appCfg.Paths
 
 	testCases := []struct {
-		params   *ServiceDescription
+		service  *ServiceDescription
 		expected string
 	}{
 		{
-			params:   &ServiceDescription{},
+			service:  &ServiceDescription{},
 			expected: paths.ServicesOpenAPI + "/index",
 		},
 		{
-			params: &ServiceDescription{
+			service: &ServiceDescription{
 				Ext: ".yml",
 			},
 			expected: paths.ServicesOpenAPI + "/index.yml",
 		},
 		{
-			params: &ServiceDescription{
-				Name: "petstore",
+			service: &ServiceDescription{
+				Path: "petstore",
 				Ext:  ".yml",
 			},
 			expected: paths.ServicesOpenAPI + "/petstore/index.yml",
 		},
 		{
-			params: &ServiceDescription{
-				Name: "petstore",
-				Path: "/v1",
+			service: &ServiceDescription{
+				Path: "/petstore/v1",
 				Ext:  ".yml",
 			},
 			expected: paths.ServicesOpenAPI + "/petstore/v1/index.yml",
 		},
 		{
-			params: &ServiceDescription{
-				Name: "nice",
-				Path: "/dice/rice",
+			service: &ServiceDescription{
+				Path: "/nice/dice/rice",
 				Ext:  ".yml",
 			},
-			expected: paths.Services + "/.openapi/nice/dice/rice/index.yml",
+			expected: paths.ServicesOpenAPI + "/nice/dice/rice/index.yml",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			actual := ComposeOpenAPISavePath(tc.params, paths.ServicesOpenAPI)
+			actual := ComposeOpenAPISavePath(tc.service, paths.ServicesOpenAPI)
 			if actual != tc.expected {
 				t.Errorf("ComposeFileSavePath(%v): Expected: %v, Got: %v",
-					tc.params, tc.expected, actual)
+					tc.service, tc.expected, actual)
 			}
 		})
 	}

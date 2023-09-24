@@ -226,38 +226,52 @@ func ComposeFileSavePath(descr *ServiceDescription, paths *Paths) string {
 	resource := strings.Trim(descr.Path, "/")
 	parts := strings.Split(resource, "/")
 
-	res := paths.Services
-	service := descr.Name
 	method := descr.Method
-	ext := descr.Ext
-
-	if service == "" && len(parts) > 1 {
-		service = parts[0]
-		parts = parts[1:]
-	}
-
-	if service != "" {
-		res += "/" + service
-	}
-
-	if service == "" && len(parts) == 1 {
-		res += "/" + RootServiceName
-	}
-
 	if method == "" {
 		method = http.MethodGet
 	}
+	method = strings.ToLower(method)
+	ext := descr.Ext
+	pathExt := filepath.Ext(resource)
 
-	res += "/" + strings.ToLower(method)
+	// it shouldn't usually be the case, as we determine ext based on multiple factors
+	if ext == "" {
+		ext = pathExt
+	}
+	if ext == "" {
+		ext = ".txt"
+	}
+
+	if resource == "" {
+		return fmt.Sprintf("/%s/%s/index%s", paths.ServicesFixedRoot, method, ext)
+	}
+
+	service := ""
+	if len(parts) == 1 {
+		if pathExt != "" {
+			service = RootServiceName
+		} else {
+			service = parts[0]
+			parts = []string{}
+		}
+
+	} else {
+		// first part is always service name
+		service = parts[0]
+		// remove service from it
+		parts = parts[1:]
+	}
+
+	// we have a service and a path without it now
+
+	res := paths.Services
+	res += "/" + service
+	res += "/" + method
 	res += "/" + strings.Join(parts, "/")
 	res = strings.TrimSuffix(res, "/")
 
-	pathExt := filepath.Ext(res)
 	if pathExt == "" {
 		res += "/index" + ext
-		if ext == "" {
-			res += ".txt"
-		}
 	}
 
 	return res
@@ -268,23 +282,22 @@ func ComposeFileSavePath(descr *ServiceDescription, paths *Paths) string {
 func ComposeOpenAPISavePath(descr *ServiceDescription, baseDir string) string {
 	resource := strings.Trim(descr.Path, "/")
 	resourceParts := strings.Split(resource, "/")
-	service := descr.Name
 	ext := descr.Ext
 
-	result := baseDir
-
-	if service == "" && len(resourceParts) > 0 {
+	service := ""
+	if len(resourceParts) > 0 {
+		// take the first part as service name and exclude it from resource parts
 		service = resourceParts[0]
 		resourceParts = resourceParts[1:]
 	}
 
+	result := baseDir
 	if service != "" {
 		result += "/" + service
 	}
 
 	resPart := "/" + strings.Join(resourceParts, "/")
 	resPart = strings.TrimSuffix(resPart, "/") + "/index"
-
 	result += resPart + ext
 
 	return result

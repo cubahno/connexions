@@ -85,6 +85,13 @@ func (r *Router) AddService(item *ServiceItem) {
 	r.services[item.Name] = item
 }
 
+func (r *Router) RemoveService(name string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.services, name)
+}
+
 func (r *Router) SetContexts(contexts map[string]map[string]any, defaultContexts []map[string]string) *Router {
 	r.mu.Lock()
 	defer r.mu.Unlock()

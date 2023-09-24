@@ -158,7 +158,7 @@ func TestServiceHandler_save_errors(t *testing.T) {
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
 
-		_ = writer.WriteField("name", "petstore")
+		_ = writer.WriteField("path", "petstore")
 		_ = writer.WriteField("method", "X")
 		_ = writer.Close()
 
@@ -192,7 +192,7 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	_ = writer.WriteField("name", "petstore")
+	_ = writer.WriteField("path", "petstore")
 	_ = writer.WriteField("isOpenApi", "true")
 	err = AddTestFileToForm(writer, "file", filepath.Join("test_fixtures", "document-petstore.yml"))
 	assert.Nil(err)
@@ -272,8 +272,7 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	_ = writer.WriteField("name", "petstore")
-	_ = writer.WriteField("path", "/pets/update/{tag}")
+	_ = writer.WriteField("path", "/petstore/pets/update/{tag}")
 	_ = writer.WriteField("method", http.MethodPatch)
 	_ = writer.WriteField("response", `{"hallo":"welt!"}`)
 	_ = writer.WriteField("contentType", "json")
@@ -343,8 +342,7 @@ func TestServiceHandler_save_fixedMultiple(t *testing.T) {
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
 
-		_ = writer.WriteField("name", "petstore")
-		_ = writer.WriteField("path", "/pets/update/{tag}")
+		_ = writer.WriteField("path", "/petstore/pets/update/{tag}")
 		_ = writer.WriteField("method", http.MethodPatch)
 		_ = writer.WriteField("response", `{"hallo":"welt!"}`)
 		_ = writer.WriteField("contentType", "json")
@@ -401,8 +399,7 @@ func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
 	writer := multipart.NewWriter(&body)
 
 	// overwrite existing openAPI route
-	_ = writer.WriteField("name", "petstore")
-	_ = writer.WriteField("path", "/pets/update/{tag}")
+	_ = writer.WriteField("path", "petstore/pets/update/{tag}")
 	_ = writer.WriteField("method", http.MethodPatch)
 	_ = writer.WriteField("response", `{"hallo":"welt!"}`)
 	_ = writer.WriteField("contentType", "json")
@@ -1316,7 +1313,6 @@ func TestSaveService_errors(t *testing.T) {
 		payload := &ServicePayload{
 			Method:    http.MethodPatch,
 			Path:      "/x",
-			Name:      "",
 			IsOpenAPI: true,
 		}
 		res, err := saveService(payload, appCfg)
@@ -1329,7 +1325,6 @@ func TestSaveService_errors(t *testing.T) {
 		payload := &ServicePayload{
 			Method:   http.MethodPatch,
 			Path:     "/x",
-			Name:     "",
 			Response: []byte("check-check"),
 		}
 		res, err := saveService(payload, appCfg)
@@ -1343,7 +1338,6 @@ func TestSaveService_errors(t *testing.T) {
 		payload := &ServicePayload{
 			Method:    http.MethodPatch,
 			Path:      "/x",
-			Name:      "",
 			Response:  []byte("check-check"),
 			IsOpenAPI: true,
 		}
@@ -1356,7 +1350,6 @@ func TestSaveService_errors(t *testing.T) {
 		payload := &ServicePayload{
 			Method:   http.MethodPatch,
 			Path:     "/.services",
-			Name:     "",
 			Response: []byte("check-check"),
 		}
 		res, err := saveService(payload, appCfg)

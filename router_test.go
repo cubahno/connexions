@@ -99,6 +99,17 @@ func TestRouter(t *testing.T) {
 		}, router.GetServices())
 	})
 
+	t.Run("RemoveService", func(t *testing.T) {
+		router := new(Router)
+		router.services = map[string]*ServiceItem{
+			"a": {Name: "a"},
+			"b": {Name: "b"},
+		}
+		router.RemoveService("a")
+		assert.Len(router.services, 1)
+		assert.Equal(&ServiceItem{Name: "b"}, router.services["b"])
+	})
+
 	t.Run("SetContexts", func(t *testing.T) {
 		router := new(Router)
 		router.SetContexts(
