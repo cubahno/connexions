@@ -15,17 +15,17 @@ Connexion allows you to set up a REST API with Swagger documentation and OAuth2 
 Connexions takes this one step further by allowing you to define **multiple APIs** not limited to only Swagger and(or) OpenAPI.<br/>
 You can define single response for any arbitrary path on the fly.<br/>
 
-## Goals:
+## Goals
 - provide a simple tool to work with API mocks
 - combine multiple APIs into one
 - generate meaningful responses
 
-## Features:
+## Features
 - Randomized response contents, allowing you to redefine the response for any path in a locale of your choice
 - Mimic error responses and status codes
 - Configurable latency in responses
 
-## Simple start:
+## Simple start
 
 ```bash 
 docker run -it --rm \
