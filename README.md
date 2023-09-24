@@ -32,7 +32,7 @@ You can define single response for any arbitrary path on the fly.<br/>
 ```bash 
 docker run -it --rm \
   -p 2200:2200 \
-  -v connexions:/app/resources \
+  -v connexions:/app/resources/data \
   cubahno/connexions api
 
 ``` 
