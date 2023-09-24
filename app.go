@@ -13,11 +13,11 @@ import (
 
 // App is the main application struct
 type App struct {
-	Router     *Router
-	Paths      *Paths
+	Router *Router
+	Paths  *Paths
 
 	bluePrints []RouteRegister
-	mu sync.Mutex
+	mu         sync.Mutex
 }
 
 // Paths is a struct that holds all the paths used by the application.
