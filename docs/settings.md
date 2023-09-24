@@ -46,7 +46,7 @@
 
     ```
 
-!!! note "Non-configurable value"
+!!! note "Non-configurable values"
 
     This document provides a complete list of all configurable settings.<br>
     However, there are more values that can be set, but only when using `connexions` as library.<br>
