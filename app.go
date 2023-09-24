@@ -14,9 +14,9 @@ import (
 // App is the main application struct
 type App struct {
 	Router     *Router
-	BluePrints []RouteRegister
 	Paths      *Paths
 
+	bluePrints []RouteRegister
 	mu sync.Mutex
 }
 
@@ -67,7 +67,7 @@ func NewApp(config *Config) *App {
 		createContextRoutes,
 		createSettingsRoutes,
 	}
-	res.BluePrints = bluePrints
+	res.bluePrints = bluePrints
 
 	for _, bluePrint := range bluePrints {
 		err := bluePrint(router)
@@ -100,7 +100,7 @@ func (a *App) AddBluePrint(bluePrint RouteRegister) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	a.BluePrints = append(a.BluePrints, bluePrint)
+	a.bluePrints = append(a.bluePrints, bluePrint)
 	err := bluePrint(a.Router)
 	if err != nil {
 		return err

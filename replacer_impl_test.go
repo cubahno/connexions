@@ -3,7 +3,6 @@
 package connexions
 
 import (
-	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -623,7 +622,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		}
 		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
-		println("res:", res, "type:", fmt.Sprintf("%T", res), "value:", fmt.Sprintf("%v", res))
+
 		v, ok := ToInt32(res)
 		assert.True(ok)
 		assert.Greater(v, int32(0))
