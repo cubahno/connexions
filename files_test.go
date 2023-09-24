@@ -315,16 +315,16 @@ func TestComposeFileSavePath(t *testing.T) {
 		},
 		{
 			service: &ServiceDescription{
-				Method:   "patch",
-				Path: "/foo.html",
+				Method: "patch",
+				Path:   "/foo.html",
 			},
 			expected: paths.Services + "/.root/patch/foo.html",
 		},
 		{
 			service: &ServiceDescription{
-				Method:   "get",
-				Path: "test/test-path",
-				Ext:      ".json",
+				Method: "get",
+				Path:   "test/test-path",
+				Ext:    ".json",
 			},
 			expected: paths.Services + "/test/get/test-path/index.json",
 		},
@@ -336,15 +336,15 @@ func TestComposeFileSavePath(t *testing.T) {
 		},
 		{
 			service: &ServiceDescription{
-				Path: "/nice",
-				Method:  "patch",
+				Path:   "/nice",
+				Method: "patch",
 			},
 			expected: paths.Services + "/nice/patch/index.txt",
 		},
 		{
 			service: &ServiceDescription{
 				Path: "/x",
-				Ext: ".json",
+				Ext:  ".json",
 			},
 			expected: paths.Services + "/x/get/index.json",
 		},

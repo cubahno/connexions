@@ -96,6 +96,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 		type TemplateData struct {
 			AppConfig *AppConfig
 			Contents  map[string]template.HTML
+			Version   string
 		}
 
 		homeContents, err := os.ReadFile(filepath.Join(uiPath, "home.html"))
@@ -108,6 +109,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 			Contents: map[string]template.HTML{
 				"Home": template.HTML(homeContents),
 			},
+			Version: os.Getenv("APP_VERSION"),
 		}
 
 		// Create a buffered writer to capture the template execution result.

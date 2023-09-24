@@ -490,3 +490,11 @@ a.service-settings-link {
     height: 50%;
     min-height: 400px;
 }
+
+#app-version-cont {
+    float: left;
+}
+
+#app-version {
+    padding-left: 6px;
+}

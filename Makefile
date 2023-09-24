@@ -62,14 +62,11 @@ docker-push:
 docker-run:
 	@docker run -it --rm \
 		-p 2200:2200 \
-		-v $(VOLUME_NAME):/app/resources \
-		--name $(IMAGE_NAME) \
 		$(IMAGE_NAME) api
 
 @PHONY: docker-shell
 docker-shell:
 	@docker run -it --rm \
-		-v connexions:/app/resources \
 		$(IMAGE_NAME) bash
 
 @PHONY: tag-next

@@ -10,3 +10,4 @@ resources/data/contexts
 resources/test/specs/**/*
 !resources/test/specs/petstore.yml
 site
+.env

@@ -11,6 +11,7 @@
                 theme: "{{.AppConfig.Editor.Theme}}",
                 fontSize: "{{.AppConfig.Editor.FontSize}}",
             },
+            version: "{{.Version}}",
         }
         console.log(`loaded appConfig:`, appConfig)
     </script>
@@ -353,7 +354,11 @@
                     <td>
                         <div id="context-code-editor" style="width:750px; height: 600px; float: left;"></div>
                         <div style="float: left;margin-left:3rem;">
-                            Context.
+                            Context files are just namespaces or holders for the contexts.<br/>
+                            You can set aliases between contexts defined in multiples files.<br/>
+                            <br/>
+                            See <a href="https://cubahno.github.io/connexions/contexts" target="_blank">documentation</a> for more details
+                            on working with contexts.
                         </div>
                     </td>
                 </tr>
@@ -382,6 +387,15 @@
             <a href="https://cubahno.github.io/connexions/" target="_blank">
                 <img src="images/squares.png" style="width: 20px; vertical-align: middle;"/> Documentation
             </a>
+        </div>
+
+        <div class="footer-block">
+            <div  id="app-version-cont" style="display: none;">
+                <a href="https://github.com/cubahno/connexions/tags" target="_blank">
+                    <i class="fa-solid fa-tag"></i>
+                    Version: <span id="app-version"></span>
+                </a>
+            </div>
         </div>
     </footer>
 </div>

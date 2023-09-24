@@ -24,6 +24,7 @@ const pageMap = new Map([
 async function onLoad() {
     navi.resetContents();
     navi.loadPage(pageMap);
+    home.showVersion();
 
     const accordionHeaders = document.querySelectorAll('.accordion-header');
     accordionHeaders.forEach(accordionHeader => {
