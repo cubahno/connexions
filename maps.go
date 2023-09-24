@@ -40,6 +40,7 @@ func GetValueByDottedPath(data map[string]any, path string) any {
 // SetValueByDottedPath sets the value of the given path in the given map.
 // If the path does not exist, it is created.
 // e.g. SetValueByDottedPath(map[string]any{"a": map[string]any{"b": 1}}, "a.b", 2) sets the value of "a.b" to 2
+// ! This function modifies the given map.
 func SetValueByDottedPath(data map[string]any, path string, value any) {
 	keys := strings.Split(path, ".")
 	lastIndex := len(keys) - 1

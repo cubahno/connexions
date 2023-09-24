@@ -9,6 +9,15 @@ import (
 	"time"
 )
 
+func TestNewBaseHandler(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("base-handler", func(t *testing.T) {
+		h := NewBaseHandler()
+		assert.NotNil(h)
+	})
+}
+
 func TestHandleErrorAndLatency(t *testing.T) {
 	assert := assert2.New(t)
 

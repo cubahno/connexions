@@ -80,7 +80,6 @@ tv-show: func:echo:Sanford & Son
 
 func TestParseContexFromBytes(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	t.Run("happy-path", func(t *testing.T) {
 		contents := `

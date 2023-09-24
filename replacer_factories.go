@@ -47,12 +47,6 @@ var Replacers = []Replacer{
 	ReplaceFromSchemaFallback,
 }
 
-// fake is an instance of faker that is used to generate fake data.
-var fake = faker.New()
-
-// fakes is a map of registered fake functions.
-var fakes = GetFakes()
-
 // CreateValueReplacer is a factory that creates a new ValueReplacer instance from the given config and contexts.
 func CreateValueReplacer(cfg *Config, contexts []map[string]any) ValueReplacer {
 	return func(content any, state *ReplaceState) any {

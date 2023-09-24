@@ -10,6 +10,10 @@ import (
 type BaseHandler struct {
 }
 
+func NewBaseHandler() *BaseHandler {
+	return &BaseHandler{}
+}
+
 // Response is a response type for API responses.
 func (h *BaseHandler) Response(w http.ResponseWriter) *APIResponse {
 	return NewAPIResponse(w)

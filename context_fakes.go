@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"github.com/jaswdr/faker"
 	"reflect"
 )
 
@@ -10,6 +11,12 @@ type FakeFunc func() MixedValue
 
 // FakeFuncFactoryWithString is a function that returns a FakeFunc.
 type FakeFuncFactoryWithString func(value string) FakeFunc
+
+// fake is an instance of faker that is used to generate fake data.
+var fake = faker.New()
+
+// fakes is a map of registered fake functions.
+var fakes = GetFakes()
 
 // MixedValue is a value that can represent string, int, float64, or bool type.
 type MixedValue interface {

@@ -322,7 +322,7 @@ func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string
 }
 
 // GenerateContentFromSchema generates content from the given schema.
-func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, state *ReplaceState) any {
+func GenerateContentFromSchema(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if schema == nil {
 		return nil
 	}
@@ -332,9 +332,9 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 	}
 
 	// fast track with value and correctly resolved type for primitive types
-	if valueResolver != nil && len(state.NamePath) > 0 && schema.Type != TypeObject && schema.Type != TypeArray {
+	if valueReplacer != nil && len(state.NamePath) > 0 && schema.Type != TypeObject && schema.Type != TypeArray {
 		// TODO(cubahno): remove IsCorrectlyReplacedType, resolver should do it.
-		if res := valueResolver(schema, state); res != nil && IsCorrectlyReplacedType(res, schema.Type) {
+		if res := valueReplacer(schema, state); res != nil && IsCorrectlyReplacedType(res, schema.Type) {
 			if res == NULL {
 				return nil
 			}
@@ -343,7 +343,7 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 	}
 
 	if schema.Type == TypeObject {
-		obj := GenerateContentObject(schema, valueResolver, state)
+		obj := GenerateContentObject(schema, valueReplacer, state)
 		if obj == nil && !schema.Nullable {
 			obj = map[string]any{}
 		}
@@ -351,7 +351,7 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 	}
 
 	if schema.Type == TypeArray {
-		arr := GenerateContentArray(schema, valueResolver, state)
+		arr := GenerateContentArray(schema, valueReplacer, state)
 		if arr == nil && !schema.Nullable {
 			arr = []any{}
 		}
@@ -359,8 +359,8 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 	}
 
 	// try to resolve anything
-	if valueResolver != nil {
-		res := valueResolver(schema, state)
+	if valueReplacer != nil {
+		res := valueReplacer(schema, state)
 		if res == NULL {
 			return nil
 		}
