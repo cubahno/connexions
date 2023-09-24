@@ -301,10 +301,10 @@ func TestComposeFileSavePath(t *testing.T) {
 	t.Parallel()
 
 	type params struct {
-		service   string
-		method    string
-		resource  string
-		ext       string
+		service  string
+		method   string
+		resource string
+		ext      string
 	}
 
 	appCfg := NewDefaultAppConfig("/app")
@@ -332,10 +332,10 @@ func TestComposeFileSavePath(t *testing.T) {
 		},
 		{
 			params: params{
-				service:   "test",
-				method:    "get",
-				resource:  "test-path",
-				ext:       ".json",
+				service:  "test",
+				method:   "get",
+				resource: "test-path",
+				ext:      ".json",
 			},
 			expected: paths.Services + "/test/get/test-path/index.json",
 		},
@@ -357,10 +357,10 @@ func TestComposeFileSavePath(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
 			descr := &ServiceDescription{
-				Name:      tc.params.service,
-				Method:    tc.params.method,
-				Path:      tc.params.resource,
-				Ext:       tc.params.ext,
+				Name:   tc.params.service,
+				Method: tc.params.method,
+				Path:   tc.params.resource,
+				Ext:    tc.params.ext,
 			}
 			actual := ComposeFileSavePath(descr, paths)
 			if actual != tc.expected {
@@ -378,39 +378,39 @@ func TestComposeOpenAPISavePath(t *testing.T) {
 	paths := appCfg.Paths
 
 	testCases := []struct {
-		params      *ServiceDescription
-		expected    string
+		params   *ServiceDescription
+		expected string
 	}{
 		{
-			params: &ServiceDescription{},
+			params:   &ServiceDescription{},
 			expected: paths.ServicesOpenAPI + "/index",
 		},
 		{
 			params: &ServiceDescription{
-				Ext:       ".yml",
+				Ext: ".yml",
 			},
 			expected: paths.ServicesOpenAPI + "/index.yml",
 		},
 		{
 			params: &ServiceDescription{
 				Name: "petstore",
-				Ext:       ".yml",
+				Ext:  ".yml",
 			},
 			expected: paths.ServicesOpenAPI + "/petstore/index.yml",
 		},
 		{
 			params: &ServiceDescription{
 				Name: "petstore",
-				Path:  "/v1",
-				Ext:       ".yml",
+				Path: "/v1",
+				Ext:  ".yml",
 			},
 			expected: paths.ServicesOpenAPI + "/petstore/v1/index.yml",
 		},
 		{
 			params: &ServiceDescription{
-				Name:   "nice",
-				Path:  "/dice/rice",
-				Ext:       ".yml",
+				Name: "nice",
+				Path: "/dice/rice",
+				Ext:  ".yml",
 			},
 			expected: paths.Services + "/.openapi/nice/dice/rice/index.yml",
 		},

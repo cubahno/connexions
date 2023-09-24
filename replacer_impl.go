@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
+// Replacer is a function that returns a value to replace the original value with.
+// Replacer functions are predefined and set in the correct order to be executed.
 type Replacer func(ctx *ReplaceContext) any
+
+// Any is a type that can be used to represent any type in generics.
 type Any interface {
 	string | int | bool | float64 | any
 }
@@ -57,6 +61,7 @@ func HasCorrectSchemaValue(ctx *ReplaceContext, value any) bool {
 	}
 }
 
+// ReplaceInHeaders is a replacer that replaces values only in headers.
 func ReplaceInHeaders(ctx *ReplaceContext) any {
 	if !ctx.State.IsHeader {
 		return nil
@@ -64,6 +69,7 @@ func ReplaceInHeaders(ctx *ReplaceContext) any {
 	return replaceInArea(ctx, "header")
 }
 
+// ReplaceInPath is a replacer that replaces values only in path parameters.
 func ReplaceInPath(ctx *ReplaceContext) any {
 	if !ctx.State.IsPathParam {
 		return nil
@@ -93,6 +99,7 @@ func replaceInArea(ctx *ReplaceContext, area string) any {
 	return nil
 }
 
+// ReplaceFromContext is a replacer that replaces values from the context.
 func ReplaceFromContext(ctx *ReplaceContext) any {
 	var snakedNamePath []string
 	// context data is stored in snake case
@@ -109,6 +116,8 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 	return nil
 }
 
+// CastToSchemaFormat casts the value to the schema format if possible.
+// If the schema format is not specified, the value is returned as-is.
 func CastToSchemaFormat(ctx *ReplaceContext, value any) any {
 	schema, ok := ctx.Schema.(*Schema)
 	if !ok || schema == nil {
@@ -131,6 +140,7 @@ func CastToSchemaFormat(ctx *ReplaceContext, value any) any {
 	}
 }
 
+// ReplaceValueWithContext is a replacer that replaces values from the context.
 func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	switch valueType := contextData.(type) {
 	case map[string]string:
@@ -196,6 +206,7 @@ func replaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 	return nil
 }
 
+// ReplaceFromSchemaFormat is a replacer that replaces values from the schema format.
 func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
 	if !ok || schema == nil {
@@ -225,6 +236,7 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 	return nil
 }
 
+// ReplaceFromSchemaPrimitive is a replacer that replaces values from the schema primitive.
 func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
 	if !ok || schema == nil {
@@ -243,6 +255,7 @@ func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 	return nil
 }
 
+// ReplaceFromSchemaExample is a replacer that replaces values from the schema example.
 func ReplaceFromSchemaExample(ctx *ReplaceContext) any {
 	schema, ok := ctx.Schema.(*Schema)
 	if !ok || schema == nil {

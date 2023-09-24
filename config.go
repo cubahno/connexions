@@ -405,6 +405,7 @@ func NewConfigFromContent(content []byte) (*Config, error) {
 	return cfg, nil
 }
 
+// NewDefaultAppConfig creates a new default app config in case the config file is missing, not found or any other error.
 func NewDefaultAppConfig(baseDir string) *AppConfig {
 	return &AppConfig{
 		Port:              2200,
@@ -426,7 +427,7 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 func NewDefaultConfig(baseDir string) *Config {
 	return &Config{
 		App:       NewDefaultAppConfig(baseDir),
-		Services: make(map[string]*ServiceConfig),
+		Services:  make(map[string]*ServiceConfig),
 		Replacers: Replacers,
 		baseDir:   baseDir,
 	}

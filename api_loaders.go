@@ -8,6 +8,7 @@ import (
 	"sync"
 )
 
+// loadServices loads all services from the `services` directory.
 func loadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
 	var mu sync.Mutex
@@ -123,7 +124,7 @@ func loadContexts(router *Router) error {
 
 		go func(filePath string) {
 			defer wg.Done()
-			ctx, err := ParseContextFile(filePath)
+			ctx, err := ParseContextFile(filePath, fakes)
 			ch <- parsed{
 				ctx:      ctx,
 				err:      err,

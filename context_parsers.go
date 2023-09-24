@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// ParsedContextResult is the result of parsing a context file.
 type ParsedContextResult struct {
 	Result  map[string]any
 	Aliases map[string]string
@@ -17,24 +18,25 @@ type ParsedContextResult struct {
 // Filename without extension is used as the context namespace and can be referenced:
 // - in service config
 // - when creating aliases
-func ParseContextFile(filePath string) (*ParsedContextResult, error) {
+func ParseContextFile(filePath string, fakes map[string]FakeFunc) (*ParsedContextResult, error) {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
 		return nil, err
 	}
 
-	return parseContext(k)
+	return parseContext(k, fakes)
 }
 
-func ParseContextFromBytes(content []byte) (*ParsedContextResult, error) {
+// ParseContextFromBytes byte contents from the YAML file and returns a map of context properties.
+func ParseContextFromBytes(content []byte, fakes map[string]FakeFunc) (*ParsedContextResult, error) {
 	k := koanf.New(".")
 	provider := rawbytes.Provider(content)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
 		return nil, err
 	}
 
-	return parseContext(k)
+	return parseContext(k, fakes)
 }
 
 // CollectContexts collects contexts from the given list of context names, file collections and initial context.
@@ -65,8 +67,7 @@ func CollectContexts(names []map[string]string, fileCollections map[string]map[s
 	return res
 }
 
-func parseContext(k *koanf.Koanf) (*ParsedContextResult, error) {
-	fakes := GetFakes()
+func parseContext(k *koanf.Koanf, fakes map[string]FakeFunc) (*ParsedContextResult, error) {
 	oneArgFuncs := GetFakeFuncFactoryWithString()
 
 	transformed := koanf.New(".")

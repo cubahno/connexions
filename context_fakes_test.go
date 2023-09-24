@@ -104,7 +104,6 @@ func TestGetFakeFuncFactoryWithString(t *testing.T) {
 
 func TestGetFakes(t *testing.T) {
 	assert := assert2.New(t)
-	t.Parallel()
 
 	fakes := GetFakes()
 	assert.Greater(len(fakes), 0)

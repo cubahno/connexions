@@ -7,10 +7,7 @@ import (
 	"strings"
 )
 
-type ResourceGeneratePayload struct {
-	Replacements map[string]any `json:"replacements"`
-}
-
+// OpenAPIHandler handles OpenAPI routes serve.
 type OpenAPIHandler struct {
 	*BaseHandler
 	router        *Router
@@ -62,6 +59,7 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 	return res
 }
 
+// serve serves the OpenAPI spec resources.
 func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	prefix := h.fileProps.Prefix
 	doc := h.fileProps.Spec
@@ -129,4 +127,12 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res.Send(response.Content)
+}
+
+// ResourceGeneratePayload is a payload for generating resources.
+// It contains a map of replacements.
+// It is used only with generating resources endpoint.
+// It's merged together with contexts but has higher priority.
+type ResourceGeneratePayload struct {
+	Replacements map[string]any `json:"replacements"`
 }

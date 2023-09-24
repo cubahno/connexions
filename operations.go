@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// Request is a struct that represents a generated request to be used when building real endpoint request.
 type Request struct {
 	Headers     any             `json:"headers,omitempty"`
 	Method      string          `json:"method,omitempty"`
@@ -23,10 +24,12 @@ type Request struct {
 	Examples    *ContentExample `json:"examples,omitempty"`
 }
 
+// ContentExample is a struct that represents a generated cURL example.
 type ContentExample struct {
 	CURL string `json:"curl,omitempty"`
 }
 
+// Response is a struct that represents a generated response to be used when comparing real endpoint response.
 type Response struct {
 	Headers     http.Header `json:"headers,omitempty"`
 	Content     []byte      `json:"content,omitempty"`
@@ -66,6 +69,8 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation Operatio
 	}
 }
 
+// EncodeContent encodes content to the given content type.
+// Since it is part of the JSON request, we need to encode different content types to string before sending it.
 func EncodeContent(content any, contentType string) ([]byte, error) {
 	if content == nil {
 		return nil, nil
@@ -160,6 +165,8 @@ func newRequestFromFixedResource(path, method, contentType string, valueReplacer
 	}
 }
 
+// NewResponseFromOperation creates a new response from an operation.
+// It used to pre-generate payloads from the UI or provide service to generate such.
 func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer) *Response {
 	response := operation.GetResponse()
 	statusCode := response.StatusCode
@@ -173,7 +180,9 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 	}
 
 	headers.Set("content-type", contentType)
-	content := GenerateContentFromSchema(contentSchema, valueReplacer, nil)
+	state := &ReplaceState{}
+	content := GenerateContentFromSchema(contentSchema, valueReplacer, state.WithContentType(contentType))
+
 	contentB, err := EncodeContent(content, contentType)
 	if err != nil {
 		log.Printf("Error encoding response: %v", err.Error())
@@ -206,6 +215,7 @@ func newResponseFromFixedResource(filePath, contentType string, valueReplacer Va
 	}
 }
 
+// TransformHTTPCode transforms HTTP code from the OpenAPI spec to the real HTTP code.
 func TransformHTTPCode(httpCode string) int {
 	httpCode = strings.ToLower(httpCode)
 	httpCode = strings.Replace(httpCode, "x", "0", -1)
@@ -227,6 +237,7 @@ func TransformHTTPCode(httpCode string) int {
 	return codeInt
 }
 
+// GenerateURLFromSchemaParameters generates URL from the given path and parameters.
 func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, params OpenAPIParameters) string {
 	for _, param := range params {
 		// param := paramRef.Parameter
@@ -271,6 +282,7 @@ func generateURLFromFixedResourcePath(path string, valueReplacer ValueReplacer) 
 	return path
 }
 
+// GenerateQuery generates query string from the given parameters.
 func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string {
 	queryValues := url.Values{}
 
@@ -309,6 +321,7 @@ func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string
 	return encode(queryValues)
 }
 
+// GenerateContentFromSchema generates content from the given schema.
 func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, state *ReplaceState) any {
 	if schema == nil {
 		return nil
@@ -357,6 +370,7 @@ func GenerateContentFromSchema(schema *Schema, valueResolver ValueReplacer, stat
 	return nil
 }
 
+// GenerateContentObject generates content from the given schema with type `object`.
 func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if state == nil {
 		state = &ReplaceState{}
@@ -376,6 +390,7 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 	return res
 }
 
+// GenerateContentArray generates content from the given schema with type `array`.
 func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if state == nil {
 		state = &ReplaceState{}
@@ -407,6 +422,7 @@ func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *Re
 	return res
 }
 
+// GenerateRequestHeaders generates request headers from the given parameters.
 func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueReplacer) any {
 	res := map[string]interface{}{}
 
@@ -437,6 +453,7 @@ func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueRep
 	return res
 }
 
+// GenerateResponseHeaders generates response headers from the given headers.
 func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer) http.Header {
 	res := http.Header{}
 

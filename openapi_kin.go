@@ -8,16 +8,20 @@ import (
 	"sync"
 )
 
+// KinDocument is a wrapper around openapi3.T
+// Implements Document interface
 type KinDocument struct {
 	*openapi3.T
 }
 
+// KinOperation is a wrapper around openapi3.Operation
 type KinOperation struct {
 	*openapi3.Operation
 	parseConfig *ParseConfig
 	mu          sync.Mutex
 }
 
+// NewKinDocumentFromFile creates a new KinDocument from a file path
 func NewKinDocumentFromFile(filePath string) (Document, error) {
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(filePath)
@@ -29,14 +33,17 @@ func NewKinDocumentFromFile(filePath string) (Document, error) {
 	}, err
 }
 
+// Provider returns the SchemaProvider for this document
 func (d *KinDocument) Provider() SchemaProvider {
 	return KinOpenAPIProvider
 }
 
+// GetVersion returns the version of the document
 func (d *KinDocument) GetVersion() string {
 	return d.OpenAPI
 }
 
+// GetResources returns a map of resource names and their methods.
 func (d *KinDocument) GetResources() map[string][]string {
 	res := make(map[string][]string)
 	for resName, pathItem := range d.Paths {
@@ -48,6 +55,7 @@ func (d *KinDocument) GetResources() map[string][]string {
 	return res
 }
 
+// FindOperation finds an operation by resource and method.
 func (d *KinDocument) FindOperation(options *OperationDescription) Operationer {
 	if options == nil {
 		return nil
@@ -66,10 +74,12 @@ func (d *KinDocument) FindOperation(options *OperationDescription) Operationer {
 	}
 }
 
+// ID returns the operation ID
 func (op *KinOperation) ID() string {
 	return op.Operation.OperationID
 }
 
+// GetParameters returns the operation parameters
 func (op *KinOperation) GetParameters() OpenAPIParameters {
 	var params []*OpenAPIParameter
 	for _, param := range op.Parameters {
@@ -98,6 +108,7 @@ func (op *KinOperation) GetParameters() OpenAPIParameters {
 	return params
 }
 
+// GetRequestBody returns the operation request body
 func (op *KinOperation) GetRequestBody() (*Schema, string) {
 	if op.RequestBody == nil {
 		return nil, ""
@@ -129,6 +140,7 @@ func (op *KinOperation) GetRequestBody() (*Schema, string) {
 	return content, contentType
 }
 
+// GetResponse returns the operation response
 func (op *KinOperation) GetResponse() *OpenAPIResponse {
 	available := op.Responses
 
@@ -199,6 +211,7 @@ func (op *KinOperation) GetResponse() *OpenAPIResponse {
 	}
 }
 
+// getContent returns the content and content type of the operation response
 func (op *KinOperation) getContent(types map[string]*openapi3.MediaType) (*openapi3.Schema, string) {
 	if len(types) == 0 {
 		return nil, ""
@@ -223,6 +236,7 @@ func (op *KinOperation) getContent(types map[string]*openapi3.MediaType) (*opena
 	return content, contentType
 }
 
+// WithParseConfig sets the parse config for this operation
 func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
 	op.mu.Lock()
 	defer op.mu.Unlock()
@@ -231,6 +245,7 @@ func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
 	return op
 }
 
+// NewSchemaFromKin creates a new Schema from a Kin schema
 func NewSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig) *Schema {
 	if parseConfig == nil {
 		parseConfig = &ParseConfig{}
@@ -323,6 +338,7 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 	}
 }
 
+// mergeKinSubSchemas merges allOf, anyOf, oneOf and not into a single schema
 func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 	allOf := schema.AllOf
 	anyOf := schema.AnyOf

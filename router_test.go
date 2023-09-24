@@ -101,16 +101,30 @@ func TestRouter(t *testing.T) {
 
 	t.Run("SetContexts", func(t *testing.T) {
 		router := new(Router)
-		router.SetContexts(map[string]map[string]any{
-			"a": {"k1": "v1"},
-			"b": {"k2": "v2"},
-		}, []map[string]string{{"k3": "v3"}})
+		router.SetContexts(
+			map[string]map[string]any{
+				"a": {"a1": "v1"},
+				"b": {"b1": "v2"},
+				"c": {"c1": "v1", "c2": "v2"},
+			},
+			[]map[string]string{
+				{"b": "b1"},
+				{"a": "a1"},
+				{"c": ""},
+			},
+		)
 
 		assert.Equal(map[string]map[string]any{
-			"a": {"k1": "v1"},
-			"b": {"k2": "v2"},
+			"a": {"a1": "v1"},
+			"b": {"b1": "v2"},
+			"c": {"c1": "v1", "c2": "v2"},
 		}, router.contexts)
-		assert.Equal([]map[string]string{{"k3": "v3"}}, router.defaultContexts)
+
+		assert.Equal([]map[string]string{
+			{"a": "a1"},
+			{"b": "b1"},
+			{"c": ""},
+		}, router.defaultContexts)
 	})
 
 	t.Run("GetContexts", func(t *testing.T) {

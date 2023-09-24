@@ -52,7 +52,7 @@ func TestHandleErrorAndLatency(t *testing.T) {
 				Chance: 100,
 			},
 		}
-		w := newBufferedResponseWriter()
+		w := NewBufferedResponseWriter()
 
 		res := HandleErrorAndLatency(svcConfig, w)
 		assert.True(res)
@@ -67,7 +67,7 @@ func TestHandleErrorAndLatency(t *testing.T) {
 				Chance: 100,
 			},
 		}
-		w := newBufferedResponseWriter()
+		w := NewBufferedResponseWriter()
 
 		res := HandleErrorAndLatency(svcConfig, w)
 		assert.True(res)

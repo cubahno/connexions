@@ -6,7 +6,8 @@ import (
 	"reflect"
 )
 
-func IsNumber(value interface{}) bool {
+// IsNumber checks if the value is a number: integer or float
+func IsNumber(value any) bool {
 	switch value.(type) {
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64,
@@ -17,7 +18,8 @@ func IsNumber(value interface{}) bool {
 	}
 }
 
-func IsInteger(value interface{}) bool {
+// IsInteger checks if the value is an integer
+func IsInteger(value any) bool {
 	switch v := value.(type) {
 	case int, int8, int16, int32, int64,
 		uint, uint8, uint16, uint32, uint64:
@@ -32,7 +34,8 @@ func IsInteger(value interface{}) bool {
 	}
 }
 
-func ToFloat64(value interface{}) (float64, error) {
+// ToFloat64 converts underlying value to float64 if it can be represented as float64
+func ToFloat64(value any) (float64, error) {
 	switch v := value.(type) {
 	case int, int8, int16, int32, int64:
 		return float64(reflect.ValueOf(v).Int()), nil
@@ -131,6 +134,7 @@ func ToInt64(value any) (int64, bool) {
 	return 0, false
 }
 
+// RemovePointer removes pointer from the boolean or numeric value
 func RemovePointer[T bool | float64 | int64 | uint64](value *T) T {
 	var res T
 	if value == nil {

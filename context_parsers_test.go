@@ -28,7 +28,7 @@ tv-show: func:echo:Sanford & Son
 		err := os.WriteFile(filePath, []byte(contents), 0644)
 		assert.Nil(err)
 
-		res, err := ParseContextFile(filePath)
+		res, err := ParseContextFile(filePath, fakes)
 		assert.Nil(err)
 
 		results := res.Result
@@ -72,7 +72,7 @@ tv-show: func:echo:Sanford & Son
 	})
 
 	t.Run("bad-file", func(t *testing.T) {
-		res, err := ParseContextFile("bad-file.yml")
+		res, err := ParseContextFile("bad-file.yml", fakes)
 		assert.Nil(res)
 		assert.NotNil(err)
 	})
@@ -88,7 +88,7 @@ name: Jane
 job: fake:company.job_title
 hallo: func:echo:Welt!
 `
-		res, err := ParseContextFromBytes([]byte(contents))
+		res, err := ParseContextFromBytes([]byte(contents), fakes)
 		assert.Nil(err)
 
 		results := res.Result
@@ -110,7 +110,7 @@ hallo: func:echo:Welt!
 	})
 
 	t.Run("invalid-yaml", func(t *testing.T) {
-		res, err := ParseContextFromBytes([]byte(`1`))
+		res, err := ParseContextFromBytes([]byte(`1`), fakes)
 		assert.Nil(res)
 		assert.NotNil(err)
 	})

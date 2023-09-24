@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// registerFixedRoutes registers fixed routes for a service.
 func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescription {
 	log.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
 
@@ -34,6 +35,7 @@ func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescrip
 	}
 }
 
+// createFixedResponseHandler creates a http.HandlerFunc for fixed routes.
 func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.HandlerFunc {
 	config := router.Config
 	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)

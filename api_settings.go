@@ -9,12 +9,15 @@ import (
 	"sync"
 )
 
+// SettingsHandler handles settings routes.
 type SettingsHandler struct {
 	*BaseHandler
 	router *Router
 	mu     sync.Mutex
 }
 
+// createSettingsRoutes creates routes for settings.
+// Implements RouteRegister interface.
 func createSettingsRoutes(router *Router) error {
 	if router.Config.App.DisableUI || router.Config.App.SettingsURL == "" {
 		return nil
@@ -36,6 +39,7 @@ func createSettingsRoutes(router *Router) error {
 	return nil
 }
 
+// get returns the current settings.
 func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -53,17 +57,17 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 
 	_, err := NewConfigFromContent(payload)
 	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
+		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
 	if err = SaveFile(h.router.Config.App.Paths.ConfigFile, payload); err != nil {
-		h.error(http.StatusInternalServerError, err.Error(), w)
+		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
 
 	h.router.Config.Reload()
-	h.success("Settings saved and reloaded!", w)
+	h.Success("Settings saved and reloaded!", w)
 }
 
 // Restore settings saving them in config.yml
@@ -76,10 +80,10 @@ func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 	defaultBts, _ := yaml.Marshal(defaultCfg)
 
 	if err := SaveFile(dest, defaultBts); err != nil {
-		h.error(http.StatusInternalServerError, "Failed to restore config contents", w)
+		h.Error(http.StatusInternalServerError, "Failed to restore config contents", w)
 		return
 	}
 
 	h.router.Config.Reload()
-	h.success("Settings restored and reloaded!", w)
+	h.Success("Settings restored and reloaded!", w)
 }

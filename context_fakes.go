@@ -1,16 +1,17 @@
 package connexions
 
 import (
-	"github.com/jaswdr/faker"
 	"reflect"
 )
 
-type FakeValue interface {
-	~string | ~int | ~float64 | ~bool
-}
+// FakeFunc is a function that returns a MixedValue.
+// This is u unified way to work with different return types from fake library.
 type FakeFunc func() MixedValue
+
+// FakeFuncFactoryWithString is a function that returns a FakeFunc.
 type FakeFuncFactoryWithString func(value string) FakeFunc
 
+// MixedValue is a value that can represent string, int, float64, or bool type.
 type MixedValue interface {
 	Get() any
 }
@@ -38,8 +39,6 @@ func (b BoolValue) Get() any {
 
 // GetFakeFuncFactoryWithString returns a map of utility fake functions.
 func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
-	fake := faker.New()
-
 	return map[string]FakeFuncFactoryWithString{
 		"botify": func(pattern string) FakeFunc {
 			return func() MixedValue {
@@ -59,7 +58,6 @@ func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
 // The keys are the snake_cased dot-separated method names, which reflect the location of the function:
 // For example: person.first_name will return a fake first name from the Person struct.
 func GetFakes() map[string]FakeFunc {
-	fake := faker.New()
 	return getFakeFuncs(fake, "")
 }
 

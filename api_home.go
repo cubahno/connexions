@@ -16,6 +16,15 @@ import (
 	"time"
 )
 
+// HomeHandler handles home routes.
+type HomeHandler struct {
+	*BaseHandler
+	router *Router
+	mu     sync.Mutex
+}
+
+// createHomeRoutes creates routes for home.
+// Implements RouteRegister interface.
 func createHomeRoutes(router *Router) error {
 	if router.Config.App.DisableUI {
 		return nil
@@ -41,38 +50,37 @@ func createHomeRoutes(router *Router) error {
 	return nil
 }
 
-type HomeHandler struct {
-	*BaseHandler
-	router *Router
-	mu     sync.Mutex
-}
-
-// bufferedWriter is a writer that captures the response.
+// BufferedWriter is a writer that captures the response.
 // Used to capture the template execution result.
-type bufferedWriter struct {
+type BufferedWriter struct {
 	buf        []byte
 	statusCode int
 }
 
-func newBufferedResponseWriter() *bufferedWriter {
-	return &bufferedWriter{
+// NewBufferedResponseWriter creates a new buffered writer.
+func NewBufferedResponseWriter() *BufferedWriter {
+	return &BufferedWriter{
 		buf: make([]byte, 0, 1024),
 	}
 }
 
-func (bw *bufferedWriter) Write(p []byte) (int, error) {
+// Write writes the data to the buffer.
+func (bw *BufferedWriter) Write(p []byte) (int, error) {
 	bw.buf = append(bw.buf, p...)
 	return len(p), nil
 }
 
-func (bw *bufferedWriter) Header() http.Header {
+// Header returns the header.
+func (bw *BufferedWriter) Header() http.Header {
 	return http.Header{}
 }
 
-func (bw *bufferedWriter) WriteHeader(statusCode int) {
+// WriteHeader writes the status code.
+func (bw *BufferedWriter) WriteHeader(statusCode int) {
 	bw.statusCode = statusCode
 }
 
+// createHomeHandlerFunc creates a handler function for home.
 func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 	uiPath := router.Config.App.Paths.UI
 
@@ -103,7 +111,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 		}
 
 		// Create a buffered writer to capture the template execution result.
-		buf := newBufferedResponseWriter()
+		buf := NewBufferedResponseWriter()
 
 		err = tmpl.Execute(buf, data)
 		if err != nil {
@@ -129,6 +137,7 @@ func fileServer(url string, router *Router) {
 	})
 }
 
+// docsServer serves the docs assets.
 func docsServer(url string, router *Router) {
 	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		fs := http.StripPrefix(
@@ -138,6 +147,7 @@ func docsServer(url string, router *Router) {
 	})
 }
 
+// export exports the data directory in zip file.
 func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -222,6 +232,7 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// importHandler imports the zip file into data directory.
 func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -277,5 +288,5 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	// there's never an error
 	_ = loadContexts(h.router)
 
-	h.success("Imported successfully!", w)
+	h.Success("Imported successfully!", w)
 }

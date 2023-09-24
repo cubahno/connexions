@@ -10,25 +10,31 @@ import (
 	"sync"
 )
 
+// LibV2Document is a wrapper around libopenapi.DocumentModel
+// Implements Document interface
 type LibV2Document struct {
 	*libopenapi.DocumentModel[v2high.Swagger]
 	ParseConfig *ParseConfig
 }
 
+// LibV2Operation is a wrapper around libopenapi.Operation
 type LibV2Operation struct {
 	*v2high.Operation
 	ParseConfig *ParseConfig
 	mu          sync.Mutex
 }
 
+// Provider returns the SchemaProvider for this document
 func (d *LibV2Document) Provider() SchemaProvider {
 	return LibOpenAPIProvider
 }
 
+// GetVersion returns the version of the document
 func (d *LibV2Document) GetVersion() string {
 	return d.Model.Swagger
 }
 
+// GetResources returns a map of resource names and their methods.
 func (d *LibV2Document) GetResources() map[string][]string {
 	res := make(map[string][]string)
 
@@ -41,6 +47,7 @@ func (d *LibV2Document) GetResources() map[string][]string {
 	return res
 }
 
+// FindOperation finds an operation by resource and method.
 func (d *LibV2Document) FindOperation(options *OperationDescription) Operationer {
 	if options == nil {
 		return nil
@@ -62,10 +69,12 @@ func (d *LibV2Document) FindOperation(options *OperationDescription) Operationer
 	return nil
 }
 
+// ID returns the operation ID
 func (op *LibV2Operation) ID() string {
 	return op.Operation.OperationId
 }
 
+// GetParameters returns a list of parameters for this operation
 func (op *LibV2Operation) GetParameters() OpenAPIParameters {
 	params := make(OpenAPIParameters, 0)
 
@@ -91,6 +100,7 @@ func (op *LibV2Operation) GetParameters() OpenAPIParameters {
 	return params
 }
 
+// GetResponse returns the response for this operation
 func (op *LibV2Operation) GetResponse() *OpenAPIResponse {
 	available := op.Responses.Codes
 
@@ -195,6 +205,7 @@ func (op *LibV2Operation) GetResponse() *OpenAPIResponse {
 	}
 }
 
+// GetRequestBody returns the request body for this operation
 func (op *LibV2Operation) GetRequestBody() (*Schema, string) {
 	var body *v2high.Parameter
 	for _, param := range op.Parameters {
@@ -229,6 +240,7 @@ func (op *LibV2Operation) GetRequestBody() (*Schema, string) {
 	return nil, contentType
 }
 
+// WithParseConfig sets the ParseConfig for the operation
 func (op *LibV2Operation) WithParseConfig(parseConfig *ParseConfig) Operationer {
 	op.mu.Lock()
 	defer op.mu.Unlock()

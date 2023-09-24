@@ -1,5 +1,7 @@
 package connexions
 
+// Document is an interface that represents an OpenAPI document needed for content generation.
+// It is implemented by the LibV2Document and LibV3Document types.
 type Document interface {
 	Provider() SchemaProvider
 	GetVersion() string
@@ -7,6 +9,7 @@ type Document interface {
 	FindOperation(options *OperationDescription) Operationer
 }
 
+// Operationer is an interface that represents an OpenAPI operation needed for content generation.
 type Operationer interface {
 	ID() string
 	GetParameters() OpenAPIParameters
@@ -15,6 +18,7 @@ type Operationer interface {
 	WithParseConfig(*ParseConfig) Operationer
 }
 
+// OpenAPIResponse is a struct that represents an OpenAPI response.
 type OpenAPIResponse struct {
 	Headers     OpenAPIHeaders
 	Content     *Schema
@@ -22,12 +26,14 @@ type OpenAPIResponse struct {
 	StatusCode  int
 }
 
+// OperationDescription is a struct that used to find an operation in an OpenAPI document.
 type OperationDescription struct {
 	Service  string
 	Resource string
 	Method   string
 }
 
+// OpenAPIParameter is a struct that represents an OpenAPI parameter.
 type OpenAPIParameter struct {
 	Name     string      `json:"name,omitempty" yaml:"name,omitempty"`
 	In       string      `json:"in,omitempty" yaml:"in,omitempty"`
@@ -36,12 +42,16 @@ type OpenAPIParameter struct {
 	Example  interface{} `json:"example,omitempty" yaml:"example,omitempty"`
 }
 
+// OpenAPIParameters is a slice of OpenAPIParameter.
 type OpenAPIParameters []*OpenAPIParameter
+
+// OpenAPIHeaders is a map of OpenAPIParameter.
 type OpenAPIHeaders map[string]*OpenAPIParameter
 
-type BaseOperation struct {
-}
-
+// Schema is a struct that represents an OpenAPI schema.
+// It is compatible with all versions of OpenAPI.
+// All schema providers should implement the Document and Operationer interfaces.
+// This provides a unified way to work with different OpenAPI parsers.
 type Schema struct {
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
 
@@ -92,6 +102,7 @@ const (
 	ParameterInBody = "body"
 )
 
+// NewDocumentFromFileFactory returns a function that creates a new Document from a file.
 func NewDocumentFromFileFactory(provider SchemaProvider) func(filePath string) (Document, error) {
 	switch provider {
 	case KinOpenAPIProvider:

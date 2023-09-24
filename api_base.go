@@ -6,36 +6,38 @@ import (
 	"time"
 )
 
+// BaseHandler is a base handler type to be embedded in other handlers.
 type BaseHandler struct {
 }
 
-// func (h *BaseHandler) CreateValueReplacer(fileProps *FileProperties, config *Config) {
-// 	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
-// 	valueReplaceFactory := CreateValueReplacer(config)
-// }
-
+// Response is a response type for API responses.
 func (h *BaseHandler) Response(w http.ResponseWriter) *APIResponse {
 	return NewAPIResponse(w)
 }
 
+// JSONResponse is a response type for JSON responses.
 func (h *BaseHandler) JSONResponse(w http.ResponseWriter) *JSONResponse {
 	return NewJSONResponse(w)
 }
 
-func (h *BaseHandler) success(message string, w http.ResponseWriter) {
+// Success sends a Success response.
+func (h *BaseHandler) Success(message string, w http.ResponseWriter) {
 	h.JSONResponse(w).Send(&SimpleResponse{
 		Message: message,
 		Success: true,
 	})
 }
 
-func (h *BaseHandler) error(code int, message string, w http.ResponseWriter) {
+// Error sends an error response.
+func (h *BaseHandler) Error(code int, message string, w http.ResponseWriter) {
 	h.JSONResponse(w).WithStatusCode(code).Send(&SimpleResponse{
 		Message: message,
 		Success: false,
 	})
 }
 
+// HandleErrorAndLatency handles error and latency defined in the service configuration.
+// Returns true if error was handled.
 func HandleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
 	if svcConfig.Latency > 0 {
 		log.Printf("Encountered latency of %s\n", svcConfig.Latency)

@@ -5,16 +5,19 @@ import (
 	"net/http"
 )
 
+// BaseResponse is a base response type.
 type BaseResponse struct {
 	statusCode int
 	headers    map[string]string
 	w          http.ResponseWriter
 }
 
+// APIResponse is a response type for API responses.
 type APIResponse struct {
 	*BaseResponse
 }
 
+// NewAPIResponse creates a new APIResponse instance.
 func NewAPIResponse(w http.ResponseWriter) *APIResponse {
 	return &APIResponse{
 		&BaseResponse{
@@ -23,6 +26,7 @@ func NewAPIResponse(w http.ResponseWriter) *APIResponse {
 	}
 }
 
+// WithHeader adds a header to the response.
 func (r *APIResponse) WithHeader(key string, value string) *APIResponse {
 	if len(r.headers) == 0 {
 		r.headers = make(map[string]string)
@@ -31,11 +35,13 @@ func (r *APIResponse) WithHeader(key string, value string) *APIResponse {
 	return r
 }
 
+// WithStatusCode sets the status code of the response.
 func (r *APIResponse) WithStatusCode(code int) *APIResponse {
 	r.statusCode = code
 	return r
 }
 
+// Send sends the data to the client.
 func (r *APIResponse) Send(data []byte) {
 	statusCode := r.statusCode
 	if statusCode == 0 {
@@ -49,10 +55,12 @@ func (r *APIResponse) Send(data []byte) {
 	_, _ = r.w.Write(data)
 }
 
+// JSONResponse is a response type for JSON responses.
 type JSONResponse struct {
 	*BaseResponse
 }
 
+// NewJSONResponse creates a new JSONResponse instance.
 func NewJSONResponse(w http.ResponseWriter) *JSONResponse {
 	return &JSONResponse{
 		&BaseResponse{
@@ -61,6 +69,7 @@ func NewJSONResponse(w http.ResponseWriter) *JSONResponse {
 	}
 }
 
+// WithHeader adds a header to the response.
 func (r *JSONResponse) WithHeader(key string, value string) *JSONResponse {
 	if len(r.headers) == 0 {
 		r.headers = make(map[string]string)
@@ -69,6 +78,7 @@ func (r *JSONResponse) WithHeader(key string, value string) *JSONResponse {
 	return r
 }
 
+// WithStatusCode sets the status code of the response.
 func (r *JSONResponse) WithStatusCode(code int) *JSONResponse {
 	r.statusCode = code
 	return r
@@ -105,6 +115,7 @@ func (r *JSONResponse) Send(data any) {
 	_, _ = r.w.Write(jsonBytes)
 }
 
+// SimpleResponse is a simple response type to indicate the success of an operation.
 type SimpleResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`

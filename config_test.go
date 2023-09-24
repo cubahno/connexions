@@ -444,7 +444,7 @@ app:
 				},
 			},
 			Services: make(map[string]*ServiceConfig),
-			baseDir: "",
+			baseDir:  "",
 		}
 
 		cfg, err := NewConfigFromContent([]byte(contents))
@@ -498,7 +498,7 @@ func TestNewDefaultConfig(t *testing.T) {
 			},
 		},
 		Replacers: Replacers,
-		Services: map[string]*ServiceConfig{},
+		Services:  map[string]*ServiceConfig{},
 		baseDir:   "/app",
 	}
 	assert.Equal(expected, cfg)

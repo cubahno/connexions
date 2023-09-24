@@ -147,10 +147,10 @@ func TestServiceHandler_save_errors(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(400, w.Code)
-		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
-		assert.Equal(false, resp["success"].(bool))
-		assert.Equal("multipart: NextPart: EOF", resp["message"].(string))
+		assert.Equal(false, resp.Success)
+		assert.Equal("multipart: NextPart: EOF", resp.Message)
 	})
 
 	t.Run("save-error", func(t *testing.T) {
@@ -205,11 +205,11 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
+	resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 	assert.Equal(http.StatusOK, w.Code)
 	assert.Equal("application/json", w.Header().Get("Content-Type"))
-	assert.Equal(true, resp["success"].(bool))
-	assert.Equal("Resource saved!", resp["message"].(string))
+	assert.Equal(true, resp.Success)
+	assert.Equal("Resource saved!", resp.Message)
 
 	svc := router.services["petstore"]
 	expectedFileProps := &FileProperties{
@@ -461,11 +461,11 @@ func TestServiceHandler_resources_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusNotFound, w.Code)
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
-		assert.Equal(false, resp["success"].(bool))
-		assert.Equal("Service not found", resp["message"].(string))
+		assert.Equal(false, resp.Success)
+		assert.Equal("Service not found", resp.Message)
 	})
 }
 
@@ -630,9 +630,9 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusNotFound, w.Code)
-		assert.Equal("No Spec files attached", resp["message"].(string))
+		assert.Equal("No Spec files attached", resp.Message)
 	})
 
 	t.Run("error-reading-spec", func(t *testing.T) {
@@ -651,9 +651,9 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusInternalServerError, w.Code)
-		assert.Equal("open : no such file or directory", resp["message"].(string))
+		assert.Equal("open : no such file or directory", resp.Message)
 	})
 }
 

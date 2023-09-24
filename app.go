@@ -11,13 +11,16 @@ import (
 	"time"
 )
 
+// App is the main application struct
 type App struct {
 	Router     *Router
 	BluePrints []RouteRegister
 	Paths      *Paths
-	mu         sync.Mutex
+
+	mu sync.Mutex
 }
 
+// Paths is a struct that holds all the paths used by the application.
 type Paths struct {
 	Base              string
 	Resources         string
@@ -32,6 +35,7 @@ type Paths struct {
 	ConfigFile        string
 }
 
+// NewApp creates a new App instance from Config and registers predefined blueprints.
 func NewApp(config *Config) *App {
 	paths := config.App.Paths
 	res := &App{
@@ -91,6 +95,7 @@ func MustFileStructure(paths *Paths) error {
 	return nil
 }
 
+// AddBluePrint adds a new blueprint to the application.
 func (a *App) AddBluePrint(bluePrint RouteRegister) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -103,6 +108,8 @@ func (a *App) AddBluePrint(bluePrint RouteRegister) error {
 	return nil
 }
 
+// Run starts the application and the server.
+// Blocks until the server is stopped.
 func (a *App) Run() {
 	config := a.Router.Config
 	port := config.App.Port

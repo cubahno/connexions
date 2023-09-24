@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 )
@@ -17,7 +18,7 @@ type Router struct {
 	*chi.Mux
 
 	// Config is a pointer to the global Config instance.
-	Config       *Config
+	Config *Config
 
 	// Router keeps track of registered services and their routes.
 	services map[string]*ServiceItem
@@ -33,7 +34,7 @@ type Router struct {
 	// - fake:payments
 	defaultContexts []map[string]string
 
-	mu           sync.RWMutex
+	mu sync.RWMutex
 }
 
 // NewRouter creates a new Router instance from Config.
@@ -88,8 +89,26 @@ func (r *Router) SetContexts(contexts map[string]map[string]any, defaultContexts
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// sort default contexts by name
+	sort.Slice(defaultContexts, func(i, j int) bool {
+		// Extract the first keys from the maps
+		var keyI, keyJ string
+		for key := range defaultContexts[i] {
+			keyI = key
+			break
+		}
+		for key := range defaultContexts[j] {
+			keyJ = key
+			break
+		}
+
+		// Compare the first keys
+		return keyI < keyJ
+	})
+
 	r.contexts = contexts
 	r.defaultContexts = defaultContexts
+
 	return r
 }
 
@@ -112,7 +131,6 @@ func (r *Router) GetDefaultContexts() []map[string]string {
 			res[i][k] = v
 		}
 	}
-
 	return res
 }
 

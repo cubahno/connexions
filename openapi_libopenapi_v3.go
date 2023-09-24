@@ -11,24 +11,30 @@ import (
 	"sync"
 )
 
+// LibV3Document is a wrapper around libopenapi.DocumentModel
+// Implements Document interface
 type LibV3Document struct {
 	*libopenapi.DocumentModel[v3high.Document]
 }
 
+// LibV3Operation is a wrapper around libopenapi.Operation
 type LibV3Operation struct {
 	*v3high.Operation
 	parseConfig *ParseConfig
 	mu          sync.Mutex
 }
 
+// Provider returns the SchemaProvider for this document
 func (d *LibV3Document) Provider() SchemaProvider {
 	return LibOpenAPIProvider
 }
 
+// GetVersion returns the version of the document
 func (d *LibV3Document) GetVersion() string {
 	return d.Model.Version
 }
 
+// GetResources returns a map of resource names and their methods.
 func (d *LibV3Document) GetResources() map[string][]string {
 	res := make(map[string][]string)
 
@@ -45,6 +51,7 @@ func (d *LibV3Document) GetResources() map[string][]string {
 	return res
 }
 
+// FindOperation finds an operation by resource and method.
 func (d *LibV3Document) FindOperation(options *OperationDescription) Operationer {
 	if options == nil {
 		return nil
@@ -65,10 +72,12 @@ func (d *LibV3Document) FindOperation(options *OperationDescription) Operationer
 	return nil
 }
 
+// ID returns the operation ID
 func (op *LibV3Operation) ID() string {
 	return op.Operation.OperationId
 }
 
+// GetParameters returns a list of parameters for the operation
 func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 	params := make(OpenAPIParameters, 0)
 
@@ -96,6 +105,9 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 	return params
 }
 
+// GetResponse returns the response for the operation.
+// If no response is defined, a default response is returned.
+// Responses are prioritized by status code, with 200 being the highest priority.
 func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
 	available := op.Responses.Codes
 
@@ -190,6 +202,7 @@ func (op *LibV3Operation) getContent(contentTypes map[string]*v3high.MediaType) 
 	return nil, ""
 }
 
+// GetRequestBody returns the request body for the operation.
 func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	if op.RequestBody == nil {
 		return nil, ""
@@ -217,6 +230,7 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	return nil, ""
 }
 
+// WithParseConfig sets the ParseConfig for the operation.
 func (op *LibV3Operation) WithParseConfig(parseConfig *ParseConfig) Operationer {
 	op.mu.Lock()
 	defer op.mu.Unlock()

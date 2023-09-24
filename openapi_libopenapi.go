@@ -9,6 +9,9 @@ import (
 	"strings"
 )
 
+// NewLibOpenAPIDocumentFromFile creates a new Document from a file path.
+// It uses libopenapi to parse the file and then builds a model.
+// Circular references are handled by logging the error and returning Document without errors.
 func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	src, _ := os.ReadFile(filePath)
 
@@ -59,6 +62,7 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	}, nil
 }
 
+// NewSchemaFromLibOpenAPI creates a new Schema from a libopenapi Schema.
 func NewSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig) *Schema {
 	if parseConfig == nil {
 		parseConfig = &ParseConfig{}
@@ -154,6 +158,7 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	}
 }
 
+// mergeLibOpenAPISubSchemas merges allOf, anyOf, oneOf and not into a single schema.
 func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	allOf := schema.AllOf
 	anyOf := schema.AnyOf

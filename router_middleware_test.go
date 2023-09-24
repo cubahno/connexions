@@ -25,7 +25,7 @@ func TestConditionalLoggingMiddleware(t *testing.T) {
 			_, _ = w.Write([]byte("Hallo, welt!"))
 		})
 
-		w := newBufferedResponseWriter()
+		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 		f := ConditionalLoggingMiddleware(cfg)

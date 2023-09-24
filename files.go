@@ -473,6 +473,7 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 	return nil
 }
 
+// GetFileHash gets the SHA256 hash of a file.
 func GetFileHash(file io.Reader) string {
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {

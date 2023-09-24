@@ -11,6 +11,36 @@ import (
 	"sync"
 )
 
+const (
+	OpenAPIRouteType = "openapi"
+	FixedRouteType   = "fixed"
+)
+
+// RouteDescription describes a route for the UI Application.
+// Path is relative to the service prefix.
+type RouteDescription struct {
+	Method      string          `json:"method"`
+	Path        string          `json:"path"`
+	Type        string          `json:"type"`
+	ContentType string          `json:"contentType"`
+	Overwrites  bool            `json:"overwrites"`
+	File        *FileProperties `json:"-"`
+}
+
+// RouteDescriptions is a slice of RouteDescription.
+// Allows to add custom methods.
+type RouteDescriptions []*RouteDescription
+
+// ServiceHandler handles service routes.
+type ServiceHandler struct {
+	*BaseHandler
+	router *Router
+	mu     sync.Mutex
+}
+
+// createServiceRoutes adds service routes to the router.
+// It also creates necessary closures to serve routes.
+// Implements RouteRegister interface.
 func createServiceRoutes(router *Router) error {
 	if router.Config.App.DisableUI || router.Config.App.ServiceURL == "" {
 		return nil
@@ -40,6 +70,8 @@ func createServiceRoutes(router *Router) error {
 	return nil
 }
 
+// ServiceItem represents a service with the route collection.
+// Service can hold multiple OpenAPI specs.
 type ServiceItem struct {
 	Name         string            `json:"name"`
 	Routes       RouteDescriptions `json:"routes"`
@@ -47,6 +79,7 @@ type ServiceItem struct {
 	mu           sync.Mutex
 }
 
+// AddOpenAPIFile adds OpenAPI file to the service.
 func (i *ServiceItem) AddOpenAPIFile(file *FileProperties) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -90,24 +123,6 @@ func (i *ServiceItem) AddRoutes(routes RouteDescriptions) {
 	i.Routes = append(i.Routes, routes...)
 }
 
-const (
-	OpenAPIRouteType = "openapi"
-	FixedRouteType   = "fixed"
-)
-
-// RouteDescription describes a route for the UI Application.
-// Path is relative to the service prefix.
-type RouteDescription struct {
-	Method      string          `json:"method"`
-	Path        string          `json:"path"`
-	Type        string          `json:"type"`
-	ContentType string          `json:"contentType"`
-	Overwrites  bool            `json:"overwrites"`
-	File        *FileProperties `json:"-"`
-}
-
-type RouteDescriptions []*RouteDescription
-
 // Sort sorts the routes by path and method.
 // The order is: GET, POST, other methods (alphabetically)
 func (rs RouteDescriptions) Sort() {
@@ -135,12 +150,6 @@ func (rs RouteDescriptions) Sort() {
 
 		return m1 < m2
 	})
-}
-
-type ServiceHandler struct {
-	*BaseHandler
-	router *Router
-	mu     sync.Mutex
 }
 
 func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -178,13 +187,13 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseMultipartForm(10 * 1024 * 1024) // Limit form size to 10 MB
 	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
+		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
 	uploadedFile, err := GetRequestFile(r, "file")
 	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
+		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
@@ -202,7 +211,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 
 	fileProps, err := saveService(payload, h.router.Config.App)
 	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
+		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
@@ -255,10 +264,11 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// resources returns the list of resources for the service.
 func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		h.error(http.StatusNotFound, "Service not found", w)
+		h.Error(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
@@ -280,6 +290,7 @@ func (h *ServiceHandler) resources(w http.ResponseWriter, r *http.Request) {
 	h.JSONResponse(w).Send(res)
 }
 
+// deleteService deletes the service and all files.
 func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
@@ -317,46 +328,48 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// spec serves the OpenAPI spec file.
 func (h *ServiceHandler) spec(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		h.error(http.StatusNotFound, "Service not found", w)
+		h.Error(http.StatusNotFound, "Service not found", w)
 		return
 	}
 
 	// TODO(cubahno): handle multiple spec files in the UI
 	openAPIFiles := service.OpenAPIFiles
 	if len(openAPIFiles) == 0 || openAPIFiles[0] == nil {
-		h.error(http.StatusNotFound, "No Spec files attached", w)
+		h.Error(http.StatusNotFound, "No Spec files attached", w)
 		return
 	}
 
 	fileProps := openAPIFiles[0]
 	content, err := os.ReadFile(fileProps.FilePath)
 	if err != nil {
-		h.error(http.StatusInternalServerError, err.Error(), w)
+		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
 
 	NewAPIResponse(w).WithHeader("content-type", "text/plain").Send(content)
 }
 
+// generate generates a request and response from the OpenAPI spec.
 func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
-		h.error(http.StatusNotFound, ErrServiceNotFound.Error(), w)
+		h.Error(http.StatusNotFound, ErrServiceNotFound.Error(), w)
 		return
 	}
 
 	ix, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil || (ix < 0 || ix >= len(service.Routes)) {
-		h.error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
+		h.Error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
 		return
 	}
 
 	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
 	if err != nil {
-		h.error(http.StatusBadRequest, err.Error(), w)
+		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
@@ -369,7 +382,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	res := &GenerateResponse{}
 
 	if fileProps == nil {
-		h.error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
+		h.Error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
 		return
 	}
 
@@ -401,7 +414,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if operation == nil {
-		h.error(http.StatusMethodNotAllowed, ErrResourceMethodNotFound.Error(), w)
+		h.Error(http.StatusMethodNotAllowed, ErrResourceMethodNotFound.Error(), w)
 		return
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
@@ -471,6 +484,7 @@ func (h *ServiceHandler) getResource(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// deleteResource deletes the resource file.
 func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) {
 	service := h.getService(r)
 	if service == nil {
@@ -520,6 +534,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// getService returns the service by name from the path.
 func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -554,14 +569,7 @@ func (h *ServiceHandler) getRouteIndex(fileProps *FileProperties) int {
 	return -1
 }
 
-type ServiceDescription struct {
-	Name      string
-	Method    string
-	Path      string
-	Ext       string
-	IsOpenAPI bool
-}
-
+// saveService saves the service resource.
 func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
@@ -630,6 +638,14 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	}
 
 	return fileProps, nil
+}
+
+type ServiceDescription struct {
+	Name      string
+	Method    string
+	Path      string
+	Ext       string
+	IsOpenAPI bool
 }
 
 type ServiceItemResponse struct {

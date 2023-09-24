@@ -13,6 +13,15 @@ import (
 	"sync"
 )
 
+// ContextHandler handles context routes.
+type ContextHandler struct {
+	*BaseHandler
+	router *Router
+	mu     sync.Mutex
+}
+
+// createHomeRoutes creates routes to handle contexts.
+// Implements RouteRegister interface.
 func createContextRoutes(router *Router) error {
 	if router.Config.App.DisableUI || router.Config.App.ContextURL == "" {
 		return nil
@@ -36,16 +45,7 @@ func createContextRoutes(router *Router) error {
 	return nil
 }
 
-type ContextListResponse struct {
-	Items []string `json:"items"`
-}
-
-type ContextHandler struct {
-	*BaseHandler
-	router *Router
-	mu     sync.Mutex
-}
-
+// list returns a list of context namespaces.
 func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 	var names []string
 	for name := range h.router.GetContexts() {
@@ -61,6 +61,7 @@ func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// details returns a context details map.
 func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if _, found := h.router.GetContexts()[name]; !found {
@@ -72,10 +73,11 @@ func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filepath.Join(ctxDir, fmt.Sprintf("%s.yml", name)))
 }
 
+// delete deletes a context including file.
 func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	if _, found := h.router.GetContexts()[name]; !found {
-		h.error(http.StatusNotFound, "Context not found", w)
+		h.Error(http.StatusNotFound, "Context not found", w)
 		return
 	}
 	ctxDir := h.router.Config.App.Paths.Contexts
@@ -83,22 +85,24 @@ func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 	_ = os.Remove(filePath)
 
 	h.router.RemoveContext(name)
-	h.success("Context deleted!", w)
+	h.Success("Context deleted!", w)
 }
 
+// save saves a context to file.
+// Existing context will be overwritten.
 func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	name := r.FormValue("name")
 	if name == "" {
-		h.error(http.StatusBadRequest, "Name is required", w)
+		h.Error(http.StatusBadRequest, "Name is required", w)
 		return
 	}
 
 	match, _ := regexp.MatchString("^[a-zA-Z0-9_-]+$", name)
 	if !match || len(name) > 20 {
-		h.error(http.StatusBadRequest, "Invalid name: must be alpha-numeric, _, - and not exceed 20 chars", w)
+		h.Error(http.StatusBadRequest, "Invalid name: must be alpha-numeric, _, - and not exceed 20 chars", w)
 		return
 	}
 
@@ -107,19 +111,24 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 
 	// ignore result as we need to reload them all because of the possible cross-references in aliases
-	_, err := ParseContextFromBytes([]byte(content))
+	_, err := ParseContextFromBytes([]byte(content), fakes)
 	if err != nil {
-		h.error(http.StatusBadRequest, "Invalid context: "+err.Error(), w)
+		h.Error(http.StatusBadRequest, "Invalid context: "+err.Error(), w)
 		return
 	}
 
 	if err = SaveFile(filePath, []byte(content)); err != nil {
-		h.error(http.StatusInternalServerError, err.Error(), w)
+		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
 
 	// there's no error
 	_ = loadContexts(h.router)
 
-	h.success("Context saved", w)
+	h.Success("Context saved", w)
+}
+
+// ContextListResponse is a response for context list.
+type ContextListResponse struct {
+	Items []string `json:"items"`
 }

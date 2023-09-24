@@ -5,22 +5,26 @@ import (
 	"sync"
 )
 
+// CacheStorage is an interface that describes a cache storage.
 type CacheStorage interface {
 	Set(key string, value any) error
 	Get(key string) (any, bool)
 }
 
+// MemoryStorage is a cache storage that stores data in memory.
 type MemoryStorage struct {
 	data map[string]any
 	mu   sync.Mutex
 }
 
+// NewMemoryStorage creates a new MemoryStorage instance.
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		data: make(map[string]any),
 	}
 }
 
+// Set sets the value for the given key.
 func (s *MemoryStorage) Set(key string, value any) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -29,6 +33,7 @@ func (s *MemoryStorage) Set(key string, value any) error {
 	return nil
 }
 
+// Get returns the value for the given key.
 func (s *MemoryStorage) Get(key string) (any, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -37,11 +42,15 @@ func (s *MemoryStorage) Get(key string) (any, bool) {
 	return value, ok
 }
 
+// SchemaWithContentType is a schema with a content type.
+// It is used to cache the result of GetRequestBody and wrap 2 values together.
 type SchemaWithContentType struct {
 	Schema      *Schema
 	ContentType string
 }
 
+// CacheOperationAdapter is an adapter that caches the result of the wrapped operation.
+// Implements Operationer interface.
 type CacheOperationAdapter struct {
 	service      string
 	operation    Operationer
@@ -49,6 +58,7 @@ type CacheOperationAdapter struct {
 	mu           sync.Mutex
 }
 
+// NewCacheOperationAdapter creates a new CacheOperationAdapter instance.
 func NewCacheOperationAdapter(service string, operation Operationer, storage CacheStorage) Operationer {
 	return &CacheOperationAdapter{
 		service:      service,
@@ -57,15 +67,18 @@ func NewCacheOperationAdapter(service string, operation Operationer, storage Cac
 	}
 }
 
+// WithParseConfig sets the ParseConfig for the operation.
 func (a *CacheOperationAdapter) WithParseConfig(parseConfig *ParseConfig) Operationer {
 	a.operation.WithParseConfig(parseConfig)
 	return a
 }
 
+// ID returns the ID of the operation.
 func (a *CacheOperationAdapter) ID() string {
 	return a.operation.ID()
 }
 
+// GetParameters returns the parameters for the operation.
 func (a *CacheOperationAdapter) GetParameters() OpenAPIParameters {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -83,6 +96,7 @@ func (a *CacheOperationAdapter) GetParameters() OpenAPIParameters {
 	return value
 }
 
+// GetRequestBody returns the request body for the operation.
 func (a *CacheOperationAdapter) GetRequestBody() (*Schema, string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -104,6 +118,7 @@ func (a *CacheOperationAdapter) GetRequestBody() (*Schema, string) {
 	return value, contentType
 }
 
+// GetResponse returns the response for the operation.
 func (a *CacheOperationAdapter) GetResponse() *OpenAPIResponse {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -121,6 +136,7 @@ func (a *CacheOperationAdapter) GetResponse() *OpenAPIResponse {
 	return value
 }
 
+// key returns a key for the given type to be stored in cache.
 func (a *CacheOperationAdapter) key(typ string) string {
 	return a.service + ":" + a.operation.ID() + ":" + typ
 }

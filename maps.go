@@ -8,11 +8,15 @@ import (
 	"time"
 )
 
+// IsMap checks if the value is a map
 func IsMap(i any) bool {
 	val := reflect.ValueOf(i)
 	return val.Kind() == reflect.Map
 }
 
+// GetValueByDottedPath returns the value of the given path in the given map.
+// If the path does not exist, nil is returned.
+// e.g. GetValueByDottedPath(map[string]any{"a": map[string]any{"b": 1}}, "a.b") returns 1
 func GetValueByDottedPath(data map[string]any, path string) any {
 	keys := strings.Split(path, ".")
 
@@ -33,6 +37,9 @@ func GetValueByDottedPath(data map[string]any, path string) any {
 	return current
 }
 
+// SetValueByDottedPath sets the value of the given path in the given map.
+// If the path does not exist, it is created.
+// e.g. SetValueByDottedPath(map[string]any{"a": map[string]any{"b": 1}}, "a.b", 2) sets the value of "a.b" to 2
 func SetValueByDottedPath(data map[string]any, path string, value any) {
 	keys := strings.Split(path, ".")
 	lastIndex := len(keys) - 1
@@ -59,6 +66,7 @@ func SetValueByDottedPath(data map[string]any, path string, value any) {
 	}
 }
 
+// GetRandomKeyFromMap returns a random key from the given map.
 func GetRandomKeyFromMap[T any](m map[string]T) string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -75,6 +83,7 @@ func GetRandomKeyFromMap[T any](m map[string]T) string {
 	return keys[randomIndex]
 }
 
+// GetSortedMapKeys returns the keys of the given map sorted alphabetically.
 func GetSortedMapKeys[T any](content map[string]T) []string {
 	var keys []string
 	for key := range content {

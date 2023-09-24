@@ -5,16 +5,38 @@ import (
 	"reflect"
 )
 
+// ValueReplacer is a function that replaces value in schema or content.
+// This function should encapsulate all the logic, data, contexts etc. of replacing values.
 type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
 
 type ReplaceContext struct {
-	Schema     any
-	State      *ReplaceState
+	// Schema is a schema that is used to replace values.
+	// Currently only OpenAPI Schema is supported.
+	// It does not depend on schema provider as this is already converted to internal Schema type.
+	Schema any
+
+	// State is a state of the current replace operation.
+	// It is used to store information about the current element, including its name, index, content type etc.
+	State *ReplaceState
+
+	// AreaPrefix is a prefix that is used to identify the correct section
+	// in the context config for specific replacement area.
+	// e.g. in-
+	// then in the contexts we should have:
+	// in-header:
+	//   X-Request-ID: 123
+	// in-path:
+	//   user_id: 123
 	AreaPrefix string
-	Data       []map[string]any
-	Faker      faker.Faker
+
+	// Data is a list of contexts that are used to replace values.
+	Data []map[string]any
+
+	// Faker is a faker instance that is used to generate fake data.
+	Faker faker.Faker
 }
 
+// Replacers is a list of replacers that are used to replace values in schemas and contents in the specified order.
 var Replacers = []Replacer{
 	ReplaceInHeaders,
 	ReplaceInPath,
@@ -25,8 +47,13 @@ var Replacers = []Replacer{
 	ReplaceFromSchemaFallback,
 }
 
+// fake is an instance of faker that is used to generate fake data.
 var fake = faker.New()
 
+// fakes is a map of registered fake functions.
+var fakes = GetFakes()
+
+// CreateValueReplacer is a factory that creates a new ValueReplacer instance from the given config and contexts.
 func CreateValueReplacer(cfg *Config, contexts []map[string]any) ValueReplacer {
 	return func(content any, state *ReplaceState) any {
 		if state == nil {
@@ -67,6 +94,7 @@ func CreateValueReplacer(cfg *Config, contexts []map[string]any) ValueReplacer {
 	}
 }
 
+// IsCorrectlyReplacedType checks if the given value is of the correct schema type.
 func IsCorrectlyReplacedType(value any, neededType string) bool {
 	switch neededType {
 	case TypeString:
