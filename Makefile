@@ -75,3 +75,8 @@ docker-shell:
 @PHONY: tag-next
 tag-next:
 	@./.cli/tag-next.sh
+
+
+@PHONY: deploy-docs
+deploy-docs:
+	mkdocs gh-deploy --force
