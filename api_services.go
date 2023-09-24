@@ -144,7 +144,7 @@ type ServiceHandler struct {
 }
 
 func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
-	services := h.router.Services
+	services := h.router.GetServices()
 	var keys []string
 	for key := range services {
 		keys = append(keys, key)
@@ -207,7 +207,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// if routes exists, do not add them again
-	service, serviceExists := h.router.Services[fileProps.ServiceName]
+	service, serviceExists := h.router.GetServices()[fileProps.ServiceName]
 	if serviceExists {
 		savedRouteId := h.getRouteIndex(fileProps)
 		if savedRouteId >= 0 {
@@ -234,17 +234,14 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 			Name:   fileProps.ServiceName,
 			Routes: routes,
 		}
-		if len(h.router.Services) == 0 {
-			h.router.Services = make(map[string]*ServiceItem)
-		}
-		h.router.Services[fileProps.ServiceName] = service
+		h.router.AddService(service)
 	} else {
-		var addRoutes []*RouteDescription
+		var newRoutes []*RouteDescription
 		for _, route := range routes {
-			addRoutes = append(addRoutes, route)
+			newRoutes = append(newRoutes, route)
 		}
 
-		h.router.Services[fileProps.ServiceName].AddRoutes(addRoutes)
+		service.AddRoutes(newRoutes)
 	}
 
 	if isOpenAPI {
@@ -313,7 +310,7 @@ func (h *ServiceHandler) deleteService(w http.ResponseWriter, r *http.Request) {
 		_ = os.RemoveAll(targetDir)
 	}
 
-	delete(h.router.Services, service.Name)
+	delete(h.router.GetServices(), service.Name)
 	h.JSONResponse(w).Send(&SimpleResponse{
 		Message: "Service deleted!",
 		Success: true,
@@ -379,9 +376,9 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	// create ValueReplacer
 	serviceCtxs := serviceCfg.Contexts
 	if len(serviceCtxs) == 0 {
-		serviceCtxs = h.router.ContextNames
+		serviceCtxs = h.router.GetDefaultContexts()
 	}
-	contexts := CollectContexts(serviceCtxs, h.router.Contexts, payload.Replacements)
+	contexts := CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
 	valueReplacer := CreateValueReplacer(config, contexts)
 
 	if !fileProps.IsOpenAPI {
@@ -532,11 +529,11 @@ func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 		name = ""
 	}
 
-	return h.router.Services[name]
+	return h.router.GetServices()[name]
 }
 
 func (h *ServiceHandler) getRouteIndex(fileProps *FileProperties) int {
-	service, ok := h.router.Services[fileProps.ServiceName]
+	service, ok := h.router.GetServices()[fileProps.ServiceName]
 	if !ok {
 		return -1
 	}

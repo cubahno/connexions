@@ -4,7 +4,6 @@ package connexions
 
 import (
 	"bytes"
-	"errors"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
@@ -63,28 +62,84 @@ func TestGetJSONPayload(t *testing.T) {
 	}
 }
 
-func TestNewErrorMessage(t *testing.T) {
-	assert := assert2.New(t)
-	err := errors.New("some-error")
-	res := NewErrorMessage(err)
-	expected := &ErrorMessage{
-		Message: "some-error",
-	}
-	assert.Equal(expected, res)
-}
-
 func TestRouter(t *testing.T) {
 	assert := assert2.New(t)
 
+	t.Run("AddService", func(t *testing.T) {
+		router := new(Router)
+		router.AddService(&ServiceItem{Name: "a"})
+		router.AddService(&ServiceItem{Name: "b"})
+
+		assert.Len(router.services, 2)
+		assert.Equal(&ServiceItem{Name: "a"}, router.services["a"])
+		assert.Equal(&ServiceItem{Name: "b"}, router.services["b"])
+	})
+
+	t.Run("SetServices", func(t *testing.T) {
+		router := new(Router)
+		router.SetServices(map[string]*ServiceItem{
+			"a": {Name: "a"},
+			"b": {Name: "b"},
+		})
+
+		assert.Len(router.services, 2)
+		assert.Equal(&ServiceItem{Name: "a"}, router.services["a"])
+		assert.Equal(&ServiceItem{Name: "b"}, router.services["b"])
+	})
+
+	t.Run("GetServices", func(t *testing.T) {
+		router := new(Router)
+		router.services = map[string]*ServiceItem{
+			"a": {Name: "a"},
+			"b": {Name: "b"},
+		}
+		assert.Equal(map[string]*ServiceItem{
+			"a": {Name: "a"},
+			"b": {Name: "b"},
+		}, router.GetServices())
+	})
+
+	t.Run("SetContexts", func(t *testing.T) {
+		router := new(Router)
+		router.SetContexts(map[string]map[string]any{
+			"a": {"k1": "v1"},
+			"b": {"k2": "v2"},
+		}, []map[string]string{{"k3": "v3"}})
+
+		assert.Equal(map[string]map[string]any{
+			"a": {"k1": "v1"},
+			"b": {"k2": "v2"},
+		}, router.contexts)
+		assert.Equal([]map[string]string{{"k3": "v3"}}, router.defaultContexts)
+	})
+
+	t.Run("GetContexts", func(t *testing.T) {
+		router := new(Router)
+		router.contexts = map[string]map[string]any{
+			"a": {"k1": "v1"},
+			"b": {"k2": "v2"},
+		}
+		assert.Equal(map[string]map[string]any{
+			"a": {"k1": "v1"},
+			"b": {"k2": "v2"},
+		}, router.GetContexts())
+	})
+
+	t.Run("GetDefaultContexts", func(t *testing.T) {
+		router := new(Router)
+		router.defaultContexts = []map[string]string{{"k3": "v3"}}
+		assert.Equal([]map[string]string{{"k3": "v3"}}, router.GetDefaultContexts())
+	})
+
 	t.Run("RemoveContext", func(t *testing.T) {
 		router := new(Router)
-		router.Contexts = map[string]map[string]any{
+		router.contexts = map[string]map[string]any{
 			"a": {"k1": "v1"},
 			"b": {"k2": "v2"},
 		}
 		router.RemoveContext("a")
-		assert.Len(router.Contexts, 1)
-		assert.Equal(map[string]map[string]any{"b": {"k2": "v2"}}, router.Contexts)
+		assert.Len(router.contexts, 1)
+		assert.Equal(map[string]map[string]any{"b": {"k2": "v2"}}, router.contexts)
 	})
 
 	assert.True(true)

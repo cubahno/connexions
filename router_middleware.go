@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// ConditionalLoggingMiddleware is a middleware that conditionally can disable logger.
+// For example, in tests or when fetching static files.
 func ConditionalLoggingMiddleware(cfg *Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		logger := middleware.DefaultLogger(next)

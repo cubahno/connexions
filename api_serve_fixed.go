@@ -40,9 +40,9 @@ func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.
 
 	serviceCtxs := serviceCfg.Contexts
 	if len(serviceCtxs) == 0 {
-		serviceCtxs = router.ContextNames
+		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := CollectContexts(serviceCtxs, router.Contexts, nil)
+	contexts := CollectContexts(serviceCtxs, router.GetContexts(), nil)
 	valueReplacer := CreateValueReplacer(config, contexts)
 
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -83,3 +83,16 @@ func GetSortedMapKeys[T any](content map[string]T) []string {
 	sort.Strings(keys)
 	return keys
 }
+
+// CopyNestedMap returns a copy of the given map with all nested maps copied as well.
+func CopyNestedMap(source map[string]map[string]any) map[string]map[string]any {
+	res := make(map[string]map[string]any)
+	for key, value := range source {
+		copyValue := make(map[string]any)
+		for innerKey, innerValue := range value {
+			copyValue[innerKey] = innerValue
+		}
+		res[key] = copyValue
+	}
+	return res
+}

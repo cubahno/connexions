@@ -4,6 +4,7 @@ package connexions
 
 import (
 	assert2 "github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 )
 
@@ -144,4 +145,31 @@ func TestGetSortedMapKeys(t *testing.T) {
 	res := GetSortedMapKeys(myMap)
 
 	assert.Equal([]string{"key1", "key2", "key3"}, res)
+}
+
+func TestCopyNestedMap(t *testing.T) {
+	t.Run("happy-path", func(t *testing.T) {
+		source := map[string]map[string]interface{}{
+			"key1": {
+				"innerKey1": "value1",
+				"innerKey2": "value2",
+			},
+			"key2": {
+				"innerKey3": "value3",
+			},
+		}
+
+		cp := CopyNestedMap(source)
+
+		// Check if the copy is equal to the original
+		if !reflect.DeepEqual(cp, source) {
+			t.Errorf("CopyNestedMap did not create an equal copy. Expected: %v, Got: %v", source, cp)
+		}
+
+		// Modify the original and check if the copy remains unchanged
+		source["key1"]["innerKey1"] = "modifiedValue"
+		if reflect.DeepEqual(cp, source) {
+			t.Errorf("CopyNestedMap copy was not independent. Expected: %v, Got: %v", source, cp)
+		}
+	})
 }

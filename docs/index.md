@@ -5,14 +5,10 @@
 ![License](https://img.shields.io/github/license/cubahno/connexions)
 
 
-**Connexions** is a library inspired by [Connexion](https://github.com/spec-first/connexion).<br/>
-Connexion allows you to set up a REST API with Swagger documentation and OAuth2 authentication with minimal effort.<br/>
+**Connexions** allows to define single response for any arbitrary path on the fly.<br/>
 
-**Connexions** takes this one step further by allowing you to define **multiple APIs** not limited to only Swagger and(or) OpenAPI.<br/>
-You can define single response for any arbitrary path on the fly.<br/>
-
-## Goal:
-- simplify the development process
+## Goals:
+- provide a simple tool to work with API mocks
 - combine multiple APIs into one
 - generate meaningful responses
 

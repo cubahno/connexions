@@ -79,19 +79,22 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		Name: "petstore",
 	}
 
-	router.Contexts = map[string]map[string]any{
-		"petstore": {
-			"id": 12,
-			// NULL allows setting nil value explicitly and skip other replacers
-			"name": NULL,
-			"tag":  "#hund",
+	router.SetContexts(
+		map[string]map[string]any{
+			"petstore": {
+				"id": 12,
+				// NULL allows setting nil value explicitly and skip other replacers
+				"name": NULL,
+				"tag":  "#hund",
+			},
 		},
-	}
-	router.ContextNames = []map[string]string{
-		{"petstore": ""},
-	}
+		[]map[string]string{
+			{"petstore": ""},
+		},
+	)
+
 	svc.AddOpenAPIFile(file)
-	router.Services["petstore"] = svc
+	router.services["petstore"] = svc
 	router.Config.Services[file.ServiceName] = &ServiceConfig{}
 
 	svcCfg := router.Config.Services[file.ServiceName]
@@ -190,22 +193,24 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 		Response: true,
 	}
 
-	router.Contexts = map[string]map[string]any{
-		"petstore": {
-			"id":   12,
-			"name": "Hans",
-			"tag":  "#hund",
+	router.SetContexts(
+		map[string]map[string]any{
+			"petstore": {
+				"id":   12,
+				"name": "Hans",
+				"tag":  "#hund",
+			},
 		},
-	}
-	router.ContextNames = []map[string]string{
-		{"petstore": ""},
-	}
+		[]map[string]string{
+			{"petstore": ""},
+		},
+	)
 
 	svc := &ServiceItem{
 		Name: "petstore",
 	}
 	svc.AddOpenAPIFile(file)
-	router.Services["petstore"] = svc
+	router.services["petstore"] = svc
 
 	rs := registerOpenAPIRoutes(file, router)
 	svc.AddRoutes(rs)

@@ -48,7 +48,7 @@ type ContextHandler struct {
 
 func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 	var names []string
-	for name := range h.router.Contexts {
+	for name := range h.router.GetContexts() {
 		names = append(names, name)
 	}
 
@@ -63,7 +63,7 @@ func (h *ContextHandler) list(w http.ResponseWriter, r *http.Request) {
 
 func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	if _, found := h.router.Contexts[name]; !found {
+	if _, found := h.router.GetContexts()[name]; !found {
 		h.JSONResponse(w).WithStatusCode(http.StatusNotFound).Send(&SimpleResponse{Message: "Context not found"})
 		return
 	}
@@ -74,7 +74,7 @@ func (h *ContextHandler) details(w http.ResponseWriter, r *http.Request) {
 
 func (h *ContextHandler) delete(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	if _, found := h.router.Contexts[name]; !found {
+	if _, found := h.router.GetContexts()[name]; !found {
 		h.error(http.StatusNotFound, "Context not found", w)
 		return
 	}

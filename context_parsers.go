@@ -37,6 +37,7 @@ func ParseContextFromBytes(content []byte) (*ParsedContextResult, error) {
 	return parseContext(k)
 }
 
+// CollectContexts collects contexts from the given list of context names, file collections and initial context.
 func CollectContexts(names []map[string]string, fileCollections map[string]map[string]any,
 	initial map[string]any) []map[string]any {
 	res := make([]map[string]any, 0)

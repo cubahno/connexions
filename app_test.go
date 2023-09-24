@@ -23,7 +23,7 @@ func TestNewApp(t *testing.T) {
 		cfg := MustConfig("/app")
 		app := NewApp(cfg)
 		assert.NotNil(app)
-		assert.Equal(0, len(app.Router.Services))
+		assert.Equal(0, len(app.Router.services))
 	})
 
 	t.Run("no-file-config-with-pre-create", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestNewApp(t *testing.T) {
 
 		app := NewApp(cfg)
 		assert.NotNil(app)
-		assert.Equal(0, len(app.Router.Services))
+		assert.Equal(0, len(app.Router.services))
 	})
 }
 
@@ -105,7 +105,7 @@ func TestApp_AddBluePrint(t *testing.T) {
 		if err != nil {
 			t.FailNow()
 		}
-		assert.Equal(4, len(router.Services["pets"].Routes))
+		assert.Equal(4, len(router.services["pets"].Routes))
 
 		bp := func(router *Router) error {
 			router.Get("/pets", func(w http.ResponseWriter, r *http.Request) {

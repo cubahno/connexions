@@ -94,14 +94,14 @@ func loadServices(router *Router) error {
 	}
 
 	wg.Wait()
-	router.Services = services
+	router.SetServices(services)
 
 	log.Println("Registered routes.")
 
 	return err
 }
 
-// loadContexts loads all contexts from the contexts directory.
+// loadContexts loads all contexts from the `contexts` directory.
 // It implements RouteRegister interface so error return is mandatory.
 func loadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
@@ -169,19 +169,20 @@ func loadContexts(router *Router) error {
 		}
 	}
 
-	// get names from namespaced files
-	var names []map[string]string
+	var defaultNamespaces []map[string]string
 	res := make(map[string]map[string]any, 0)
-	for cname, fileCollection := range contexts {
-		res[cname] = make(map[string]any, 0)
+
+	for ctxNamespace, fileCollection := range contexts {
+		// take complete namespace
+		defaultNamespaces = append(defaultNamespaces, map[string]string{ctxNamespace: ""})
+
+		res[ctxNamespace] = make(map[string]any, 0)
 		for name, subCtx := range fileCollection {
-			res[cname][name] = subCtx
-			names = append(names, map[string]string{cname: name})
+			res[ctxNamespace][name] = subCtx
 		}
 	}
 
-	router.Contexts = res
-	router.ContextNames = names
+	router.SetContexts(res, defaultNamespaces)
 
 	return nil
 }

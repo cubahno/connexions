@@ -95,7 +95,7 @@ func TestServiceHandler_list(t *testing.T) {
 	assert.Nil(err)
 
 	// add services
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"svc-a": {Name: "svc-a"},
 		"svc-c": {Name: "svc-c"},
 		"svc-b": {Name: "svc-b", OpenAPIFiles: []*FileProperties{
@@ -211,7 +211,7 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 	assert.Equal(true, resp["success"].(bool))
 	assert.Equal("Resource saved!", resp["message"].(string))
 
-	svc := router.Services["petstore"]
+	svc := router.services["petstore"]
 	expectedFileProps := &FileProperties{
 		ServiceName: "petstore",
 		IsOpenAPI:   false,
@@ -294,7 +294,7 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 	assert.Equal("Resource saved!", resp.Message)
 	assert.Equal(0, resp.ID)
 
-	svc := router.Services["petstore"]
+	svc := router.services["petstore"]
 	targetPath := filepath.Join(router.Config.App.Paths.Services, "petstore", "patch", "pets", "update", "{tag}", "index.json")
 	expectedFileProps := &FileProperties{
 		ServiceName: "petstore",
@@ -366,7 +366,7 @@ func TestServiceHandler_save_fixedMultiple(t *testing.T) {
 		assert.Equal("Resource saved!", resp.Message)
 		assert.Equal(0, resp.ID)
 
-		svc := router.Services["petstore"]
+		svc := router.services["petstore"]
 		assert.Equal(1, len(svc.Routes))
 	}
 }
@@ -383,7 +383,7 @@ func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
 	err = createServiceRoutes(router)
 	assert.Nil(err)
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 			Routes: []*RouteDescription{
@@ -423,7 +423,7 @@ func TestServiceHandler_save_fixedWithOverwrite(t *testing.T) {
 	assert.Equal(true, resp.Success)
 	assert.Equal("Resource saved!", resp.Message)
 
-	svc := router.Services["petstore"]
+	svc := router.services["petstore"]
 	expected := &ServiceItem{
 		Name: "petstore",
 		Routes: []*RouteDescription{
@@ -500,7 +500,7 @@ func TestServiceHandler_resources(t *testing.T) {
 			Overwrites:  true,
 		},
 	}
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name:   "petstore",
 			Routes: routes,
@@ -568,7 +568,7 @@ func TestServiceHandler_deleteService(t *testing.T) {
 		t.FailNow()
 	}
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"": {
 			Name: "",
 			Routes: []*RouteDescription{
@@ -620,7 +620,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 	})
 
 	t.Run("no-spec-attached", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 			},
@@ -636,7 +636,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 	})
 
 	t.Run("error-reading-spec", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				OpenAPIFiles: []*FileProperties{
@@ -670,7 +670,7 @@ func TestServiceHandler_spec_happyPath(t *testing.T) {
 	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
 	assert.Nil(err)
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 			OpenAPIFiles: []*FileProperties{
@@ -711,13 +711,14 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusNotFound, w.Code)
 		assert.Equal(ErrServiceNotFound.Error(), resp.Message)
+		assert.Equal(false, resp.Success)
 	})
 
 	t.Run("invalid-ix", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 			},
@@ -727,13 +728,14 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusNotFound, w.Code)
 		assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+		assert.Equal(false, resp.Success)
 	})
 
 	t.Run("invalid-payload", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -752,13 +754,14 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusBadRequest, w.Code)
 		assert.True(strings.HasPrefix(resp.Message, "json: cannot unmarshal number into Go struct field"))
+		assert.Equal(false, resp.Success)
 	})
 
 	t.Run("file-not-found", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -775,9 +778,10 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusNotFound, w.Code)
 		assert.Equal(ErrResourceNotFound.Error(), resp.Message)
+		assert.Equal(false, resp.Success)
 	})
 
 	t.Run("method-not-allowed", func(t *testing.T) {
@@ -787,7 +791,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
 		assert.Nil(err)
 
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -805,9 +809,10 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		resp := UnmarshallResponse[ErrorMessage](t, w.Body)
+		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusMethodNotAllowed, w.Code)
 		assert.Equal(ErrResourceMethodNotFound.Error(), resp.Message)
+		assert.Equal(false, resp.Success)
 	})
 }
 
@@ -828,7 +833,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 
 	router.Config.Services[file.ServiceName] = &ServiceConfig{}
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 			Routes: RouteDescriptions{
@@ -929,7 +934,7 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 		t.FailNow()
 	}
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 			Routes: RouteDescriptions{
@@ -1013,7 +1018,7 @@ func TestServiceHandler_getResource_errors(t *testing.T) {
 	})
 
 	t.Run("invalid-ix", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -1038,7 +1043,7 @@ func TestServiceHandler_getResource_errors(t *testing.T) {
 	})
 
 	t.Run("error-reading-file", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -1066,7 +1071,7 @@ func TestServiceHandler_getResource_errors(t *testing.T) {
 	})
 
 	t.Run("not-fixed-resource", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -1109,7 +1114,7 @@ func TestServiceHandler_getResource(t *testing.T) {
 	fileContents, _ := os.ReadFile(filePath)
 	fileProps, _ := GetPropertiesFromFilePath(filePath, router.Config.App)
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 			Routes: RouteDescriptions{
@@ -1166,7 +1171,7 @@ func TestServiceHandler_deleteResource_errors(t *testing.T) {
 	})
 
 	t.Run("invalid-ix", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -1191,7 +1196,7 @@ func TestServiceHandler_deleteResource_errors(t *testing.T) {
 	})
 
 	t.Run("not-fixed-resource", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -1216,7 +1221,7 @@ func TestServiceHandler_deleteResource_errors(t *testing.T) {
 	})
 
 	t.Run("error reading file", func(t *testing.T) {
-		router.Services = map[string]*ServiceItem{
+		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
 				Routes: RouteDescriptions{
@@ -1257,7 +1262,7 @@ func TestServiceHandler_deleteResource(t *testing.T) {
 	err = createServiceRoutes(router)
 	assert.Nil(err)
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 			Routes: RouteDescriptions{
@@ -1285,9 +1290,9 @@ func TestServiceHandler_deleteResource(t *testing.T) {
 	assert.Equal(true, resp.Success)
 	assert.Equal("Resource deleted!", resp.Message)
 
-	assert.Equal(1, len(router.Services["petstore"].Routes))
-	assert.Equal(http.MethodGet, router.Services["petstore"].Routes[0].Method)
-	assert.Equal("/pets", router.Services["petstore"].Routes[0].Path)
+	assert.Equal(1, len(router.services["petstore"].Routes))
+	assert.Equal(http.MethodGet, router.services["petstore"].Routes[0].Method)
+	assert.Equal("/pets", router.services["petstore"].Routes[0].Path)
 }
 
 func TestSaveService_errors(t *testing.T) {
@@ -1376,7 +1381,7 @@ func TestServiceHandler_getRouteIndex(t *testing.T) {
 		router: router,
 	}
 
-	router.Services = map[string]*ServiceItem{
+	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
 		},

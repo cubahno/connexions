@@ -139,12 +139,12 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 		assert.Equal("Imported successfully!", resp.Message)
 
 		var services []string
-		for _, service := range router.Services {
+		for _, service := range router.services {
 			services = append(services, service.Name)
 		}
 
 		var contexts []string
-		for contextName := range router.Contexts {
+		for contextName := range router.GetContexts() {
 			contexts = append(contexts, contextName)
 		}
 

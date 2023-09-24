@@ -36,9 +36,9 @@ func TestLoadServices(t *testing.T) {
 	err = loadServices(router)
 	assert.Nil(err)
 
-	assert.Equal(2, len(router.Services))
-	assert.NotNil(router.Services[fixedFileProps.ServiceName])
-	assert.NotNil(router.Services[openAPIFileProps.ServiceName])
+	assert.Equal(2, len(router.services))
+	assert.NotNil(router.services[fixedFileProps.ServiceName])
+	assert.NotNil(router.services[openAPIFileProps.ServiceName])
 }
 
 func TestLoadServices_errorReadingDir(t *testing.T) {
@@ -83,7 +83,7 @@ func TestLoadServices_errorGettingFileProps(t *testing.T) {
 	err = loadServices(router)
 	// error not returned, but file is skipped
 	assert.Nil(err)
-	assert.Equal(0, len(router.Services))
+	assert.Equal(0, len(router.services))
 
 	// restore
 	_ = os.Chmod(openAPIfilePath, 0777)
@@ -113,6 +113,6 @@ func TestLoadContexts(t *testing.T) {
 	// no error to evaluate
 	_ = loadContexts(router)
 
-	res := router.Contexts
+	res := router.contexts
 	assert.Equal(2, len(res))
 }

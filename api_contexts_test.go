@@ -34,10 +34,10 @@ func TestContextHandler_list(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("list", func(t *testing.T) {
-		router.Contexts["bob"] = map[string]any{
+		router.contexts["bob"] = map[string]any{
 			"name": "Bob",
 		}
-		router.Contexts["alice"] = map[string]any{
+		router.contexts["alice"] = map[string]any{
 			"name": "Alice",
 		}
 
@@ -52,8 +52,8 @@ func TestContextHandler_list(t *testing.T) {
 			Items: []string{"alice", "bob"},
 		}, resp)
 
-		delete(router.Contexts, "bob")
-		delete(router.Contexts, "alice")
+		delete(router.contexts, "bob")
+		delete(router.contexts, "alice")
 	})
 }
 
@@ -70,7 +70,7 @@ func TestContextHandler_details(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("details", func(t *testing.T) {
-		router.Contexts["bob"] = map[string]any{}
+		router.contexts["bob"] = map[string]any{}
 		err = CopyFile(filepath.Join("test_fixtures", "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
 		if err != nil {
 			t.Errorf("Error copying file: %v", err)
@@ -84,7 +84,7 @@ func TestContextHandler_details(t *testing.T) {
 		assert.Equal("application/x-yaml", w.Header().Get("Content-Type"))
 		assert.Greater(w.Body.Len(), 0)
 
-		delete(router.Contexts, "bob")
+		delete(router.contexts, "bob")
 	})
 
 	t.Run("details-not-found", func(t *testing.T) {
@@ -115,7 +115,7 @@ func TestContextHandler_delete(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("happy-path", func(t *testing.T) {
-		router.Contexts["bob"] = map[string]any{}
+		router.contexts["bob"] = map[string]any{}
 		bobPath := filepath.Join(router.Config.App.Paths.Contexts, "bob.yml")
 		err = CopyFile(filepath.Join("test_fixtures", "context-petstore.yml"), bobPath)
 		if err != nil {
@@ -138,7 +138,7 @@ func TestContextHandler_delete(t *testing.T) {
 		_, err = os.ReadFile(bobPath)
 		assert.NotNil(err)
 
-		_, ok := router.Contexts["bob"]
+		_, ok := router.GetContexts()["bob"]
 		assert.False(ok)
 	})
 
@@ -186,7 +186,7 @@ func TestContextHandler_save(t *testing.T) {
 		}, resp)
 
 		var contexts []string
-		for name := range router.Contexts {
+		for name := range router.GetContexts() {
 			contexts = append(contexts, name)
 		}
 		assert.Equal([]string{"bob"}, contexts)
@@ -216,7 +216,7 @@ address: 123 Main St
 		}, resp)
 
 		var contexts []string
-		for name := range router.Contexts {
+		for name := range router.GetContexts() {
 			contexts = append(contexts, name)
 		}
 		assert.Equal([]string{"bob"}, contexts)
