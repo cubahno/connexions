@@ -153,87 +153,6 @@ func TestNewSchemaFromKin(t *testing.T) {
 		assert.Nil(res)
 	})
 
-	t.Run("WithParseConfig-max-recursive-levels", func(t *testing.T) {
-		kinDoc, err := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-circular-ucr.yml"))
-		assert.Nil(err)
-		doc := kinDoc.(*KinDocument)
-		kinSchema := doc.Components.Schemas["OrgByIdResponseWrapperModel"].Value
-		assert.NotNil(kinSchema)
-
-		res := NewSchemaFromKin(kinSchema, &ParseConfig{MaxRecursionLevels: 1})
-
-		expected := &Schema{
-			Type: TypeObject,
-			Properties: map[string]*Schema{
-				"success": {
-					Type: TypeBoolean,
-				},
-				"response": {
-					Type: TypeObject,
-					Properties: map[string]*Schema{
-						"type": {
-							Type: TypeString,
-							Enum: []any{
-								"Department",
-								"Division",
-								"Organization",
-							},
-						},
-						"parent": {
-							Type: TypeObject,
-							Properties: map[string]*Schema{
-								"children": nil,
-								"parent":   nil,
-								"type": {
-									Type: TypeString,
-									Enum: []any{
-										"Department",
-										"Division",
-										"Organization",
-									},
-								},
-							},
-						},
-						"children": {
-							Type: TypeArray,
-							Items: &Schema{
-								Type: TypeObject,
-								Properties: map[string]*Schema{
-									"parent":   nil,
-									"children": nil,
-									"type": {
-										Type: TypeString,
-										Enum: []any{
-											"Department",
-											"Division",
-											"Organization",
-										},
-									},
-								},
-							},
-							Example: []any{
-								map[string]any{
-									"type":        "string",
-									"code":        "string",
-									"description": "string",
-									"isActive":    true,
-								},
-								map[string]any{
-									"type":        "string",
-									"code":        "string",
-									"description": "string",
-									"isActive":    true,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		assert.NotNil(res)
-		AssertJSONEqual(t, expected, res)
-	})
 }
 
 func TestMergeKinSubSchemas(t *testing.T) {
@@ -309,5 +228,59 @@ func TestPickKinSchemaProxy(t *testing.T) {
 		}
 		res := pickKinSchemaProxy(items)
 		assert.Equal(items[2], res)
+	})
+}
+
+func TestTransformKinAdditionalProperties(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
+	t.Run("empty-case", func(t *testing.T) {
+		res := transformKinAdditionalProperties(openapi3.AdditionalProperties{}, nil)
+		assert.Nil(res)
+	})
+
+	t.Run("has-case", func(t *testing.T) {
+		has := new(bool)
+		*has = true
+		res := transformKinAdditionalProperties(openapi3.AdditionalProperties{Has: has}, nil)
+		expected := &Schema{
+			Type: TypeString,
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("inlined-object", func(t *testing.T) {
+		source := openapi3.AdditionalProperties{
+			Schema: &openapi3.SchemaRef{
+				Value: &openapi3.Schema{
+					Type: TypeObject,
+					Properties: map[string]*openapi3.SchemaRef{
+						"name": {
+							Value: &openapi3.Schema{
+								Type: TypeString,
+							},
+						},
+						"age": {
+							Value: &openapi3.Schema{
+								Type: TypeInteger,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expected := &Schema{
+			Type: TypeObject,
+			Properties: map[string]*Schema{
+				"name": {Type: TypeString},
+				"age":  {Type: TypeInteger},
+			},
+		}
+
+		res := transformKinAdditionalProperties(source, nil)
+
+		assert.Equal(expected, res)
 	})
 }

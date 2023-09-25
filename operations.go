@@ -387,6 +387,50 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 		res[name] = GenerateContentFromSchema(schemaRef, valueReplacer, s)
 	}
 
+	extra := generateAdditionalProperties(schema, res, valueReplacer, state)
+	for key, value := range extra {
+		res[key] = value
+	}
+
+	return res
+}
+
+// makeAdditionalPropertiesKey generates a key for additional properties.
+// It is used to avoid collisions with existing keys.
+func makeAdditionalPropertiesKey(prefix string, attempt int, currentData map[string]any) (string, int) {
+	try := fmt.Sprintf("%s%d", prefix, attempt)
+	if _, ok := currentData[try]; ok {
+		return makeAdditionalPropertiesKey(prefix, attempt+1, currentData)
+	}
+
+	return try, attempt + 1
+}
+
+// generateAdditionalProperties generates additional properties for the given schema.
+func generateAdditionalProperties(schema *Schema, current map[string]any, valueReplacer ValueReplacer,
+	state *ReplaceState) map[string]any {
+	if state == nil {
+		state = &ReplaceState{}
+	}
+
+	res := map[string]any{}
+	if schema.AdditionalProperties == nil {
+		return res
+	}
+
+	// TODO(cubahno): figure out how get them here from config
+	maxKeys := 3
+	keyPrefix := "extra-"
+
+	keyID := 1
+
+	for i := 0; i < maxKeys; i++ {
+		key, nextKeyID := makeAdditionalPropertiesKey(keyPrefix, keyID, current)
+		keyID = nextKeyID
+		value := GenerateContentFromSchema(schema.AdditionalProperties, valueReplacer, state.NewFrom(state).WithName(key))
+		res[key] = value
+	}
+
 	return res
 }
 

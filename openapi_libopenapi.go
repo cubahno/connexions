@@ -104,21 +104,30 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		libItems := merged.Items.A
 		sub := libItems.Schema()
 		ref := libItems.GetReference()
+
+		// detect circular reference early
+		if parseConfig.MaxRecursionLevels == 0 && SliceContains(refPath, ref) {
+			return nil
+		}
+
 		items = newSchemaFromLibOpenAPI(sub,
 			parseConfig,
 			AppendSliceFirstNonEmpty(refPath, ref, mergedReference),
 			namePath)
 	}
 
-	properties := make(map[string]*Schema)
-	for propName, sProxy := range merged.Properties {
-		if parseConfig.OnlyRequired && !SliceContains(merged.Required, propName) {
-			continue
+	var properties map[string]*Schema
+	if len(merged.Properties) > 0 {
+		properties = make(map[string]*Schema)
+		for propName, sProxy := range merged.Properties {
+			if parseConfig.OnlyRequired && !SliceContains(merged.Required, propName) {
+				continue
+			}
+			properties[propName] = newSchemaFromLibOpenAPI(sProxy.Schema(),
+				parseConfig,
+				AppendSliceFirstNonEmpty(refPath, sProxy.GetReference(), mergedReference),
+				append(namePath, propName))
 		}
-		properties[propName] = newSchemaFromLibOpenAPI(sProxy.Schema(),
-			parseConfig,
-			AppendSliceFirstNonEmpty(refPath, sProxy.GetReference(), mergedReference),
-			append(namePath, propName))
 	}
 
 	var not *Schema
@@ -126,35 +135,35 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		not = newSchemaFromLibOpenAPI(merged.Not.Schema(), parseConfig, refPath, namePath)
 	}
 
-	// this can happen with the circular references
 	if typ == TypeArray && items == nil {
-		return nil
+		items = &Schema{Type: TypeString}
 	}
 
 	return &Schema{
-		Type:          typ,
-		Items:         items,
-		MultipleOf:    RemovePointer(merged.MultipleOf),
-		Maximum:       RemovePointer(merged.Maximum),
-		Minimum:       RemovePointer(merged.Minimum),
-		MaxLength:     RemovePointer(merged.MaxLength),
-		MinLength:     RemovePointer(merged.MinLength),
-		Pattern:       merged.Pattern,
-		Format:        merged.Format,
-		MaxItems:      RemovePointer(merged.MaxItems),
-		MinItems:      RemovePointer(merged.MinItems),
-		MaxProperties: RemovePointer(merged.MaxProperties),
-		MinProperties: RemovePointer(merged.MinProperties),
-		Required:      merged.Required,
-		Enum:          merged.Enum,
-		Properties:    properties,
-		Not:           not,
-		Default:       merged.Default,
-		Nullable:      RemovePointer(merged.Nullable),
-		ReadOnly:      merged.ReadOnly,
-		WriteOnly:     merged.WriteOnly,
-		Example:       merged.Example,
-		Deprecated:    RemovePointer(merged.Deprecated),
+		Type:                 typ,
+		Items:                items,
+		MultipleOf:           RemovePointer(merged.MultipleOf),
+		Maximum:              RemovePointer(merged.Maximum),
+		Minimum:              RemovePointer(merged.Minimum),
+		MaxLength:            RemovePointer(merged.MaxLength),
+		MinLength:            RemovePointer(merged.MinLength),
+		Pattern:              merged.Pattern,
+		Format:               merged.Format,
+		MaxItems:             RemovePointer(merged.MaxItems),
+		MinItems:             RemovePointer(merged.MinItems),
+		MaxProperties:        RemovePointer(merged.MaxProperties),
+		MinProperties:        RemovePointer(merged.MinProperties),
+		Required:             merged.Required,
+		Enum:                 merged.Enum,
+		Properties:           properties,
+		Not:                  not,
+		Default:              merged.Default,
+		Nullable:             RemovePointer(merged.Nullable),
+		ReadOnly:             merged.ReadOnly,
+		WriteOnly:            merged.WriteOnly,
+		Example:              merged.Example,
+		Deprecated:           RemovePointer(merged.Deprecated),
+		AdditionalProperties: transformLibAdditionalProperties(merged.AdditionalProperties, parseConfig),
 	}
 }
 
@@ -295,4 +304,25 @@ func pickLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 	}
 
 	return fstNonEmpty
+}
+
+func transformLibAdditionalProperties(source any, parseConfig *ParseConfig) *Schema {
+	if source == nil {
+		return nil
+	}
+
+	switch v := source.(type) {
+	case bool:
+		if !v {
+			return nil
+		}
+		// default dictionary
+		return &Schema{
+			Type: TypeString,
+		}
+	case *base.SchemaProxy:
+		return NewSchemaFromLibOpenAPI(v.Schema(), parseConfig)
+	}
+
+	return nil
 }

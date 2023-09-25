@@ -5,6 +5,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
+	base2 "github.com/pb33f/libopenapi/datamodel/high/base"
+	"github.com/pb33f/libopenapi/datamodel/low"
+	"github.com/pb33f/libopenapi/datamodel/low/base"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -106,10 +109,10 @@ func CreateOperationFromYAMLFile(t *testing.T, filePath string, target any) {
 	}
 }
 
-func CreateKinSchemaFromString(t *testing.T, src string) *openapi3.Schema {
+func CreateKinSchemaFromString(t *testing.T, jsonSrc string) *openapi3.Schema {
 	t.Helper()
 	schema := openapi3.NewSchema()
-	err := json.Unmarshal([]byte(src), schema)
+	err := json.Unmarshal([]byte(jsonSrc), schema)
 	if err != nil {
 		t.Errorf("Error parsing JSON: %v", err)
 		t.FailNow()
@@ -117,9 +120,26 @@ func CreateKinSchemaFromString(t *testing.T, src string) *openapi3.Schema {
 	return schema
 }
 
-func CreateSchemaFromString(t *testing.T, src string) *Schema {
+func CreateSchemaFromString(t *testing.T, jsonSrc string) *Schema {
 	t.Helper()
-	return NewSchemaFromKin(CreateKinSchemaFromString(t, src), nil)
+	return NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
+}
+
+func CreateLibSchemaFromString(t *testing.T, ymlSchema string) *base2.SchemaProxy {
+	t.Helper()
+	// unmarshal raw bytes
+	var node yaml.Node
+	_ = yaml.Unmarshal([]byte(ymlSchema), &node)
+
+	// build out the low-level model
+	var lowSchema base.SchemaProxy
+	_ = low.BuildModel(node.Content[0], &lowSchema)
+	_ = lowSchema.Build(node.Content[0], nil)
+
+	// build the high level schema proxy
+	return base2.NewSchemaProxy(&low.NodeReference[*base.SchemaProxy]{
+		Value: &lowSchema,
+	})
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {
