@@ -11,7 +11,10 @@ endef
 
 .PHONY: lint
 lint:
+	go fmt ./...
 	golangci-lint run
+	go vet ./...
+	go mod download && go mod tidy && go mod verify
 
 .PHONY: test
 test:
@@ -37,11 +40,6 @@ test-with-check-coverage: test
 .PHONY: clean
 clean:
 	rm -rf ${build_dir}
-
-.PHONY: tidy
-tidy:
-	@go fmt ./...
-	@go mod tidy -v
 
 .PHONY: build
 build: clean
