@@ -722,7 +722,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
         {
             "type": "string"
         }`)
-		res := GenerateContentFromSchema(schema, valueResolver, &ReplaceState{NamePath: []string{"name"}})
+		res := GenerateContentFromSchema(schema, valueResolver, NewReplaceStateWithName("name"))
 		assert.Nil(res)
 	})
 
@@ -921,6 +921,116 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		assert.NotNil(kid["children"])
 		assert.Equal(1, len(kid["children"].([]any)))
 		assert.Nil(kid["parent"])
+	})
+}
+
+func TestGenerateContentFromSchema_ReadWrite(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("read-only-complete-object-when-write-only-requested", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			name := state.NamePath[len(state.NamePath)-1]
+			return name + "-value"
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type":"object",
+            "properties": {
+                "product": {
+                    "type": "object",
+                    "properties": {
+                        "nice": {
+                            "type": "string"
+                        },
+                        "rice": {
+                            "type": "string"
+                        },
+						"price": {
+							"type": "string"
+						}
+                    }
+                }
+            },
+			"readOnly": true
+        }`)
+		state := NewReplaceState(WithWriteOnly())
+		res := GenerateContentFromSchema(schema, valueResolver, state)
+
+		assert.Nil(res)
+	})
+
+	t.Run("read-only-inner-object", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			name := state.NamePath[len(state.NamePath)-1]
+			return name + "-value"
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type":"object",
+            "properties": {
+                "product": {
+                    "type": "object",
+                    "properties": {
+                        "nice": {
+                            "type": "string"
+                        },
+                        "rice": {
+                            "type": "string"
+                        },
+						"price": {
+							"type": "string"
+						}
+                    },
+					"readOnly": true
+                }
+            }
+        }`)
+		state := NewReplaceState(WithWriteOnly())
+		res := GenerateContentFromSchema(schema, valueResolver, state)
+
+		expected := map[string]any{"product": nil}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("read-only-properties", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			name := state.NamePath[len(state.NamePath)-1]
+			return name + "-value"
+		}
+		schema := CreateSchemaFromString(t, `
+        {
+            "type":"object",
+            "properties": {
+                "product": {
+                    "type": "object",
+                    "properties": {
+                        "nice": {
+                            "type": "string",
+							"readOnly": true
+                        },
+                        "rice": {
+                            "type": "string",
+							"writeOnly": true
+                        },
+						"price": {
+							"type": "string"
+						}
+                    }
+                }
+            }
+        }`)
+		state := NewReplaceState(WithReadOnly())
+		res := GenerateContentFromSchema(schema, valueResolver, state)
+
+		// only ro included
+		expected := map[string]any{
+			"product": map[string]any{
+				"nice":  "nice-value",
+				"rice":  nil,
+				"price": "price-value",
+			},
+		}
+		assert.Equal(expected, res)
 	})
 }
 

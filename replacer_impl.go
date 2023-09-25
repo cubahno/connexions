@@ -384,3 +384,23 @@ func ReplaceFromSchemaFallback(ctx *ReplaceContext) any {
 
 	return schema.Default
 }
+
+// IsMatchSchemaReadWriteToState checks if the given schema is read-write match.
+// ReadOnly - A property that is only available in a response.
+// WriteOnly - A property that is only available in a request.
+func IsMatchSchemaReadWriteToState(schema *Schema, state *ReplaceState) bool {
+	// unable to determine
+	if schema == nil || state == nil {
+		return true
+	}
+
+	if schema.ReadOnly && !state.IsContentReadOnly {
+		return false
+	}
+
+	if schema.WriteOnly && !state.IsContentWriteOnly {
+		return false
+	}
+
+	return true
+}

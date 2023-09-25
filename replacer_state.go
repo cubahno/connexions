@@ -23,61 +23,95 @@ type ReplaceState struct {
 	// ContentType is a content type of the current element.
 	ContentType string
 
+	// IsContentReadOnly is a flag that indicates that the current element we're replacing is a read-only content.
+	// This value is used only when Schema has ReadOnly set to true.
+	IsContentReadOnly bool
+
+	// IsContentWriteOnly is a flag that indicates that the current element we're replacing is a write-only content.
+	// This value is used only when Schema has WriteOnly set to true.
+	IsContentWriteOnly bool
+
 	mu sync.Mutex
+}
+
+func NewReplaceState(opts ...ReplaceStateOption) *ReplaceState {
+	return (&ReplaceState{
+		NamePath: []string{},
+	}).WithOptions(opts...)
+}
+
+func NewReplaceStateWithName(name string) *ReplaceState {
+	return NewReplaceState(WithName(name))
 }
 
 // NewFrom creates a new ReplaceState instance from the given one.
 func (s *ReplaceState) NewFrom(src *ReplaceState) *ReplaceState {
 	return &ReplaceState{
-		NamePath:    src.NamePath,
-		IsHeader:    src.IsHeader,
-		IsPathParam: src.IsPathParam,
-		ContentType: src.ContentType,
+		NamePath:           src.NamePath,
+		IsHeader:           src.IsHeader,
+		IsPathParam:        src.IsPathParam,
+		ContentType:        src.ContentType,
+		IsContentReadOnly:  src.IsContentReadOnly,
+		IsContentWriteOnly: src.IsContentWriteOnly,
 	}
 }
 
-func (s *ReplaceState) WithName(name string) *ReplaceState {
+type ReplaceStateOption func(*ReplaceState)
+
+func (s *ReplaceState) WithOptions(options ...ReplaceStateOption) *ReplaceState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	namePath := s.NamePath
-	if len(namePath) == 0 {
-		namePath = []string{}
+	for _, opt := range options {
+		opt(s)
 	}
-	namePath = append(namePath, name)
-
-	s.NamePath = namePath
 	return s
 }
 
-func (s *ReplaceState) WithElementIndex(value int) *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func WithName(name string) ReplaceStateOption {
+	return func(state *ReplaceState) {
+		namePath := state.NamePath
+		if len(namePath) == 0 {
+			namePath = []string{}
+		}
+		namePath = append(namePath, name)
 
-	s.ElementIndex = value
-	return s
+		state.NamePath = namePath
+	}
 }
 
-func (s *ReplaceState) WithHeader() *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.IsHeader = true
-	return s
+func WithElementIndex(value int) ReplaceStateOption {
+	return func(state *ReplaceState) {
+		state.ElementIndex = value
+	}
 }
 
-func (s *ReplaceState) WithPathParam() *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.IsPathParam = true
-	return s
+func WithHeader() ReplaceStateOption {
+	return func(state *ReplaceState) {
+		state.IsHeader = true
+	}
 }
 
-func (s *ReplaceState) WithContentType(value string) *ReplaceState {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func WithPath() ReplaceStateOption {
+	return func(state *ReplaceState) {
+		state.IsPathParam = true
+	}
+}
 
-	s.ContentType = value
-	return s
+func WithContentType(value string) ReplaceStateOption {
+	return func(state *ReplaceState) {
+		state.ContentType = value
+	}
+}
+
+func WithReadOnly() ReplaceStateOption {
+	return func(state *ReplaceState) {
+		state.IsContentReadOnly = true
+	}
+}
+
+func WithWriteOnly() ReplaceStateOption {
+	return func(state *ReplaceState) {
+		state.IsContentWriteOnly = true
+	}
 }

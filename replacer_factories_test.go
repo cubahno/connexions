@@ -74,7 +74,7 @@ func TestCreateValueReplacer(t *testing.T) {
 		res1 := fn(schema, nil)
 		assert.Equal("01", res1)
 
-		res2 := fn(schema, &ReplaceState{NamePath: []string{"foo"}})
+		res2 := fn(schema, NewReplaceStateWithName("foo"))
 		assert.Nil(res2)
 	})
 }
