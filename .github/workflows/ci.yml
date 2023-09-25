@@ -1,6 +1,15 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: '**'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches: '**'
+    paths-ignore:
+      - 'docs/**'
+
 permissions: read-all
 
 jobs:
