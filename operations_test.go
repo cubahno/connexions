@@ -907,7 +907,8 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		r := v["response"].(map[string]any)
 		parent := r["parent"].(map[string]any)
 		assert.Contains(orgs, parent["type"])
-		assert.Nil(parent["children"])
+		assert.NotNil(parent["children"])
+		assert.Equal(1, len(parent["children"].([]any)))
 		assert.Nil(parent["parent"])
 
 		typ := r["type"]
@@ -917,7 +918,8 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		assert.Equal(1, len(children))
 		kid := children[0].(map[string]any)
 		assert.Contains(orgs, kid["type"])
-		assert.Nil(kid["children"])
+		assert.NotNil(kid["children"])
+		assert.Equal(1, len(kid["children"].([]any)))
 		assert.Nil(kid["parent"])
 	})
 }
@@ -975,6 +977,152 @@ func TestGenerateContentObject(t *testing.T) {
 			},
 		}
 		res := GenerateContentObject(schema, nil, nil)
+		assert.Equal(expected, res)
+	})
+
+	t.Run("with-additional-properties", func(t *testing.T) {
+		valueReplacer := func(schema any, state *ReplaceState) any {
+			return state.NamePath[0] + "-value"
+		}
+		schema := CreateSchemaFromString(t, `
+		{
+			"type": "object",
+			"properties": {
+				"name": {"type": "string"},
+				"address": {"type": "string"}
+			},
+			"additionalProperties": {
+				"type": "string"
+			}
+		}`)
+
+		expected := map[string]any{
+			"name":    "name-value",
+			"address": "address-value",
+			"extra-1": "extra-1-value",
+			"extra-2": "extra-2-value",
+			"extra-3": "extra-3-value",
+		}
+
+		res := GenerateContentObject(schema, valueReplacer, nil)
+		assert.Equal(expected, res)
+	})
+}
+
+func TestMakeAdditionalPropertiesKey(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("current-empty", func(t *testing.T) {
+		key, nextID := makeAdditionalPropertiesKey("foo-", 1, make(map[string]any))
+		assert.Equal("foo-1", key)
+		assert.Equal(2, nextID)
+	})
+
+	t.Run("current-taken-keys", func(t *testing.T) {
+		key, nextID := makeAdditionalPropertiesKey("foo-", 1, map[string]any{
+			"foo-1": nil,
+			"foo-2": "v-2",
+			"foo-3": nil,
+		})
+		assert.Equal("foo-4", key)
+		assert.Equal(5, nextID)
+	})
+}
+
+func TestGenerateAdditionalProperties(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("schema-without-additional-props", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return "value"
+		}
+		schema := CreateSchemaFromString(t, `
+		{
+			"type": "object"
+		}`)
+		res := generateAdditionalProperties(schema, map[string]any{}, valueResolver, nil)
+
+		assert.Equal(map[string]any{}, res)
+	})
+
+	t.Run("dictionary", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return "value"
+		}
+		schema := CreateSchemaFromString(t, `
+		{
+			"type": "object",
+			"additionalProperties": {
+				"type": "string"
+			}
+		}`)
+		current := map[string]any{
+			"name":    "Jane Doe",
+			"age":     30,
+			"extra-3": "exists",
+		}
+		res := generateAdditionalProperties(schema, current, valueResolver, nil)
+
+		expected := map[string]any{
+			"extra-1": "value",
+			"extra-2": "value",
+			"extra-4": "value",
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("map-of-arrays", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			return state.NamePath[0] + "-value"
+		}
+		schema := CreateSchemaFromString(t, `
+		{
+			"type": "object",
+			"additionalProperties": {
+				"type": "array"
+			}
+		}`)
+		res := generateAdditionalProperties(schema, map[string]any{}, valueResolver, nil)
+
+		expected := map[string]any{
+			"extra-1": []any{"extra-1-value"},
+			"extra-2": []any{"extra-2-value"},
+			"extra-3": []any{"extra-3-value"},
+		}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("map-of-objects", func(t *testing.T) {
+		valueResolver := func(schema any, state *ReplaceState) any {
+			parentName := state.NamePath[0]
+
+			data := map[string]map[string]any{
+				"extra-1": {"name": "Jane Doe", "age": 30},
+				"extra-2": {"name": "John Doe", "age": 40},
+				"extra-3": {"name": "Jack Doe", "age": 50},
+			}
+
+			name := state.NamePath[len(state.NamePath)-1]
+			return data[parentName][name]
+		}
+		schema := CreateSchemaFromString(t, `
+		{
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"properties": {
+					"name": {"type": "string"},
+					"age": {"type": "number"}
+                }
+			}
+		}`)
+		res := generateAdditionalProperties(schema, map[string]any{}, valueResolver, nil)
+
+		expected := map[string]any{
+			"extra-1": map[string]any{"name": "Jane Doe", "age": 30},
+			"extra-2": map[string]any{"name": "John Doe", "age": 40},
+			"extra-3": map[string]any{"name": "Jack Doe", "age": 50},
+		}
 		assert.Equal(expected, res)
 	})
 }

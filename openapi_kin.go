@@ -281,7 +281,16 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 
 	var items *Schema
 	if merged.Items != nil && merged.Items.Value != nil {
-		items = newSchemaFromKin(merged.Items.Value,
+		kinItems := merged.Items
+		sub := kinItems.Value
+		ref := kinItems.Ref
+
+		// detect circular reference early
+		if parseConfig.MaxRecursionLevels == 0 && SliceContains(refPath, ref) {
+			return nil
+		}
+
+		items = newSchemaFromKin(sub,
 			parseConfig,
 			AppendSliceFirstNonEmpty(refPath, merged.Items.Ref, mergedReference),
 			namePath)
@@ -306,35 +315,36 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		not = newSchemaFromKin(merged.Not.Value, parseConfig, refPath, namePath)
 	}
 
-	// this can happen with the circular references
 	if merged.Type == TypeArray && items == nil {
-		return nil
+		// if no items specified means they could be anything, so let's assume string
+		items = &Schema{Type: TypeString}
 	}
 
 	return &Schema{
-		Type:          typ,
-		Items:         items,
-		MultipleOf:    RemovePointer(merged.MultipleOf),
-		Maximum:       RemovePointer(merged.Max),
-		Minimum:       RemovePointer(merged.Min),
-		MaxLength:     int64(RemovePointer(merged.MaxLength)),
-		MinLength:     int64(merged.MinLength),
-		Pattern:       merged.Pattern,
-		Format:        merged.Format,
-		MaxItems:      int64(RemovePointer(merged.MaxItems)),
-		MinItems:      int64(merged.MinItems),
-		MaxProperties: int64(RemovePointer(merged.MaxProps)),
-		MinProperties: int64(merged.MinProps),
-		Required:      merged.Required,
-		Enum:          merged.Enum,
-		Properties:    properties,
-		Not:           not,
-		Default:       merged.Default,
-		Nullable:      merged.Nullable,
-		ReadOnly:      merged.ReadOnly,
-		WriteOnly:     merged.WriteOnly,
-		Example:       merged.Example,
-		Deprecated:    merged.Deprecated,
+		Type:                 typ,
+		Items:                items,
+		MultipleOf:           RemovePointer(merged.MultipleOf),
+		Maximum:              RemovePointer(merged.Max),
+		Minimum:              RemovePointer(merged.Min),
+		MaxLength:            int64(RemovePointer(merged.MaxLength)),
+		MinLength:            int64(merged.MinLength),
+		Pattern:              merged.Pattern,
+		Format:               merged.Format,
+		MaxItems:             int64(RemovePointer(merged.MaxItems)),
+		MinItems:             int64(merged.MinItems),
+		MaxProperties:        int64(RemovePointer(merged.MaxProps)),
+		MinProperties:        int64(merged.MinProps),
+		Required:             merged.Required,
+		Enum:                 merged.Enum,
+		Properties:           properties,
+		Not:                  not,
+		Default:              merged.Default,
+		Nullable:             merged.Nullable,
+		ReadOnly:             merged.ReadOnly,
+		WriteOnly:            merged.WriteOnly,
+		Example:              merged.Example,
+		Deprecated:           merged.Deprecated,
+		AdditionalProperties: transformKinAdditionalProperties(merged.AdditionalProperties, parseConfig),
 	}
 }
 
@@ -475,4 +485,21 @@ func pickKinSchemaProxy(items []*openapi3.SchemaRef) *openapi3.SchemaRef {
 	}
 
 	return fstNonEmpty
+}
+
+func transformKinAdditionalProperties(source openapi3.AdditionalProperties, parseConfig *ParseConfig) *Schema {
+	schemaRef := source.Schema
+	if schemaRef == nil || schemaRef.Value == nil {
+		has := RemovePointer(source.Has)
+		if !has {
+			return nil
+		}
+		// case when additionalProperties is true
+		return &Schema{
+			Type: TypeString,
+		}
+	}
+
+	// we have schema
+	return NewSchemaFromKin(schemaRef.Value, parseConfig)
 }

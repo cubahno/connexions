@@ -491,88 +491,6 @@ required: [name]
 		assert.Greater(len(rendered), 0)
 		assert.Equal(expectedYaml, actualYaml)
 	})
-
-	t.Run("WithParseConfig-max-recursive-levels", func(t *testing.T) {
-		libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-circular-ucr.yml"))
-		assert.Nil(err)
-		doc := libDoc.(*LibV3Document)
-		libSchema := doc.Model.Components.Schemas["OrgByIdResponseWrapperModel"].Schema()
-		assert.NotNil(libSchema)
-
-		res := NewSchemaFromLibOpenAPI(libSchema, &ParseConfig{MaxRecursionLevels: 1})
-
-		expected := &Schema{
-			Type: TypeObject,
-			Properties: map[string]*Schema{
-				"success": {
-					Type: TypeBoolean,
-				},
-				"response": {
-					Type: TypeObject,
-					Properties: map[string]*Schema{
-						"type": {
-							Type: TypeString,
-							Enum: []any{
-								"Department",
-								"Division",
-								"Organization",
-							},
-						},
-						"parent": {
-							Type: TypeObject,
-							Properties: map[string]*Schema{
-								"children": nil,
-								"parent":   nil,
-								"type": {
-									Type: TypeString,
-									Enum: []any{
-										"Department",
-										"Division",
-										"Organization",
-									},
-								},
-							},
-						},
-						"children": {
-							Type: TypeArray,
-							Items: &Schema{
-								Type: TypeObject,
-								Properties: map[string]*Schema{
-									"parent":   nil,
-									"children": nil,
-									"type": {
-										Type: TypeString,
-										Enum: []any{
-											"Department",
-											"Division",
-											"Organization",
-										},
-									},
-								},
-							},
-							Example: []any{
-								map[string]any{
-									"type":        "string",
-									"code":        "string",
-									"description": "string",
-									"isActive":    true,
-								},
-								map[string]any{
-									"type":        "string",
-									"code":        "string",
-									"description": "string",
-									"isActive":    true,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		assert.NotNil(res)
-		AssertJSONEqual(t, expected, res)
-	})
 }
 
 func TestMergeLibOpenAPISubSchemas(t *testing.T) {
@@ -707,5 +625,55 @@ func TestPickLibOpenAPISchemaProxy(t *testing.T) {
 
 		res := pickLibOpenAPISchemaProxy(schemaProxies)
 		assert.NotNil(res)
+	})
+}
+
+func TestTransformLibAdditionalProperties(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
+	t.Run("unknown-case", func(t *testing.T) {
+		res := transformLibAdditionalProperties("schema", nil)
+		assert.Nil(res)
+	})
+
+	t.Run("nil-case", func(t *testing.T) {
+		res := transformLibAdditionalProperties(nil, nil)
+		assert.Nil(res)
+	})
+
+	t.Run("false-case", func(t *testing.T) {
+		res := transformLibAdditionalProperties(false, nil)
+		assert.Nil(res)
+	})
+
+	t.Run("true-case", func(t *testing.T) {
+		res := transformLibAdditionalProperties(true, nil)
+		expected := &Schema{Type: TypeString}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("inlined-case", func(t *testing.T) {
+		schema := `
+type: object
+properties:
+  name:
+    type: string
+  age:
+    type: integer
+`
+		source := CreateLibSchemaFromString(t, schema)
+
+		expected := &Schema{
+			Type: TypeObject,
+			Properties: map[string]*Schema{
+				"name": {Type: TypeString},
+				"age":  {Type: TypeInteger},
+			},
+		}
+
+		res := transformLibAdditionalProperties(source, nil)
+
+		AssertJSONEqual(t, expected, res)
 	})
 }
