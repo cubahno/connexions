@@ -42,8 +42,10 @@ type Response struct {
 // It's not part of OpenAPI endpoint handler.
 func NewRequestFromOperation(pathPrefix, path, method string, operation Operationer, valueReplacer ValueReplacer) *Request {
 	reqBody, contentType := operation.GetRequestBody()
-	state := &ReplaceState{}
-	content := GenerateContentFromSchema(reqBody, valueReplacer, state.WithContentType(contentType))
+	state := NewReplaceState(
+		WithContentType(contentType),
+		WithWriteOnly())
+	content := GenerateContentFromSchema(reqBody, valueReplacer, state)
 	body, err := EncodeContent(content, contentType)
 	if err != nil {
 		log.Printf("Error encoding request: %v", err.Error())
@@ -180,8 +182,8 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 	}
 
 	headers.Set("content-type", contentType)
-	state := &ReplaceState{}
-	content := GenerateContentFromSchema(contentSchema, valueReplacer, state.WithContentType(contentType))
+	state := NewReplaceState(WithContentType(contentType), WithReadOnly())
+	content := GenerateContentFromSchema(contentSchema, valueReplacer, state)
 
 	contentB, err := EncodeContent(content, contentType)
 	if err != nil {
@@ -248,7 +250,7 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 		name := param.Name
 		schema := param.Schema
 
-		state := (&ReplaceState{}).WithName(name).WithPathParam()
+		state := NewReplaceState(WithName(name), WithPath())
 		replaced := valueResolver(schema, state)
 		replaced = fmt.Sprintf("%v", replaced)
 		if replaced == "" {
@@ -269,7 +271,10 @@ func generateURLFromFixedResourcePath(path string, valueReplacer ValueReplacer) 
 
 	for _, placeholder := range placeHolders {
 		name := placeholder[1 : len(placeholder)-1]
-		res := valueReplacer("", (&ReplaceState{}).WithName(name).WithPathParam())
+
+		state := NewReplaceState(WithName(name), WithPath())
+		res := valueReplacer("", state)
+
 		if res != nil {
 			replaceWith := fmt.Sprintf("%v", res)
 			if len(replaceWith) > 0 {
@@ -304,7 +309,7 @@ func GenerateQuery(valueReplacer ValueReplacer, params OpenAPIParameters) string
 		}
 
 		name := param.Name
-		state := &ReplaceState{NamePath: []string{name}}
+		state := NewReplaceStateWithName(name)
 		replaced := GenerateContentFromSchema(param.Schema, valueReplacer, state)
 		if replaced == nil {
 			replaced = ""
@@ -328,7 +333,12 @@ func GenerateContentFromSchema(schema *Schema, valueReplacer ValueReplacer, stat
 	}
 
 	if state == nil {
-		state = &ReplaceState{}
+		state = NewReplaceState()
+	}
+
+	// nothing to replace
+	if !IsMatchSchemaReadWriteToState(schema, state) {
+		return nil
 	}
 
 	// fast track with value and correctly resolved type for primitive types
@@ -373,7 +383,7 @@ func GenerateContentFromSchema(schema *Schema, valueReplacer ValueReplacer, stat
 // GenerateContentObject generates content from the given schema with type `object`.
 func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if state == nil {
-		state = &ReplaceState{}
+		state = NewReplaceState()
 	}
 
 	res := map[string]any{}
@@ -383,7 +393,7 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 	}
 
 	for name, schemaRef := range schema.Properties {
-		s := state.NewFrom(state).WithName(name)
+		s := state.NewFrom(state).WithOptions(WithName(name))
 		res[name] = GenerateContentFromSchema(schemaRef, valueReplacer, s)
 	}
 
@@ -410,7 +420,7 @@ func makeAdditionalPropertiesKey(prefix string, attempt int, currentData map[str
 func generateAdditionalProperties(schema *Schema, current map[string]any, valueReplacer ValueReplacer,
 	state *ReplaceState) map[string]any {
 	if state == nil {
-		state = &ReplaceState{}
+		state = NewReplaceState()
 	}
 
 	res := map[string]any{}
@@ -427,7 +437,8 @@ func generateAdditionalProperties(schema *Schema, current map[string]any, valueR
 	for i := 0; i < maxKeys; i++ {
 		key, nextKeyID := makeAdditionalPropertiesKey(keyPrefix, keyID, current)
 		keyID = nextKeyID
-		value := GenerateContentFromSchema(schema.AdditionalProperties, valueReplacer, state.NewFrom(state).WithName(key))
+		value := GenerateContentFromSchema(schema.AdditionalProperties, valueReplacer,
+			state.NewFrom(state).WithOptions(WithName(key)))
 		res[key] = value
 	}
 
@@ -437,7 +448,7 @@ func generateAdditionalProperties(schema *Schema, current map[string]any, valueR
 // GenerateContentArray generates content from the given schema with type `array`.
 func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *ReplaceState) any {
 	if state == nil {
-		state = &ReplaceState{}
+		state = NewReplaceState()
 	}
 
 	// avoid generating too many items
@@ -452,7 +463,8 @@ func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *Re
 		if i > take {
 			break
 		}
-		item := GenerateContentFromSchema(schema.Items, valueReplacer, state.NewFrom(state).WithElementIndex(i))
+		item := GenerateContentFromSchema(schema.Items, valueReplacer,
+			state.NewFrom(state).WithOptions(WithElementIndex(i)))
 		if item == nil {
 			continue
 		}
@@ -487,7 +499,7 @@ func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueRep
 
 		name := strings.ToLower(param.Name)
 		res[name] = GenerateContentFromSchema(
-			schema, valueReplacer, &ReplaceState{NamePath: []string{name}, IsHeader: true})
+			schema, valueReplacer, NewReplaceState(WithName(name), WithHeader()))
 	}
 
 	if len(res) == 0 {
@@ -503,7 +515,7 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 
 	for name, params := range headers {
 		name = strings.ToLower(name)
-		state := &ReplaceState{NamePath: []string{name}, IsHeader: true}
+		state := NewReplaceState(WithName(name), WithHeader())
 
 		value := GenerateContentFromSchema(params.Schema, valueReplacer, state)
 		res.Set(name, fmt.Sprintf("%v", value))
@@ -540,7 +552,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 		return data
 	}
 	if state == nil {
-		state = &ReplaceState{}
+		state = NewReplaceState()
 	}
 
 	resolve := func(key string, val any) any {
@@ -555,7 +567,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 
 		for _, placeholder := range placeHolders {
 			name := placeholder[1 : len(placeholder)-1]
-			res := valueReplacer(name, state.NewFrom(state).WithName(name))
+			res := valueReplacer(name, state.NewFrom(state).WithOptions(WithName(name)))
 			if res != nil {
 				newKey := fmt.Sprintf("%s%s%s", string(placeholder[0]), name, string(placeholder[len(placeholder)-1]))
 				vs[newKey] = res

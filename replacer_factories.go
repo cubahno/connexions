@@ -51,7 +51,7 @@ var Replacers = []Replacer{
 func CreateValueReplacer(cfg *Config, contexts []map[string]any) ValueReplacer {
 	return func(content any, state *ReplaceState) any {
 		if state == nil {
-			state = &ReplaceState{}
+			state = NewReplaceState()
 		}
 
 		ctx := &ReplaceContext{

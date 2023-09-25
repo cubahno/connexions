@@ -3,6 +3,7 @@
 package connexions
 
 import (
+	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -98,9 +99,7 @@ func TestReplaceInHeaders(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("not-a-header", func(t *testing.T) {
-		state := &ReplaceState{
-			NamePath: []string{"userID"},
-		}
+		state := NewReplaceStateWithName("userID")
 		res := ReplaceInHeaders(&ReplaceContext{
 			Faker: fake,
 			State: state,
@@ -114,10 +113,7 @@ func TestReplaceInHeaders(t *testing.T) {
 	})
 
 	t.Run("in-headers", func(t *testing.T) {
-		state := &ReplaceState{
-			NamePath: []string{"userID"},
-			IsHeader: true,
-		}
+		state := NewReplaceStateWithName("userID").WithOptions(WithHeader())
 		res := ReplaceInHeaders(&ReplaceContext{
 			Faker:      fake,
 			State:      state,
@@ -139,10 +135,7 @@ func TestReplaceInPath(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("not-a-path", func(t *testing.T) {
-		state := &ReplaceState{
-			NamePath:    []string{"userID"},
-			IsPathParam: false,
-		}
+		state := NewReplaceStateWithName("userID")
 		res := ReplaceInPath(&ReplaceContext{
 			Faker: fake,
 			State: state,
@@ -156,10 +149,7 @@ func TestReplaceInPath(t *testing.T) {
 	})
 
 	t.Run("in-path", func(t *testing.T) {
-		state := &ReplaceState{
-			NamePath:    []string{"userID"},
-			IsPathParam: true,
-		}
+		state := NewReplaceStateWithName("userID").WithOptions(WithPath())
 		res := ReplaceInPath(&ReplaceContext{
 			Faker:      fake,
 			State:      state,
@@ -177,10 +167,7 @@ func TestReplaceInPath(t *testing.T) {
 	})
 
 	t.Run("not-in-ctx", func(t *testing.T) {
-		state := &ReplaceState{
-			NamePath:    []string{"userID"},
-			IsPathParam: true,
-		}
+		state := NewReplaceStateWithName("userID").WithOptions(WithPath())
 		res := ReplaceInPath(&ReplaceContext{
 			Faker:      fake,
 			State:      state,
@@ -199,10 +186,7 @@ func TestReplaceInArea(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("missing-prefix", func(t *testing.T) {
-		state := &ReplaceState{
-			NamePath:    []string{"userID"},
-			IsPathParam: true,
-		}
+		state := NewReplaceStateWithName("userID").WithOptions(WithPath())
 		res := replaceInArea(&ReplaceContext{
 			Faker: fake,
 			State: state,
@@ -223,9 +207,7 @@ func TestReplaceFromContext(t *testing.T) {
 		schema := &Schema{
 			Type: TypeString,
 		}
-		state := &ReplaceState{
-			NamePath: []string{"Person", "dateOfBirth"},
-		}
+		state := NewReplaceStateWithName("Person").WithOptions(WithName("dateOfBirth"))
 
 		res := ReplaceFromContext(&ReplaceContext{
 			Faker:  fake,
@@ -246,9 +228,7 @@ func TestReplaceFromContext(t *testing.T) {
 		schema := &Schema{
 			Type: TypeString,
 		}
-		state := &ReplaceState{
-			NamePath: []string{"Person", "dateOfBirth"},
-		}
+		state := NewReplaceStateWithName("Person").WithOptions(WithName("dateOfBirth"))
 		res := ReplaceFromContext(&ReplaceContext{
 			Faker:  fake,
 			Schema: schema,
@@ -938,4 +918,32 @@ func TestReplaceFromSchemaFallback(t *testing.T) {
 		res := ReplaceFromSchemaFallback(NewTestReplaceContext(schema))
 		assert.Equal("hallo, welt!", res)
 	})
+}
+
+func TestIsReadWriteMatch(t *testing.T) {
+	type testcase struct {
+		schema   *Schema
+		state    *ReplaceState
+		expected bool
+	}
+
+	testcases := []testcase{
+		{nil, nil, true},
+		{&Schema{}, nil, true},
+		{&Schema{ReadOnly: true}, nil, true},
+		{&Schema{WriteOnly: true}, nil, true},
+		{&Schema{ReadOnly: true}, &ReplaceState{IsContentReadOnly: true}, true},
+		{&Schema{WriteOnly: true}, &ReplaceState{IsContentWriteOnly: true}, true},
+		{&Schema{ReadOnly: true}, &ReplaceState{IsContentWriteOnly: true}, false},
+		{&Schema{WriteOnly: true}, &ReplaceState{IsContentReadOnly: true}, false},
+	}
+
+	for i, tc := range testcases {
+		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+			res := IsMatchSchemaReadWriteToState(tc.schema, tc.state)
+			if tc.expected != res {
+				t.Errorf("[%d] expected %v, got %v", i, tc.expected, res)
+			}
+		})
+	}
 }
