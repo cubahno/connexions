@@ -11,6 +11,35 @@ docker run -it --rm \
   cubahno/connexions api
 ``` 
 
+## Build your own image
+
+Build your custom Connexions image with your own data and contexts.<br/>
+Check directory [examples/docker-image-builder](https://github.com/cubahno/connexions/tree/master/resources/examples/docker-image-builder) 
+for full working example with files.
+
+```Dockefile  title="examples/docker-image-builder/Dockerfile"
+--8<-- "docker-image-builder/Dockerfile"
+```
+
+```bash
+docker build . -t my-connexions
+```
+
+Run it:
+
+```bash
+docker run -it --rm \
+  -p 2200:2200 \
+  my-connexions api
+```
+
+Login to the container to observe the data and contexts:
+
+```bash
+docker run -it --rm my-connexions bash
+```
+
+
 
 ## Serve from directory
 
@@ -24,7 +53,6 @@ resources
         └───.root
             └───get
                 └───index.json
-                        └───get
         └───service-2
             └───patch
                 └───users

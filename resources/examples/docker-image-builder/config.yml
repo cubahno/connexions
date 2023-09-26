@@ -1,0 +1,13 @@
+app:
+  disableSwaggerUI: true
+  disableUI: true
+  port: 2200
+services:
+  petstore:
+    latency: 250ms
+    errors:
+      chance: 10%
+      codes:
+        400: 50%
+        401: 25%
+        403: 25%
