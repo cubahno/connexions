@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -206,6 +207,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		Response:    []byte(r.FormValue("response")),
 		ContentType: r.FormValue("contentType"),
 		File:        uploadedFile,
+		URL:         r.FormValue("url"),
 	}
 
 	fileProps, err := saveService(payload, h.router.Config.App)
@@ -597,6 +599,18 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	if uploadedFile != nil {
 		ext = uploadedFile.Extension
 		content = uploadedFile.Content
+	} else if payload.URL != "" {
+		var err error
+
+		// TODO(cubahno): move client to the handler and use config timeout
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+		}
+
+		content, _, err = GetFileContentsFromURL(client, payload.URL)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// ignore supplied extension and check whether its json / yaml type
@@ -651,6 +665,7 @@ type ServicePayload struct {
 	Response    []byte        `json:"response"`
 	ContentType string        `json:"contentType"`
 	File        *UploadedFile `json:"file"`
+	URL         string        `json:"url"`
 }
 
 // ServiceDescription is a struct created from the service payload to facilitate file path composition.

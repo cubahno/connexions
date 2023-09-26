@@ -159,9 +159,15 @@ export async function saveFormWithFile(container) {
     let formData = new FormData();
 
     const isOpenApi = container.querySelector('input[name="is_openapi"]').value === '1';
-    const method = container.querySelector('select[name="method"]').value.trim();
     const path = container.querySelector('input[name="path"]').value.trim();
+    const url = container.querySelector('input[name="url"]').value.trim();
     const response = commons.getCodeEditor(`selected-text-response`, `json`).getValue();
+
+    let method = `GET`;
+    const methodEl = container.querySelector('select[name="method"]');
+    if (methodEl) {
+        method = methodEl.value;
+    }
 
     const contentMap = {
         yml: `yaml`,
@@ -181,6 +187,7 @@ export async function saveFormWithFile(container) {
     formData.append("method", method);
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
+    formData.append("url", url);
 
     await save(formData);
 }
@@ -211,7 +218,6 @@ export async function saveWithoutFile(event) {
             const ix = res.id + 1;
             const hashParams = location.hash.split(`/`);
             const service = hashParams[2];
-            const oldIx = hashParams[3];
 
             console.log(`reloading service ${service} resources`);
             location.hash = `#/services/${service}/${ix}/edit`;

@@ -495,3 +495,32 @@ func GetFileHash(file io.Reader) string {
 
 	return fmt.Sprintf("%x", hash.Sum(nil))
 }
+
+func GetFileContentsFromURL(client *http.Client, url string) ([]byte, string, error) {
+	if client == nil {
+		client = http.DefaultClient
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, "", err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", ErrGettingFileFromURL
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return content, contentType, nil
+}

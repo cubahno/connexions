@@ -129,7 +129,6 @@
                             <td>Method:</td>
                             <td>
                                 <select name="method" id="res-endpoint-method">
-                                    <option value=""></option>
                                     <option value="GET">GET</option>
                                     <option value="POST">POST</option>
                                     <option value="PUT">PUT</option>
@@ -244,15 +243,12 @@
                                             <td>Method:</td>
                                             <td>
                                                 <select name="method">
-                                                    <option value=""></option>
                                                     <option value="GET">GET</option>
                                                     <option value="POST">POST</option>
                                                     <option value="PUT">PUT</option>
                                                     <option value="PATCH">PATCH</option>
                                                     <option value="DELETE">DELETE</option>
                                                 </select>
-                                                <br/>
-                                                <small>GET is default.</small>
                                             </td>
                                         </tr>
                                         <tr>
@@ -265,6 +261,11 @@
                                                 </label>
                                                 <input id="fixed-fileupload" type="file" name="file" class="fileupload"/>
                                                 <div class="selected-filename" style="display: inline;"></div>
+                                                <div style="padding-top: 20px;">Or use URL:</div>
+                                                <div>
+                                                    <input type="text" name="url" value="">
+                                                </div>
+
                                                 <div style="padding-top: 20px;">Or input response contents directly:</div>
                                                 <div>
                                                     Content-Type:
@@ -313,6 +314,12 @@
                                                 </label>
                                                 <input id="openapi-fileupload" type="file" name="file" class="fileupload"/>
                                                 <div class="selected-filename" style="display: inline;"></div>
+
+                                                <div style="padding-top: 20px;">Or use URL:</div>
+                                                <div>
+                                                    <input type="text" name="url" value="">
+                                                </div>
+
                                                 <div style="padding-top: 20px;">Or input response contents directly:</div>
                                                 <div>
                                                     Content-Type:

@@ -750,3 +750,47 @@ func TestHashFileWithError(t *testing.T) {
 		t.Errorf("Expected hash to be empty, got: %s", hash)
 	}
 }
+
+func TestGetFileContentsFromURL(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("invalid-url", func(t *testing.T) {
+		mockServer := createMockServer(t, "text/plain", "Hallo, Welt!", http.StatusOK)
+		defer mockServer.Close()
+
+		_, _, err := GetFileContentsFromURL(nil, "unknown-url")
+		assert.Error(err)
+	})
+
+	t.Run("status-error", func(t *testing.T) {
+		mockServer := createMockServer(t, "text/plain", "Hallo, Welt!", http.StatusNotFound)
+		defer mockServer.Close()
+
+		_, _, err := GetFileContentsFromURL(nil, mockServer.URL)
+		assert.Equal(ErrGettingFileFromURL, err)
+	})
+
+	t.Run("read-error", func(t *testing.T) {
+		mockServerWithReadError := createMockServer(t, "text/plain", "Hello, World!", http.StatusOK)
+		defer mockServerWithReadError.Close()
+
+		// Replace the response body with a reader that returns an error when read
+		client := mockServerWithReadError.Client()
+		client.Transport = &mockTransportWithReadError{}
+
+		_, _, err := GetFileContentsFromURL(client, mockServerWithReadError.URL)
+		if err == nil {
+			t.Error("Expected an error while reading the response body, but got none")
+		}
+	})
+
+	t.Run("happy-path", func(t *testing.T) {
+		mockServer := createMockServer(t, "text/plain", "Hallo, Welt!", http.StatusOK)
+		defer mockServer.Close()
+
+		content, contentType, err := GetFileContentsFromURL(nil, mockServer.URL)
+		assert.NoError(err)
+		assert.Equal("text/plain", contentType)
+		assert.Equal("Hallo, Welt!", string(content))
+	})
+}
