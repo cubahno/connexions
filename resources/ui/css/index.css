@@ -238,7 +238,7 @@ textarea#replacements {
     cursor: pointer;
 }
 
-#fileupload {
+.fileupload {
     display: none;
 }
 
@@ -497,4 +497,40 @@ a.service-settings-link {
 
 #app-version {
     padding-left: 6px;
+}
+
+.tab-container {
+    display: flex;
+}
+
+.tab {
+    cursor: pointer;
+    padding: 10px;
+    margin: 5px 5px 0 0;
+    border: 1px solid #ccc;
+    border-radius: 5px 5px 0 0;
+    background-color: #f0f0f0;
+}
+
+.tab i {
+    margin-right: 5px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-pane {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 0 5px 5px 5px;
+}
+
+.tab.active {
+    background-color: #00449e;
+    color: #fff;
+}
+
+.tab-pane.active {
+    border: 1px solid #bbbbbb;
 }
