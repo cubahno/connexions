@@ -117,7 +117,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 
 		err = tmpl.Execute(buf, data)
 		if err != nil {
-			http.Error(w, ErrInternalServer.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

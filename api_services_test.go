@@ -1356,6 +1356,20 @@ func TestSaveService_errors(t *testing.T) {
 		assert.Nil(res)
 		assert.Equal(ErrReservedPrefix, err)
 	})
+
+	t.Run("from-file-download", func(t *testing.T) {
+		mockServer := createMockServer(t, "text/plain", "Hallo, Welt!", http.StatusNotFound)
+		defer mockServer.Close()
+
+		payload := &ServicePayload{
+			Method: http.MethodPatch,
+			Path:   "/x",
+			URL:    mockServer.URL,
+		}
+		res, err := saveService(payload, appCfg)
+		assert.Nil(res)
+		assert.Equal(ErrGettingFileFromURL, err)
+	})
 }
 
 func TestServiceHandler_getRouteIndex(t *testing.T) {

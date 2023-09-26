@@ -38,17 +38,6 @@ async function onLoad() {
     document.getElementById('settings-save-button').addEventListener('click', settings.save);
     document.getElementById('settings-default-save-button').addEventListener('click', settings.restore);
 
-    document.getElementById('fileupload').addEventListener('change', () => {
-        const file = document.getElementById('fileupload').files[0];
-        const selectedFilenameElement = document.getElementById('selected-filename');
-        selectedFilenameElement.textContent = '';
-        if (file) {
-            // Display the filename in the element
-            selectedFilenameElement.textContent = file.name;
-            commons.getCodeEditor(`selected-text-response`, `yaml`).setValue(``);
-        }
-    });
-    document.getElementById('upload-button').addEventListener('click', services.saveWithFile);
     document.getElementById('res-upload-button').addEventListener('click',services.saveWithoutFile);
     document.getElementById('export-link').href = `${config.homeUrl}/export`;
 }

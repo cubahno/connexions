@@ -2,19 +2,46 @@ import * as config from './config.js';
 import * as commons from './commons.js';
 import * as navi from "./navi.js";
 import * as services from './services.js';
-import * as resources from "./resources.js";
-import {showError} from "./commons.js";
 
+// add new service
 export const newForm = () => {
     console.log(`add new service`);
     navi.applySelection(`n/a`, 'selected-service');
     navi.resetContents();
     services.show();
 
-    commons.getEditorForm('selected-text-response', 'response-content-type');
     config.contentTitleEl.innerHTML = `Add new service to the list`;
 
-    config.servicesUploadForm.style.display = 'block';
+    navi.setupTabbedContent(`new-service-tab-container`);
+
+    config.serviceCreateContainer.style.display = 'block';
+
+    const onSubmit = formId => {
+        const formCont = document.getElementById(formId);
+        const submitBtn = formCont.querySelector('.button');
+        submitBtn.addEventListener('click', async event => {
+            event.preventDefault();
+            await saveFormWithFile(formCont);
+        });
+
+        const textResp = formCont.querySelector('.selected-text-response');
+        const ctEl = formCont.querySelector('.response-content-type');
+        const editor = commons.getEditorForm(textResp.id, ctEl.id);
+
+        const fileEl = formCont.querySelector('[type="file"]');
+        fileEl.addEventListener('change', event => {
+            const file = event.target.files[0];
+            const selectedFilenameElement = formCont.querySelector('.selected-filename');
+            selectedFilenameElement.textContent = '';
+            if (file) {
+                selectedFilenameElement.textContent = file.name;
+                editor.setValue(``);
+            }
+        });
+    }
+
+    onSubmit(`fixed-service-form`);
+    onSubmit(`openapi-service-form`);
 }
 
 export const show = (selected = '') => {
@@ -128,29 +155,39 @@ export const showSwagger = match => {
     config.iframeContents.style.display = 'block';
 }
 
-export async function saveWithFile(event) {
-    event.preventDefault();
+export async function saveFormWithFile(container) {
     let formData = new FormData();
 
-    const isOpenApi = document.querySelector('input[name="is_openapi"]:checked').value === '1';
-    const method = document.getElementById('endpoint-method').value.trim();
-    const path = document.getElementById('endpoint-path').value.trim();
+    const isOpenApi = container.querySelector('input[name="is_openapi"]').value === '1';
+    const path = container.querySelector('input[name="path"]').value.trim();
+    const url = container.querySelector('input[name="url"]').value.trim();
     const response = commons.getCodeEditor(`selected-text-response`, `json`).getValue();
+
+    let method = `GET`;
+    const methodEl = container.querySelector('select[name="method"]');
+    if (methodEl) {
+        method = methodEl.value;
+    }
 
     const contentMap = {
         yml: `yaml`,
         markdown: `md`,
         text: `txt`,
     }
-    const ctValue = config.responseContentTypeEl.value;
-    const contentType = contentMap.hasOwnProperty(ctValue) ? contentMap[ctValue] : ctValue;
+    const contentTypeVal = container.querySelector('select[name="content_type"]').value;
+    const contentType = contentMap.hasOwnProperty(contentTypeVal) ? contentMap[contentTypeVal] : contentTypeVal;
 
-    formData.append("file", config.fileUploadBtn.files[0]);
+    const fileInput = container.querySelector('[type="file"]');
+    if (fileInput && fileInput.files.length > 0) {
+        formData.append("file", fileInput.files[0]);
+    }
+
     formData.append("response", response);
     formData.append("contentType", contentType);
     formData.append("method", method);
     formData.append("isOpenApi", isOpenApi.toString());
     formData.append("path", path);
+    formData.append("url", url);
 
     await save(formData);
 }
@@ -181,18 +218,12 @@ export async function saveWithoutFile(event) {
             const ix = res.id + 1;
             const hashParams = location.hash.split(`/`);
             const service = hashParams[2];
-            const oldIx = hashParams[3];
 
             console.log(`reloading service ${service} resources`);
             location.hash = `#/services/${service}/${ix}/edit`;
-            // if (ix === oldIx) {
-            //
-            // } else {
-            //     location.hash = `#/services/${service}/${ix}`;
-            // }
             location.reload(true);
         } else {
-            showError(res.message)
+            commons.showError(res.message)
         }
     });
 }

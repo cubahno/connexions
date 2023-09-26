@@ -129,7 +129,6 @@
                             <td>Method:</td>
                             <td>
                                 <select name="method" id="res-endpoint-method">
-                                    <option value=""></option>
                                     <option value="GET">GET</option>
                                     <option value="POST">POST</option>
                                     <option value="PUT">PUT</option>
@@ -213,106 +212,179 @@
 
         <iframe id="iframe-contents"  src="" style="display: none;"></iframe>
 
-        <form id="services-upload" method="POST" enctype="multipart/form-data" style="display: none;">
+        <div id="service-create-container" style="display: none;">
             <div class="services-upload-container">
-                <table class="upload-table">
-                    <tr>
-                        <td>Path or prefix:</td>
-                        <td>
-                            <input type="text" name="path" id="endpoint-path" value="" placeholder="/users/{userId}/files/{fileId}"><br/>
-                            <small>
-                                First part of it will be used as prefix with the endpoint paths and displayed in the left menu.
-                            </small>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Method:</td>
-                        <td>
-                            <select name="method" id="endpoint-method">
-                                <option value=""></option>
-                                <option value="GET">GET</option>
-                                <option value="POST">POST</option>
-                                <option value="PUT">PUT</option>
-                                <option value="PATCH">PATCH</option>
-                                <option value="DELETE">DELETE</option>
-                            </select>
-                            <br/>
-                            <small>Only for non-OpenAPI files. GET is default.</small>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>This is an OpenAPI configuration:</td>
-                        <td>
-                            <b>Yes</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-yes" name="is_openapi" value="1">
-                            <b>No</b>: <input style="width: auto;" type="radio" id="endpoint-is-openapi-no" name="is_openapi" value="0" checked><br/>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            Response:
-                        </td>
-                        <td>
-                            <label for="fileupload" class="upload-button">
-                                Select File
-                            </label>
-                            <input id="fileupload" type="file" name="file" class=""/>
-                            <div id="selected-filename" style="display: inline;"></div>
-                            <div style="padding-top: 20px;">Or input response contents directly:</div>
-                            <div>
-                                Content-Type:
-                                <select id="response-content-type">
-                                    <option value="json">json</option>
-                                    <option value="yml">yaml</option>
-                                    <option value="xml">xml</option>
-                                    <option value="html">html</option>
-                                    <option value="text">text</option>
-                                    <option value="markdown">markdown</option>
-                                </select>
+                <div style="width: 100%;">
+                    <div style="width: 60%; float: left;">
+                        <div id="new-service-tab-container">
+                            <div class="tab-container">
+                                <div class="tab">
+                                    <i class="fa-solid fa-screwdriver-wrench"></i> Fixed Response
+                                </div>
+                                <div class="tab">
+                                    <i class="fa-solid fa-folder-tree"></i> OpenAPI Schema
+                                </div>
                             </div>
-                            <div style="width: 500px; height: 300px;margin-top: 20px;" id="selected-text-response">
+
+                            <div class="tab-content">
+                                <div class="tab-pane" style="display: none;">
+                                    <form id="fixed-service-form" onsubmit="return false;" method="POST" enctype="multipart/form-data" >
+                                    <table class="upload-table">
+                                        <tr>
+                                            <td>Path or prefix:</td>
+                                            <td>
+                                                <input type="text" name="path" value="" placeholder="/users/{userId}/files/{fileId}"><br/>
+                                                <small>
+                                                    First part of it will be used as prefix with the endpoint paths and displayed in the left menu.
+                                                </small>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Method:</td>
+                                            <td>
+                                                <select name="method">
+                                                    <option value="GET">GET</option>
+                                                    <option value="POST">POST</option>
+                                                    <option value="PUT">PUT</option>
+                                                    <option value="PATCH">PATCH</option>
+                                                    <option value="DELETE">DELETE</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Response:
+                                            </td>
+                                            <td>
+                                                <label for="fixed-fileupload" class="upload-button">
+                                                    Select File
+                                                </label>
+                                                <input id="fixed-fileupload" type="file" name="file" class="fileupload"/>
+                                                <div class="selected-filename" style="display: inline;"></div>
+                                                <div style="padding-top: 20px;">Or use URL:</div>
+                                                <div>
+                                                    <input type="text" name="url" value="">
+                                                </div>
+
+                                                <div style="padding-top: 20px;">Or input response contents directly:</div>
+                                                <div>
+                                                    Content-Type:
+                                                    <select class="response-content-type" name="content_type" id="fixed-content-type">
+                                                        <option value="json">json</option>
+                                                        <option value="yml">yaml</option>
+                                                        <option value="xml">xml</option>
+                                                        <option value="html">html</option>
+                                                        <option value="text">text</option>
+                                                        <option value="markdown">markdown</option>
+                                                    </select>
+                                                </div>
+                                                <div style="width: 500px; height: 300px;margin-top: 20px;" class="selected-text-response" id="fixed-selected-text-response">
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <input type="hidden" name="is_openapi" value="0"/>
+                                                <button class="button blue-bg"> Save </button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    </form>
+                                </div>
+
+                                <div class="tab-pane" style="display: none;">
+                                    <form id="openapi-service-form" onsubmit="return false;" method="POST" enctype="multipart/form-data">
+                                    <table class="upload-table">
+                                        <tr>
+                                            <td>Path or prefix:</td>
+                                            <td>
+                                                <input type="text" name="path" value="" placeholder="/users/{userId}/files/{fileId}"><br/>
+                                                <small>
+                                                    First part of it will be used as prefix with the endpoint paths and displayed in the left menu.
+                                                </small>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Response:
+                                            </td>
+                                            <td>
+                                                <label for="openapi-fileupload" class="upload-button">
+                                                    Select File
+                                                </label>
+                                                <input id="openapi-fileupload" type="file" name="file" class="fileupload"/>
+                                                <div class="selected-filename" style="display: inline;"></div>
+
+                                                <div style="padding-top: 20px;">Or use URL:</div>
+                                                <div>
+                                                    <input type="text" name="url" value="">
+                                                </div>
+
+                                                <div style="padding-top: 20px;">Or input response contents directly:</div>
+                                                <div>
+                                                    Content-Type:
+                                                    <select name="content_type" id="openapi-content-type" class="response-content-type">
+                                                        <option value="json">json</option>
+                                                        <option value="yml">yaml</option>
+                                                        <option value="xml">xml</option>
+                                                        <option value="html">html</option>
+                                                        <option value="text">text</option>
+                                                        <option value="markdown">markdown</option>
+                                                    </select>
+                                                </div>
+                                                <div style="width: 500px; height: 300px;margin-top: 20px;" class="selected-text-response" id="openapi-selected-text-response">
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <input type="hidden" name="is_openapi" value="1"/>
+                                                <button class="button blue-bg"> Save </button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    </form>
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <button id="upload-button" class="button blue-bg"> Save </button>
-                        </td>
-                    </tr>
-                </table>
+                        </div>
+                    </div>
+                    <div style="width: 30%; float: left; margin-left: 30px;">
+                        <h3>Service can be of 2 types:</h3>
 
-                <br/><br/>
-                Service can be of 2 types:<br/><br/>
-                1. <b>A valid OpenAPI / Swagger</b> configuration file.<br/>
-                In this case the urls will be generated based on the configuration file.<br/>
-                Spec file should have yaml, yml or json file extension.<br/>
-                Spec should be valid, or it will not appear in the service list.<br/>
-                <br/>
+                        1. <b>A valid OpenAPI / Swagger</b> configuration file.<br/>
+                        In this case the resource urls will be generated based on the configuration file.<br/>
+                        But you still can provide starting URL or prefix path.<br>
+                        Spec file should have yaml, yml or json file extension.<br/>
+                        Spec should be valid, or it will not appear in the service list.<br/>
+                        <br/>
 
-                2. <b>Everything else</b>.<br/>
-                In this case the urls must be provided upfront together with the corresponding response file.<br/>
-                The response file can be any file, usually with the <b>json</b> extension.<br/>
-                The contents of this file will be returned as the response.<br/>
-                If the path collates with the existing one - it will <b>overwrite</b> it.<br/>
-                The urls of these type have higher priority than the ones from the OpenAPI / Swagger configuration.<br/>
-                <br/>
+                        2. <b>Fixed response:</b> meaning everything else.<br/>
+                        In this case the urls must be provided upfront together with the corresponding response file.<br/>
+                        The response file can be any file, usually with the <b>json</b> extension.<br/>
+                        The contents of this file will be returned as the response.<br/>
+                        If the path collates with the existing one - it will <b>overwrite</b> it.<br/>
+                        The urls of these type have higher priority than the ones from the OpenAPI / Swagger configuration.<br/>
+                        <br/>
 
-                <b>For example:</b><br/><br/>
-                <b>URL:</b> /api/v1/users/{userId}<br/>
-                <b>Method:</b> POST<br/>
+                        <b>For example:</b><br/><br/>
+                        <b>URL:</b> /api/v1/users/{userId}<br/>
+                        <b>Method:</b> POST<br/>
 
-                <b>Response file:</b> will be saved under /api/post/v1/users/{userId}/index.json<br/>
-                Trailing slash works as well:<br/>
-                So, <i>/api/v1/users/1/</i> will return the same file.<br/><br/>
+                        <b>Response file:</b> will be saved under /api/post/v1/users/{userId}/index.json<br/>
+                        Trailing slash works as well:<br/>
+                        So, <i>/api/v1/users/1/</i> will return the same file.<br/><br/>
 
-                <b>URL:</b> /api/v1/users/1/details.html<br/>
-                <b>Method:</b> GET<br/>
-                <b>Response file:</b> will be saved under /api/get/v1/users/1/details.html<br/>
-                No trailing slash will be added as alias.<br/>
+                        <b>URL:</b> /api/v1/users/1/details.html<br/>
+                        <b>Method:</b> GET<br/>
+                        <b>Response file:</b> will be saved under /api/get/v1/users/1/details.html<br/>
+                        No trailing slash will be added as alias.<br/>
 
-                <br/>
-                In both examples, the URLs will be shown under <b>api</b> service in the menu on the left.<br/>
+                        <br/>
+                        In both examples, the URLs will be shown under <b>api</b> service in the menu on the left.<br/>
+                    </div>
+                </div>
             </div>
-        </form>
+        </div>
 
         <form id="resources-import" method="POST" enctype="multipart/form-data" style="display: none;">
             <div class="services-upload-container">

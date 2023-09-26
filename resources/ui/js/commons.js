@@ -68,8 +68,9 @@ export const getEditorForm = (editorId, typeId) => {
     if (typeId !== undefined) {
         document.getElementById(typeId).addEventListener(`change`, el => {
             const value = el.target.value;
+            const mapped = getCodeEditorMode(value)
             editor.setOptions({
-                mode: `ace/mode/${value}`,
+                mode: `ace/mode/${mapped}`,
             })
         })
     }

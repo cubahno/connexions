@@ -1,5 +1,4 @@
 import * as config from './config.js';
-import {contentTitleEl} from "./config.js";
 
 export const loadPage = pageMap => {
     const currentHash = window.location.hash;
@@ -103,7 +102,7 @@ export const resetContents = () => {
     config.contextTable.style.display = 'none';
     config.contextTable.innerHTML = '';
 
-    config.servicesUploadForm.style.display = 'none';
+    config.serviceCreateContainer.style.display = 'none';
     config.resourcesImportForm.style.display = 'none';
     config.settingsEditor.style.display = 'none';
     config.fixedServiceContainer.style.display = 'none';
@@ -112,4 +111,36 @@ export const resetContents = () => {
     document.getElementById('resource-result').innerHTML = '';
     document.getElementById('resource-edit-container').style.display = 'none';
     config.resourceRefreshBtn.style.display = 'none';
+}
+
+export const setupTabbedContent = wrapperId => {
+    const wrapper = document.getElementById(wrapperId);
+    const tabContainer = wrapper.querySelector('.tab-container');
+    const tabs = tabContainer.querySelectorAll('.tab');
+    const content = wrapper.querySelector('.tab-content')
+    const panes = content.querySelectorAll('.tab-pane');
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Hide all tab content
+            panes.forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            // Show the selected tab content
+            tab.classList.add('active');
+            panes[index].classList.add('active');
+            panes[index].style.display = 'block';
+        });
+    });
+
+    // Show the initial tab
+    tabs[0].classList.add('active');
+    panes[0].classList.add('active');
+    panes[0].style.display = 'block';
+    content.style.display = 'block';
 }
