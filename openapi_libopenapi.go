@@ -213,7 +213,14 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	// base case: schema is flat
 	if len(allOf) == 0 && len(anyOf) == 0 && len(oneOf) == 0 && not == nil {
 		if schema != nil && len(schema.Type) == 0 {
-			schema.Type = []string{TypeObject}
+			typ := TypeObject
+			if len(schema.Enum) > 0 {
+				enumType := GetOpenAPITypeFromValue(schema.Enum[0])
+				if enumType != "" {
+					typ = enumType
+				}
+			}
+			schema.Type = []string{typ}
 		}
 		return schema, ""
 	}

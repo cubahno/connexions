@@ -128,3 +128,18 @@ func FixSchemaTypeTypos(typ string) string {
 
 	return typ
 }
+
+func GetOpenAPITypeFromValue(value any) string {
+	switch value.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return TypeInteger
+	case float32, float64:
+		return TypeNumber
+	case bool:
+		return TypeBoolean
+	case string:
+		return TypeString
+	}
+
+	return ""
+}

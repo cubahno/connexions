@@ -3,6 +3,7 @@
 package connexions
 
 import (
+	"fmt"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"path/filepath"
@@ -389,6 +390,30 @@ func TestFixSchemaTypeTypos(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			res := FixSchemaTypeTypos(tc.name)
+			assert.Equal(tc.expected, res)
+		})
+	}
+}
+
+func TestGetOpenAPITypeFromValue(t *testing.T) {
+	assert := assert2.New(t)
+	t.Parallel()
+
+	type testCase struct {
+		value    any
+		expected string
+	}
+
+	testCases := []testCase{
+		{1, TypeInteger},
+		{3.14, TypeNumber},
+		{true, TypeBoolean},
+		{"string", TypeString},
+		{func() {}, ""},
+	}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("case-%v", tc.value), func(t *testing.T) {
+			res := GetOpenAPITypeFromValue(tc.value)
 			assert.Equal(tc.expected, res)
 		})
 	}

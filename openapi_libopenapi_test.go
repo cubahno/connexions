@@ -607,6 +607,15 @@ func TestMergeLibOpenAPISubSchemas(t *testing.T) {
 		}
 		assert.ElementsMatch(expectedProps, props)
 	})
+
+	t.Run("inferred-from-enum", func(t *testing.T) {
+		target := &base.Schema{
+			Enum: []any{1, 2, 3},
+		}
+
+		schema, _ := mergeLibOpenAPISubSchemas(target)
+		assert.Equal([]string{TypeInteger}, schema.Type)
+	})
 }
 
 func TestPickLibOpenAPISchemaProxy(t *testing.T) {
