@@ -394,7 +394,11 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 
 	for name, schemaRef := range schema.Properties {
 		s := state.NewFrom(state).WithOptions(WithName(name))
-		res[name] = GenerateContentFromSchema(schemaRef, valueReplacer, s)
+		value := GenerateContentFromSchema(schemaRef, valueReplacer, s)
+		// TODO(cubahno): add config value whether to include null values
+		if value != nil {
+			res[name] = value
+		}
 	}
 
 	return res

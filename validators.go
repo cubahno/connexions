@@ -102,6 +102,13 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 		return nil
 	}
 
+	// TODO(cubahno): add support for other content types
+	// we don't generate binary files for example, now
+	// form types should work but that's to be added in libopenapi validator
+	if resSchema.ContentType != "application/json" {
+		return nil
+	}
+
 	inp := &openapi3filter.RequestValidationInput{
 		Request: req,
 		Route: &routers.Route{
