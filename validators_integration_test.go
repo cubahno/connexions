@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -27,26 +28,50 @@ type validationResult struct {
 // This test is skipped by default. To run this test, use make test-integration.
 // Specs should be located in resources/specs, they all .gitignored except petstore.yml.
 func TestValidateResponse_Integration(t *testing.T) {
+	filePath := os.Getenv("SPEC")
+
+	maxFailsVal := os.Getenv("MAX_FAILS")
+	maxFails := 0
+	if maxFailsVal != "" {
+		maxFails, _ = strconv.Atoi(maxFailsVal)
+	}
+	if maxFails == 0 {
+		maxFails = 5
+	}
+
+	println("Validating specs...", filePath)
+
 	wg := &sync.WaitGroup{}
-	ch := make(chan validationResult, 0)
+	ch := make(chan validationResult)
+	stopCh := make(chan struct{})
+
 	specDir := filepath.Join("resources", "test", "specs")
 	cfg := NewDefaultConfig("")
-	valueReplacer := CreateValueReplacer(cfg, nil)
 
-	_ = filepath.Walk(specDir, func(filePath string, info os.FileInfo, fileErr error) error {
-		if info == nil || info.IsDir() {
-			return nil
-		}
-
+	if filePath != "" {
 		wg.Add(1)
-
-		go func(filePath string) {
+		go func() {
 			defer wg.Done()
-			validateFile(filePath, valueReplacer, ch)
-		}(filePath)
+			valueReplacer := CreateValueReplacer(cfg, nil)
+			validateFile(filePath, valueReplacer, ch, stopCh)
+		}()
+	} else {
+		_ = filepath.Walk(specDir, func(filePath string, info os.FileInfo, fileErr error) error {
+			if info == nil || info.IsDir() {
+				return nil
+			}
 
-		return nil
-	})
+			wg.Add(1)
+
+			go func(filePath string) {
+				defer wg.Done()
+				valueReplacer := CreateValueReplacer(cfg, nil)
+				validateFile(filePath, valueReplacer, ch, stopCh)
+			}(filePath)
+
+			return nil
+		})
+	}
 
 	go func() {
 		wg.Wait()
@@ -64,6 +89,12 @@ func TestValidateResponse_Integration(t *testing.T) {
 		}
 		failsDescr = append(failsDescr, res)
 		fails++
+
+		if fails >= maxFails {
+			fmt.Printf("Max fails reached: %d\n", maxFails)
+			close(stopCh)
+			break
+		}
 	}
 
 	fmt.Printf("Success: %d, Fails: %d\n", success, fails)
@@ -90,7 +121,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	}
 }
 
-func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationResult) {
+func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
 	fileName := filepath.Base(filePath)
 	// there should be a simple way to tmp skip some specs
 	if fileName[0] == '-' {
@@ -144,13 +175,18 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 				success = true
 			}
 
-			ch <- validationResult{
-				file:    fileName,
-				path:    resource,
-				method:  method,
-				ok:      success,
-				reqErr:  reqErrMsg,
-				respErr: respErrMsg,
+			select {
+			case <-stop:
+				return
+			default:
+				ch <- validationResult{
+					file:    fileName,
+					path:    resource,
+					method:  method,
+					ok:      success,
+					reqErr:  reqErrMsg,
+					respErr: respErrMsg,
+				}
 			}
 		}
 	}

@@ -249,7 +249,7 @@ func (op *KinOperation) WithParseConfig(config *ParseConfig) Operationer {
 // NewSchemaFromKin creates a new Schema from a Kin schema
 func NewSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig) *Schema {
 	if parseConfig == nil {
-		parseConfig = &ParseConfig{}
+		parseConfig = NewParseConfig()
 	}
 	return newSchemaFromKin(schema, parseConfig, nil, nil)
 }
