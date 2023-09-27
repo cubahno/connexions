@@ -160,6 +160,37 @@ type EditorConfig struct {
 	FontSize int    `koanf:"fontSize" json:"fontSize" yaml:"fontSize"`
 }
 
+func NewServiceConfig() *ServiceConfig {
+	return &ServiceConfig{
+		Errors:      NewServiceErrorConfig(),
+		ParseConfig: NewParseConfig(),
+		Validate:    NewServiceValidateConfig(),
+		Cache:       NewServiceCacheConfig(),
+	}
+}
+
+func NewServiceErrorConfig() *ServiceError {
+	return &ServiceError{
+		Codes: map[int]int{},
+	}
+}
+
+func NewServiceValidateConfig() *ServiceValidateConfig {
+	return &ServiceValidateConfig{}
+}
+
+func NewServiceCacheConfig() *ServiceCacheConfig {
+	return &ServiceCacheConfig{
+		Schema: true,
+	}
+}
+
+func NewParseConfig() *ParseConfig {
+	return &ParseConfig{
+		MaxLevels: 0,
+	}
+}
+
 func NewPaths(baseDir string) *Paths {
 	resDir := filepath.Join(baseDir, "resources")
 	dataDir := filepath.Join(resDir, "data")
@@ -206,25 +237,20 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 	defer c.mu.Unlock()
 
 	res, ok := c.Services[service]
-	if !ok {
-		res = &ServiceConfig{}
+	if !ok || res == nil {
+		res = NewServiceConfig()
 	}
 
 	if res.Errors == nil {
-		res.Errors = &ServiceError{}
+		res.Errors = NewServiceErrorConfig()
 	}
 
 	if res.Validate == nil {
-		res.Validate = &ServiceValidateConfig{
-			Request:  true,
-			Response: false,
-		}
+		res.Validate = NewServiceValidateConfig()
 	}
 
 	if res.Cache == nil {
-		res.Cache = &ServiceCacheConfig{
-			Schema: true,
-		}
+		res.Cache = NewServiceCacheConfig()
 	}
 
 	return res

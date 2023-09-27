@@ -12,9 +12,6 @@ type FakeFunc func() MixedValue
 // FakeFuncFactoryWithString is a function that returns a FakeFunc.
 type FakeFuncFactoryWithString func(value string) FakeFunc
 
-// fake is an instance of faker that is used to generate fake data.
-var fake = faker.New()
-
 // fakes is a map of registered fake functions.
 var fakes = GetFakes()
 
@@ -46,6 +43,7 @@ func (b BoolValue) Get() any {
 
 // GetFakeFuncFactoryWithString returns a map of utility fake functions.
 func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
+	fake := faker.New()
 	return map[string]FakeFuncFactoryWithString{
 		"botify": func(pattern string) FakeFunc {
 			return func() MixedValue {
@@ -65,7 +63,7 @@ func GetFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
 // The keys are the snake_cased dot-separated method names, which reflect the location of the function:
 // For example: person.first_name will return a fake first name from the Person struct.
 func GetFakes() map[string]FakeFunc {
-	return getFakeFuncs(fake, "")
+	return getFakeFuncs(faker.New(), "")
 }
 
 // GetFakesFromStruct returns a map of fake functions from a struct.

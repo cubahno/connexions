@@ -66,7 +66,7 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 // NewSchemaFromLibOpenAPI creates a new Schema from a libopenapi Schema.
 func NewSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig) *Schema {
 	if parseConfig == nil {
-		parseConfig = &ParseConfig{}
+		parseConfig = NewParseConfig()
 	}
 	return newSchemaFromLibOpenAPI(schema, parseConfig, nil, nil)
 }

@@ -55,9 +55,10 @@ func CreateValueReplacer(cfg *Config, contexts []map[string]any) ValueReplacer {
 		}
 
 		ctx := &ReplaceContext{
-			Schema:     content,
-			State:      state,
-			Faker:      fake,
+			Schema: content,
+			State:  state,
+			// initialize faker here, global var is racy
+			Faker:      faker.New(),
 			AreaPrefix: cfg.App.ContextAreaPrefix,
 			Data:       contexts,
 		}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/jaswdr/faker"
 	base2 "github.com/pb33f/libopenapi/datamodel/high/base"
 	"github.com/pb33f/libopenapi/datamodel/low"
 	"github.com/pb33f/libopenapi/datamodel/low/base"
@@ -241,7 +242,7 @@ func CreateTestMapFormReader(data map[string]string) (*multipart.Writer, *bytes.
 
 func NewTestReplaceContext(schema any) *ReplaceContext {
 	return &ReplaceContext{
-		Faker:  fake,
+		Faker:  faker.New(),
 		Schema: schema,
 	}
 }

@@ -4,6 +4,7 @@ package connexions
 
 import (
 	"fmt"
+	"github.com/jaswdr/faker"
 	assert2 "github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 func TestHasCorrectSchemaType(t *testing.T) {
 	assert := assert2.New(t)
+	fake := faker.New()
 
 	t.Run("nil-schema", func(t *testing.T) {
 		res := HasCorrectSchemaValue(NewTestReplaceContext(nil), "nice")
@@ -97,6 +99,7 @@ func TestHasCorrectSchemaType(t *testing.T) {
 
 func TestReplaceInHeaders(t *testing.T) {
 	assert := assert2.New(t)
+	fake := faker.New()
 
 	t.Run("not-a-header", func(t *testing.T) {
 		state := NewReplaceStateWithName("userID")
@@ -133,6 +136,7 @@ func TestReplaceInHeaders(t *testing.T) {
 
 func TestReplaceInPath(t *testing.T) {
 	assert := assert2.New(t)
+	fake := faker.New()
 
 	t.Run("not-a-path", func(t *testing.T) {
 		state := NewReplaceStateWithName("userID")
@@ -184,6 +188,7 @@ func TestReplaceInPath(t *testing.T) {
 
 func TestReplaceInArea(t *testing.T) {
 	assert := assert2.New(t)
+	fake := faker.New()
 
 	t.Run("missing-prefix", func(t *testing.T) {
 		state := NewReplaceStateWithName("userID").WithOptions(WithPath())
@@ -202,6 +207,7 @@ func TestReplaceInArea(t *testing.T) {
 
 func TestReplaceFromContext(t *testing.T) {
 	assert := assert2.New(t)
+	fake := faker.New()
 
 	t.Run("happy-path", func(t *testing.T) {
 		schema := &Schema{

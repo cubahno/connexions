@@ -46,11 +46,8 @@ func TestConfig(t *testing.T) {
 		}
 		res := cfg.GetServiceConfig("service1")
 		assert.Equal(100*time.Millisecond, res.Latency)
-		assert.Equal(&ServiceError{}, res.Errors)
-		assert.Equal(&ServiceValidateConfig{
-			Request:  true,
-			Response: false,
-		}, res.Validate)
+		assert.Equal(NewServiceErrorConfig(), res.Errors)
+		assert.Equal(NewServiceValidateConfig(), res.Validate)
 
 		assert.Equal(&ServiceCacheConfig{
 			Schema: true,
@@ -66,11 +63,8 @@ func TestConfig(t *testing.T) {
 		}
 		res := cfg.GetServiceConfig("service-2")
 		assert.Equal(0*time.Millisecond, res.Latency)
-		assert.Equal(&ServiceError{}, res.Errors)
-		assert.Equal(&ServiceValidateConfig{
-			Request:  true,
-			Response: false,
-		}, res.Validate)
+		assert.Equal(NewServiceErrorConfig(), res.Errors)
+		assert.Equal(NewServiceValidateConfig(), res.Validate)
 	})
 
 	t.Run("EnsureConfigValues-when-empty", func(t *testing.T) {
