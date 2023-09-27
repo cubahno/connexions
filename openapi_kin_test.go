@@ -226,6 +226,15 @@ func TestMergeKinSubSchemas(t *testing.T) {
 		assert.Equal("", ref)
 		assert.Equal(TypeObject, schema.Type)
 	})
+
+	t.Run("inferred-from-enum", func(t *testing.T) {
+		target := &openapi3.Schema{
+			Enum: []any{1, 2, 3},
+		}
+
+		schema, _ := mergeKinSubSchemas(target)
+		assert.Equal(TypeInteger, schema.Type)
+	})
 }
 
 func TestPickKinSchemaProxy(t *testing.T) {
