@@ -93,10 +93,8 @@ export const editForm = (match) => {
     navi.resetContents();
     show(name);
 
-    const editor = commons.getCodeEditor('context-code-editor');
-    editor.setOptions({
-        mode: `ace/mode/yaml`,
-    });
+    const editor = commons.getCodeEditor('context-code-editor', `yaml`);
+
     config.contentTitleEl.innerHTML = title;
 
     if (name !== ``) {

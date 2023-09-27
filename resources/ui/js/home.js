@@ -53,10 +53,8 @@ export async function save(event) {
 }
 
 export const showVersion = () => {
-    const cont = document.getElementById('app-version-cont');
     const el = document.getElementById('app-version');
     if (config.version !== "") {
         el.textContent = config.version;
-        cont.style.display = 'block';
     }
 }

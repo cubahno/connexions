@@ -127,4 +127,28 @@ func TestNewSchema(t *testing.T) {
 			assert.Equal(example, childrenExample)
 		})
 	}
+
+	for _, schemaFromProvider := range tc {
+		t.Run("circular-with-additional-properties", func(t *testing.T) {
+			res := schemaFromProvider.getSchema(t, "document-connexions.yml", "Map",
+				&ParseConfig{MaxRecursionLevels: 0})
+
+			expected := &Schema{
+				Type: TypeObject,
+				Properties: map[string]*Schema{
+					"extra-1": {
+						Type: TypeObject,
+					},
+					"extra-2": {
+						Type: TypeObject,
+					},
+					"extra-3": {
+						Type: TypeObject,
+					},
+				},
+			}
+			assert.NotNil(res)
+			assert.Equal(expected, res)
+		})
+	}
 }

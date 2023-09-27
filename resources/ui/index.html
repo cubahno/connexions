@@ -144,7 +144,7 @@
                             <td>
                                 <div>
                                     Content-Type:
-                                    <select id="res-response-content-type">
+                                    <select name="content_type" id="res-response-content-type">
                                         <option value="json">json</option>
                                         <option value="yml">yaml</option>
                                         <option value="xml">xml</option>
@@ -159,7 +159,7 @@
                         </tr>
                         <tr>
                             <td colspan="2">
-                                <button id="res-upload-button" class="button blue-bg"> Save </button>
+                                <button id="res-save-button" class="button blue-bg"> Save </button>
                             </td>
                         </tr>
                     </table>
@@ -396,7 +396,8 @@
                             <label for="zip-fileupload" class="upload-button">
                                 Select File
                             </label>
-                            <input id="zip-fileupload" type="file" name="file" class=""/>
+                            <input id="zip-fileupload" type="file" name="file" class="fileupload"/>
+                            <div id="zip-selected-filename" class="selected-filename" style="display: inline;"></div>
                         </td>
                     </tr>
                     <tr>
@@ -462,12 +463,10 @@
         </div>
 
         <div class="footer-block">
-            <div  id="app-version-cont" style="display: none;">
-                <a href="https://github.com/cubahno/connexions/tags" target="_blank">
-                    <i class="fa-solid fa-tag"></i>
-                    Version: <span id="app-version"></span>
-                </a>
-            </div>
+            <a href="https://github.com/cubahno/connexions/tags" target="_blank">
+                <i class="fa-solid fa-tag"></i>
+                Version: <span id="app-version"></span>
+            </a>
         </div>
     </footer>
 </div>

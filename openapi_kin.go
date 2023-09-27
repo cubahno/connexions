@@ -4,6 +4,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -310,6 +311,35 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		}
 	}
 
+	// add additional properties
+	additionalProps := getKinAdditionalProperties(merged.AdditionalProperties)
+	if additionalProps != nil {
+		if properties == nil {
+			properties = make(map[string]*Schema)
+		}
+
+		// TODO(cubahno): move to config
+		additionalNum := 3
+		additionalPrefix := "extra-"
+
+		for i := 0; i < additionalNum; i++ {
+			propName := additionalPrefix + strconv.Itoa(i+1)
+			propSchema := newSchemaFromKin(
+				additionalProps,
+				parseConfig,
+				append(refPath, "additionalProperties"), // this will solve circular reference
+				append(namePath, propName),
+			)
+			if propSchema != nil {
+				properties[propName] = propSchema
+			}
+		}
+
+		if len(properties) == 0 {
+			properties = nil
+		}
+	}
+
 	var not *Schema
 	if merged.Not != nil {
 		not = newSchemaFromKin(merged.Not.Value, parseConfig, refPath, namePath)
@@ -321,30 +351,29 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 	}
 
 	return &Schema{
-		Type:                 typ,
-		Items:                items,
-		MultipleOf:           RemovePointer(merged.MultipleOf),
-		Maximum:              RemovePointer(merged.Max),
-		Minimum:              RemovePointer(merged.Min),
-		MaxLength:            int64(RemovePointer(merged.MaxLength)),
-		MinLength:            int64(merged.MinLength),
-		Pattern:              merged.Pattern,
-		Format:               merged.Format,
-		MaxItems:             int64(RemovePointer(merged.MaxItems)),
-		MinItems:             int64(merged.MinItems),
-		MaxProperties:        int64(RemovePointer(merged.MaxProps)),
-		MinProperties:        int64(merged.MinProps),
-		Required:             merged.Required,
-		Enum:                 merged.Enum,
-		Properties:           properties,
-		Not:                  not,
-		Default:              merged.Default,
-		Nullable:             merged.Nullable,
-		ReadOnly:             merged.ReadOnly,
-		WriteOnly:            merged.WriteOnly,
-		Example:              merged.Example,
-		Deprecated:           merged.Deprecated,
-		AdditionalProperties: transformKinAdditionalProperties(merged.AdditionalProperties, parseConfig),
+		Type:          typ,
+		Items:         items,
+		MultipleOf:    RemovePointer(merged.MultipleOf),
+		Maximum:       RemovePointer(merged.Max),
+		Minimum:       RemovePointer(merged.Min),
+		MaxLength:     int64(RemovePointer(merged.MaxLength)),
+		MinLength:     int64(merged.MinLength),
+		Pattern:       merged.Pattern,
+		Format:        merged.Format,
+		MaxItems:      int64(RemovePointer(merged.MaxItems)),
+		MinItems:      int64(merged.MinItems),
+		MaxProperties: int64(RemovePointer(merged.MaxProps)),
+		MinProperties: int64(merged.MinProps),
+		Required:      merged.Required,
+		Enum:          merged.Enum,
+		Properties:    properties,
+		Not:           not,
+		Default:       merged.Default,
+		Nullable:      merged.Nullable,
+		ReadOnly:      merged.ReadOnly,
+		WriteOnly:     merged.WriteOnly,
+		Example:       merged.Example,
+		Deprecated:    merged.Deprecated,
 	}
 }
 
@@ -487,7 +516,7 @@ func pickKinSchemaProxy(items []*openapi3.SchemaRef) *openapi3.SchemaRef {
 	return fstNonEmpty
 }
 
-func transformKinAdditionalProperties(source openapi3.AdditionalProperties, parseConfig *ParseConfig) *Schema {
+func getKinAdditionalProperties(source openapi3.AdditionalProperties) *openapi3.Schema {
 	schemaRef := source.Schema
 	if schemaRef == nil || schemaRef.Value == nil {
 		has := RemovePointer(source.Has)
@@ -495,11 +524,11 @@ func transformKinAdditionalProperties(source openapi3.AdditionalProperties, pars
 			return nil
 		}
 		// case when additionalProperties is true
-		return &Schema{
+		return &openapi3.Schema{
 			Type: TypeString,
 		}
 	}
 
 	// we have schema
-	return NewSchemaFromKin(schemaRef.Value, parseConfig)
+	return schemaRef.Value
 }

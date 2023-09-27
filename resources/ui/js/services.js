@@ -192,12 +192,16 @@ export async function saveFormWithFile(container) {
     await save(formData);
 }
 
-export async function saveWithoutFile(event) {
-    event.preventDefault();
+export async function saveWithoutFile(container) {
     let formData = new FormData();
 
-    const method = document.getElementById('res-endpoint-method').value.trim();
-    const path = document.getElementById('res-endpoint-path').value.trim();
+    let method = `GET`;
+    const methodEl = container.querySelector('select[name="method"]');
+    if (methodEl) {
+        method = methodEl.value;
+    }
+
+    const path = container.querySelector('input[name="path"]').value.trim();
     const response = commons.getCodeEditor(`res-selected-text-response`, `json`).getValue();
 
     const contentMap = {
@@ -205,8 +209,8 @@ export async function saveWithoutFile(event) {
         markdown: `md`,
         text: `txt`,
     }
-    const ctValue = config.responseContentTypeEl.value;
-    const contentType = contentMap.hasOwnProperty(ctValue) ? contentMap[ctValue] : ctValue;
+    const contentTypeVal = container.querySelector('select[name="content_type"]').value;
+    const contentType = contentMap.hasOwnProperty(contentTypeVal) ? contentMap[contentTypeVal] : contentTypeVal;
 
     formData.append("response", response);
     formData.append("contentType", contentType);

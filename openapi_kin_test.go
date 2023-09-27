@@ -231,20 +231,20 @@ func TestPickKinSchemaProxy(t *testing.T) {
 	})
 }
 
-func TestTransformKinAdditionalProperties(t *testing.T) {
+func TestGetKinAdditionalProperties(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
 	t.Run("empty-case", func(t *testing.T) {
-		res := transformKinAdditionalProperties(openapi3.AdditionalProperties{}, nil)
+		res := getKinAdditionalProperties(openapi3.AdditionalProperties{})
 		assert.Nil(res)
 	})
 
 	t.Run("has-case", func(t *testing.T) {
 		has := new(bool)
 		*has = true
-		res := transformKinAdditionalProperties(openapi3.AdditionalProperties{Has: has}, nil)
-		expected := &Schema{
+		res := getKinAdditionalProperties(openapi3.AdditionalProperties{Has: has})
+		expected := &openapi3.Schema{
 			Type: TypeString,
 		}
 		assert.Equal(expected, res)
@@ -271,15 +271,19 @@ func TestTransformKinAdditionalProperties(t *testing.T) {
 			},
 		}
 
-		expected := &Schema{
+		expected := &openapi3.Schema{
 			Type: TypeObject,
-			Properties: map[string]*Schema{
-				"name": {Type: TypeString},
-				"age":  {Type: TypeInteger},
+			Properties: map[string]*openapi3.SchemaRef{
+				"name": {
+					Value: &openapi3.Schema{Type: TypeString},
+				},
+				"age": {
+					Value: &openapi3.Schema{Type: TypeInteger},
+				},
 			},
 		}
 
-		res := transformKinAdditionalProperties(source, nil)
+		res := getKinAdditionalProperties(source)
 
 		assert.Equal(expected, res)
 	})
