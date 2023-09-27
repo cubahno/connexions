@@ -268,6 +268,10 @@ const edit = (service, ix) => {
             })
             editor.clearSelection();
 
-            document.getElementById( `res-response-content-type`).value = mode;
+            document.getElementById(`res-response-content-type`).value = mode;
+            document.getElementById('res-save-button').addEventListener('click', async event => {
+                event.preventDefault();
+                await services.saveWithoutFile(cont)
+            });
         });
 }

@@ -19,5 +19,4 @@ export const messageCont = document.getElementById('message');
 export const settingsEditor = document.getElementById('settings-editor');
 export const fixedServiceContainer = document.getElementById('fixed-service-container');
 export const resourceRefreshBtn = document.getElementById('refresh');
-export const responseContentTypeEl = document.getElementById(`response-content-type`);
 export const contextEditContainer = document.getElementById('context-edit-container');

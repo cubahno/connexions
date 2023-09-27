@@ -38,7 +38,6 @@ async function onLoad() {
     document.getElementById('settings-save-button').addEventListener('click', settings.save);
     document.getElementById('settings-default-save-button').addEventListener('click', settings.restore);
 
-    document.getElementById('res-upload-button').addEventListener('click',services.saveWithoutFile);
     document.getElementById('export-link').href = `${config.homeUrl}/export`;
 }
 
