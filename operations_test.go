@@ -817,9 +817,8 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			"name": "noda-123",
 			"children": []any{
 				map[string]any{
-					"id":       123,
-					"name":     "noda-123",
-					"children": nil,
+					"id":   123,
+					"name": "noda-123",
 				},
 			},
 		}
@@ -848,9 +847,8 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			"id":   123,
 			"name": "noda-123",
 			"parent": map[string]any{
-				"id":     123,
-				"name":   "noda-123",
-				"parent": nil,
+				"id":   123,
+				"name": "noda-123",
 			},
 		}
 		assert.Equal(expected, res)
@@ -988,7 +986,7 @@ func TestGenerateContentFromSchema_ReadWrite(t *testing.T) {
 		state := NewReplaceState(WithWriteOnly())
 		res := GenerateContentFromSchema(schema, valueResolver, state)
 
-		expected := map[string]any{"product": nil}
+		expected := map[string]any{}
 		assert.Equal(expected, res)
 	})
 
@@ -1026,7 +1024,6 @@ func TestGenerateContentFromSchema_ReadWrite(t *testing.T) {
 		expected := map[string]any{
 			"product": map[string]any{
 				"nice":  "nice-value",
-				"rice":  nil,
 				"price": "price-value",
 			},
 		}
@@ -1082,9 +1079,7 @@ func TestGenerateContentObject(t *testing.T) {
             }
         }`)
 		expected := map[string]any{
-			"name": map[string]any{
-				"first": nil,
-			},
+			"name": map[string]any{},
 		}
 		res := GenerateContentObject(schema, nil, nil)
 		assert.Equal(expected, res)
@@ -1116,26 +1111,6 @@ func TestGenerateContentObject(t *testing.T) {
 
 		res := GenerateContentObject(schema, valueReplacer, nil)
 		assert.Equal(expected, res)
-	})
-}
-
-func TestMakeAdditionalPropertiesKey(t *testing.T) {
-	assert := assert2.New(t)
-
-	t.Run("current-empty", func(t *testing.T) {
-		key, nextID := makeAdditionalPropertiesKey("foo-", 1, make(map[string]any))
-		assert.Equal("foo-1", key)
-		assert.Equal(2, nextID)
-	})
-
-	t.Run("current-taken-keys", func(t *testing.T) {
-		key, nextID := makeAdditionalPropertiesKey("foo-", 1, map[string]any{
-			"foo-1": nil,
-			"foo-2": "v-2",
-			"foo-3": nil,
-		})
-		assert.Equal("foo-4", key)
-		assert.Equal(5, nextID)
 	})
 }
 

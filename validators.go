@@ -124,11 +124,7 @@ func ValidateResponse(req *http.Request, res *Response, operation Operationer) e
 
 	responseValidationInput.SetBodyBytes(res.Content)
 
-	err := openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
-	if err != nil && strings.Contains(err.Error(), "unsupported content type") {
-		return nil
-	}
-	return err
+	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
 
 // ValidateStringWithPattern checks if the input string matches the given pattern.
