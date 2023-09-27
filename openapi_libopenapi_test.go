@@ -491,6 +491,24 @@ required: [name]
 		assert.Greater(len(rendered), 0)
 		assert.Equal(expectedYaml, actualYaml)
 	})
+
+	t.Run("min-amount-of-additional-props", func(t *testing.T) {
+		yml := `
+type: object
+minProperties: 5
+properties:
+  name:
+    type: string
+additionalProperties:
+  type: string
+`
+		schema := CreateLibSchemaFromString(t, yml)
+		assert.NotNil(schema)
+
+		res := NewSchemaFromLibOpenAPI(schema.Schema(), nil)
+		assert.NotNil(res)
+		assert.Equal(6, len(res.Properties))
+	})
 }
 
 func TestMergeLibOpenAPISubSchemas(t *testing.T) {
@@ -656,11 +674,14 @@ func TestGetLibAdditionalProperties(t *testing.T) {
 	t.Run("inlined-case", func(t *testing.T) {
 		schema := `
 type: object
+minProperties: 2
 properties:
   name:
     type: string
   age:
     type: integer
+  city:
+    type: string
 `
 		source := CreateLibSchemaFromString(t, schema)
 

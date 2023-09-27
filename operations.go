@@ -396,8 +396,14 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 		s := state.NewFrom(state).WithOptions(WithName(name))
 		value := GenerateContentFromSchema(schemaRef, valueReplacer, s)
 		// TODO(cubahno): decide whether config value needed to include null values
-		if value != nil {
-			res[name] = value
+		if value == nil {
+			continue
+		}
+
+		res[name] = value
+
+		if schema.MaxProperties > 0 && len(res) >= int(schema.MaxProperties) {
+			break
 		}
 	}
 

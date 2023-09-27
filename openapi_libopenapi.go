@@ -138,8 +138,15 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 			properties = make(map[string]*Schema)
 		}
 
+		// TODO(cubahno): find out if this the correct property, or one from AdditionalProperties should be used
+		minProperties := RemovePointer(merged.MinProperties)
+
 		// TODO(cubahno): move to config
 		additionalNum := 3
+		if minProperties > 0 {
+			additionalNum = int(minProperties)
+		}
+
 		additionalPrefix := "extra-"
 
 		for i := 0; i < additionalNum; i++ {

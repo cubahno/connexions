@@ -318,8 +318,15 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 			properties = make(map[string]*Schema)
 		}
 
+		// TODO(cubahno): find out if this the correct property, or one from AdditionalProperties should be used
+		minProperties := int64(merged.MinProps)
+
 		// TODO(cubahno): move to config
 		additionalNum := 3
+		if minProperties > 0 {
+			additionalNum = int(minProperties)
+		}
+
 		additionalPrefix := "extra-"
 
 		for i := 0; i < additionalNum; i++ {

@@ -153,6 +153,28 @@ func TestNewSchemaFromKin(t *testing.T) {
 		assert.Nil(res)
 	})
 
+	t.Run("min-amount-of-additional-props", func(t *testing.T) {
+		js := `
+			{
+			  "type": "object",
+			  "minProperties": 5,
+			  "properties": {
+				"name": {
+				  "type": "string"
+				}
+			  },
+			  "additionalProperties": {
+				"type": "string"
+			  }
+			}
+			`
+		schema := CreateKinSchemaFromString(t, js)
+		assert.NotNil(schema)
+
+		res := NewSchemaFromKin(schema, nil)
+		assert.NotNil(res)
+		assert.Equal(6, len(res.Properties))
+	})
 }
 
 func TestMergeKinSubSchemas(t *testing.T) {

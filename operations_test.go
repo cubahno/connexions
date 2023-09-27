@@ -1112,6 +1112,24 @@ func TestGenerateContentObject(t *testing.T) {
 		res := GenerateContentObject(schema, valueReplacer, nil)
 		assert.Equal(expected, res)
 	})
+
+	t.Run("with-max-properties", func(t *testing.T) {
+		valueReplacer := func(schema any, state *ReplaceState) any {
+			return state.NamePath[0] + "-value"
+		}
+		schema := CreateSchemaFromString(t, `
+		{
+			"type": "object",
+ 			"maxProperties": 1,
+			"properties": {
+				"name": {"type": "string"},
+				"address": {"type": "string"}
+			}
+		}`)
+
+		res := GenerateContentObject(schema, valueReplacer, nil)
+		assert.Equal(1, len(res.(map[string]any)))
+	})
 }
 
 func TestGenerateContentArray(t *testing.T) {
