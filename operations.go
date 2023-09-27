@@ -394,21 +394,14 @@ func GenerateContentObject(schema *Schema, valueReplacer ValueReplacer, state *R
 
 	for name, schemaRef := range schema.Properties {
 		s := state.NewFrom(state).WithOptions(WithName(name))
-		res[name] = GenerateContentFromSchema(schemaRef, valueReplacer, s)
+		value := GenerateContentFromSchema(schemaRef, valueReplacer, s)
+		// TODO(cubahno): decide whether config value needed to include null values
+		if value != nil {
+			res[name] = value
+		}
 	}
 
 	return res
-}
-
-// makeAdditionalPropertiesKey generates a key for additional properties.
-// It is used to avoid collisions with existing keys.
-func makeAdditionalPropertiesKey(prefix string, attempt int, currentData map[string]any) (string, int) {
-	try := fmt.Sprintf("%s%d", prefix, attempt)
-	if _, ok := currentData[try]; ok {
-		return makeAdditionalPropertiesKey(prefix, attempt+1, currentData)
-	}
-
-	return try, attempt + 1
 }
 
 // GenerateContentArray generates content from the given schema with type `array`.

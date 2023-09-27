@@ -163,7 +163,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
 		assert.Equal(http.StatusBadRequest, w.Code)
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
-		errPrefix := `Invalid response: response body doesn't match schema: Error at "/0/name": Value is not nullable`
+		errPrefix := `Invalid response: response body doesn't match schema: Error at "/0/name": property "name" is missing`
 		assert.True(strings.HasPrefix(resp.Message, errPrefix))
 	})
 }
