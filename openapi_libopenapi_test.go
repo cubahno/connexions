@@ -628,28 +628,28 @@ func TestPickLibOpenAPISchemaProxy(t *testing.T) {
 	})
 }
 
-func TestTransformLibAdditionalProperties(t *testing.T) {
+func TestGetLibAdditionalProperties(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
 	t.Run("unknown-case", func(t *testing.T) {
-		res := transformLibAdditionalProperties("schema", nil)
+		res := getLibAdditionalProperties("schema")
 		assert.Nil(res)
 	})
 
 	t.Run("nil-case", func(t *testing.T) {
-		res := transformLibAdditionalProperties(nil, nil)
+		res := getLibAdditionalProperties(nil)
 		assert.Nil(res)
 	})
 
 	t.Run("false-case", func(t *testing.T) {
-		res := transformLibAdditionalProperties(false, nil)
+		res := getLibAdditionalProperties(false)
 		assert.Nil(res)
 	})
 
 	t.Run("true-case", func(t *testing.T) {
-		res := transformLibAdditionalProperties(true, nil)
-		expected := &Schema{Type: TypeString}
+		res := getLibAdditionalProperties(true)
+		expected := &base.Schema{Type: []string{TypeString}}
 		assert.Equal(expected, res)
 	})
 
@@ -664,16 +664,12 @@ properties:
 `
 		source := CreateLibSchemaFromString(t, schema)
 
-		expected := &Schema{
-			Type: TypeObject,
-			Properties: map[string]*Schema{
-				"name": {Type: TypeString},
-				"age":  {Type: TypeInteger},
-			},
-		}
+		res := getLibAdditionalProperties(source)
 
-		res := transformLibAdditionalProperties(source, nil)
-
-		AssertJSONEqual(t, expected, res)
+		assert.NotNil(res)
+		assert.Equal(TypeObject, res.Type[0])
+		assert.Equal(TypeString, res.Properties["name"].Schema().Type[0])
+		assert.Equal(TypeInteger, res.Properties["age"].Schema().Type[0])
+		assert.Nil(res.AdditionalProperties)
 	})
 }

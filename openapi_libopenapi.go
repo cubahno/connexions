@@ -6,6 +6,7 @@ import (
 	"github.com/pb33f/libopenapi/resolver"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -130,6 +131,35 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		}
 	}
 
+	// add additional properties
+	additionalProps := getLibAdditionalProperties(merged.AdditionalProperties)
+	if additionalProps != nil {
+		if properties == nil {
+			properties = make(map[string]*Schema)
+		}
+
+		// TODO(cubahno): move to config
+		additionalNum := 3
+		additionalPrefix := "extra-"
+
+		for i := 0; i < additionalNum; i++ {
+			propName := additionalPrefix + strconv.Itoa(i+1)
+			propSchema := newSchemaFromLibOpenAPI(
+				additionalProps,
+				parseConfig,
+				append(refPath, "additionalProperties"), // this will solve circular reference
+				append(namePath, propName),
+			)
+			if propSchema != nil {
+				properties[propName] = propSchema
+			}
+		}
+
+		if len(properties) == 0 {
+			properties = nil
+		}
+	}
+
 	var not *Schema
 	if merged.Not != nil {
 		not = newSchemaFromLibOpenAPI(merged.Not.Schema(), parseConfig, refPath, namePath)
@@ -140,30 +170,29 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	}
 
 	return &Schema{
-		Type:                 typ,
-		Items:                items,
-		MultipleOf:           RemovePointer(merged.MultipleOf),
-		Maximum:              RemovePointer(merged.Maximum),
-		Minimum:              RemovePointer(merged.Minimum),
-		MaxLength:            RemovePointer(merged.MaxLength),
-		MinLength:            RemovePointer(merged.MinLength),
-		Pattern:              merged.Pattern,
-		Format:               merged.Format,
-		MaxItems:             RemovePointer(merged.MaxItems),
-		MinItems:             RemovePointer(merged.MinItems),
-		MaxProperties:        RemovePointer(merged.MaxProperties),
-		MinProperties:        RemovePointer(merged.MinProperties),
-		Required:             merged.Required,
-		Enum:                 merged.Enum,
-		Properties:           properties,
-		Not:                  not,
-		Default:              merged.Default,
-		Nullable:             RemovePointer(merged.Nullable),
-		ReadOnly:             merged.ReadOnly,
-		WriteOnly:            merged.WriteOnly,
-		Example:              merged.Example,
-		Deprecated:           RemovePointer(merged.Deprecated),
-		AdditionalProperties: transformLibAdditionalProperties(merged.AdditionalProperties, parseConfig),
+		Type:          typ,
+		Items:         items,
+		MultipleOf:    RemovePointer(merged.MultipleOf),
+		Maximum:       RemovePointer(merged.Maximum),
+		Minimum:       RemovePointer(merged.Minimum),
+		MaxLength:     RemovePointer(merged.MaxLength),
+		MinLength:     RemovePointer(merged.MinLength),
+		Pattern:       merged.Pattern,
+		Format:        merged.Format,
+		MaxItems:      RemovePointer(merged.MaxItems),
+		MinItems:      RemovePointer(merged.MinItems),
+		MaxProperties: RemovePointer(merged.MaxProperties),
+		MinProperties: RemovePointer(merged.MinProperties),
+		Required:      merged.Required,
+		Enum:          merged.Enum,
+		Properties:    properties,
+		Not:           not,
+		Default:       merged.Default,
+		Nullable:      RemovePointer(merged.Nullable),
+		ReadOnly:      merged.ReadOnly,
+		WriteOnly:     merged.WriteOnly,
+		Example:       merged.Example,
+		Deprecated:    RemovePointer(merged.Deprecated),
 	}
 }
 
@@ -306,7 +335,8 @@ func pickLibOpenAPISchemaProxy(items []*base.SchemaProxy) *base.SchemaProxy {
 	return fstNonEmpty
 }
 
-func transformLibAdditionalProperties(source any, parseConfig *ParseConfig) *Schema {
+// getLibAdditionalProperties returns the additionalProperties of a libopenapi Schema.
+func getLibAdditionalProperties(source any) *base.Schema {
 	if source == nil {
 		return nil
 	}
@@ -317,11 +347,10 @@ func transformLibAdditionalProperties(source any, parseConfig *ParseConfig) *Sch
 			return nil
 		}
 		// default dictionary
-		return &Schema{
-			Type: TypeString,
-		}
+		return &base.Schema{Type: []string{TypeString}}
+
 	case *base.SchemaProxy:
-		return NewSchemaFromLibOpenAPI(v.Schema(), parseConfig)
+		return v.Schema()
 	}
 
 	return nil
