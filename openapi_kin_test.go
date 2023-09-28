@@ -108,6 +108,20 @@ func TestKinOperation(t *testing.T) {
 		assert.Nil(content)
 		assert.Equal("", contentType)
 	})
+
+	t.Run("nil-schema", func(t *testing.T) {
+		operation := &KinOperation{Operation: &openapi3.Operation{
+			OperationID: "findNice",
+		}}
+		mediaTypes := map[string]*openapi3.MediaType{
+			"text/plain": {
+				Schema: nil,
+			},
+		}
+		content, contentType := operation.getContent(mediaTypes)
+		assert.Nil(content)
+		assert.Equal("text/plain", contentType)
+	})
 }
 
 func TestNewSchemaFromKin(t *testing.T) {
