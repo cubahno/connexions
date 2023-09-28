@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/invopop/yaml v0.1.0
 	github.com/jaswdr/faker v1.19.0
+	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf v1.5.0
 	github.com/pb33f/libopenapi v0.9.8
 	github.com/stretchr/testify v1.8.4
@@ -19,7 +20,6 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect

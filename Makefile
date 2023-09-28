@@ -43,7 +43,7 @@ clean:
 
 .PHONY: build
 build: clean
-	@GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./.cli/server/main.go
+	@GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./cmd/server/main.go
 
 .PHONY: docker-build
 docker-build:
@@ -69,9 +69,12 @@ docker-shell:
 
 @PHONY: tag-next
 tag-next:
-	@./.cli/tag-next.sh
-
+	@./cmd/tag-next.sh
 
 @PHONY: deploy-docs
 deploy-docs:
 	mkdocs gh-deploy --force
+
+@PHONY: simplify-schema
+simplify-schema:
+	@go run ./cmd/simplifier/main.go --src=$(src) --dst=$(dst)
