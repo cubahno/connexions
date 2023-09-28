@@ -220,9 +220,15 @@ func (op *KinOperation) getContent(types map[string]*openapi3.MediaType) (*opena
 
 	prioTypes := []string{"application/json", "text/plain", "text/html"}
 	for _, contentType := range prioTypes {
-		if _, ok := types[contentType]; ok {
-			return types[contentType].Schema.Value, contentType
+		if _, ok := types[contentType]; !ok {
+			continue
 		}
+		schemaRef := types[contentType].Schema
+		if schemaRef == nil {
+			return nil, contentType
+		}
+
+		return schemaRef.Value, contentType
 	}
 
 	var content *openapi3.Schema
