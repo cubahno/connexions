@@ -3,11 +3,14 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"github.com/cubahno/connexions"
 	"github.com/getkin/kin-openapi/openapi3"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,9 +22,12 @@ var (
 func main() {
 	var src string
 	var dst string
+	var rpl string
 
 	flag.StringVar(&src, "src", "", "path to source openapi file")
 	flag.StringVar(&dst, "dst", "", "path to destination directory or file")
+	flag.StringVar(&rpl, "replace", "", "replace source file with simplified version. new version will have .simpl.json extension")
+
 	flag.Parse()
 
 	if len(flag.Args()) == 2 && src == "" && dst == "" {
@@ -29,22 +35,131 @@ func main() {
 		dst = flag.Args()[1]
 	}
 
-	if src == "" || dst == "" {
-		log.Println("src and dst flags are required")
+	replace := false
+	if strings.ToLower(rpl) == "true" {
+		replace = true
+	}
+
+	if src == "" {
+		log.Println("src flags is required")
 		return
 	}
 
-	err := processFile(src, dst)
+	// process single file
+	fileInfo, _ := os.Stat(src)
+	if fileInfo != nil && !fileInfo.IsDir() {
+		dst = getDestPath(filepath.Base(src), filepath.Base(src), dst)
+		err := processFile(src, dst, replace)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	sources, err := collectSources(src)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	log.Printf("src: %s, dst: %s\n", src, dst)
+	if err := run(src, sources, dst, replace); err != nil {
+		log.Println(err)
+		return
+	}
 }
 
-func processFile(src, dest string) error {
+// collectSources collects relative paths
+func collectSources(src string) ([]string, error) {
+	fileInfo, err := os.Stat(src)
+	if os.IsNotExist(err) {
+		return nil, err
+	}
+
+	// single file passed
+	if !fileInfo.IsDir() {
+		return []string{src}, nil
+	}
+
+	// we have a directory to walk
+	var files []string
+
+	err = filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// skip done files
+		if strings.HasSuffix(info.Name(), ".simpl.json") {
+			return nil
+		}
+		if !info.IsDir() {
+			rel, _ := filepath.Rel(src, path)
+			files = append(files, rel)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return files, nil
+}
+
+func run(baseSrcPath string, sources []string, dst string, replace bool) error {
+	type result struct {
+		src string
+		err error
+	}
+
+	var wg sync.WaitGroup
+	ch := make(chan result)
+
+	for _, src := range sources {
+		wg.Add(1)
+
+		go func(src, dst string) {
+			defer wg.Done()
+
+			dstPath := getDestPath(baseSrcPath, src, dst)
+			err := processFile(filepath.Join(baseSrcPath, src), dstPath, replace)
+			ch <- result{
+				src: src,
+				err: err,
+			}
+		}(src, dst)
+	}
+
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	for res := range ch {
+		msg := fmt.Sprintf("[%s]: ", res.src)
+		if res.err != nil {
+			msg += res.err.Error()
+		} else {
+			msg += "done"
+		}
+		log.Println(msg)
+	}
+
+	return nil
+}
+
+func getDestPath(baseSrcPath, relFilePath, dst string) string {
+	if dst == "" {
+		dst = baseSrcPath
+	}
+	dst = filepath.Join(dst, relFilePath)
+	currentExt := filepath.Ext(dst)
+	return filepath.Join(filepath.Dir(dst), fmt.Sprintf("%s.simpl.json", filepath.Base(dst[:len(dst)-len(currentExt)])))
+}
+
+func processFile(src, dest string, replace bool) error {
 	t1 := time.Now()
+
+	log.Printf("processing %s\n", src)
 
 	doc, err := getSourceDocument(src)
 	if err != nil {
@@ -70,8 +185,6 @@ func processFile(src, dest string) error {
 			go func(resName, method string) {
 				defer wg.Done()
 
-				log.Printf("processing %s %s\n", method, resName)
-
 				operation := doc.FindOperation(&connexions.OperationDescription{
 					Resource: resName,
 					Method:   method,
@@ -96,8 +209,6 @@ func processFile(src, dest string) error {
 		close(ch)
 	}()
 
-	log.Printf("waiting for %d items\n", num)
-
 	d := &openapi3.T{
 		OpenAPI: doc.GetVersion(),
 		Info:    &openapi3.Info{},
@@ -116,6 +227,10 @@ func processFile(src, dest string) error {
 	if err == nil {
 		t2 := time.Now()
 		log.Printf("[%s]: done in %v\n", src, t2.Sub(t1))
+	}
+
+	if replace {
+		_ = os.Remove(src)
 	}
 
 	return err

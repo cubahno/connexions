@@ -1,6 +1,6 @@
 FROM golang:1.21 as builder
 
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git nano
 
 WORKDIR /app
 COPY . .
@@ -10,7 +10,9 @@ RUN git describe --tags --abbrev=0 > version.txt
 FROM golang:1.21
 WORKDIR /app
 COPY --from=builder /app/.build/server/bootstrap /usr/local/bin/api
+COPY --from=builder /app/.build/simplifier/bootstrap /usr/local/bin/simplify-schemas
 COPY --from=builder /app/version.txt /app/resources/version.txt
+
 RUN export APP_VERSION=$(cat /app/resources/version.txt) && \
     echo "APP_VERSION=$APP_VERSION" >> /app/.env
 

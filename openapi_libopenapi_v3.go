@@ -217,6 +217,9 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema
+			if px == nil {
+				continue
+			}
 			return NewSchemaFromLibOpenAPI(px.Schema(), op.parseConfig), contentType
 		}
 	}
@@ -224,6 +227,9 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 	// Get first defined
 	for contentType, mediaType := range contentTypes {
 		px := mediaType.Schema
+		if px == nil {
+			continue
+		}
 		return NewSchemaFromLibOpenAPI(px.Schema(), op.parseConfig), contentType
 	}
 
