@@ -30,7 +30,7 @@ func HasCorrectSchemaValue(ctx *ReplaceContext, value any) bool {
 		return true
 	}
 	schema, ok := ctx.Schema.(*Schema)
-	if !ok {
+	if !ok || schema == nil {
 		return true
 	}
 
