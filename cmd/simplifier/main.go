@@ -49,9 +49,13 @@ func main() {
 	if fileInfo != nil && !fileInfo.IsDir() {
 		dst = getDestPath(filepath.Base(src), filepath.Base(src), dst)
 		err := processFile(src, dst, replace)
+		msg := fmt.Sprintf("[%s]: ", src)
 		if err != nil {
-			log.Println(err)
+			msg += err.Error()
+		} else {
+			msg += "done"
 		}
+		log.Println(msg)
 		return
 	}
 
@@ -190,6 +194,7 @@ func processFile(src, dest string, replace bool) error {
 					Resource: resName,
 					Method:   method,
 				})
+
 				operation = operation.WithParseConfig(&connexions.ParseConfig{
 					MaxRecursionLevels: 0,
 					OnlyRequired:       true,
