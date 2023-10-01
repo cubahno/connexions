@@ -3,7 +3,6 @@ package connexions
 import (
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
-	"github.com/pb33f/libopenapi/resolver"
 	"log"
 	"os"
 	"strconv"
@@ -24,21 +23,18 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 	if strings.HasPrefix(lib.GetVersion(), "2.") {
 		model, errs := lib.BuildV2Model()
 		if len(errs) > 0 {
-			for i := range errs {
-				if circError, ok := errs[i].(*resolver.ResolvingError); ok {
-					if circError.CircularReference == nil {
-						break
-					}
-					log.Printf("Message: %s\n--> Loop starts line %d | Polymorphic? %v\n\n",
-						circError.Error(),
-						circError.CircularReference.LoopPoint.Node.Line,
-						circError.CircularReference.IsPolymorphicResult)
-					return &LibV2Document{
-						DocumentModel: model,
-					}, nil
-				}
+			if model == nil {
+				return nil, errs[0]
 			}
-			return nil, errs[0]
+
+			for err := range errs {
+				log.Printf("Ignored error in %s: %v\n", filePath, err)
+			}
+
+			// if models is there we can ignore the errors
+			return &LibV2Document{
+				DocumentModel: model,
+			}, nil
 		}
 		return &LibV2Document{
 			DocumentModel: model,
@@ -47,15 +43,17 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 
 	model, errs := lib.BuildV3Model()
 	if len(errs) > 0 {
-		for i := range errs {
-			if circError, ok := errs[i].(*resolver.ResolvingError); ok {
-				log.Printf("Message: %s\n", circError)
-				return &LibV3Document{
-					DocumentModel: model,
-				}, nil
-			}
+		if model == nil {
+			return nil, errs[0]
 		}
-		return nil, errs[0]
+		for err := range errs {
+			log.Printf("Ignored error in %s: %v\n", filePath, err)
+		}
+
+		// if models is there we can ignore the errors
+		return &LibV3Document{
+			DocumentModel: model,
+		}, nil
 	}
 
 	return &LibV3Document{
