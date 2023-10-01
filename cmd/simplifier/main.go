@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 var (
@@ -41,7 +40,7 @@ func main() {
 	}
 
 	if src == "" {
-		log.Println("src flags is required")
+		log.Println("src flag is required")
 		return
 	}
 
@@ -157,9 +156,11 @@ func getDestPath(baseSrcPath, relFilePath, dst string) string {
 }
 
 func processFile(src, dest string, replace bool) error {
-	t1 := time.Now()
-
-	log.Printf("processing %s\n", src)
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[%s]: %v\n", src, r)
+		}
+	}()
 
 	doc, err := getSourceDocument(src)
 	if err != nil {
@@ -224,11 +225,6 @@ func processFile(src, dest string, replace bool) error {
 	}
 
 	err = connexions.SaveFile(dest, contents)
-	if err == nil {
-		t2 := time.Now()
-		log.Printf("[%s]: done in %v\n", src, t2.Sub(t1))
-	}
-
 	if replace {
 		_ = os.Remove(src)
 	}
@@ -240,8 +236,6 @@ func getSourceDocument(src string) (connexions.Document, error) {
 	if _, err := os.Stat(src); os.IsNotExist(err) {
 		return nil, err
 	}
-
-	log.Printf("processing file: %s\n", src)
 
 	fileInfo, err := os.Stat(src)
 	if err != nil {
