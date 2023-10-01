@@ -109,6 +109,11 @@ func (op *LibV3Operation) GetParameters() OpenAPIParameters {
 // If no response is defined, a default response is returned.
 // Responses are prioritized by status code, with 200 being the highest priority.
 func (op *LibV3Operation) GetResponse() *OpenAPIResponse {
+	if op.Responses == nil {
+		return &OpenAPIResponse{
+			StatusCode: http.StatusOK,
+		}
+	}
 	available := op.Responses.Codes
 
 	var responseRef *v3high.Response
