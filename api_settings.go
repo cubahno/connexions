@@ -1,8 +1,9 @@
 package connexions
 
 import (
+	"bytes"
 	"github.com/go-chi/chi/v5"
-	"github.com/invopop/yaml"
+	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
 	"strings"
@@ -44,7 +45,13 @@ func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	data, _ := yaml.Marshal(h.router.Config)
+	var b bytes.Buffer
+	yamlEncoder := yaml.NewEncoder(&b)
+	yamlEncoder.SetIndent(2) // this is what you're looking for
+	_ = yamlEncoder.Encode(h.router.Config)
+
+	// data, _ := yaml.Marshal(h.router.Config)
+	data := b.Bytes()
 
 	h.Response(w).WithHeader("Content-Type", "application/x-yaml").Send(data)
 }

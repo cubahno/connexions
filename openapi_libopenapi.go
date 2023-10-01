@@ -27,7 +27,7 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 				return nil, errs[0]
 			}
 
-			for err := range errs {
+			for _, err := range errs {
 				log.Printf("Ignored error in %s: %v\n", filePath, err)
 			}
 
@@ -46,7 +46,7 @@ func NewLibOpenAPIDocumentFromFile(filePath string) (Document, error) {
 		if model == nil {
 			return nil, errs[0]
 		}
-		for err := range errs {
+		for _, err := range errs {
 			log.Printf("Ignored error in %s: %v\n", filePath, err)
 		}
 

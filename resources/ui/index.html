@@ -166,7 +166,7 @@
                 </div>
                 <div id="generator-container" style="display: none;">
                     <div class="accordion" style="display: inline;">
-                        <div class="accordion-header"><span class="accordion-icon">↪</span> Provide Context Replacements [Optional]</div>
+                        <div class="accordion-header"><span class="accordion-icon">↪</span> With Context Replacements</div>
                         <div class="accordion-content">
                             <div id="context-replacements" style="width:100%; height: 200px;"></div>
                         </div>
@@ -182,6 +182,15 @@
                         </div>
                     </div>
 
+                    <div class="accordion" style="display: inline;margin-left: 10px;">
+                        <div class="accordion-header"><i class="fa-solid fa-terminal"></i> Request Payload:</div>
+                        <div class="accordion-content" style="position: relative;">
+                            <b>Payload:</b>
+                            <br/><br/>
+                            <p id="request-body"></p>
+                        </div>
+                    </div>
+
                     <br/>
 
                     <div id="generated-results-container" style="background-color: #fff; padding: 6px; border-radius: 3px;">
@@ -191,14 +200,6 @@
                             <br/>
                             <pre class="code" id="request-path">&nbsp;</pre>
                         </div>
-
-                        <div id="request-body-container" style="display: none;">
-                            <b>Payload:</b>
-                            <br/>
-                            <p id="request-body"></p>
-                        </div>
-                        <br/> <br/>
-
                         <div id="response-body-container" style="display: none;">
                             <b>Response:</b>
                             <br/>

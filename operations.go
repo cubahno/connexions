@@ -203,14 +203,9 @@ func newResponseFromFixedResource(filePath, contentType string, valueReplacer Va
 	hs := make(http.Header)
 	hs.Set("content-type", contentType)
 
-	contentB, err := EncodeContent(content, contentType)
-	if err != nil {
-		log.Printf("Error encoding response: %v", err.Error())
-	}
-
 	return &Response{
 		Headers:     hs,
-		Content:     contentB,
+		Content:     content,
 		ContentType: contentType,
 		// 200 is the only possible status code for fixed resource
 		StatusCode: http.StatusOK,
@@ -488,7 +483,7 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 	return res
 }
 
-func generateContentFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) any {
+func generateContentFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) []byte {
 	if filePath == "" {
 		log.Println("file path is empty")
 		return nil
@@ -506,7 +501,9 @@ func generateContentFromFileProperties(filePath, contentType string, valueReplac
 			log.Printf("Error unmarshalling JSON: %v", err.Error())
 			return nil
 		}
-		return generateContentFromJSON(data, valueReplacer, nil)
+		generated := generateContentFromJSON(data, valueReplacer, nil)
+		bts, _ := json.Marshal(generated)
+		return bts
 	}
 
 	return payload
