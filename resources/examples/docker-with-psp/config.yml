@@ -1,0 +1,21 @@
+app:
+  port: 2200
+  disableUI: false
+  disableSwaggerUI: false
+  editor:
+    theme: chrome
+    fontSize: 12
+services:
+  adyen:
+    errors:
+      chance: 100%
+      codes:
+        500: 100%
+  blik:
+    latency: 2s
+    errors:
+      chance: 10%
+      codes:
+        400: 50%
+        401: 25%
+        403: 25%

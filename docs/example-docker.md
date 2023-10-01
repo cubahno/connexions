@@ -88,3 +88,24 @@ docker run -it --rm \
 
     Contexts are essential part to generate meaningful responses.<br/>
     See [Contexts](/contexts) for more details.
+
+
+## Pre-built image with Payment Service Providers
+
+Build your custom Connexions image with your own data and contexts.<br/>
+Check directory [examples/docker-image-builder](https://github.com/cubahno/connexions/tree/master/resources/examples/docker-with-psp)
+for full working example with files.
+
+
+Run it:
+
+```bash
+docker run -it --rm \
+  -p 2200:2200 \
+  cubahno/connexions-psp api
+```
+
+
+```Dockefile  title="examples/docker-with-psp/Dockerfile"
+--8<-- "docker-with-psp/Dockerfile"
+```
