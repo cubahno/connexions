@@ -451,7 +451,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		res := newResponseFromFixedResource(filePath, "application/xml", nil)
 		expected := &Response{
 			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
-			Content:     nil,
+			Content:     []byte("<name>"),
 			ContentType: "application/xml",
 			StatusCode:  http.StatusOK,
 		}

@@ -176,7 +176,7 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	}
 
 	// remove from resource parts
-	if fileName == "index.json" {
+	if strings.HasPrefix(fileName, "index.") {
 		parts = parts[:len(parts)-1]
 	}
 

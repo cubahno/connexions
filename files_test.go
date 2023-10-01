@@ -199,7 +199,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 			ServiceName: "users",
 			Method:      http.MethodGet,
 			Prefix:      "/users",
-			Resource:    "/all/index.xml",
+			Resource:    "/all",
 			FilePath:    filePath,
 			FileName:    "index.xml",
 			Extension:   ".xml",

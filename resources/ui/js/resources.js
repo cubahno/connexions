@@ -167,7 +167,7 @@ export const generateResult = (service, ix, path, method) => {
             const reqContentType = res["request"]["contentType"];
 
             if (method.toLowerCase() === 'get') {
-                document.getElementById('request-body-container').style.display = 'none';
+                // document.getElementById('request-body-container').style.display = 'none';
             } else {
                 let formattedBody = ``;
                 const reqBody = res["request"]["body"];
@@ -181,7 +181,7 @@ export const generateResult = (service, ix, path, method) => {
                     reqView.setValue(formattedBody);
                     reqView.clearSelection();
                     reqView.setReadOnly(true);
-                    document.getElementById('request-body-container').style.display = 'block';
+                    // document.getElementById('request-body-container').style.display = 'block';
                 }
             }
 

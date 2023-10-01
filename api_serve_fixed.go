@@ -10,14 +10,16 @@ import (
 func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescription {
 	log.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
 
-	baseResource := fileProps.Prefix + fileProps.Resource
+	baseResource := strings.TrimSuffix(fileProps.Prefix+fileProps.Resource, "/")
+	if baseResource == "" {
+		baseResource = "/"
+	}
 	resources := []string{baseResource}
 
-	if fileProps.FileName == "index.json" {
-		// add trailing slash and direct access to index.json
-		br := strings.TrimSuffix(baseResource, "/")
-		resources = append(resources, br+"/")
-		resources = append(resources, br+"/index.json")
+	if strings.HasPrefix(fileProps.FileName, "index.") {
+		// add trailing slash and direct access to index.*
+		resources = append(resources, baseResource+"/")
+		resources = append(resources, baseResource+"/"+fileProps.FileName)
 	}
 
 	// register all routes
@@ -52,11 +54,7 @@ func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.
 			return
 		}
 
-		if content := generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer); content != nil {
-			NewJSONResponse(w).WithHeader("Content-Type", fileProps.ContentType).Send(content)
-			return
-		}
-
-		http.ServeFile(w, r, fileProps.FilePath)
+		content := generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		NewAPIResponse(w).WithHeader("Content-Type", fileProps.ContentType).Send(content)
 	}
 }

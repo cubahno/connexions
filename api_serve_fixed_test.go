@@ -24,35 +24,74 @@ func TestRegisterFixedRoute(t *testing.T) {
 	assert.Nil(err)
 	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
-	router.Config.Services[file.ServiceName] = &ServiceConfig{}
 
-	rs := registerFixedRoute(file, router)
+	t.Run("base-case", func(t *testing.T) {
+		router.Config.Services[file.ServiceName] = &ServiceConfig{}
 
-	expected := &RouteDescription{
-		Method:      http.MethodPost,
-		Path:        "/pets",
-		Type:        FixedRouteType,
-		ContentType: "application/json",
-		File:        file,
-	}
+		rs := registerFixedRoute(file, router)
 
-	assert.Equal(expected, rs)
+		expected := &RouteDescription{
+			Method:      http.MethodPost,
+			Path:        "/pets",
+			Type:        FixedRouteType,
+			ContentType: "application/json",
+			File:        file,
+		}
 
-	req := httptest.NewRequest(http.MethodPost, "/petstore/pets", nil)
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+		assert.Equal(expected, rs)
 
-	expectedResp := map[string]any{
-		"id":   float64(1),
-		"name": "Bulbasaur",
-		"tag":  "beedrill",
-	}
+		req := httptest.NewRequest(http.MethodPost, "/petstore/pets", nil)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
 
-	resp := *UnmarshallResponse[map[string]any](t, w.Body)
-	assert.Equal(http.StatusOK, w.Code)
-	assert.Equal("application/json", w.Header().Get("Content-Type"))
-	assert.Equal(expectedResp, resp)
+		expectedResp := map[string]any{
+			"id":   float64(1),
+			"name": "Bulbasaur",
+			"tag":  "beedrill",
+		}
+
+		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(expectedResp, resp)
+	})
+
+	t.Run("empty-resource", func(t *testing.T) {
+		filePath := filepath.Join(router.Config.App.Paths.Services, "index.json")
+		err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+		assert.Nil(err)
+		file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+		assert.Nil(err)
+
+		rs := registerFixedRoute(file, router)
+
+		expected := &RouteDescription{
+			Method:      http.MethodGet,
+			Path:        "/",
+			Type:        FixedRouteType,
+			ContentType: "application/json",
+			File:        file,
+		}
+
+		assert.Equal(expected, rs)
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		expectedResp := map[string]any{
+			"id":   float64(1),
+			"name": "Bulbasaur",
+			"tag":  "beedrill",
+		}
+
+		resp := *UnmarshallResponse[map[string]any](t, w.Body)
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(expectedResp, resp)
+	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
 		router.Config.Services[file.ServiceName].Errors = &ServiceError{
@@ -62,9 +101,9 @@ func TestRegisterFixedRoute(t *testing.T) {
 			Chance: 100,
 		}
 
-		req = httptest.NewRequest(http.MethodPost, "/petstore/pets", nil)
+		req := httptest.NewRequest(http.MethodPost, "/petstore/pets", nil)
 		req.Header.Set("Content-Type", "application/json")
-		w = httptest.NewRecorder()
+		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
 		assert.Equal(http.StatusBadRequest, w.Code)

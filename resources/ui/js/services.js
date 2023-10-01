@@ -161,8 +161,9 @@ export async function saveFormWithFile(container) {
     const isOpenApi = container.querySelector('input[name="is_openapi"]').value === '1';
     const path = container.querySelector('input[name="path"]').value.trim();
     const url = container.querySelector('input[name="url"]').value.trim();
-    const response = commons.getCodeEditor(`selected-text-response`, `json`).getValue();
+    const responseEl = container.querySelector('.selected-text-response');
 
+    const response = commons.getCodeEditor(responseEl.id, `json`).getValue();
     let method = `GET`;
     const methodEl = container.querySelector('select[name="method"]');
     if (methodEl) {
