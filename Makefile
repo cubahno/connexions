@@ -48,7 +48,7 @@ build: clean
 
 .PHONY: docker-build
 docker-build:
-	@docker build . \
+	@docker build --no-cache . \
 		--tag $(IMAGE_NAME):latest \
 		--tag $(IMAGE_NAME):$(VERSION)
 
