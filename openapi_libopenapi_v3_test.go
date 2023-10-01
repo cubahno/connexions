@@ -5,6 +5,7 @@ package connexions
 import (
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
 	assert2 "github.com/stretchr/testify/assert"
+	"net/http"
 	"path/filepath"
 	"testing"
 )
@@ -31,6 +32,15 @@ func TestLibV3Operation(t *testing.T) {
 		operation := &LibV3Operation{Operation: &v3high.Operation{OperationId: "findNice"}}
 		res := operation.ID()
 		assert.Equal("findNice", res)
+	})
+
+	t.Run("GetResponse-without-responses", func(t *testing.T) {
+		op := v3high.Operation{}
+		res := (&LibV3Operation{Operation: &op}).GetResponse()
+		expected := &OpenAPIResponse{
+			StatusCode: http.StatusOK,
+		}
+		assert.Equal(expected, res)
 	})
 
 	t.Run("getContent-empty", func(t *testing.T) {
