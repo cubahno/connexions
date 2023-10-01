@@ -18,14 +18,24 @@ var (
 	ErrNotRegularFile = errors.New("not a regular file")
 )
 
+type ParseConfig struct {
+	MaxRecursionLevels int
+	OnlyRequired       bool
+	Replace            bool
+}
+
 func main() {
 	var src string
 	var dst string
 	var rpl string
+	var onlyRequired bool
+	var maxRecursion int
 
 	flag.StringVar(&src, "src", "", "path to source openapi file")
 	flag.StringVar(&dst, "dst", "", "path to destination directory or file")
 	flag.StringVar(&rpl, "replace", "", "replace source file with simplified version. new version will have .simpl.json extension")
+	flag.BoolVar(&onlyRequired, "only-required", false, "discard non-required fields")
+	flag.IntVar(&maxRecursion, "max-recursion", 0, "maximum recursion levels (0 - unlimited)")
 
 	flag.Parse()
 
@@ -39,6 +49,12 @@ func main() {
 		replace = true
 	}
 
+	parseConfig := &ParseConfig{
+		MaxRecursionLevels: maxRecursion,
+		OnlyRequired:       onlyRequired,
+		Replace:            replace,
+	}
+
 	if src == "" {
 		log.Println("src flag is required")
 		return
@@ -48,7 +64,7 @@ func main() {
 	fileInfo, _ := os.Stat(src)
 	if fileInfo != nil && !fileInfo.IsDir() {
 		dst = getDestPath(filepath.Base(src), filepath.Base(src), dst)
-		err := processFile(src, dst, replace)
+		err := processFile(src, dst, parseConfig)
 		if err != nil {
 			log.Println(err)
 		}
@@ -61,7 +77,7 @@ func main() {
 		return
 	}
 
-	if err := run(src, sources, dst, replace); err != nil {
+	if err := run(src, sources, dst, parseConfig); err != nil {
 		log.Println(err)
 		return
 	}
@@ -104,7 +120,7 @@ func collectSources(src string) ([]string, error) {
 	return files, nil
 }
 
-func run(baseSrcPath string, sources []string, dst string, replace bool) error {
+func run(baseSrcPath string, sources []string, dst string, cfg *ParseConfig) error {
 	type result struct {
 		src string
 		err error
@@ -120,7 +136,7 @@ func run(baseSrcPath string, sources []string, dst string, replace bool) error {
 			defer wg.Done()
 
 			dstPath := getDestPath(baseSrcPath, src, dst)
-			err := processFile(filepath.Join(baseSrcPath, src), dstPath, replace)
+			err := processFile(filepath.Join(baseSrcPath, src), dstPath, cfg)
 			ch <- result{
 				src: src,
 				err: err,
@@ -155,7 +171,7 @@ func getDestPath(baseSrcPath, relFilePath, dst string) string {
 	return filepath.Join(filepath.Dir(dst), fmt.Sprintf("%s.simpl.json", filepath.Base(dst[:len(dst)-len(currentExt)])))
 }
 
-func processFile(src, dest string, replace bool) error {
+func processFile(src, dest string, parseConfig *ParseConfig) error {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[%s]: %v\n", src, r)
@@ -191,8 +207,8 @@ func processFile(src, dest string, replace bool) error {
 					Method:   method,
 				})
 				operation = operation.WithParseConfig(&connexions.ParseConfig{
-					MaxRecursionLevels: 0,
-					OnlyRequired:       true,
+					MaxRecursionLevels: parseConfig.MaxRecursionLevels,
+					OnlyRequired:       parseConfig.OnlyRequired,
 				})
 				item := convertOperation(operation)
 
@@ -225,7 +241,7 @@ func processFile(src, dest string, replace bool) error {
 	}
 
 	err = connexions.SaveFile(dest, contents)
-	if replace {
+	if parseConfig.Replace {
 		_ = os.Remove(src)
 	}
 
