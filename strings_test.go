@@ -3,6 +3,7 @@
 package connexions
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -46,6 +47,31 @@ func TestMaybeRegexPattern(t *testing.T) {
 			result := MaybeRegexPattern(test.input)
 			if result != test.expected {
 				t.Errorf("For input '%s', expected %v but got %v", test.input, test.expected, result)
+			}
+		})
+	}
+}
+
+func TestToString(t *testing.T) {
+	tests := []struct {
+		input    interface{}
+		expected string
+	}{
+		{42, "42"},
+		{int64(1234567890), "1234567890"},
+		{3.14159265359, "3.14159265359"},
+		{uint8(255), "255"},
+		{"Hello, world!", "Hello, world!"},
+		{true, "true"},
+		{nil, ""},
+		{map[string]string{"foo": "bar"}, "map[foo:bar]"},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("ToString(%v)", test.input), func(t *testing.T) {
+			result := ToString(test.input)
+			if result != test.expected {
+				t.Errorf("Expected %s, but got %s", test.expected, result)
 			}
 		})
 	}

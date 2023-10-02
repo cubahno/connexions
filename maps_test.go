@@ -4,6 +4,7 @@ package connexions
 
 import (
 	assert2 "github.com/stretchr/testify/assert"
+	"net/url"
 	"reflect"
 	"testing"
 )
@@ -171,5 +172,49 @@ func TestCopyNestedMap(t *testing.T) {
 		if reflect.DeepEqual(cp, source) {
 			t.Errorf("CopyNestedMap copy was not independent. Expected: %v, Got: %v", source, cp)
 		}
+	})
+}
+
+func TestMapToURLEncodedForm(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("base-case", func(t *testing.T) {
+		data := map[string]any{
+			"customer_details": map[string]any{
+				"name":  "John",
+				"email": "john@example.com",
+			},
+			"line_items": []any{
+				map[string]any{
+					"item_id":  "item1",
+					"quantity": 2,
+				},
+				map[string]any{
+					"item_id":  "item2",
+					"quantity": 1,
+				},
+			},
+		}
+
+		result := MapToURLEncodedForm(data)
+
+		values, err := url.ParseQuery(result)
+		assert.Nil(err)
+
+		customerName := values.Get("customer_details[name]")
+		assert.Equal("John", customerName)
+
+		customerEmail := values.Get("customer_details[email]")
+		assert.Equal("john@example.com", customerEmail)
+
+		lineItems0ItemID := values.Get("line_items[0][item_id]")
+		assert.Equal("item1", lineItems0ItemID)
+		lineItems0Quantity := values.Get("line_items[0][quantity]")
+		assert.Equal("2", lineItems0Quantity)
+
+		lineItems1ItemID := values.Get("line_items[1][item_id]")
+		assert.Equal("item2", lineItems1ItemID)
+		lineItems1Quantity := values.Get("line_items[1][quantity]")
+		assert.Equal("1", lineItems1Quantity)
 	})
 }

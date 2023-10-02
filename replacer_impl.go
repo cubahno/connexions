@@ -281,6 +281,10 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 	}
 
 	switch schema.Type {
+	case TypeBoolean:
+		if len(schema.Enum) > 0 {
+			return GetRandomSliceValue(schema.Enum)
+		}
 	case TypeString:
 		return applySchemaStringConstraints(schema, res.(string))
 	case TypeInteger:
@@ -310,10 +314,6 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 	maxLength := schema.MaxLength
 	pattern := schema.Pattern
 
-	if pattern != "" && !ValidateStringWithPattern(value, pattern) {
-		return nil
-	}
-
 	expectedEnums := make(map[string]bool)
 	// remove random nulls from enum values
 	for _, v := range schema.Enum {
@@ -328,12 +328,27 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 		return GetRandomKeyFromMap(expectedEnums)
 	}
 
+	if pattern != "" && !ValidateStringWithPattern(value, pattern) {
+		// safest way here is to return the example if it exists
+		if schema.Example != nil {
+			return schema.Example
+		}
+		value = createStringFromPattern(pattern)
+
+		// regex will be cached
+		if !ValidateStringWithPattern(value, pattern) {
+			return nil
+		}
+
+		return value
+	}
+
 	if minLength > 0 && len(value) < int(minLength) {
-		return value + strings.Repeat("-", int(minLength)-len(value))
+		value += strings.Repeat("-", int(minLength)-len(value))
 	}
 
 	if maxLength > 0 && int64(len(value)) > maxLength {
-		return value[:maxLength]
+		value = value[:maxLength]
 	}
 
 	return value
@@ -377,6 +392,31 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 	}
 
 	return value
+}
+
+// createStringFromPattern creates a string from the given pattern.
+// This is a naive implementation to support the most common patterns.
+func createStringFromPattern(pattern string) string {
+	if pattern == "" {
+		return ""
+	}
+
+	res := pattern
+	// replace the beginning
+	if res[0] == '^' {
+		res = res[1:]
+	}
+
+	// and the end
+	if res[len(res)-1] == '$' {
+		res = res[:len(res)-1]
+	}
+
+	// TODO(cubahno): decide if to bring faker here
+	// add other patterns here
+	res = strings.ReplaceAll(res, `[^/]+`, "123")
+
+	return res
 }
 
 // ReplaceFromSchemaFallback is the last resort to get a value from the schema.

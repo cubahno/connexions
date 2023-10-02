@@ -1,7 +1,9 @@
 package connexions
 
 import (
+	"fmt"
 	"math/rand"
+	"net/url"
 	"reflect"
 	"sort"
 	"strings"
@@ -105,4 +107,32 @@ func CopyNestedMap(source map[string]map[string]any) map[string]map[string]any {
 		res[key] = copyValue
 	}
 	return res
+}
+
+// MapToURLEncodedForm converts a map to a URL encoded form.
+// e.g. {"a": {"b": 1}} becomes "a[b]=1"
+func MapToURLEncodedForm(data map[string]any) string {
+	values := url.Values{}
+	buildURLValues(data, "", values)
+	return values.Encode()
+}
+
+func buildURLValues(data any, prefix string, values url.Values) {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		for key, value := range v {
+			newKey := key
+			if prefix != "" {
+				newKey = prefix + "[" + key + "]"
+			}
+			buildURLValues(value, newKey, values)
+		}
+	case []interface{}:
+		for i, item := range v {
+			arrayKey := fmt.Sprintf("%s[%d]", prefix, i)
+			buildURLValues(item, arrayKey, values)
+		}
+	default:
+		values.Add(prefix, ToString(v))
+	}
 }
