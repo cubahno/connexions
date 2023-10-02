@@ -15,10 +15,10 @@ import (
 
 // Request is a struct that represents a generated request to be used when building real endpoint request.
 type Request struct {
-	Headers     any             `json:"headers,omitempty"`
+	Headers     map[string]any  `json:"headers,omitempty"`
 	Method      string          `json:"method,omitempty"`
 	Path        string          `json:"path,omitempty"`
-	Query       any             `json:"query,omitempty"`
+	Query       string          `json:"query,omitempty"`
 	Body        string          `json:"body,omitempty"`
 	ContentType string          `json:"contentType,omitempty"`
 	Examples    *ContentExample `json:"examples,omitempty"`
@@ -207,6 +207,16 @@ func NewResponseFromOperation(req *http.Request, operation Operationer, valueRep
 		operation:   operation,
 		request:     req,
 	}
+}
+
+// replaceRequestResource replaces the resource in the request with the given one.
+// Our services might get the extra prefix from the service name but the OpenAPI spec doesn't have it:
+// so validation will fail.
+func replaceRequestResource(req *http.Request, resource string) *http.Request {
+	newReq := new(http.Request)
+	*newReq = *req
+	newReq.URL = newReq.URL.ResolveReference(&url.URL{Path: resource})
+	return newReq
 }
 
 func newResponseFromFixedResource(filePath, contentType string, valueReplacer ValueReplacer) *Response {
@@ -450,7 +460,7 @@ func GenerateContentArray(schema *Schema, valueReplacer ValueReplacer, state *Re
 }
 
 // GenerateRequestHeaders generates request headers from the given parameters.
-func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueReplacer) any {
+func GenerateRequestHeaders(parameters OpenAPIParameters, valueReplacer ValueReplacer) map[string]any {
 	res := map[string]interface{}{}
 
 	for _, param := range parameters {

@@ -90,14 +90,21 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
 	validator := NewOpenAPIValidator(doc)
+	req := replaceRequestResource(r, resourcePath)
 
 	if serviceCfg.Validate.Request && validator != nil {
+		hdrs := make(map[string]any)
+		for name, values := range r.Header {
+			hdrs[name] = values
+		}
+
 		errs := validator.ValidateRequest(&Request{
-			Headers:   r.Header,
-			Method:    r.Method,
-			Path:      resourcePath,
-			operation: operation,
-			request:   r,
+			Headers:     hdrs,
+			Method:      r.Method,
+			Path:        resourcePath,
+			ContentType: req.Header.Get("Content-Type"),
+			operation:   operation,
+			request:     req,
 		})
 		if len(errs) > 0 {
 			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
@@ -108,7 +115,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := NewResponseFromOperation(r, operation, h.valueReplacer)
+	response := NewResponseFromOperation(req, operation, h.valueReplacer)
 	if serviceCfg.Validate.Response && validator != nil {
 		errs := validator.ValidateResponse(response)
 		if len(errs) > 0 {

@@ -525,8 +525,9 @@ func TestOpenAPIValidator_ValidateRequest(t *testing.T) {
 
 			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodPost})
 			errs := validator.ValidateRequest(&Request{
-				operation: op,
-				request:   req,
+				ContentType: req.Header.Get("Content-Type"),
+				operation:   op,
+				request:     req,
 			})
 
 			assert.Equal(len(tc.expectedErrors), len(errs))
@@ -555,8 +556,9 @@ func TestOpenAPIValidator_ValidateRequest(t *testing.T) {
 
 			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodPost})
 			errs := validator.ValidateRequest(&Request{
-				operation: op,
-				request:   req,
+				ContentType: req.Header.Get("Content-Type"),
+				operation:   op,
+				request:     req,
 			})
 
 			assert.Equal(len(tc.expectedErrors), len(errs))
@@ -660,7 +662,7 @@ func TestOpenAPIValidator_ValidateResponse(t *testing.T) {
 					"Content-Type": []string{"text/markdown"},
 				},
 				Content:     []byte(`[{"id": "1", "name": "Dawg"}]`),
-				ContentType: "text/markdown",
+				ContentType: "application/json",
 				request:     req,
 				operation:   op,
 			}

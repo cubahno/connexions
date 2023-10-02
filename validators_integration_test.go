@@ -3,9 +3,14 @@
 package connexions
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"mime/multipart"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -128,7 +133,17 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			ch <- validationResult{
+				file:   fileName,
+				docErr: fmt.Sprintf("Panic: %s", r),
+			}
+		}
+	}()
+
 	doc, err := NewDocumentFromFileFactory(KinOpenAPIProvider)(filePath)
+	// doc, err := NewDocumentFromFileFactory(LibOpenAPIProvider)(filePath)
 	if err != nil {
 		ch <- validationResult{
 			file:   fileName,
@@ -147,27 +162,80 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
-			println(fmt.Sprintf("Validating [%s]: %s %s", fileName, method, resource))
+			log.Printf("Validating [%s]: %s %s\n", fileName, method, resource)
 			operation := doc.FindOperation(&OperationDescription{
 				Resource: resource,
 				Method:   method,
 			})
+			operation = operation.WithParseConfig(&ParseConfig{
+				OnlyRequired: true,
+			})
 
-			reqBody, reqContentType := operation.GetRequestBody()
+			_, reqContentType := operation.GetRequestBody()
 			req := NewRequestFromOperation("", resource, method, operation, replacer)
 
-			var body io.ReadCloser
-			if reqBody != nil {
-				body = io.NopCloser(strings.NewReader(req.Body))
+			var body io.Reader
+			var params map[string]any
+			headers := map[string]any{}
+			if reqContentType != "" {
+				headers["content-type"] = reqContentType
 			}
 
-			request := httptest.NewRequest(method, resource, body)
-			request.Header.Set("Content-Type", reqContentType)
+			if req.Headers != nil {
+				for k, v := range req.Headers {
+					// skip content-type header, it's already set
+					if strings.ToLower(k) == "content-type" {
+						continue
+					}
+					headers[k] = fmt.Sprintf("%v", v)
+				}
+			}
+
+			// compose request payload
+			if req.Body != "" {
+				switch reqContentType {
+				case "application/json":
+					body = io.NopCloser(bytes.NewReader([]byte(req.Body)))
+				case "application/x-www-form-urlencoded":
+					if decodeErr := json.Unmarshal([]byte(req.Body), &params); decodeErr != nil {
+						ch <- validationResult{
+							file:   fileName,
+							docErr: fmt.Sprintf("Failed to parse request body: %v", err),
+						}
+						continue
+					}
+					body = strings.NewReader(createURLEncodedFormData(params).Encode())
+					headers["content-type"] = "application/x-www-form-urlencoded"
+				case "multipart/form-data":
+					if decodeErr := json.Unmarshal([]byte(req.Body), &params); decodeErr != nil {
+						ch <- validationResult{
+							file:   fileName,
+							docErr: fmt.Sprintf("Failed to parse request body: %v", err),
+						}
+						continue
+					}
+					writer, buf := createMultipartRequestBody(params)
+					body = buf
+					headers["content-type"] = writer.FormDataContentType()
+				default:
+					body = io.NopCloser(bytes.NewReader([]byte(req.Body)))
+				}
+			}
+
+			target := resource
+			if req.Query != "" {
+				target += "?" + req.Query
+			}
+
+			request := httptest.NewRequest(method, target, body)
+			for k, v := range headers {
+				request.Header.Set(k, fmt.Sprintf("%v", v))
+			}
 
 			success := false
 
 			reqErrs := validator.ValidateRequest(&Request{
-				Headers:     request.Header,
+				Headers:     headers,
 				Method:      request.Method,
 				Path:        request.URL.Path,
 				ContentType: reqContentType,
@@ -212,4 +280,28 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 			}
 		}
 	}
+}
+
+func createMultipartRequestBody(data map[string]any) (*multipart.Writer, *bytes.Buffer) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	for k, v := range data {
+		vStr := fmt.Sprintf("%v", v)
+		_ = writer.WriteField(k, vStr)
+	}
+
+	_ = writer.Close()
+
+	return writer, &body
+}
+
+func createURLEncodedFormData(data map[string]any) url.Values {
+	formData := url.Values{}
+	for key, value := range data {
+		vStr := fmt.Sprintf("%v", value)
+		formData.Add(key, vStr)
+	}
+
+	return formData
 }
