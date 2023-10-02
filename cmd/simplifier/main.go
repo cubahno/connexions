@@ -327,7 +327,10 @@ func convertSchema(src *connexions.Schema) *openapi3.SchemaRef {
 	if src.Properties != nil {
 		props = make(openapi3.Schemas)
 		for k, v := range src.Properties {
-			props[k] = convertSchema(v)
+			res := convertSchema(v)
+			if res != nil {
+				props[k] = res
+			}
 		}
 	}
 

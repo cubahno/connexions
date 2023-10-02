@@ -34,6 +34,10 @@ type validationResult struct {
 // Specs should be located in resources/specs, they all .gitignored except petstore.yml.
 func TestValidateResponse_Integration(t *testing.T) {
 	filePath := os.Getenv("SPEC")
+	dirPath := os.Getenv("SPEC_DIR")
+	if dirPath == "" {
+		dirPath = filepath.Join("resources", "test", "specs")
+	}
 
 	maxFailsVal := os.Getenv("MAX_FAILS")
 	maxFails := 0
@@ -50,7 +54,6 @@ func TestValidateResponse_Integration(t *testing.T) {
 	ch := make(chan validationResult)
 	stopCh := make(chan struct{})
 
-	specDir := filepath.Join("resources", "test", "specs")
 	cfg := NewDefaultConfig("")
 
 	if filePath != "" {
@@ -61,8 +64,18 @@ func TestValidateResponse_Integration(t *testing.T) {
 			validateFile(filePath, valueReplacer, ch, stopCh)
 		}()
 	} else {
-		_ = filepath.Walk(specDir, func(filePath string, info os.FileInfo, fileErr error) error {
+		_ = filepath.Walk(dirPath, func(filePath string, info os.FileInfo, fileErr error) error {
 			if info == nil || info.IsDir() {
+				return nil
+			}
+
+			ext := filepath.Ext(filePath)
+			ext = strings.ToLower(ext)
+			if ext != ".yml" && ext != ".yaml" && ext != ".json" {
+				return nil
+			}
+
+			if strings.Contains(filePath, "/stash/") {
 				return nil
 			}
 
@@ -175,7 +188,6 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 			req := NewRequestFromOperation("", resource, method, operation, replacer)
 
 			var body io.Reader
-			var params map[string]any
 			headers := map[string]any{}
 			if reqContentType != "" {
 				headers["content-type"] = reqContentType
@@ -197,17 +209,19 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 				case "application/json":
 					body = io.NopCloser(bytes.NewReader([]byte(req.Body)))
 				case "application/x-www-form-urlencoded":
-					if decodeErr := json.Unmarshal([]byte(req.Body), &params); decodeErr != nil {
+					var params map[string]any
+					if err := json.Unmarshal([]byte(req.Body), &params); err != nil {
 						ch <- validationResult{
 							file:   fileName,
 							docErr: fmt.Sprintf("Failed to parse request body: %v", err),
 						}
 						continue
 					}
-					body = strings.NewReader(createURLEncodedFormData(params).Encode())
+					body = strings.NewReader(MapToURLEncodedForm(params))
 					headers["content-type"] = "application/x-www-form-urlencoded"
 				case "multipart/form-data":
-					if decodeErr := json.Unmarshal([]byte(req.Body), &params); decodeErr != nil {
+					params, decodeErr := convertToFormValues(req.Body)
+					if decodeErr != nil {
 						ch <- validationResult{
 							file:   fileName,
 							docErr: fmt.Sprintf("Failed to parse request body: %v", err),
@@ -282,13 +296,29 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 	}
 }
 
-func createMultipartRequestBody(data map[string]any) (*multipart.Writer, *bytes.Buffer) {
+func convertToFormValues(body string) (map[string]string, error) {
+	var params map[string]any
+	if err := json.Unmarshal([]byte(body), &params); err != nil {
+		return nil, err
+	}
+
+	if params == nil {
+		return nil, nil
+	}
+
+	res := make(map[string]string)
+	for k, v := range params {
+		res[k] = ToString(v)
+	}
+	return res, nil
+}
+
+func createMultipartRequestBody(data map[string]string) (*multipart.Writer, *bytes.Buffer) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
 	for k, v := range data {
-		vStr := fmt.Sprintf("%v", v)
-		_ = writer.WriteField(k, vStr)
+		_ = writer.WriteField(k, v)
 	}
 
 	_ = writer.Close()
@@ -296,11 +326,10 @@ func createMultipartRequestBody(data map[string]any) (*multipart.Writer, *bytes.
 	return writer, &body
 }
 
-func createURLEncodedFormData(data map[string]any) url.Values {
+func createURLEncodedFormData(data map[string]string) url.Values {
 	formData := url.Values{}
 	for key, value := range data {
-		vStr := fmt.Sprintf("%v", value)
-		formData.Add(key, vStr)
+		formData.Add(key, value)
 	}
 
 	return formData

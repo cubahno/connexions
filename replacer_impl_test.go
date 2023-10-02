@@ -758,6 +758,18 @@ func TestApplySchemaConstraints(t *testing.T) {
 		res := ApplySchemaConstraints(schema, 6)
 		assert.Equal(int64(6), res)
 	})
+
+	t.Run("bool-ok", func(t *testing.T) {
+		schema := &Schema{Type: TypeBoolean}
+		res := ApplySchemaConstraints(schema, true)
+		assert.True(res.(bool))
+	})
+
+	t.Run("bool-ok-with-enum", func(t *testing.T) {
+		schema := &Schema{Type: TypeBoolean, Enum: []any{true}}
+		res := ApplySchemaConstraints(schema, false)
+		assert.True(res.(bool))
+	})
 }
 
 func TestApplySchemaStringConstraints(t *testing.T) {
@@ -854,6 +866,34 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 		res := applySchemaStringConstraints(schema, "hallo welt!")
 		assert.Equal("hallo", res)
 	})
+
+	t.Run("invalid-pattern-with-example", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			Pattern: "[0-9]+",
+			Example: "21",
+		}
+		res := applySchemaStringConstraints(schema, "hallo welt!")
+		assert.Equal("21", res)
+	})
+
+	t.Run("invalid-pattern-without-example-create-failed", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			Pattern: "^/nice[0-9]+",
+		}
+		res := applySchemaStringConstraints(schema, "/nice")
+		assert.Nil(res)
+	})
+
+	t.Run("invalid-pattern-without-example-created", func(t *testing.T) {
+		schema := &Schema{
+			Type:    TypeString,
+			Pattern: "^/nice/dice$",
+		}
+		res := applySchemaStringConstraints(schema, "hallo welt!")
+		assert.Equal("/nice/dice", res)
+	})
 }
 
 func TestApplySchemaNumberConstraints(t *testing.T) {
@@ -934,6 +974,29 @@ func TestApplySchemaNumberConstraints(t *testing.T) {
 		res := applySchemaNumberConstraints(schema, 100)
 		assert.Contains([]float64{10.1, 20.2, 30.3}, res)
 	})
+}
+
+func TestCreateStringFromPattern(t *testing.T) {
+	assert := assert2.New(t)
+
+	type testcase struct {
+		pattern  string
+		expected string
+	}
+
+	testcases := []testcase{
+		{"", ""},
+		{"^/abc", "/abc"},
+		{"^/abcd$", "/abcd"},
+		{"^/v1/calculations/[^/]+/items", "/v1/calculations/123/items"},
+	}
+
+	for i, tc := range testcases {
+		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
+			res := createStringFromPattern(tc.pattern)
+			assert.Equal(tc.expected, res)
+		})
+	}
 }
 
 func TestReplaceFromSchemaFallback(t *testing.T) {
