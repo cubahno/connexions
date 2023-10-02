@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jaswdr/faker"
 	assert2 "github.com/stretchr/testify/assert"
+	"net"
 	"strings"
 	"testing"
 )
@@ -623,6 +624,30 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		v, ok := ToInt64(res)
 		assert.True(ok)
 		assert.Greater(v, int64(0))
+	})
+
+	t.Run("ipv4", func(t *testing.T) {
+		schema := &Schema{
+			Format: "ipv4",
+		}
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Greater(len(value), 6)
+		addr := net.ParseIP(value)
+		assert.NotNil(addr)
+	})
+
+	t.Run("ipv6", func(t *testing.T) {
+		schema := &Schema{
+			Format: "ipv6",
+		}
+		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
+		assert.NotNil(res)
+		value, _ := res.(string)
+		assert.Greater(len(value), 6)
+		addr := net.ParseIP(value)
+		assert.NotNil(addr)
 	})
 }
 

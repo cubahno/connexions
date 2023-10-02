@@ -6,7 +6,6 @@ import (
 	"github.com/pb33f/libopenapi-validator/errors"
 	"io"
 	"net/http"
-	"net/url"
 )
 
 type libOpenAPIValidator struct {
@@ -30,11 +29,7 @@ func NewLibOpenAPIValidator(doc Document) OpenAPIValidator {
 // ValidateRequest validates a request against the OpenAPI document.
 // Implements OpenAPIValidator interface.
 func (v *libOpenAPIValidator) ValidateRequest(req *Request) []error {
-	newReq := new(http.Request)
-	*newReq = *req.request
-	newReq.URL = newReq.URL.ResolveReference(&url.URL{Path: req.Path})
-
-	ok, valErrs := v.innerValidator.ValidateHttpRequest(newReq)
+	ok, valErrs := v.innerValidator.ValidateHttpRequest(req.request)
 	if ok {
 		return nil
 	}

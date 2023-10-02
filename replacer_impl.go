@@ -232,6 +232,10 @@ func ReplaceFromSchemaFormat(ctx *ReplaceContext) any {
 		return int32(math.Abs(float64(ctx.Faker.Int32())))
 	case "int64":
 		return int64(math.Abs(float64(ctx.Faker.Int64())))
+	case "ipv4":
+		return ctx.Faker.Internet().Ipv4()
+	case "ipv6":
+		return ctx.Faker.Internet().Ipv6()
 	}
 	return nil
 }

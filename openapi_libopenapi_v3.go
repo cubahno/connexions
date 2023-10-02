@@ -218,7 +218,12 @@ func (op *LibV3Operation) GetRequestBody() (*Schema, string) {
 		contentTypes = make(map[string]*v3high.MediaType)
 	}
 
-	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
+	typesOrder := []string{
+		"application/json",
+		"multipart/form-data",
+		"application/x-www-form-urlencoded",
+		"application/octet-stream",
+	}
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			px := contentTypes[contentType].Schema

@@ -121,7 +121,12 @@ func (op *KinOperation) GetRequestBody() (*Schema, string) {
 		return nil, ""
 	}
 
-	typesOrder := []string{"application/json", "multipart/form-data", "application/x-www-form-urlencoded"}
+	typesOrder := []string{
+		"application/json",
+		"multipart/form-data",
+		"application/x-www-form-urlencoded",
+		"application/octet-stream",
+	}
 	for _, contentType := range typesOrder {
 		if _, ok := contentTypes[contentType]; ok {
 			return NewSchemaFromKin(contentTypes[contentType].Schema.Value, op.parseConfig), contentType

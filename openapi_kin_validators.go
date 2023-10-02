@@ -11,11 +11,24 @@ import (
 )
 
 type kinOpenAPIValidator struct {
+	supportedRequestContentTypes  map[string]bool
+	supportedResponseContentTypes map[string]bool
 }
 
 // NewKinOpenAPIValidator creates a new validator from kin-openapi document.
 func NewKinOpenAPIValidator(_ Document) OpenAPIValidator {
-	return &kinOpenAPIValidator{}
+	return &kinOpenAPIValidator{
+		supportedRequestContentTypes: map[string]bool{
+			"application/json":                  true,
+			"application/x-www-form-urlencoded": true,
+			"multipart/form-data":               true,
+		},
+		supportedResponseContentTypes: map[string]bool{
+			"application/json":                  true,
+			"application/x-www-form-urlencoded": true,
+			"multipart/form-data":               true,
+		},
+	}
 }
 
 // ValidateRequest validates request against a schema.
@@ -30,6 +43,10 @@ func (v *kinOpenAPIValidator) ValidateRequest(req *Request) []error {
 	operation := req.operation
 
 	bodySchema, contentType := operation.GetRequestBody()
+	if _, supported := v.supportedRequestContentTypes[req.ContentType]; !supported {
+		return nil
+	}
+
 	// convert to openapi3.Schema
 	schema := openapi3.NewSchema()
 	if bodySchema != nil {
@@ -71,7 +88,7 @@ func (v *kinOpenAPIValidator) ValidateResponse(res *Response) []error {
 	// TODO(cubahno): add support for other content types
 	// we don't generate binary files for example, now
 	// form types should work but that's to be added in libopenapi validator
-	if resSchema.ContentType != "application/json" {
+	if _, supported := v.supportedResponseContentTypes[res.ContentType]; !supported {
 		return nil
 	}
 
