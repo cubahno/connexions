@@ -22,6 +22,10 @@ type Request struct {
 	Body        string          `json:"body,omitempty"`
 	ContentType string          `json:"contentType,omitempty"`
 	Examples    *ContentExample `json:"examples,omitempty"`
+
+	// internal fields. needed for some validation providers.
+	operation Operationer
+	request   *http.Request
 }
 
 // ContentExample is a struct that represents a generated cURL example.
@@ -35,6 +39,10 @@ type Response struct {
 	Content     []byte      `json:"content,omitempty"`
 	ContentType string      `json:"contentType,omitempty"`
 	StatusCode  int         `json:"statusCode,omitempty"`
+
+	// internal fields. needed for some validation providers.
+	operation Operationer
+	request   *http.Request
 }
 
 // NewRequestFromOperation creates a new request from an operation.
@@ -68,6 +76,7 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation Operatio
 		Examples: &ContentExample{
 			CURL: curlExample,
 		},
+		operation: operation,
 	}
 }
 
@@ -169,7 +178,7 @@ func newRequestFromFixedResource(path, method, contentType string, valueReplacer
 
 // NewResponseFromOperation creates a new response from an operation.
 // It used to pre-generate payloads from the UI or provide service to generate such.
-func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer) *Response {
+func NewResponseFromOperation(req *http.Request, operation Operationer, valueReplacer ValueReplacer) *Response {
 	response := operation.GetResponse()
 	statusCode := response.StatusCode
 
@@ -195,6 +204,8 @@ func NewResponseFromOperation(operation Operationer, valueReplacer ValueReplacer
 		Content:     contentB,
 		ContentType: contentType,
 		StatusCode:  statusCode,
+		operation:   operation,
+		request:     req,
 	}
 }
 
@@ -591,4 +602,9 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 	default:
 		return data
 	}
+}
+
+// ExtractPlaceholders extracts all placeholders including curly brackets from a pattern.
+func ExtractPlaceholders(input string) []string {
+	return PlaceholderRegex.FindAllString(input, -1)
 }

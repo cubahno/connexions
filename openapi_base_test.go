@@ -4,9 +4,12 @@ package connexions
 
 import (
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	assert2 "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -415,6 +418,394 @@ func TestGetOpenAPITypeFromValue(t *testing.T) {
 		t.Run(fmt.Sprintf("case-%v", tc.value), func(t *testing.T) {
 			res := GetOpenAPITypeFromValue(tc.value)
 			assert.Equal(tc.expected, res)
+		})
+	}
+}
+
+type OtherTestDocument struct {
+	Document
+}
+
+func (d *OtherTestDocument) Provider() SchemaProvider {
+	return "other"
+}
+
+func TestNewOpenAPIValidator(t *testing.T) {
+	assert := require.New(t)
+	t.Run("KinOpenAPIProvider", func(t *testing.T) {
+		doc, err := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		assert.Nil(err)
+		res := NewOpenAPIValidator(doc)
+		assert.NotNil(res)
+		_, ok := res.(*kinOpenAPIValidator)
+		assert.True(ok)
+	})
+
+	t.Run("LibOpenAPIProvider", func(t *testing.T) {
+		doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		assert.Nil(err)
+		res := NewOpenAPIValidator(doc)
+		assert.NotNil(res)
+		_, ok := res.(*libOpenAPIValidator)
+		assert.True(ok)
+	})
+
+	t.Run("unknown", func(t *testing.T) {
+		doc, _ := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		kin, _ := doc.(*KinDocument)
+
+		other := &OtherTestDocument{Document: kin}
+
+		res := NewOpenAPIValidator(other)
+		assert.Nil(res)
+	})
+}
+
+func TestOpenAPIValidator_ValidateRequest(t *testing.T) {
+	assert := require.New(t)
+
+	filePath := filepath.Join("test_fixtures", "document-petstore.yml")
+	kinDoc, err := NewKinDocumentFromFile(filePath)
+	assert.Nil(err)
+
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filePath)
+	assert.Nil(err)
+
+	kinValidator := NewKinOpenAPIValidator(kinDoc)
+	libValidator := NewLibOpenAPIValidator(libDoc)
+
+	type testCase struct {
+		doc            Document
+		validator      OpenAPIValidator
+		expectedErrors []string
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, nil},
+		{libDoc, libValidator, nil},
+	} {
+		t.Run(fmt.Sprintf("base-case-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			requestBody := strings.NewReader(`{"name": "Dawg"}`)
+
+			req, err := http.NewRequest(http.MethodPost, "http://example.com/pets", requestBody)
+			if err != nil {
+				t.Errorf("Error creating request: %v", err)
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodPost})
+			errs := validator.ValidateRequest(&Request{
+				operation: op,
+				request:   req,
+			})
+			assert.Equal(len(tc.expectedErrors), len(errs))
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, []string{`value must be a string`}},
+		{libDoc, libValidator, []string{`expected string, but got number`}},
+	} {
+		t.Run(fmt.Sprintf("invalid-type-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			requestBody := strings.NewReader(`{"name": 1}`)
+
+			req, err := http.NewRequest(http.MethodPost, "http://example.com/pets", requestBody)
+			if err != nil {
+				t.Errorf("Error creating request: %v", err)
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodPost})
+			errs := validator.ValidateRequest(&Request{
+				operation: op,
+				request:   req,
+			})
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, []string{`property "name" is missing`}},
+		{libDoc, libValidator, []string{`missing properties: 'name'`}},
+	} {
+		t.Run(fmt.Sprintf("missing-required-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			requestBody := strings.NewReader(`{"foo": "bar"}`)
+
+			req, err := http.NewRequest(http.MethodPost, "http://example.com/pets", requestBody)
+			if err != nil {
+				t.Errorf("Error creating request: %v", err)
+				return
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodPost})
+			errs := validator.ValidateRequest(&Request{
+				operation: op,
+				request:   req,
+			})
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+}
+
+func TestOpenAPIValidator_ValidateResponse(t *testing.T) {
+	assert := require.New(t)
+
+	filePath := filepath.Join("test_fixtures", "document-petstore.yml")
+	kinDoc, err := NewKinDocumentFromFile(filePath)
+	assert.Nil(err)
+
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filePath)
+	assert.Nil(err)
+
+	kinValidator := NewKinOpenAPIValidator(kinDoc)
+	libValidator := NewLibOpenAPIValidator(libDoc)
+
+	type testCase struct {
+		doc            Document
+		validator      OpenAPIValidator
+		expectedErrors []string
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, nil},
+		{libDoc, libValidator, nil},
+	} {
+		t.Run(fmt.Sprintf("base-case-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/pets", nil)
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodGet})
+			res := &Response{
+				StatusCode: http.StatusOK,
+				Headers: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				Content:     []byte(`[{"id": 1, "name": "Dawg"}]`),
+				ContentType: "application/json",
+				request:     req,
+				operation:   op,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, []string{`value must be an integer`}},
+		{libDoc, libValidator, []string{`allOf failed`, `expected integer, but got string`}},
+	} {
+		t.Run(fmt.Sprintf("invalid-type-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/pets", nil)
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodGet})
+			res := &Response{
+				StatusCode: http.StatusOK,
+				Headers: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				Content:     []byte(`[{"id": "1", "name": "Dawg"}]`),
+				ContentType: "application/json",
+				request:     req,
+				operation:   op,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, []string{`response header Content-Type has unexpected value: "text/markdown"`}},
+		{libDoc, libValidator, []string{`GET / 200 operation response content type 'text/markdown' does not exist`}},
+	} {
+		t.Run(fmt.Sprintf("invalid-type-but-unsupported-response-type-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/pets", nil)
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodGet})
+			res := &Response{
+				StatusCode: http.StatusOK,
+				Headers: http.Header{
+					"Content-Type": []string{"text/markdown"},
+				},
+				Content:     []byte(`[{"id": "1", "name": "Dawg"}]`),
+				ContentType: "text/markdown",
+				request:     req,
+				operation:   op,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, nil},
+		{libDoc, libValidator, []string{`GET / 200 operation response content type 'text/markdown' does not exist`}},
+	} {
+		t.Run(fmt.Sprintf("empty-operation-handle-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/pets", nil)
+			res := &Response{
+				StatusCode: http.StatusOK,
+				Headers: http.Header{
+					"Content-Type": []string{"text/markdown"},
+				},
+				Content:     []byte(`[{"id": "1", "name": "Dawg"}]`),
+				ContentType: "text/markdown",
+				request:     req,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, nil},
+		{libDoc, libValidator, []string{`GET / 200 operation response content type '' does not exist`}},
+	} {
+		t.Run(fmt.Sprintf("no-headers-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/pets", nil)
+			// op := &KinOperation{Operation: openapi3.NewOperation()}
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodGet})
+			res := &Response{
+				StatusCode: http.StatusOK,
+				// invalid type
+				Content:     []byte(`{"id": "1", "email": "jane.doe@email"}`),
+				ContentType: "application/json",
+				request:     req,
+				operation:   op,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, nil},
+		{libDoc, libValidator, nil},
+	} {
+		t.Run(fmt.Sprintf("no-response-schema-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/pets", nil)
+			op := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodGet})
+			if doc.Provider() == KinOpenAPIProvider {
+				op = &KinOperation{Operation: openapi3.NewOperation()}
+			}
+
+			res := &Response{
+				StatusCode:  http.StatusOK,
+				ContentType: "application/json",
+				Headers: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				request:   req,
+				operation: op,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
+		})
+	}
+}
+
+func TestOpenAPIValidator_ValidateResponse_NonJson(t *testing.T) {
+	assert := require.New(t)
+
+	filePath := filepath.Join("test_fixtures", "document-with-other-responses.yml")
+	kinDoc, err := NewKinDocumentFromFile(filePath)
+	assert.Nil(err)
+
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filePath)
+	assert.Nil(err)
+
+	kinValidator := NewKinOpenAPIValidator(kinDoc)
+	libValidator := NewLibOpenAPIValidator(libDoc)
+
+	type testCase struct {
+		doc            Document
+		validator      OpenAPIValidator
+		expectedErrors []string
+	}
+
+	for _, tc := range []testCase{
+		{kinDoc, kinValidator, nil},
+		{libDoc, libValidator, nil},
+	} {
+		t.Run(fmt.Sprintf("text-plain-doc-%s", tc.doc.Provider()), func(t *testing.T) {
+			doc := tc.doc
+			validator := tc.validator
+
+			req, _ := http.NewRequest(http.MethodGet, "http://example.com/about", nil)
+			op := doc.FindOperation(&OperationDescription{"", "/about", http.MethodGet})
+
+			res := &Response{
+				StatusCode:  http.StatusOK,
+				ContentType: "text/plain",
+				Content:     []byte(`Hallo, Welt!`),
+				Headers: http.Header{
+					"Content-Type": []string{"text/plain"},
+				},
+				request:   req,
+				operation: op,
+			}
+			errs := validator.ValidateResponse(res)
+
+			assert.Equal(len(tc.expectedErrors), len(errs))
+			for i, expectedErr := range tc.expectedErrors {
+				assert.Contains(errs[i].Error(), expectedErr)
+			}
 		})
 	}
 }

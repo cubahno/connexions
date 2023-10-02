@@ -136,6 +136,14 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 		}
 		return
 	}
+	validator := NewOpenAPIValidator(doc)
+	if validator == nil {
+		ch <- validationResult{
+			file:   fileName,
+			docErr: "Failed to create validator",
+		}
+		return
+	}
 
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
@@ -158,20 +166,34 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 
 			success := false
 
-			reqErr := ValidateRequest(request, reqBody, reqContentType)
+			reqErrs := validator.ValidateRequest(&Request{
+				Headers:     request.Header,
+				Method:      request.Method,
+				Path:        request.URL.Path,
+				ContentType: reqContentType,
+				operation:   operation,
+				request:     request,
+			})
 			reqErrMsg := ""
-			if reqErr != nil {
-				reqErrMsg = reqErr.Error()
+			if len(reqErrs) > 0 {
+				reqErrMsg = fmt.Sprintf("Request validation failed: %d errors\n", len(reqErrs))
+				for _, reqErr := range reqErrs {
+					reqErrMsg += reqErr.Error() + "\n"
+				}
 			}
 
 			respErrMsg := ""
-			response := NewResponseFromOperation(operation, replacer)
-			respErr := ValidateResponse(request, response, operation)
-			if respErr != nil {
-				respErrMsg = respErr.Error()
+			response := NewResponseFromOperation(request, operation, replacer)
+			respErrs := validator.ValidateResponse(response)
+
+			if len(respErrs) > 0 {
+				respErrMsg = fmt.Sprintf("Response validation failed: %d errors\n", len(respErrs))
+				for _, respErr := range respErrs {
+					respErrMsg += respErr.Error() + "\n"
+				}
 			}
 
-			if respErr == nil && reqErr == nil {
+			if respErrMsg == "" && reqErrMsg == "" {
 				success = true
 			}
 

@@ -1,0 +1,21 @@
+openapi: "3.0.0"
+paths:
+  /about:
+    get:
+      operationId: getAbout
+      responses:
+        '200':
+          content:
+            text/plain:
+              schema:
+                type: string
+  /archives:
+    get:
+      operationId: getArchives
+      responses:
+        '200':
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary

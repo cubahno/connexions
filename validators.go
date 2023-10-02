@@ -1,11 +1,6 @@
 package connexions
 
 import (
-	"context"
-	"encoding/json"
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/getkin/kin-openapi/routers"
 	"net/http"
 	"regexp"
 	"strings"
@@ -63,68 +58,6 @@ func IsValidURLResource(urlPattern string) bool {
 	}
 
 	return true
-}
-
-// ExtractPlaceholders extracts all placeholders including curly brackets from a pattern.
-func ExtractPlaceholders(input string) []string {
-	return PlaceholderRegex.FindAllString(input, -1)
-}
-
-// ValidateRequest validates request against a schema.
-func ValidateRequest(req *http.Request, body *Schema, contentType string) error {
-	inp := &openapi3filter.RequestValidationInput{Request: req}
-	schema := openapi3.NewSchema()
-
-	if body != nil {
-		current, _ := json.Marshal(body)
-		_ = schema.UnmarshalJSON(current)
-	}
-
-	reqBody := openapi3.NewRequestBody().WithSchema(
-		schema,
-		[]string{contentType},
-	)
-	return openapi3filter.ValidateRequestBody(context.Background(), inp, reqBody)
-}
-
-// ValidateResponse validates a response against an operation.
-// Response must contain non-empty headers or it'll fail validation.
-func ValidateResponse(req *http.Request, res *Response, operation Operationer) error {
-	kin, isKinOpenAPI := operation.(*KinOperation)
-	// if not kin openapi, skip validation for now
-	if !isKinOpenAPI || len(res.Headers) == 0 {
-		return nil
-	}
-
-	// fast track for no response
-	resSchema := operation.GetResponse()
-	if (resSchema == nil || resSchema.Content == nil) && res.Content == nil {
-		return nil
-	}
-
-	// TODO(cubahno): add support for other content types
-	// we don't generate binary files for example, now
-	// form types should work but that's to be added in libopenapi validator
-	if resSchema.ContentType != "application/json" {
-		return nil
-	}
-
-	inp := &openapi3filter.RequestValidationInput{
-		Request: req,
-		Route: &routers.Route{
-			Method:    req.Method,
-			Operation: kin.Operation,
-		},
-	}
-	responseValidationInput := &openapi3filter.ResponseValidationInput{
-		RequestValidationInput: inp,
-		Status:                 res.StatusCode,
-		Header:                 res.Headers,
-	}
-
-	responseValidationInput.SetBodyBytes(res.Content)
-
-	return openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
 }
 
 // ValidateStringWithPattern checks if the input string matches the given pattern.
