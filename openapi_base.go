@@ -18,6 +18,12 @@ type Operationer interface {
 	WithParseConfig(*ParseConfig) Operationer
 }
 
+// OpenAPIValidator is an interface that represents an OpenAPI validator.
+type OpenAPIValidator interface {
+	ValidateRequest(req *Request) []error
+	ValidateResponse(res *Response) []error
+}
+
 // OpenAPIResponse is a struct that represents an OpenAPI response.
 type OpenAPIResponse struct {
 	Headers     OpenAPIHeaders
@@ -113,6 +119,17 @@ func NewDocumentFromFileFactory(provider SchemaProvider) func(filePath string) (
 	default:
 		return NewLibOpenAPIDocumentFromFile
 	}
+}
+
+// NewOpenAPIValidator returns a new OpenAPIValidator based on the Document provider.
+func NewOpenAPIValidator(doc Document) OpenAPIValidator {
+	switch doc.Provider() {
+	case KinOpenAPIProvider:
+		return NewKinOpenAPIValidator(doc)
+	case LibOpenAPIProvider:
+		return NewLibOpenAPIValidator(doc)
+	}
+	return nil
 }
 
 // FixSchemaTypeTypos fixes common typos in schema types.

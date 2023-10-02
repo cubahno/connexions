@@ -424,7 +424,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	req := NewRequestFromOperation(fileProps.Prefix, rd.Path, rd.Method, operation, valueReplacer)
 
 	res.Request = req
-	res.Response = NewResponseFromOperation(operation, valueReplacer)
+	res.Response = NewResponseFromOperation(r, operation, valueReplacer)
 
 	h.JSONResponse(w).Send(res)
 }

@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -68,11 +69,11 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 
 	ctx := chi.RouteContext(r.Context())
 
-	resourceName := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
+	resourcePath := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 
 	findOptions := &OperationDescription{
 		Service:  h.fileProps.ServiceName,
-		Resource: resourceName,
+		Resource: resourcePath,
 		Method:   r.Method,
 	}
 	operation := doc.FindOperation(findOptions)
@@ -88,24 +89,31 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	reqBody, contentType := operation.GetRequestBody()
-	if serviceCfg.Validate.Request && reqBody != nil {
-		err := ValidateRequest(r, reqBody, contentType)
-		if err != nil {
+	validator := NewOpenAPIValidator(doc)
+
+	if serviceCfg.Validate.Request && validator != nil {
+		errs := validator.ValidateRequest(&Request{
+			Headers:   r.Header,
+			Method:    r.Method,
+			Path:      resourcePath,
+			operation: operation,
+			request:   r,
+		})
+		if len(errs) > 0 {
 			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
-				Message: "Invalid request: " + err.Error(),
+				Message: fmt.Sprintf("Invalid request: %d errors: %v", len(errs), errs),
 				Success: false,
 			})
 			return
 		}
 	}
 
-	response := NewResponseFromOperation(operation, h.valueReplacer)
-	if serviceCfg.Validate.Response {
-		err := ValidateResponse(r, response, operation)
-		if err != nil {
+	response := NewResponseFromOperation(r, operation, h.valueReplacer)
+	if serviceCfg.Validate.Response && validator != nil {
+		errs := validator.ValidateResponse(response)
+		if len(errs) > 0 {
 			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
-				Message: "Invalid response: " + err.Error(),
+				Message: fmt.Sprintf("Invalid response: %d errors: %v", len(errs), errs),
 				Success: false,
 			})
 			return

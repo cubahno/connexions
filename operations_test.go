@@ -338,7 +338,8 @@ func TestNewResponseFromOperation(t *testing.T) {
 
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
-		res := NewResponseFromOperation(operation, valueResolver)
+		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
+		res := NewResponseFromOperation(r, operation, valueResolver)
 
 		expectedHeaders := http.Header{
 			"Location":     []string{"https://example.com/users/123"},
@@ -371,7 +372,8 @@ func TestNewResponseFromOperation(t *testing.T) {
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-without-content-type.yml"), operation)
 
-		res := NewResponseFromOperation(operation, valueResolver)
+		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
+		res := NewResponseFromOperation(r, operation, valueResolver)
 
 		expectedHeaders := http.Header{
 			"Content-Type": []string{"application/json"},
@@ -396,7 +398,8 @@ func TestNewResponseFromOperation(t *testing.T) {
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
 
-		res := NewResponseFromOperation(operation, valueResolver)
+		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
+		res := NewResponseFromOperation(r, operation, valueResolver)
 		assert.Nil(res.Content)
 	})
 }
@@ -1348,4 +1351,37 @@ func TestGenerateContentFromJSON(t *testing.T) {
 		res := generateContentFromJSON(content, valueReplacer, nil)
 		assert.Equal(content, res)
 	})
+}
+
+func TestExtractPlaceholders(t *testing.T) {
+	tests := []struct {
+		url    string
+		expect []string
+	}{
+		{"", []string{}},
+		{"/", []string{}},
+		{"abc", []string{}},
+		{"{user-id}", []string{"{user-id}"}},
+		{"{file_id}", []string{"{file_id}"}},
+		{"{some_name_1}", []string{"{some_name_1}"}},
+		{"{id}/{name}", []string{"{id}", "{name}"}},
+		{"/users/{id}/files/{file_id}", []string{"{id}", "{file_id}"}},
+		{"{!@#$%^}", []string{"{!@#$%^}"}},
+		{"{name:str}/{id}", []string{"{name:str}", "{id}"}},
+		{"{name?str}/{id}", []string{"{name?str}", "{id}"}},
+		{"{}", []string{"{}"}},
+		{"{}/{}", []string{"{}", "{}"}},
+	}
+
+	for _, test := range tests {
+		result := ExtractPlaceholders(test.url)
+		if len(result) != len(test.expect) {
+			t.Errorf("For URL Pattern: %s, Expected: %v, Got: %v", test.url, test.expect, result)
+		}
+		for i, res := range result {
+			if res != test.expect[i] {
+				t.Errorf("For URL Pattern: %s, Expected: %v, Got: %v", test.url, test.expect, result)
+			}
+		}
+	}
 }
