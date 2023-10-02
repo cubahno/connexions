@@ -19,7 +19,7 @@ type kinOpenAPIValidator struct {
 func NewKinOpenAPIValidator(_ Document) OpenAPIValidator {
 	return &kinOpenAPIValidator{
 		supportedRequestContentTypes: map[string]bool{
-			"application/json": true,
+			"application/json":    true,
 			"multipart/form-data": true,
 		},
 		supportedResponseContentTypes: map[string]bool{
