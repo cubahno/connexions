@@ -21,7 +21,7 @@ test:
 	@if [ "$(with_docker)" = "true" ]; then \
 		$(call docker-cmd, sh -c "/wait && go test -race $(go list ./... | grep -v /resources/) -coverprofile .testCoverage.txt -count=1"); \
 	else \
-		go test -race $(go list ./... | grep -v /resources/) -coverprofile .testCoverage.txt -count=1; \
+		go test -race $(go list ./... | grep -v /resources/ | grep -v /cmd/) -coverprofile .testCoverage.txt -count=1; \
 	fi;
 
 .PHONY: test-integration
