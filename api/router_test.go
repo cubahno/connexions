@@ -4,7 +4,7 @@ package api
 
 import (
 	"bytes"
-	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
@@ -12,7 +12,7 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	assert := assert2.New(t)
-	config := &connexions.Config{}
+	config := &config.Config{}
 	router := NewRouter(config)
 
 	assert.NotNil(router)

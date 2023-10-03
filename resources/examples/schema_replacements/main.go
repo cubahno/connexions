@@ -3,14 +3,17 @@ package main
 import (
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/replacers"
 )
 
 func main() {
-	cfg := connexions.NewDefaultConfig("")
+	cfg := config.NewDefaultConfig("")
 
-	schema := &connexions.Schema{
+	schema := &openapi.Schema{
 		Type: "object",
-		Properties: map[string]*connexions.Schema{
+		Properties: map[string]*openapi.Schema{
 			"id": {
 				Type:   "string",
 				Format: "uuid",
@@ -33,7 +36,7 @@ func main() {
 			"name": "Jane",
 		},
 	}
-	replacer := connexions.CreateValueReplacer(cfg, contexts)
+	replacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, contexts)
 	res := connexions.GenerateContentFromSchema(schema, replacer, nil)
 	fmt.Printf("%+v\n", res)
 

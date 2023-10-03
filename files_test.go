@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"github.com/cubahno/connexions/config"
 	assert2 "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -50,7 +51,7 @@ func TestGetRequestFile(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("happy-path", func(t *testing.T) {
-		// Create a mock request with a file field
+		// Create a mock Request with a file field
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 		fileContents := []byte("test file contents")
@@ -65,7 +66,7 @@ func TestGetRequestFile(t *testing.T) {
 		// Initialize a response recorder and handler
 		rr := httptest.NewRecorder()
 
-		// Perform the request
+		// Perform the Request
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			file, err := GetRequestFile(r, "file")
 			if err != nil {
@@ -104,7 +105,7 @@ func TestGetRequestFile(t *testing.T) {
 }
 
 func TestGetPropertiesFromFilePath(t *testing.T) {
-	appCfg := NewDefaultAppConfig("/app")
+	appCfg := config.NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	t.Parallel()
@@ -226,7 +227,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 
 func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 	assert := require.New(t)
-	appCfg := NewDefaultAppConfig("/app")
+	appCfg := config.NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	t.Parallel()
@@ -240,7 +241,7 @@ func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 
 	t.Run("nested-with-index-name", func(t *testing.T) {
 		baseDir := t.TempDir()
-		appConfig := NewDefaultAppConfig(baseDir)
+		appConfig := config.NewDefaultAppConfig(baseDir)
 		ps := appConfig.Paths
 
 		dir := filepath.Join(ps.ServicesOpenAPI, "nice", "dice", "rice")
@@ -269,7 +270,7 @@ func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 
 	t.Run("nested-with-any-name", func(t *testing.T) {
 		baseDir := t.TempDir()
-		appConfig := NewDefaultAppConfig(baseDir)
+		appConfig := config.NewDefaultAppConfig(baseDir)
 		ps := appConfig.Paths
 
 		dir := filepath.Join(ps.ServicesOpenAPI, "nice", "dice")
@@ -469,10 +470,10 @@ func TestExtractZip(t *testing.T) {
 	getFilePaths := func(baseDir string) []string {
 		return []string{
 			filepath.Join(baseDir, "take-this", "index.json"),
-			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-1", "index.yml"),
-			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-2", "index.yml"),
-			filepath.Join(baseDir, "take-this", RootServiceName, "svc-1", "get", "users", "index.json"),
-			filepath.Join(baseDir, "ignore", RootServiceName, "svc-2", "get", "users", "all", "index.json"),
+			filepath.Join(baseDir, "take-this", config.RootOpenAPIName, "svc-1", "index.yml"),
+			filepath.Join(baseDir, "take-this", config.RootOpenAPIName, "svc-2", "index.yml"),
+			filepath.Join(baseDir, "take-this", config.RootServiceName, "svc-1", "get", "users", "index.json"),
+			filepath.Join(baseDir, "ignore", config.RootServiceName, "svc-2", "get", "users", "all", "index.json"),
 			filepath.Join(baseDir, "ignore", "svc-3", "patch", "users", "{userID}", "index.json"),
 			filepath.Join(baseDir, "take-too", "ctx-1.yml"),
 			filepath.Join(baseDir, "take-too", "ctx-2.yml"),
@@ -555,9 +556,9 @@ func TestExtractZip(t *testing.T) {
 	expectedFilePaths := func(baseDir string) []string {
 		return []string{
 			filepath.Join(baseDir, "take-this", "index.json"),
-			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-1", "index.yml"),
-			filepath.Join(baseDir, "take-this", RootOpenAPIName, "svc-2", "index.yml"),
-			filepath.Join(baseDir, "take-this", RootServiceName, "svc-1", "get", "users", "index.json"),
+			filepath.Join(baseDir, "take-this", config.RootOpenAPIName, "svc-1", "index.yml"),
+			filepath.Join(baseDir, "take-this", config.RootOpenAPIName, "svc-2", "index.yml"),
+			filepath.Join(baseDir, "take-this", config.RootServiceName, "svc-1", "get", "users", "index.json"),
 			filepath.Join(baseDir, "take-too", "ctx-1.yml"),
 			filepath.Join(baseDir, "take-too", "ctx-2.yml"),
 		}

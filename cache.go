@@ -1,6 +1,8 @@
 package connexions
 
 import (
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
 	"log"
 	"sync"
 )
@@ -45,21 +47,21 @@ func (s *MemoryStorage) Get(key string) (any, bool) {
 // SchemaWithContentType is a schema with a content type.
 // It is used to cache the result of GetRequestBody and wrap 2 values together.
 type SchemaWithContentType struct {
-	Schema      *Schema
+	Schema      *openapi.Schema
 	ContentType string
 }
 
-// CacheOperationAdapter is an adapter that caches the result of the wrapped operation.
-// Implements Operationer interface.
+// CacheOperationAdapter is an adapter that caches the result of the wrapped Operation.
+// Implements Operation interface.
 type CacheOperationAdapter struct {
 	service      string
-	operation    Operationer
+	operation    openapi.Operation
 	cacheStorage CacheStorage
 	mu           sync.Mutex
 }
 
 // NewCacheOperationAdapter creates a new CacheOperationAdapter instance.
-func NewCacheOperationAdapter(service string, operation Operationer, storage CacheStorage) Operationer {
+func NewCacheOperationAdapter(service string, operation openapi.Operation, storage CacheStorage) openapi.Operation {
 	return &CacheOperationAdapter{
 		service:      service,
 		operation:    operation,
@@ -67,25 +69,25 @@ func NewCacheOperationAdapter(service string, operation Operationer, storage Cac
 	}
 }
 
-// WithParseConfig sets the ParseConfig for the operation.
-func (a *CacheOperationAdapter) WithParseConfig(parseConfig *ParseConfig) Operationer {
+// WithParseConfig sets the ParseConfig for the Operation.
+func (a *CacheOperationAdapter) WithParseConfig(parseConfig *config.ParseConfig) openapi.Operation {
 	a.operation.WithParseConfig(parseConfig)
 	return a
 }
 
-// ID returns the ID of the operation.
+// ID returns the ID of the Operation.
 func (a *CacheOperationAdapter) ID() string {
 	return a.operation.ID()
 }
 
-// GetParameters returns the parameters for the operation.
-func (a *CacheOperationAdapter) GetParameters() OpenAPIParameters {
+// GetParameters returns the parameters for the Operation.
+func (a *CacheOperationAdapter) GetParameters() openapi.Parameters {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	key := a.key("parameters")
 	if cached, ok := a.cacheStorage.Get(key); ok {
-		return cached.(OpenAPIParameters)
+		return cached.(openapi.Parameters)
 	}
 
 	value := a.operation.GetParameters()
@@ -96,8 +98,8 @@ func (a *CacheOperationAdapter) GetParameters() OpenAPIParameters {
 	return value
 }
 
-// GetRequestBody returns the request body for the operation.
-func (a *CacheOperationAdapter) GetRequestBody() (*Schema, string) {
+// GetRequestBody returns the GeneratedRequest body for the Operation.
+func (a *CacheOperationAdapter) GetRequestBody() (*openapi.Schema, string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -118,14 +120,14 @@ func (a *CacheOperationAdapter) GetRequestBody() (*Schema, string) {
 	return value, contentType
 }
 
-// GetResponse returns the response for the operation.
-func (a *CacheOperationAdapter) GetResponse() *OpenAPIResponse {
+// GetResponse returns the response for the Operation.
+func (a *CacheOperationAdapter) GetResponse() *openapi.Response {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	key := a.key("response")
 	if cached, ok := a.cacheStorage.Get(key); ok {
-		return cached.(*OpenAPIResponse)
+		return cached.(*openapi.Response)
 	}
 
 	value := a.operation.GetResponse()

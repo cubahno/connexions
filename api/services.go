@@ -3,7 +3,11 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/contexts"
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/replacers"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -397,8 +401,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = h.router.GetDefaultContexts()
 	}
-	contexts := connexions.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
-	valueReplacer := connexions.CreateValueReplacer(config, contexts)
+	contexts := contexts.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
+	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, contexts)
 
 	if !fileProps.IsOpenAPI {
 		res.Request = connexions.NewRequestFromFixedResource(
@@ -413,7 +417,7 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	spec := fileProps.Spec
-	operation := spec.FindOperation(&connexions.OperationDescription{
+	operation := spec.FindOperation(&openapi.OperationDescription{
 		Service:  service.Name,
 		Resource: rd.Path,
 		Method:   strings.ToUpper(rd.Method),
@@ -546,7 +550,7 @@ func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == connexions.RootServiceName {
+	if name == config.RootServiceName {
 		name = ""
 	}
 
@@ -576,7 +580,7 @@ func (h *ServiceHandler) getRouteIndex(fileProps *connexions.FileProperties) int
 }
 
 // saveService saves the service resource.
-func saveService(payload *ServicePayload, appCfg *connexions.AppConfig) (*connexions.FileProperties, error) {
+func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*connexions.FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
 	content := payload.Response
@@ -681,8 +685,8 @@ type ServiceDescription struct {
 }
 
 type GenerateResponse struct {
-	Request  *connexions.Request  `json:"request"`
-	Response *connexions.Response `json:"response"`
+	Request  *openapi.GeneratedRequest  `json:"request"`
+	Response *openapi.GeneratedResponse `json:"response"`
 }
 
 type ServiceListResponse struct {
@@ -714,7 +718,7 @@ type SavedResourceResponse struct {
 }
 
 // ComposeFileSavePath composes a save path for a file.
-func ComposeFileSavePath(descr *ServiceDescription, paths *connexions.Paths) string {
+func ComposeFileSavePath(descr *ServiceDescription, paths *config.Paths) string {
 	if descr.IsOpenAPI {
 		return ComposeOpenAPISavePath(descr, paths.ServicesOpenAPI)
 	}
@@ -745,7 +749,7 @@ func ComposeFileSavePath(descr *ServiceDescription, paths *connexions.Paths) str
 	service := ""
 	if len(parts) == 1 {
 		if pathExt != "" {
-			service = connexions.RootServiceName
+			service = config.RootServiceName
 		} else {
 			service = parts[0]
 			parts = []string{}

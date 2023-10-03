@@ -3,6 +3,9 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/contexts"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/replacers"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -16,7 +19,7 @@ type OpenAPIHandler struct {
 	router        *Router
 	fileProps     *connexions.FileProperties
 	cache         connexions.CacheStorage
-	valueReplacer connexions.ValueReplacer
+	valueReplacer replacers.ValueReplacer
 }
 
 // registerOpenAPIRoutes adds spec routes to the router and
@@ -33,8 +36,8 @@ func registerOpenAPIRoutes(fileProps *connexions.FileProperties, router *Router)
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := connexions.CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := connexions.CreateValueReplacer(config, contexts)
+	contexts := contexts.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, contexts)
 
 	handler := &OpenAPIHandler{
 		router:        router,
@@ -73,7 +76,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 
 	resourcePath := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 
-	findOptions := &connexions.OperationDescription{
+	findOptions := &openapi.OperationDescription{
 		Service:  h.fileProps.ServiceName,
 		Resource: resourcePath,
 		Method:   r.Method,
@@ -100,12 +103,14 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 			hdrs[name] = values
 		}
 
-		errs := validator.ValidateRequest((&connexions.Request{
+		errs := validator.ValidateRequest(&openapi.GeneratedRequest{
 			Headers:     hdrs,
 			Method:      r.Method,
 			Path:        resourcePath,
 			ContentType: req.Header.Get("Content-Type"),
-		}).WithOperation(operation).WithRequest(req))
+			Operation:   operation,
+			Request:     req,
+		})
 		if len(errs) > 0 {
 			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
 				Message: fmt.Sprintf("Invalid request: %d errors: %v", len(errs), errs),

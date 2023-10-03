@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	"github.com/go-chi/chi/v5"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -73,7 +74,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 
 	payload, _ := io.ReadAll(r.Body)
 
-	_, err := connexions.NewConfigFromContent(payload)
+	_, err := config.NewConfigFromContent(payload)
 	if err != nil {
 		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
@@ -94,7 +95,7 @@ func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 
 	dest := h.router.Config.App.Paths.ConfigFile
-	defaultCfg := connexions.NewDefaultConfig(h.router.Config.BaseDir)
+	defaultCfg := config.NewDefaultConfig(h.router.Config.BaseDir)
 	defaultBts, _ := yaml.Marshal(defaultCfg)
 
 	if err := connexions.SaveFile(dest, defaultBts); err != nil {

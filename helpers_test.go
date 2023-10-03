@@ -2,11 +2,9 @@ package connexions
 
 import (
 	"encoding/json"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/providers/kin"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/jaswdr/faker"
-	base2 "github.com/pb33f/libopenapi/datamodel/high/base"
-	"github.com/pb33f/libopenapi/datamodel/low"
-	"github.com/pb33f/libopenapi/datamodel/low/base"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -119,26 +117,9 @@ func CreateKinSchemaFromString(t *testing.T, jsonSrc string) *openapi3.Schema {
 	return schema
 }
 
-func CreateSchemaFromString(t *testing.T, jsonSrc string) *Schema {
+func CreateSchemaFromString(t *testing.T, jsonSrc string) *openapi.Schema {
 	t.Helper()
-	return NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
-}
-
-func CreateLibSchemaFromString(t *testing.T, ymlSchema string) *base2.SchemaProxy {
-	t.Helper()
-	// unmarshal raw bytes
-	var node yaml.Node
-	_ = yaml.Unmarshal([]byte(ymlSchema), &node)
-
-	// build out the low-level model
-	var lowSchema base.SchemaProxy
-	_ = low.BuildModel(node.Content[0], &lowSchema)
-	_ = lowSchema.Build(nil, node.Content[0], nil)
-
-	// build the high level schema proxy
-	return base2.NewSchemaProxy(&low.NodeReference[*base.SchemaProxy]{
-		Value: &lowSchema,
-	})
+	return kin.NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {
@@ -155,13 +136,6 @@ func GetJSONPair(expected, actual any) (string, string) {
 	actualJSON, _ := json.Marshal(actual)
 
 	return string(expectedJSON), string(actualJSON)
-}
-
-func NewTestReplaceContext(schema any) *ReplaceContext {
-	return &ReplaceContext{
-		Faker:  faker.New(),
-		Schema: schema,
-	}
 }
 
 func createMockServer(t *testing.T, contentType, responseBody string, responseStatus int) *httptest.Server {

@@ -6,7 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/openapi"
 	"gopkg.in/yaml.v3"
 	"io"
 	"log"
@@ -51,7 +53,7 @@ type FileProperties struct {
 	ContentType string
 
 	// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
-	Spec Document `json:"-"`
+	Spec openapi.Document `json:"-"`
 }
 
 // IsEqual compares two FileProperties structs.
@@ -83,7 +85,7 @@ type UploadedFile struct {
 	Size int64
 }
 
-// GetRequestFile gets an uploaded file from a request.
+// GetRequestFile gets an uploaded file from a GeneratedRequest.
 func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 	// Get the uploaded file
 	file, header, _ := r.FormFile(fieldName)
@@ -107,19 +109,19 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 }
 
 // GetPropertiesFromFilePath gets properties of a file from its path.
-func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FileProperties, error) {
+func GetPropertiesFromFilePath(filePath string, appCfg *config.AppConfig) (*FileProperties, error) {
 	s := strings.TrimPrefix(strings.Replace(filePath, appCfg.Paths.Services, "", 1), "/")
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
 
-	if serviceName == RootOpenAPIName {
+	if serviceName == config.RootOpenAPIName {
 		return getPropertiesFromOpenAPIFile(filePath, parts[1:], appCfg)
 	}
 
 	return getPropertiesFromFixedFile(serviceName, filePath, parts), nil
 }
 
-func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *AppConfig) (*FileProperties, error) {
+func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *config.AppConfig) (*FileProperties, error) {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
 
@@ -165,7 +167,7 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	method := http.MethodGet
 	prefix := ""
 
-	if serviceName == RootServiceName {
+	if serviceName == config.RootServiceName {
 		parts = parts[1:]
 		serviceName = parts[0]
 

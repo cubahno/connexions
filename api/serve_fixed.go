@@ -2,6 +2,8 @@ package api
 
 import (
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/contexts"
+	"github.com/cubahno/connexions/replacers"
 	"log"
 	"net/http"
 	"strings"
@@ -47,8 +49,8 @@ func createFixedResponseHandler(router *Router, fileProps *connexions.FileProper
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := connexions.CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := connexions.CreateValueReplacer(config, contexts)
+	contexts := contexts.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, contexts)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if HandleErrorAndLatency(serviceCfg, w) {

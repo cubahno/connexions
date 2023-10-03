@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
 	"github.com/getkin/kin-openapi/openapi3"
 	"log"
 	"os"
@@ -202,11 +204,11 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 			go func(resName, method string) {
 				defer wg.Done()
 
-				operation := doc.FindOperation(&connexions.OperationDescription{
+				operation := doc.FindOperation(&openapi.OperationDescription{
 					Resource: resName,
 					Method:   method,
 				})
-				operation = operation.WithParseConfig(&connexions.ParseConfig{
+				operation = operation.WithParseConfig(&config.ParseConfig{
 					MaxRecursionLevels: parseConfig.MaxRecursionLevels,
 					OnlyRequired:       parseConfig.OnlyRequired,
 				})
@@ -248,7 +250,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 	return err
 }
 
-func getSourceDocument(src string) (connexions.Document, error) {
+func getSourceDocument(src string) (openapi.Document, error) {
 	if _, err := os.Stat(src); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -261,10 +263,10 @@ func getSourceDocument(src string) (connexions.Document, error) {
 		return nil, ErrNotRegularFile
 	}
 
-	return connexions.NewDocumentFromFileFactory(connexions.LibOpenAPIProvider)(src)
+	return connexions.NewDocumentFromFileFactory(config.LibOpenAPIProvider)(src)
 }
 
-func convertOperation(operation connexions.Operationer) *openapi3.Operation {
+func convertOperation(operation openapi.Operation) *openapi3.Operation {
 	reqBody, reqContentType := operation.GetRequestBody()
 	response := operation.GetResponse()
 
@@ -318,7 +320,7 @@ func convertOperation(operation connexions.Operationer) *openapi3.Operation {
 	}
 }
 
-func convertSchema(src *connexions.Schema) *openapi3.SchemaRef {
+func convertSchema(src *openapi.Schema) *openapi3.SchemaRef {
 	if src == nil {
 		return nil
 	}

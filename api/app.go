@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	"log"
 	"math/rand"
 	"net/http"
@@ -15,14 +16,14 @@ import (
 // App is the main application struct
 type App struct {
 	Router *Router
-	Paths  *connexions.Paths
+	Paths  *config.Paths
 
 	bluePrints []RouteRegister
 	mu         sync.Mutex
 }
 
 // NewApp creates a new App instance from Config and registers predefined blueprints.
-func NewApp(config *connexions.Config) *App {
+func NewApp(config *config.Config) *App {
 	paths := config.App.Paths
 	res := &App{
 		Paths: paths,
@@ -66,7 +67,7 @@ func NewApp(config *connexions.Config) *App {
 }
 
 // MustFileStructure creates the necessary directories and files
-func MustFileStructure(paths *connexions.Paths) error {
+func MustFileStructure(paths *config.Paths) error {
 	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts}
 
 	for _, dir := range dirs {

@@ -2,6 +2,9 @@ package connexions
 
 import (
 	"errors"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/providers/kin"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"path/filepath"
@@ -50,10 +53,10 @@ func TestCacheOperationAdapter(t *testing.T) {
 	t.Parallel()
 
 	petStorePath := filepath.Join("testdata", "document-petstore.yml")
-	doc, err := NewKinDocumentFromFile(petStorePath)
+	doc, err := kin.NewDocumentFromFile(petStorePath)
 	assert.Nil(err)
 
-	addPetOp := doc.FindOperation(&OperationDescription{"", "/pets", http.MethodPost})
+	addPetOp := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: http.MethodPost})
 	assert.NotNil(addPetOp)
 
 	storage := NewMemoryStorage()
@@ -63,7 +66,7 @@ func TestCacheOperationAdapter(t *testing.T) {
 	cachedAddPetWithFalsyStorage := NewCacheOperationAdapter("petstore", addPetOp, falsyStorage)
 
 	t.Run("WithParseConfig", func(t *testing.T) {
-		res := cachedAddPet.WithParseConfig(&ParseConfig{MaxLevels: 2})
+		res := cachedAddPet.WithParseConfig(&config.ParseConfig{MaxLevels: 2})
 		assert.Equal(cachedAddPet, res)
 	})
 

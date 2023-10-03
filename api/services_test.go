@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
 	assert2 "github.com/stretchr/testify/assert"
 	"mime/multipart"
 	"net/http"
@@ -455,7 +457,7 @@ func TestServiceHandler_resources_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.services/"+connexions.RootServiceName, nil)
+		req := httptest.NewRequest("GET", "/.services/"+config.RootServiceName, nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -584,7 +586,7 @@ func TestServiceHandler_deleteService(t *testing.T) {
 	err = createServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("DELETE", "/.services/"+connexions.RootServiceName, nil)
+	req := httptest.NewRequest("DELETE", "/.services/"+config.RootServiceName, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -608,7 +610,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.services/"+connexions.RootServiceName+"/spec", nil)
+		req := httptest.NewRequest("GET", "/.services/"+config.RootServiceName+"/spec", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -705,7 +707,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/.services/"+connexions.RootServiceName+"/0", nil)
+		req := httptest.NewRequest("POST", "/.services/"+config.RootServiceName+"/0", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -829,7 +831,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
-	router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &config.ServiceConfig{}
 
 	router.services = map[string]*ServiceItem{
 		"petstore": {
@@ -864,17 +866,17 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	expected := &GenerateResponse{
-		Request: &connexions.Request{
+		Request: &openapi.GeneratedRequest{
 			Method:      http.MethodPost,
 			Path:        "/petstore/pets",
 			Body:        `{"tag":"Hund","name":"Hans"}`,
 			ContentType: "application/json",
 			Query:       "",
-			Examples: &connexions.ContentExample{
+			Examples: &openapi.ContentExample{
 				CURL: `--data-raw '{"name":"Hans","tag":"Hund"}'`,
 			},
 		},
-		Response: &connexions.Response{
+		Response: &openapi.GeneratedResponse{
 			Content:     []byte(`{"id":10,"name":"Hans","tag":"Hund"}`),
 			ContentType: "application/json",
 			StatusCode:  http.StatusOK,
@@ -954,12 +956,12 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	expected := &GenerateResponse{
-		Request: &connexions.Request{
+		Request: &openapi.GeneratedRequest{
 			Method:      http.MethodPost,
 			Path:        "/petstore/pets",
 			ContentType: "application/json",
 		},
-		Response: &connexions.Response{
+		Response: &openapi.GeneratedResponse{
 			Content:     []byte(`{"id":1,"name":"Bulbasaur","tag":"beedrill"}`),
 			ContentType: "application/json",
 			StatusCode:  http.StatusOK,
@@ -1297,7 +1299,7 @@ func TestSaveService_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	appDir := t.TempDir()
-	appCfg := connexions.NewDefaultAppConfig(appDir)
+	appCfg := config.NewDefaultAppConfig(appDir)
 	_, _ = SetupApp(appDir)
 
 	t.Run("invalid-url-resource", func(t *testing.T) {
@@ -1406,7 +1408,7 @@ func TestServiceHandler_getRouteIndex(t *testing.T) {
 func TestComposeFileSavePath(t *testing.T) {
 	t.Parallel()
 
-	appCfg := connexions.NewDefaultAppConfig("/app")
+	appCfg := config.NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	testCases := []struct {
@@ -1470,7 +1472,7 @@ func TestComposeFileSavePath(t *testing.T) {
 func TestComposeOpenAPISavePath(t *testing.T) {
 	t.Parallel()
 
-	appCfg := connexions.NewDefaultAppConfig("/app")
+	appCfg := config.NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	testCases := []struct {
