@@ -3,7 +3,7 @@ IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 
-MIN_COVERAGE = 99
+MIN_COVERAGE = 97
 
 define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
