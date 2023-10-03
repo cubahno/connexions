@@ -38,6 +38,9 @@ async function onLoad() {
     document.getElementById('settings-save-button').addEventListener('click', settings.save);
     document.getElementById('settings-default-save-button').addEventListener('click', settings.restore);
 
+    document.getElementById('fixed-service-submit').addEventListener('click', () => services.onNewServiceSubmit('fixed-service-form'));
+    document.getElementById('openapi-service-submit').addEventListener('click', () => services.onNewServiceSubmit('openapi-service-form'));
+
     document.getElementById('export-link').href = `${config.homeUrl}/export`;
 }
 

@@ -121,6 +121,8 @@ export const setupTabbedContent = wrapperId => {
     const panes = content.querySelectorAll('.tab-pane');
 
     tabs.forEach((tab, index) => {
+        tab.classList.remove('active');
+
         tab.addEventListener('click', () => {
             tabs.forEach(tab => {
                 tab.classList.remove('active');
@@ -138,9 +140,13 @@ export const setupTabbedContent = wrapperId => {
         });
     });
 
-    // Show the initial tab
-    tabs[0].classList.add('active');
-    panes[0].classList.add('active');
-    panes[0].style.display = 'block';
+    tabs[0].click();
     content.style.display = 'block';
+}
+
+export const scrollToTop = () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
 }
