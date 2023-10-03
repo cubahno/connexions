@@ -6,6 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
@@ -45,15 +46,24 @@ func (h *SettingsHandler) get(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	savedCfg, _ := os.ReadFile(h.router.Config.App.Paths.ConfigFile)
+
 	var b bytes.Buffer
 	yamlEncoder := yaml.NewEncoder(&b)
-	yamlEncoder.SetIndent(2) // this is what you're looking for
-	_ = yamlEncoder.Encode(h.router.Config)
+	yamlEncoder.SetIndent(2)
 
-	// data, _ := yaml.Marshal(h.router.Config)
-	data := b.Bytes()
+	var data any
+	data = h.router.Config
 
-	h.Response(w).WithHeader("Content-Type", "application/x-yaml").Send(data)
+	if savedCfg != nil {
+		var savedCfgMap map[string]any
+		_ = yaml.Unmarshal(savedCfg, &savedCfgMap)
+		data = savedCfgMap
+	}
+
+	_ = yamlEncoder.Encode(data)
+
+	h.Response(w).WithHeader("Content-Type", "application/x-yaml").Send(b.Bytes())
 }
 
 func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
