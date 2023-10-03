@@ -4,12 +4,7 @@ import (
 	"encoding/json"
 	"github.com/cubahno/connexions/openapi"
 	"github.com/cubahno/connexions/openapi/providers/kin"
-	"github.com/cubahno/connexions/replacers"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/jaswdr/faker"
-	base2 "github.com/pb33f/libopenapi/datamodel/high/base"
-	"github.com/pb33f/libopenapi/datamodel/low"
-	"github.com/pb33f/libopenapi/datamodel/low/base"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -127,23 +122,6 @@ func CreateSchemaFromString(t *testing.T, jsonSrc string) *openapi.Schema {
 	return kin.NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
 }
 
-func CreateLibSchemaFromString(t *testing.T, ymlSchema string) *base2.SchemaProxy {
-	t.Helper()
-	// unmarshal raw bytes
-	var node yaml.Node
-	_ = yaml.Unmarshal([]byte(ymlSchema), &node)
-
-	// build out the low-level model
-	var lowSchema base.SchemaProxy
-	_ = low.BuildModel(node.Content[0], &lowSchema)
-	_ = lowSchema.Build(nil, node.Content[0], nil)
-
-	// build the high level schema proxy
-	return base2.NewSchemaProxy(&low.NodeReference[*base.SchemaProxy]{
-		Value: &lowSchema,
-	})
-}
-
 func AssertJSONEqual(t *testing.T, expected, actual any) {
 	t.Helper()
 	expectedJSON, _ := json.Marshal(expected)
@@ -158,13 +136,6 @@ func GetJSONPair(expected, actual any) (string, string) {
 	actualJSON, _ := json.Marshal(actual)
 
 	return string(expectedJSON), string(actualJSON)
-}
-
-func NewTestReplaceContext(schema any) *replacers.ReplaceContext {
-	return &replacers.ReplaceContext{
-		Faker:  faker.New(),
-		Schema: schema,
-	}
 }
 
 func createMockServer(t *testing.T, contentType, responseBody string, responseStatus int) *httptest.Server {
