@@ -131,13 +131,6 @@ func AssertJSONEqual(t *testing.T, expected, actual any) {
 	assert.Equal(t, string(expectedJSON), string(actualJSON), "JSON representations should match")
 }
 
-func GetJSONPair(expected, actual any) (string, string) {
-	expectedJSON, _ := json.Marshal(expected)
-	actualJSON, _ := json.Marshal(actual)
-
-	return string(expectedJSON), string(actualJSON)
-}
-
 func createMockServer(t *testing.T, contentType, responseBody string, responseStatus int) *httptest.Server {
 	t.Helper()
 
