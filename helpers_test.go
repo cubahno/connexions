@@ -1,8 +1,6 @@
 package connexions
 
 import (
-	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/jaswdr/faker"
@@ -13,11 +11,9 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"testing"
 )
 
@@ -159,85 +155,6 @@ func GetJSONPair(expected, actual any) (string, string) {
 	actualJSON, _ := json.Marshal(actual)
 
 	return string(expectedJSON), string(actualJSON)
-}
-
-func SetupApp(appDir string) (*Router, error) {
-	cfg := MustConfig(appDir)
-	err := MustFileStructure(cfg.App.Paths)
-	if err != nil {
-		return nil, err
-	}
-	_ = SaveFile(cfg.App.Paths.ConfigFile, []byte(""))
-
-	return NewRouter(cfg), nil
-}
-
-func UnmarshallResponse[T any](t *testing.T, res *bytes.Buffer) *T {
-	t.Helper()
-	target := new(T)
-	err := json.Unmarshal(res.Bytes(), &target)
-	if err != nil {
-		t.Errorf("Error unmarshaling JSON: %v\n", err)
-		t.FailNow()
-	}
-	return target
-}
-
-func AddTestFileToForm(writer *multipart.Writer, fieldName, filePath string) error {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	baseName := filepath.Base(filePath)
-
-	part, err := writer.CreateFormFile(fieldName, baseName)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(part, file)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func CreateTestZip(files map[string]string) *bytes.Buffer {
-	var buf bytes.Buffer
-	zipWriter := zip.NewWriter(&buf)
-
-	if len(files) == 0 {
-		files = map[string]string{
-			"file1.txt": "This is file 1 content.",
-			"file2.txt": "This is file 2 content.",
-		}
-	}
-
-	for name, contents := range files {
-		file, _ := zipWriter.Create(name)
-		_, _ = file.Write([]byte(contents))
-	}
-
-	_ = zipWriter.Close()
-	return &buf
-}
-
-func CreateTestMapFormReader(data map[string]string) (*multipart.Writer, *bytes.Buffer) {
-	var bodyBuffer bytes.Buffer
-	writer := multipart.NewWriter(&bodyBuffer)
-
-	for k, v := range data {
-		err := writer.WriteField(k, v)
-		if err != nil {
-			return nil, nil
-		}
-	}
-
-	writer.Close()
-
-	return writer, &bodyBuffer
 }
 
 func NewTestReplaceContext(schema any) *ReplaceContext {

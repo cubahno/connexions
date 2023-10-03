@@ -130,7 +130,7 @@ func TestNewSchemaFromKin(t *testing.T) {
 
 	t.Run("nested-all-of", func(t *testing.T) {
 		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-nested-all-of.yml"), target)
+		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-with-nested-all-of.yml"), target)
 
 		res := NewSchemaFromKin(target, nil)
 		assert.NotNil(res)
@@ -153,7 +153,7 @@ func TestNewSchemaFromKin(t *testing.T) {
 
 	t.Run("with-parse-config-applied", func(t *testing.T) {
 		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "document-petstore.yml"), target)
+		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "document-petstore.yml"), target)
 
 		res := newSchemaFromKin(target, &ParseConfig{MaxLevels: 1}, nil, []string{"user", "id"})
 		assert.Nil(res)
@@ -161,7 +161,7 @@ func TestNewSchemaFromKin(t *testing.T) {
 
 	t.Run("with-circular-detected", func(t *testing.T) {
 		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "document-petstore.yml"), target)
+		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "document-petstore.yml"), target)
 
 		res := newSchemaFromKin(target, &ParseConfig{}, []string{"#/components/User", "#/components/User"}, []string{"user", "id"})
 		assert.Nil(res)

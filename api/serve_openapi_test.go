@@ -1,8 +1,9 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -21,9 +22,9 @@ func TestRegisterOpenAPIRoutes(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
-	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
 	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	rs := registerOpenAPIRoutes(file, router)
@@ -67,12 +68,12 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		t.FailNow()
 	}
 	// response validation only with Kim for now
-	router.Config.App.SchemaProvider = KinOpenAPIProvider
+	router.Config.App.SchemaProvider = connexions.KinOpenAPIProvider
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
-	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
 	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	svc := &ServiceItem{
@@ -84,7 +85,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 			"petstore": {
 				"id": 12,
 				// NULL allows setting nil value explicitly and skip other replacers
-				"name": NULL,
+				"name": connexions.NULL,
 				"tag":  "#hund",
 			},
 		},
@@ -95,15 +96,15 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 
 	svc.AddOpenAPIFile(file)
 	router.services["petstore"] = svc
-	router.Config.Services[file.ServiceName] = &ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
 
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
-	svcCfg.Validate = &ServiceValidateConfig{
+	svcCfg.Validate = &connexions.ServiceValidateConfig{
 		Request:  true,
 		Response: true,
 	}
-	svcCfg.Cache = &ServiceCacheConfig{
+	svcCfg.Cache = &connexions.ServiceCacheConfig{
 		Schema: false,
 	}
 
@@ -121,9 +122,9 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 	t.Run("operation-not-found", func(t *testing.T) {
 		// substitute the file with a different one
 		filePath = filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "alt.yml")
-		err = CopyFile(filepath.Join("test_fixtures", "document-ab.yml"), filePath)
+		err = connexions.CopyFile(filepath.Join("..", "testdata", "document-ab.yml"), filePath)
 		assert.Nil(err)
-		fileAlt, _ := GetPropertiesFromFilePath(filePath, router.Config.App)
+		fileAlt, _ := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 
 		oldSpec := file.Spec
 		file.Spec = fileAlt.Spec
@@ -177,18 +178,18 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 		t.FailNow()
 	}
 	// response validation only with Kim for now
-	router.Config.App.SchemaProvider = KinOpenAPIProvider
+	router.Config.App.SchemaProvider = connexions.KinOpenAPIProvider
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml")
-	err = CopyFile(filepath.Join("test_fixtures", "document-pet-single.yml"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-pet-single.yml"), filePath)
 	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
-	router.Config.Services[file.ServiceName] = &ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
-	svcCfg.Validate = &ServiceValidateConfig{
+	svcCfg.Validate = &connexions.ServiceValidateConfig{
 		Request:  true,
 		Response: true,
 	}
@@ -234,7 +235,7 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
-		router.Config.Services[file.ServiceName].Errors = &ServiceError{
+		router.Config.Services[file.ServiceName].Errors = &connexions.ServiceError{
 			Codes: map[int]int{
 				400: 100,
 			},

@@ -1,10 +1,13 @@
-package connexions
+package api
 
 import (
+	"fmt"
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,12 +23,12 @@ const (
 // RouteDescription describes a route for the UI Application.
 // Path is relative to the service prefix.
 type RouteDescription struct {
-	Method      string          `json:"method"`
-	Path        string          `json:"path"`
-	Type        string          `json:"type"`
-	ContentType string          `json:"contentType"`
-	Overwrites  bool            `json:"overwrites"`
-	File        *FileProperties `json:"-"`
+	Method      string                     `json:"method"`
+	Path        string                     `json:"path"`
+	Type        string                     `json:"type"`
+	ContentType string                     `json:"contentType"`
+	Overwrites  bool                       `json:"overwrites"`
+	File        *connexions.FileProperties `json:"-"`
 }
 
 // RouteDescriptions is a slice of RouteDescription.
@@ -74,19 +77,19 @@ func createServiceRoutes(router *Router) error {
 // ServiceItem represents a service with the route collection.
 // Service can hold multiple OpenAPI specs.
 type ServiceItem struct {
-	Name         string            `json:"name"`
-	Routes       RouteDescriptions `json:"routes"`
-	OpenAPIFiles []*FileProperties `json:"-"`
+	Name         string                       `json:"name"`
+	Routes       RouteDescriptions            `json:"routes"`
+	OpenAPIFiles []*connexions.FileProperties `json:"-"`
 	mu           sync.Mutex
 }
 
 // AddOpenAPIFile adds OpenAPI file to the service.
-func (i *ServiceItem) AddOpenAPIFile(file *FileProperties) {
+func (i *ServiceItem) AddOpenAPIFile(file *connexions.FileProperties) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	if len(i.OpenAPIFiles) == 0 {
-		i.OpenAPIFiles = make([]*FileProperties, 0)
+		i.OpenAPIFiles = make([]*connexions.FileProperties, 0)
 	}
 
 	for _, f := range i.OpenAPIFiles {
@@ -192,7 +195,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uploadedFile, err := GetRequestFile(r, "file")
+	uploadedFile, err := connexions.GetRequestFile(r, "file")
 	if err != nil {
 		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
@@ -393,23 +396,23 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = h.router.GetDefaultContexts()
 	}
-	contexts := CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
-	valueReplacer := CreateValueReplacer(config, contexts)
+	contexts := connexions.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
+	valueReplacer := connexions.CreateValueReplacer(config, contexts)
 
 	if !fileProps.IsOpenAPI {
-		res.Request = newRequestFromFixedResource(
+		res.Request = connexions.NewRequestFromFixedResource(
 			fileProps.Prefix+fileProps.Resource,
 			fileProps.Method,
 			fileProps.ContentType,
 			valueReplacer)
-		res.Response = newResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		res.Response = connexions.NewResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		h.JSONResponse(w).Send(res)
 		return
 	}
 
 	spec := fileProps.Spec
-	operation := spec.FindOperation(&OperationDescription{
+	operation := spec.FindOperation(&connexions.OperationDescription{
 		Service:  service.Name,
 		Resource: rd.Path,
 		Method:   strings.ToUpper(rd.Method),
@@ -421,10 +424,10 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	req := NewRequestFromOperation(fileProps.Prefix, rd.Path, rd.Method, operation, valueReplacer)
+	req := connexions.NewRequestFromOperation(fileProps.Prefix, rd.Path, rd.Method, operation, valueReplacer)
 
 	res.Request = req
-	res.Response = NewResponseFromOperation(r, operation, valueReplacer)
+	res.Response = connexions.NewResponseFromOperation(r, operation, valueReplacer)
 
 	h.JSONResponse(w).Send(res)
 }
@@ -528,7 +531,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	service.Routes = SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
+	service.Routes = connexions.SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
 
 	h.JSONResponse(w).Send(&SimpleResponse{
 		Message: "Resource deleted!",
@@ -542,14 +545,14 @@ func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == RootServiceName {
+	if name == connexions.RootServiceName {
 		name = ""
 	}
 
 	return h.router.GetServices()[name]
 }
 
-func (h *ServiceHandler) getRouteIndex(fileProps *FileProperties) int {
+func (h *ServiceHandler) getRouteIndex(fileProps *connexions.FileProperties) int {
 	service, ok := h.router.GetServices()[fileProps.ServiceName]
 	if !ok {
 		return -1
@@ -572,7 +575,7 @@ func (h *ServiceHandler) getRouteIndex(fileProps *FileProperties) int {
 }
 
 // saveService saves the service resource.
-func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, error) {
+func saveService(payload *ServicePayload, appCfg *connexions.AppConfig) (*connexions.FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
 	content := payload.Response
@@ -580,14 +583,14 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 	method := strings.ToUpper(payload.Method)
 	path := "/" + strings.Trim(payload.Path, "/")
 
-	if method != "" && !IsValidHTTPVerb(method) {
+	if method != "" && !connexions.IsValidHTTPVerb(method) {
 		return nil, ErrInvalidHTTPVerb
 	}
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	if !IsValidURLResource(path) {
+	if !connexions.IsValidURLResource(path) {
 		return nil, ErrInvalidURLResource
 	}
 
@@ -607,7 +610,7 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 			Timeout: 10 * time.Second,
 		}
 
-		content, _, err = GetFileContentsFromURL(client, payload.URL)
+		content, _, err = connexions.GetFileContentsFromURL(client, payload.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -615,9 +618,9 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 
 	// ignore supplied extension and check whether its json / yaml type
 	if len(content) > 0 {
-		if IsJsonType(content) {
+		if connexions.IsJsonType(content) {
 			ext = ".json"
-		} else if IsYamlType(content) {
+		} else if connexions.IsYamlType(content) {
 			ext = ".yaml"
 		}
 	}
@@ -634,11 +637,11 @@ func saveService(payload *ServicePayload, appCfg *AppConfig) (*FileProperties, e
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
-	if err := SaveFile(filePath, content); err != nil {
+	if err := connexions.SaveFile(filePath, content); err != nil {
 		return nil, err
 	}
 
-	fileProps, err := GetPropertiesFromFilePath(filePath, appCfg)
+	fileProps, err := connexions.GetPropertiesFromFilePath(filePath, appCfg)
 	if err != nil {
 		_ = os.RemoveAll(filePath)
 		return nil, err
@@ -659,13 +662,13 @@ type ServiceItemResponse struct {
 
 // ServicePayload is a struct that represents a new service payload.
 type ServicePayload struct {
-	IsOpenAPI   bool          `json:"isOpenApi"`
-	Method      string        `json:"method"`
-	Path        string        `json:"path"`
-	Response    []byte        `json:"response"`
-	ContentType string        `json:"contentType"`
-	File        *UploadedFile `json:"file"`
-	URL         string        `json:"url"`
+	IsOpenAPI   bool                     `json:"isOpenApi"`
+	Method      string                   `json:"method"`
+	Path        string                   `json:"path"`
+	Response    []byte                   `json:"response"`
+	ContentType string                   `json:"contentType"`
+	File        *connexions.UploadedFile `json:"file"`
+	URL         string                   `json:"url"`
 }
 
 // ServiceDescription is a struct created from the service payload to facilitate file path composition.
@@ -677,8 +680,8 @@ type ServiceDescription struct {
 }
 
 type GenerateResponse struct {
-	Request  *Request  `json:"request"`
-	Response *Response `json:"response"`
+	Request  *connexions.Request  `json:"request"`
+	Response *connexions.Response `json:"response"`
 }
 
 type ServiceListResponse struct {
@@ -707,4 +710,90 @@ type SavedResourceResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	ID      int    `json:"id"`
+}
+
+// ComposeFileSavePath composes a save path for a file.
+func ComposeFileSavePath(descr *ServiceDescription, paths *connexions.Paths) string {
+	if descr.IsOpenAPI {
+		return ComposeOpenAPISavePath(descr, paths.ServicesOpenAPI)
+	}
+
+	resource := strings.Trim(descr.Path, "/")
+	parts := strings.Split(resource, "/")
+
+	method := descr.Method
+	if method == "" {
+		method = http.MethodGet
+	}
+	method = strings.ToLower(method)
+	ext := descr.Ext
+	pathExt := filepath.Ext(resource)
+
+	// it shouldn't usually be the case, as we determine ext based on multiple factors
+	if ext == "" {
+		ext = pathExt
+	}
+	if ext == "" {
+		ext = ".txt"
+	}
+
+	if resource == "" {
+		return fmt.Sprintf("/%s/%s/index%s", paths.ServicesFixedRoot, method, ext)
+	}
+
+	service := ""
+	if len(parts) == 1 {
+		if pathExt != "" {
+			service = connexions.RootServiceName
+		} else {
+			service = parts[0]
+			parts = []string{}
+		}
+
+	} else {
+		// first part is always service name
+		service = parts[0]
+		// remove service from it
+		parts = parts[1:]
+	}
+
+	// we have a service and a path without it now
+
+	res := paths.Services
+	res += "/" + service
+	res += "/" + method
+	res += "/" + strings.Join(parts, "/")
+	res = strings.TrimSuffix(res, "/")
+
+	if pathExt == "" {
+		res += "/index" + ext
+	}
+
+	return res
+}
+
+// ComposeOpenAPISavePath composes a save path for an OpenAPI specification.
+// The resulting filename is always index.<spec extension>.
+func ComposeOpenAPISavePath(descr *ServiceDescription, baseDir string) string {
+	resource := strings.Trim(descr.Path, "/")
+	resourceParts := strings.Split(resource, "/")
+	ext := descr.Ext
+
+	service := ""
+	if len(resourceParts) > 0 {
+		// take the first part as service name and exclude it from resource parts
+		service = resourceParts[0]
+		resourceParts = resourceParts[1:]
+	}
+
+	result := baseDir
+	if service != "" {
+		result += "/" + service
+	}
+
+	resPart := "/" + strings.Join(resourceParts, "/")
+	resPart = strings.TrimSuffix(resPart, "/") + "/index"
+	result += resPart + ext
+
+	return result
 }

@@ -17,9 +17,9 @@ func TestDocument(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	kinDoc, err := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+	kinDoc, err := NewKinDocumentFromFile(filepath.Join("testdata", "document-petstore.yml"))
 	assert.Nil(err)
-	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-petstore.yml"))
 	assert.Nil(err)
 
 	docs := []Document{
@@ -65,8 +65,8 @@ func TestOperation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	petStorePath := filepath.Join("test_fixtures", "document-petstore.yml")
-	withFriendsPath := filepath.Join("test_fixtures", "document-person-with-friends.yml")
+	petStorePath := filepath.Join("testdata", "document-petstore.yml")
+	withFriendsPath := filepath.Join("testdata", "document-person-with-friends.yml")
 
 	kinDoc, err := NewKinDocumentFromFile(petStorePath)
 	assert.Nil(err)
@@ -351,7 +351,7 @@ func TestOperation(t *testing.T) {
 func TestNewDocumentFromFileFactory(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	filePath := filepath.Join("test_fixtures", "document-petstore.yml")
+	filePath := filepath.Join("testdata", "document-petstore.yml")
 
 	t.Run("KinOpenAPIProvider", func(t *testing.T) {
 		res, err := NewDocumentFromFileFactory(KinOpenAPIProvider)(filePath)
@@ -433,7 +433,7 @@ func (d *OtherTestDocument) Provider() SchemaProvider {
 func TestNewOpenAPIValidator(t *testing.T) {
 	assert := require.New(t)
 	t.Run("KinOpenAPIProvider", func(t *testing.T) {
-		doc, err := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		doc, err := NewKinDocumentFromFile(filepath.Join("testdata", "document-petstore.yml"))
 		assert.Nil(err)
 		res := NewOpenAPIValidator(doc)
 		assert.NotNil(res)
@@ -442,7 +442,7 @@ func TestNewOpenAPIValidator(t *testing.T) {
 	})
 
 	t.Run("LibOpenAPIProvider", func(t *testing.T) {
-		doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-petstore.yml"))
 		assert.Nil(err)
 		res := NewOpenAPIValidator(doc)
 		assert.NotNil(res)
@@ -451,7 +451,7 @@ func TestNewOpenAPIValidator(t *testing.T) {
 	})
 
 	t.Run("unknown", func(t *testing.T) {
-		doc, _ := NewKinDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		doc, _ := NewKinDocumentFromFile(filepath.Join("testdata", "document-petstore.yml"))
 		kin, _ := doc.(*KinDocument)
 
 		other := &OtherTestDocument{Document: kin}
@@ -464,7 +464,7 @@ func TestNewOpenAPIValidator(t *testing.T) {
 func TestOpenAPIValidator_ValidateRequest(t *testing.T) {
 	assert := require.New(t)
 
-	filePath := filepath.Join("test_fixtures", "document-petstore.yml")
+	filePath := filepath.Join("testdata", "document-petstore.yml")
 	kinDoc, err := NewKinDocumentFromFile(filePath)
 	assert.Nil(err)
 
@@ -572,7 +572,7 @@ func TestOpenAPIValidator_ValidateRequest(t *testing.T) {
 func TestOpenAPIValidator_ValidateResponse(t *testing.T) {
 	assert := require.New(t)
 
-	filePath := filepath.Join("test_fixtures", "document-petstore.yml")
+	filePath := filepath.Join("testdata", "document-petstore.yml")
 	kinDoc, err := NewKinDocumentFromFile(filePath)
 	assert.Nil(err)
 
@@ -765,7 +765,7 @@ func TestOpenAPIValidator_ValidateResponse(t *testing.T) {
 func TestOpenAPIValidator_ValidateResponse_NonJson(t *testing.T) {
 	assert := require.New(t)
 
-	filePath := filepath.Join("test_fixtures", "document-with-other-responses.yml")
+	filePath := filepath.Join("testdata", "document-with-other-responses.yml")
 	kinDoc, err := NewKinDocumentFromFile(filePath)
 	assert.Nil(err)
 

@@ -39,7 +39,7 @@ func TestNewRequestFromOperation(t *testing.T) {
 		}
 
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
-		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation.yml"), operation)
+		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation.yml"), operation)
 
 		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
 
@@ -62,11 +62,27 @@ func TestNewRequestFromOperation(t *testing.T) {
 	t.Run("invalid-resolve-value", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any { return func() {} }
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
-		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-with-invalid-req-body.yml"), operation)
+		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-with-invalid-req-body.yml"), operation)
 
 		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
 		assert.Equal("", req.Body)
 	})
+}
+
+func TestRequest_WithOperation(t *testing.T) {
+	assert := assert2.New(t)
+	operation := &KinOperation{Operation: openapi3.NewOperation()}
+	req := &Request{}
+	res := req.WithOperation(operation)
+	assert.Equal(operation, res.operation)
+}
+
+func TestRequest_WithRequest(t *testing.T) {
+	assert := assert2.New(t)
+	req := &Request{}
+	r, _ := http.NewRequest(http.MethodGet, "/foo", nil)
+	res := req.WithRequest(r)
+	assert.Equal(r, res.request)
 }
 
 func TestEncodeContent(t *testing.T) {
@@ -311,7 +327,7 @@ func TestNewRequestFromFixedResource(t *testing.T) {
 	valueReplacer := func(content any, state *ReplaceState) any {
 		return "resolved-value"
 	}
-	res := newRequestFromFixedResource("/foo/bar", http.MethodPatch, "application/json", valueReplacer)
+	res := NewRequestFromFixedResource("/foo/bar", http.MethodPatch, "application/json", valueReplacer)
 	expected := &Request{
 		Method:      http.MethodPatch,
 		Path:        "/foo/bar",
@@ -337,7 +353,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 		}
 
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
-		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
+		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-base.yml"), operation)
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
 		res := NewResponseFromOperation(r, operation, valueResolver)
 
@@ -370,7 +386,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 		}
 
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
-		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-without-content-type.yml"), operation)
+		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-without-content-type.yml"), operation)
 
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
 		res := NewResponseFromOperation(r, operation, valueResolver)
@@ -396,7 +412,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 		}
 
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
-		CreateOperationFromYAMLFile(t, filepath.Join("test_fixtures", "operation-base.yml"), operation)
+		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-base.yml"), operation)
 
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
 		res := NewResponseFromOperation(r, operation, valueResolver)
@@ -415,7 +431,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		err := SaveFile(filePath, fileContent)
 		assert.Nil(err)
 
-		res := newResponseFromFixedResource(filePath, "application/json", nil)
+		res := NewResponseFromFixedResource(filePath, "application/json", nil)
 		expected := &Response{
 			Headers:     http.Header{"Content-Type": []string{"application/json"}},
 			Content:     fileContent,
@@ -433,7 +449,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		err := SaveFile(filePath, fileContent)
 		assert.Nil(err)
 
-		res := newResponseFromFixedResource(filePath, "application/json", nil)
+		res := NewResponseFromFixedResource(filePath, "application/json", nil)
 		expected := &Response{
 			Headers:     http.Header{"Content-Type": []string{"application/json"}},
 			Content:     nil,
@@ -451,7 +467,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		err := SaveFile(filePath, fileContent)
 		assert.Nil(err)
 
-		res := newResponseFromFixedResource(filePath, "application/xml", nil)
+		res := NewResponseFromFixedResource(filePath, "application/xml", nil)
 		expected := &Response{
 			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
 			Content:     []byte("<name>"),
@@ -465,7 +481,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		dir := t.TempDir()
 		filePath := filepath.Join(dir, "users.xml")
 
-		res := newResponseFromFixedResource(filePath, "application/xml", nil)
+		res := NewResponseFromFixedResource(filePath, "application/xml", nil)
 		expected := &Response{
 			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
 			Content:     nil,
@@ -476,7 +492,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 	})
 
 	t.Run("empty-filepath", func(t *testing.T) {
-		res := newResponseFromFixedResource("", "application/xml", nil)
+		res := NewResponseFromFixedResource("", "application/xml", nil)
 		expected := &Response{
 			Headers:     http.Header{"Content-Type": []string{"application/xml"}},
 			Content:     nil,
@@ -663,7 +679,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		}
 
 		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-base.yml"), target)
+		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-base.yml"), target)
 		schema := NewSchemaFromKin(target, nil)
 
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
@@ -747,7 +763,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		}
 
 		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-nested-all-of.yml"), target)
+		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-with-nested-all-of.yml"), target)
 		schema := NewSchemaFromKin(target, nil)
 
 		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
@@ -807,7 +823,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			return nil
 		}
 
-		filePath := filepath.Join("test_fixtures", "document-with-circular-array.yml")
+		filePath := filepath.Join("testdata", "document-with-circular-array.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
@@ -838,7 +854,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			}
 			return nil
 		}
-		filePath := filepath.Join("test_fixtures", "document-circular-with-references.yml")
+		filePath := filepath.Join("testdata", "document-circular-with-references.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
@@ -867,7 +883,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			}
 			return nil
 		}
-		filePath := filepath.Join("test_fixtures", "document-circular-with-inline.yml")
+		filePath := filepath.Join("testdata", "document-circular-with-inline.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
@@ -889,7 +905,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 
 	t.Run("with-circular-level-1", func(t *testing.T) {
 		valueReplacer := CreateValueReplacer(cfg, nil)
-		filePath := filepath.Join("test_fixtures", "document-circular-ucr.yml")
+		filePath := filepath.Join("testdata", "document-circular-ucr.yml")
 		doc, err := NewKinDocumentFromFile(filePath)
 		assert.Nil(err)
 
@@ -1039,7 +1055,7 @@ func TestGenerateContentObject(t *testing.T) {
 
 	t.Run("GenerateContentObject", func(t *testing.T) {
 		target := openapi3.NewSchema()
-		CreateSchemaFromYAMLFile(t, filepath.Join("test_fixtures", "schema-with-name-obj-and-age.yml"), target)
+		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-with-name-obj-and-age.yml"), target)
 		schema := NewSchemaFromKin(target, nil)
 
 		valueResolver := func(schema any, state *ReplaceState) any {

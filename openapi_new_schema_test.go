@@ -10,7 +10,7 @@ func getSchemaFromKin(t *testing.T, fileName, componentID string, parseConfig *P
 	t.Helper()
 	assert := require.New(t)
 
-	kinDoc, err := NewKinDocumentFromFile(filepath.Join("test_fixtures", fileName))
+	kinDoc, err := NewKinDocumentFromFile(filepath.Join("testdata", fileName))
 	assert.Nil(err)
 	doc := kinDoc.(*KinDocument)
 	kinSchema := doc.Components.Schemas[componentID].Value
@@ -23,7 +23,7 @@ func getSchemaFromLib(t *testing.T, fileName, componentID string, parseConfig *P
 	t.Helper()
 	assert := require.New(t)
 
-	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", fileName))
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", fileName))
 	assert.Nil(err)
 	doc := libDoc.(*LibV3Document)
 	libSchema := doc.Model.Components.Schemas[componentID].Schema()

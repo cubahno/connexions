@@ -13,7 +13,7 @@ import (
 func TestLibV2Document(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore-v2.yml"))
+	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-petstore-v2.yml"))
 	assert.Nil(err)
 
 	t.Run("GetVersion", func(t *testing.T) {
@@ -65,9 +65,9 @@ func TestLibV2Document(t *testing.T) {
 func TestLibV2Operation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore-v2.yml"))
+	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-petstore-v2.yml"))
 	assert.Nil(err)
-	docWithFriends, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-person-with-friends-v2.yml"))
+	docWithFriends, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-person-with-friends-v2.yml"))
 	assert.Nil(err)
 
 	t.Run("ID", func(t *testing.T) {

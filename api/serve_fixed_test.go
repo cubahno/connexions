@@ -1,8 +1,9 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -20,13 +21,13 @@ func TestRegisterFixedRoute(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	t.Run("base-case", func(t *testing.T) {
-		router.Config.Services[file.ServiceName] = &ServiceConfig{}
+		router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
 
 		rs := registerFixedRoute(file, router)
 
@@ -59,9 +60,9 @@ func TestRegisterFixedRoute(t *testing.T) {
 
 	t.Run("empty-resource", func(t *testing.T) {
 		filePath := filepath.Join(router.Config.App.Paths.Services, "index.json")
-		err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+		err = connexions.CopyFile(filepath.Join("..", "testdata", "fixed-petstore-post-pets.json"), filePath)
 		assert.Nil(err)
-		file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+		file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 		assert.Nil(err)
 
 		rs := registerFixedRoute(file, router)
@@ -94,7 +95,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
-		router.Config.Services[file.ServiceName].Errors = &ServiceError{
+		router.Config.Services[file.ServiceName].Errors = &connexions.ServiceError{
 			Codes: map[int]int{
 				400: 100,
 			},

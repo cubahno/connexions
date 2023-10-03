@@ -49,7 +49,7 @@ func TestCacheOperationAdapter(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	petStorePath := filepath.Join("test_fixtures", "document-petstore.yml")
+	petStorePath := filepath.Join("testdata", "document-petstore.yml")
 	doc, err := NewKinDocumentFromFile(petStorePath)
 	assert.Nil(err)
 

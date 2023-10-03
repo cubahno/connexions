@@ -8,7 +8,7 @@ import (
 
 func TestNewLibOpenAPIValidator(t *testing.T) {
 	assert := require.New(t)
-	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+	doc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-petstore.yml"))
 	assert.Nil(err)
 
 	inst := NewLibOpenAPIValidator(doc)
