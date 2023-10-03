@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/internal"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -531,7 +532,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	service.Routes = connexions.SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
+	service.Routes = internal.SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
 
 	h.JSONResponse(w).Send(&SimpleResponse{
 		Message: "Resource deleted!",
@@ -583,14 +584,14 @@ func saveService(payload *ServicePayload, appCfg *connexions.AppConfig) (*connex
 	method := strings.ToUpper(payload.Method)
 	path := "/" + strings.Trim(payload.Path, "/")
 
-	if method != "" && !connexions.IsValidHTTPVerb(method) {
+	if method != "" && !internal.IsValidHTTPVerb(method) {
 		return nil, ErrInvalidHTTPVerb
 	}
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	if !connexions.IsValidURLResource(path) {
+	if !internal.IsValidURLResource(path) {
 		return nil, ErrInvalidURLResource
 	}
 

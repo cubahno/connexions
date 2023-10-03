@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"github.com/cubahno/connexions/internal"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	"log"
@@ -86,7 +87,7 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		return nil
 	}
 
-	if GetSliceMaxRepetitionNumber(refPath) > parseConfig.MaxRecursionLevels {
+	if internal.GetSliceMaxRepetitionNumber(refPath) > parseConfig.MaxRecursionLevels {
 		return nil
 	}
 
@@ -105,13 +106,13 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		ref := libItems.GetReference()
 
 		// detect circular reference early
-		if parseConfig.MaxRecursionLevels == 0 && SliceContains(refPath, ref) {
+		if parseConfig.MaxRecursionLevels == 0 && internal.SliceContains(refPath, ref) {
 			return nil
 		}
 
 		items = newSchemaFromLibOpenAPI(sub,
 			parseConfig,
-			AppendSliceFirstNonEmpty(refPath, ref, mergedReference),
+			internal.AppendSliceFirstNonEmpty(refPath, ref, mergedReference),
 			namePath)
 	}
 
@@ -119,12 +120,12 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	if len(merged.Properties) > 0 {
 		properties = make(map[string]*Schema)
 		for propName, sProxy := range merged.Properties {
-			if parseConfig.OnlyRequired && !SliceContains(merged.Required, propName) {
+			if parseConfig.OnlyRequired && !internal.SliceContains(merged.Required, propName) {
 				continue
 			}
 			properties[propName] = newSchemaFromLibOpenAPI(sProxy.Schema(),
 				parseConfig,
-				AppendSliceFirstNonEmpty(refPath, sProxy.GetReference(), mergedReference),
+				internal.AppendSliceFirstNonEmpty(refPath, sProxy.GetReference(), mergedReference),
 				append(namePath, propName))
 		}
 	}
@@ -137,7 +138,7 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 		}
 
 		// TODO(cubahno): find out if this the correct property, or one from AdditionalProperties should be used
-		minProperties := RemovePointer(merged.MinProperties)
+		minProperties := internal.RemovePointer(merged.MinProperties)
 
 		// TODO(cubahno): move to config
 		additionalNum := 3
@@ -177,27 +178,27 @@ func newSchemaFromLibOpenAPI(schema *base.Schema, parseConfig *ParseConfig, refP
 	return &Schema{
 		Type:          typ,
 		Items:         items,
-		MultipleOf:    RemovePointer(merged.MultipleOf),
-		Maximum:       RemovePointer(merged.Maximum),
-		Minimum:       RemovePointer(merged.Minimum),
-		MaxLength:     RemovePointer(merged.MaxLength),
-		MinLength:     RemovePointer(merged.MinLength),
+		MultipleOf:    internal.RemovePointer(merged.MultipleOf),
+		Maximum:       internal.RemovePointer(merged.Maximum),
+		Minimum:       internal.RemovePointer(merged.Minimum),
+		MaxLength:     internal.RemovePointer(merged.MaxLength),
+		MinLength:     internal.RemovePointer(merged.MinLength),
 		Pattern:       merged.Pattern,
 		Format:        merged.Format,
-		MaxItems:      RemovePointer(merged.MaxItems),
-		MinItems:      RemovePointer(merged.MinItems),
-		MaxProperties: RemovePointer(merged.MaxProperties),
-		MinProperties: RemovePointer(merged.MinProperties),
+		MaxItems:      internal.RemovePointer(merged.MaxItems),
+		MinItems:      internal.RemovePointer(merged.MinItems),
+		MaxProperties: internal.RemovePointer(merged.MaxProperties),
+		MinProperties: internal.RemovePointer(merged.MinProperties),
 		Required:      merged.Required,
 		Enum:          merged.Enum,
 		Properties:    properties,
 		Not:           not,
 		Default:       merged.Default,
-		Nullable:      RemovePointer(merged.Nullable),
+		Nullable:      internal.RemovePointer(merged.Nullable),
 		ReadOnly:      merged.ReadOnly,
 		WriteOnly:     merged.WriteOnly,
 		Example:       merged.Example,
-		Deprecated:    RemovePointer(merged.Deprecated),
+		Deprecated:    internal.RemovePointer(merged.Deprecated),
 	}
 }
 
@@ -298,7 +299,7 @@ func mergeLibOpenAPISubSchemas(schema *base.Schema) (*base.Schema, string) {
 	}
 
 	// make required unique
-	required = SliceUnique(required)
+	required = internal.SliceUnique(required)
 
 	if not != nil {
 		resultNot, _ := mergeLibOpenAPISubSchemas(not.Schema())

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/cubahno/connexions/internal"
 	"io"
 	"log"
 	"mime/multipart"
@@ -217,7 +218,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 						}
 						continue
 					}
-					body = strings.NewReader(MapToURLEncodedForm(params))
+					body = strings.NewReader(internal.MapToURLEncodedForm(params))
 					headers["content-type"] = "application/x-www-form-urlencoded"
 				case "multipart/form-data":
 					params, decodeErr := convertToFormValues(req.Body)
@@ -308,7 +309,7 @@ func convertToFormValues(body string) (map[string]string, error) {
 
 	res := make(map[string]string)
 	for k, v := range params {
-		res[k] = ToString(v)
+		res[k] = internal.ToString(v)
 	}
 	return res, nil
 }

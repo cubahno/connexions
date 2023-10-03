@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/cubahno/connexions/internal"
 	"gopkg.in/yaml.v3"
 	"log"
 	"net/http"
@@ -139,7 +140,7 @@ func createCURLBody(content any, contentType string) (string, error) {
 			return "", ErrUnexpectedFormURLEncodedType
 		}
 
-		keys := GetSortedMapKeys(data)
+		keys := internal.GetSortedMapKeys(data)
 		builder := &strings.Builder{}
 
 		for _, key := range keys {
@@ -156,7 +157,7 @@ func createCURLBody(content any, contentType string) (string, error) {
 			return "", ErrUnexpectedFormDataType
 		}
 
-		keys := GetSortedMapKeys(data)
+		keys := internal.GetSortedMapKeys(data)
 		builder := &strings.Builder{}
 
 		for _, key := range keys {
@@ -288,7 +289,7 @@ func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 }
 
 func generateURLFromFixedResourcePath(path string, valueReplacer ValueReplacer) string {
-	placeHolders := ExtractPlaceholders(path)
+	placeHolders := internal.ExtractPlaceholders(path)
 	if valueReplacer == nil {
 		return path
 	}
@@ -553,7 +554,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 			return val
 		}
 
-		placeHolders := ExtractPlaceholders(vStr)
+		placeHolders := internal.ExtractPlaceholders(vStr)
 		vs := make(map[string]any)
 
 		for _, placeholder := range placeHolders {
@@ -620,9 +621,4 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 	default:
 		return data
 	}
-}
-
-// ExtractPlaceholders extracts all placeholders including curly brackets from a pattern.
-func ExtractPlaceholders(input string) []string {
-	return PlaceholderRegex.FindAllString(input, -1)
 }

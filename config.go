@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"github.com/cubahno/connexions/internal"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
@@ -215,7 +216,7 @@ func NewPaths(baseDir string) *Paths {
 
 // IsValidPrefix returns true if the prefix is not a reserved URL.
 func (a *AppConfig) IsValidPrefix(prefix string) bool {
-	return !SliceContains([]string{
+	return !internal.SliceContains([]string{
 		a.HomeURL,
 		a.ServiceURL,
 		a.SettingsURL,

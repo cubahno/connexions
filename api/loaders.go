@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/internal"
 	"log"
 	"os"
 	"path/filepath"
@@ -163,8 +164,8 @@ func loadContexts(router *Router) error {
 		for ctxSourceKey, aliasTarget := range requiredAliases {
 			parts := strings.Split(aliasTarget, ".")
 			ns, nsPath := parts[0], strings.Join(parts[1:], ".")
-			if res := connexions.GetValueByDottedPath(contexts[ns], nsPath); res != nil {
-				connexions.SetValueByDottedPath(contexts[ctxName], ctxSourceKey, res)
+			if res := internal.GetValueByDottedPath(contexts[ns], nsPath); res != nil {
+				internal.SetValueByDottedPath(contexts[ctxName], ctxSourceKey, res)
 			} else {
 				log.Printf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey)
 			}

@@ -1,4 +1,4 @@
-package connexions
+package internal
 
 import (
 	"fmt"
@@ -50,4 +50,9 @@ func ToString(value any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// ExtractPlaceholders extracts all placeholders including curly brackets from a pattern.
+func ExtractPlaceholders(input string) []string {
+	return PlaceholderRegex.FindAllString(input, -1)
 }

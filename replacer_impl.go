@@ -2,6 +2,7 @@ package connexions
 
 import (
 	"fmt"
+	"github.com/cubahno/connexions/internal"
 	"log"
 	"math"
 	"strconv"
@@ -45,10 +46,10 @@ func HasCorrectSchemaValue(ctx *ReplaceContext, value any) bool {
 
 	switch reqFormat {
 	case "int32":
-		_, ok = ToInt32(value)
+		_, ok = internal.ToInt32(value)
 		return ok
 	case "int64":
-		_, ok = ToInt64(value)
+		_, ok = internal.ToInt64(value)
 		return ok
 	case "date":
 		v, err := time.Parse("2006-01-02", value.(string))
@@ -83,7 +84,7 @@ func replaceInArea(ctx *ReplaceContext, area string) any {
 		return nil
 	}
 
-	snakedNamePath := []string{ToSnakeCase(ctx.State.NamePath[0])}
+	snakedNamePath := []string{internal.ToSnakeCase(ctx.State.NamePath[0])}
 
 	for _, data := range ctx.Data {
 		replacements, ok := data[fmt.Sprintf("%s%s", ctxAreaPrefix, area)]
@@ -104,7 +105,7 @@ func ReplaceFromContext(ctx *ReplaceContext) any {
 	var snakedNamePath []string
 	// context data is stored in snake case
 	for _, name := range ctx.State.NamePath {
-		snakedNamePath = append(snakedNamePath, ToSnakeCase(name))
+		snakedNamePath = append(snakedNamePath, internal.ToSnakeCase(name))
 	}
 
 	for _, data := range ctx.Data {
@@ -126,12 +127,12 @@ func CastToSchemaFormat(ctx *ReplaceContext, value any) any {
 
 	switch schema.Format {
 	case "int32":
-		if v, ok := ToInt32(value); ok {
+		if v, ok := internal.ToInt32(value); ok {
 			return v
 		}
 		return value
 	case "int64":
-		if v, ok := ToInt64(value); ok {
+		if v, ok := internal.ToInt64(value); ok {
 			return v
 		}
 		return value
@@ -161,15 +162,15 @@ func ReplaceValueWithContext(path []string, contextData any) interface{} {
 	case string, int, bool, float64:
 		return valueType
 	case []string:
-		return GetRandomSliceValue(valueType)
+		return internal.GetRandomSliceValue(valueType)
 	case []int:
-		return GetRandomSliceValue(valueType)
+		return internal.GetRandomSliceValue(valueType)
 	case []bool:
-		return GetRandomSliceValue(valueType)
+		return internal.GetRandomSliceValue(valueType)
 	case []float64:
-		return GetRandomSliceValue(valueType)
+		return internal.GetRandomSliceValue(valueType)
 	case []any:
-		return GetRandomSliceValue[any](valueType)
+		return internal.GetRandomSliceValue[any](valueType)
 	default:
 		return nil // unmapped type
 	}
@@ -198,7 +199,7 @@ func replaceValueWithMapContext[T Any](path []string, contextData map[string]T) 
 	// Field doesn't exist in the context as-is.
 	// But the context field might be a regex pattern.
 	for key, keyValue := range contextData {
-		if MaybeRegexPattern(key) && ValidateStringWithPattern(fieldName, key) {
+		if internal.MaybeRegexPattern(key) && internal.ValidateStringWithPattern(fieldName, key) {
 			return ReplaceValueWithContext(path[1:], keyValue)
 		}
 	}
@@ -283,19 +284,19 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 	switch schema.Type {
 	case TypeBoolean:
 		if len(schema.Enum) > 0 {
-			return GetRandomSliceValue(schema.Enum)
+			return internal.GetRandomSliceValue(schema.Enum)
 		}
 	case TypeString:
 		return applySchemaStringConstraints(schema, res.(string))
 	case TypeInteger:
-		floatValue, err := ToFloat64(res)
+		floatValue, err := internal.ToFloat64(res)
 		if err != nil {
 			log.Printf("Failed to convert %v to float64: %v", res, err)
 			return nil
 		}
 		return int64(applySchemaNumberConstraints(schema, floatValue))
 	case TypeNumber:
-		floatValue, err := ToFloat64(res)
+		floatValue, err := internal.ToFloat64(res)
 		if err != nil {
 			log.Printf("Failed to convert %v to float64: %v", res, err)
 			return nil
@@ -325,10 +326,10 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 	}
 
 	if len(expectedEnums) > 0 && !expectedEnums[value] {
-		return GetRandomKeyFromMap(expectedEnums)
+		return internal.GetRandomKeyFromMap(expectedEnums)
 	}
 
-	if pattern != "" && !ValidateStringWithPattern(value, pattern) {
+	if pattern != "" && !internal.ValidateStringWithPattern(value, pattern) {
 		// safest way here is to return the example if it exists
 		if schema.Example != nil {
 			return schema.Example
@@ -336,7 +337,7 @@ func applySchemaStringConstraints(schema *Schema, value string) any {
 		value = createStringFromPattern(pattern)
 
 		// regex will be cached
-		if !ValidateStringWithPattern(value, pattern) {
+		if !internal.ValidateStringWithPattern(value, pattern) {
 			return nil
 		}
 
@@ -374,7 +375,7 @@ func applySchemaNumberConstraints(schema *Schema, value float64) float64 {
 
 	vStr := fmt.Sprintf("%v", value)
 	if len(expectedEnums) > 0 && !expectedEnums[vStr] {
-		enumed := GetRandomKeyFromMap(expectedEnums)
+		enumed := internal.GetRandomKeyFromMap(expectedEnums)
 		f, _ := strconv.ParseFloat(enumed, 64)
 		return f
 	}

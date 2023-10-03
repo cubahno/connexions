@@ -1,6 +1,6 @@
 //go:build !integration
 
-package connexions
+package internal
 
 import (
 	assert2 "github.com/stretchr/testify/assert"

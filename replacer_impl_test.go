@@ -4,6 +4,7 @@ package connexions
 
 import (
 	"fmt"
+	"github.com/cubahno/connexions/internal"
 	"github.com/jaswdr/faker"
 	assert2 "github.com/stretchr/testify/assert"
 	"net"
@@ -610,7 +611,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 
-		v, ok := ToInt32(res)
+		v, ok := internal.ToInt32(res)
 		assert.True(ok)
 		assert.Greater(v, int32(0))
 	})
@@ -621,7 +622,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		}
 		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
-		v, ok := ToInt64(res)
+		v, ok := internal.ToInt64(res)
 		assert.True(ok)
 		assert.Greater(v, int64(0))
 	})
