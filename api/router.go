@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/internal"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
@@ -124,7 +125,7 @@ func (r *Router) GetContexts() map[string]map[string]any {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return connexions.CopyNestedMap(r.contexts)
+	return internal.CopyNestedMap(r.contexts)
 }
 
 func (r *Router) GetDefaultContexts() []map[string]string {

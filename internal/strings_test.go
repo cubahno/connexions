@@ -1,6 +1,6 @@
 //go:build !integration
 
-package connexions
+package internal
 
 import (
 	"fmt"
@@ -74,5 +74,38 @@ func TestToString(t *testing.T) {
 				t.Errorf("Expected %s, but got %s", test.expected, result)
 			}
 		})
+	}
+}
+
+func TestExtractPlaceholders(t *testing.T) {
+	tests := []struct {
+		url    string
+		expect []string
+	}{
+		{"", []string{}},
+		{"/", []string{}},
+		{"abc", []string{}},
+		{"{user-id}", []string{"{user-id}"}},
+		{"{file_id}", []string{"{file_id}"}},
+		{"{some_name_1}", []string{"{some_name_1}"}},
+		{"{id}/{name}", []string{"{id}", "{name}"}},
+		{"/users/{id}/files/{file_id}", []string{"{id}", "{file_id}"}},
+		{"{!@#$%^}", []string{"{!@#$%^}"}},
+		{"{name:str}/{id}", []string{"{name:str}", "{id}"}},
+		{"{name?str}/{id}", []string{"{name?str}", "{id}"}},
+		{"{}", []string{"{}"}},
+		{"{}/{}", []string{"{}", "{}"}},
+	}
+
+	for _, test := range tests {
+		result := ExtractPlaceholders(test.url)
+		if len(result) != len(test.expect) {
+			t.Errorf("For URL Pattern: %s, Expected: %v, Got: %v", test.url, test.expect, result)
+		}
+		for i, res := range result {
+			if res != test.expect[i] {
+				t.Errorf("For URL Pattern: %s, Expected: %v, Got: %v", test.url, test.expect, result)
+			}
+		}
 	}
 }

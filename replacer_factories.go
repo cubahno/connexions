@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"github.com/cubahno/connexions/internal"
 	"github.com/jaswdr/faker"
 	"reflect"
 )
@@ -96,9 +97,9 @@ func IsCorrectlyReplacedType(value any, neededType string) bool {
 		_, ok := value.(string)
 		return ok
 	case TypeInteger:
-		return IsInteger(value)
+		return internal.IsInteger(value)
 	case TypeNumber:
-		return IsNumber(value)
+		return internal.IsNumber(value)
 	case TypeBoolean:
 		_, ok := value.(bool)
 		return ok

@@ -1,6 +1,6 @@
 //go:build !integration
 
-package connexions
+package internal
 
 import (
 	"fmt"

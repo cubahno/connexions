@@ -1,6 +1,7 @@
 package connexions
 
 import (
+	"github.com/cubahno/connexions/internal"
 	"github.com/getkin/kin-openapi/openapi3"
 	"net/http"
 	"sort"
@@ -284,7 +285,7 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		return nil
 	}
 
-	if GetSliceMaxRepetitionNumber(refPath) > parseConfig.MaxRecursionLevels {
+	if internal.GetSliceMaxRepetitionNumber(refPath) > parseConfig.MaxRecursionLevels {
 		return nil
 	}
 
@@ -298,13 +299,13 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 		ref := kinItems.Ref
 
 		// detect circular reference early
-		if parseConfig.MaxRecursionLevels == 0 && SliceContains(refPath, ref) {
+		if parseConfig.MaxRecursionLevels == 0 && internal.SliceContains(refPath, ref) {
 			return nil
 		}
 
 		items = newSchemaFromKin(sub,
 			parseConfig,
-			AppendSliceFirstNonEmpty(refPath, merged.Items.Ref, mergedReference),
+			internal.AppendSliceFirstNonEmpty(refPath, merged.Items.Ref, mergedReference),
 			namePath)
 	}
 
@@ -312,13 +313,13 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 	if len(merged.Properties) > 0 {
 		properties = make(map[string]*Schema)
 		for propName, ref := range merged.Properties {
-			if parseConfig.OnlyRequired && !SliceContains(merged.Required, propName) {
+			if parseConfig.OnlyRequired && !internal.SliceContains(merged.Required, propName) {
 				continue
 			}
 			properties[propName] = newSchemaFromKin(ref.Value,
 				parseConfig,
-				AppendSliceFirstNonEmpty(refPath, ref.Ref, mergedReference),
-				AppendSliceFirstNonEmpty(namePath, propName))
+				internal.AppendSliceFirstNonEmpty(refPath, ref.Ref, mergedReference),
+				internal.AppendSliceFirstNonEmpty(namePath, propName))
 		}
 	}
 
@@ -371,16 +372,16 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *ParseConfig, refPath
 	return &Schema{
 		Type:          typ,
 		Items:         items,
-		MultipleOf:    RemovePointer(merged.MultipleOf),
-		Maximum:       RemovePointer(merged.Max),
-		Minimum:       RemovePointer(merged.Min),
-		MaxLength:     int64(RemovePointer(merged.MaxLength)),
+		MultipleOf:    internal.RemovePointer(merged.MultipleOf),
+		Maximum:       internal.RemovePointer(merged.Max),
+		Minimum:       internal.RemovePointer(merged.Min),
+		MaxLength:     int64(internal.RemovePointer(merged.MaxLength)),
 		MinLength:     int64(merged.MinLength),
 		Pattern:       merged.Pattern,
 		Format:        merged.Format,
-		MaxItems:      int64(RemovePointer(merged.MaxItems)),
+		MaxItems:      int64(internal.RemovePointer(merged.MaxItems)),
 		MinItems:      int64(merged.MinItems),
-		MaxProperties: int64(RemovePointer(merged.MaxProps)),
+		MaxProperties: int64(internal.RemovePointer(merged.MaxProps)),
 		MinProperties: int64(merged.MinProps),
 		Required:      merged.Required,
 		Enum:          merged.Enum,
@@ -492,7 +493,7 @@ func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 	}
 
 	// make required unique
-	required = SliceUnique(required)
+	required = internal.SliceUnique(required)
 
 	if not != nil {
 		resultNot, _ := mergeKinSubSchemas(not.Value)
@@ -544,7 +545,7 @@ func pickKinSchemaProxy(items []*openapi3.SchemaRef) *openapi3.SchemaRef {
 func getKinAdditionalProperties(source openapi3.AdditionalProperties) *openapi3.Schema {
 	schemaRef := source.Schema
 	if schemaRef == nil || schemaRef.Value == nil {
-		has := RemovePointer(source.Has)
+		has := internal.RemovePointer(source.Has)
 		if !has {
 			return nil
 		}

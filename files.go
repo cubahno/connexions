@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/cubahno/connexions/internal"
 	"gopkg.in/yaml.v3"
 	"io"
 	"log"
@@ -169,7 +170,7 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 		serviceName = parts[0]
 
 		// root service
-		if IsValidHTTPVerb(serviceName) {
+		if internal.IsValidHTTPVerb(serviceName) {
 			method = strings.ToUpper(serviceName)
 			parts = parts[1:]
 		}
@@ -188,9 +189,9 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	} else if len(parts) > 1 {
 		serviceName = parts[0]
 		method_ := strings.ToUpper(parts[1])
-		if IsValidHTTPVerb(method_) {
+		if internal.IsValidHTTPVerb(method_) {
 			method = method_
-			parts = SliceDeleteAtIndex[string](parts, 1)
+			parts = internal.SliceDeleteAtIndex[string](parts, 1)
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
 		prefix = "/" + serviceName

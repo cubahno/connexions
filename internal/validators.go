@@ -1,4 +1,4 @@
-package connexions
+package internal
 
 import (
 	"net/http"
