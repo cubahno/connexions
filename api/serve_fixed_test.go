@@ -4,6 +4,7 @@ package api
 
 import (
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -27,7 +28,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("base-case", func(t *testing.T) {
-		router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
+		router.Config.Services[file.ServiceName] = &config.ServiceConfig{}
 
 		rs := registerFixedRoute(file, router)
 
@@ -95,7 +96,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
-		router.Config.Services[file.ServiceName].Errors = &connexions.ServiceError{
+		router.Config.Services[file.ServiceName].Errors = &config.ServiceError{
 			Codes: map[int]int{
 				400: 100,
 			},

@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/internal"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,7 +20,7 @@ type Router struct {
 	*chi.Mux
 
 	// Config is a pointer to the global Config instance.
-	Config *connexions.Config
+	Config *config.Config
 
 	// Router keeps track of registered services and their routes.
 	services map[string]*ServiceItem
@@ -40,7 +40,7 @@ type Router struct {
 }
 
 // NewRouter creates a new Router instance from Config.
-func NewRouter(config *connexions.Config) *Router {
+func NewRouter(config *config.Config) *Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(ConditionalLoggingMiddleware(config))

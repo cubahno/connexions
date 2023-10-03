@@ -4,6 +4,8 @@ package api
 
 import (
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/replacers"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -68,7 +70,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		t.FailNow()
 	}
 	// response validation only with Kim for now
-	router.Config.App.SchemaProvider = connexions.KinOpenAPIProvider
+	router.Config.App.SchemaProvider = config.KinOpenAPIProvider
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
 	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
@@ -85,7 +87,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 			"petstore": {
 				"id": 12,
 				// NULL allows setting nil value explicitly and skip other replacers
-				"name": connexions.NULL,
+				"name": replacers.NULL,
 				"tag":  "#hund",
 			},
 		},
@@ -96,15 +98,15 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 
 	svc.AddOpenAPIFile(file)
 	router.services["petstore"] = svc
-	router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &config.ServiceConfig{}
 
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
-	svcCfg.Validate = &connexions.ServiceValidateConfig{
+	svcCfg.Validate = &config.ServiceValidateConfig{
 		Request:  true,
 		Response: true,
 	}
-	svcCfg.Cache = &connexions.ServiceCacheConfig{
+	svcCfg.Cache = &config.ServiceCacheConfig{
 		Schema: false,
 	}
 
@@ -178,7 +180,7 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 		t.FailNow()
 	}
 	// response validation only with Kim for now
-	router.Config.App.SchemaProvider = connexions.KinOpenAPIProvider
+	router.Config.App.SchemaProvider = config.KinOpenAPIProvider
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml")
 	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-pet-single.yml"), filePath)
@@ -186,10 +188,10 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
-	router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &config.ServiceConfig{}
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
-	svcCfg.Validate = &connexions.ServiceValidateConfig{
+	svcCfg.Validate = &config.ServiceValidateConfig{
 		Request:  true,
 		Response: true,
 	}
@@ -235,7 +237,7 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
-		router.Config.Services[file.ServiceName].Errors = &connexions.ServiceError{
+		router.Config.Services[file.ServiceName].Errors = &config.ServiceError{
 			Codes: map[int]int{
 				400: 100,
 			},

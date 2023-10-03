@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/cubahno/connexions"
 	"github.com/cubahno/connexions/api"
+	"github.com/cubahno/connexions/config"
 	"net/http"
 )
 
 func main() {
-	cfg := connexions.NewDefaultConfig("")
+	cfg := config.NewDefaultConfig("")
 	cfg.App.Port = 8888
 
 	app := api.NewApp(cfg)

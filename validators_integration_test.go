@@ -6,7 +6,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/replacers"
 	"io"
 	"log"
 	"mime/multipart"
@@ -55,13 +58,13 @@ func TestValidateResponse_Integration(t *testing.T) {
 	ch := make(chan validationResult)
 	stopCh := make(chan struct{})
 
-	cfg := NewDefaultConfig("")
+	cfg := config.NewDefaultConfig("")
 
 	if filePath != "" {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			valueReplacer := CreateValueReplacer(cfg, nil)
+			valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
 			validateFile(filePath, valueReplacer, ch, stopCh)
 		}()
 	} else {
@@ -84,7 +87,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 
 			go func(filePath string) {
 				defer wg.Done()
-				valueReplacer := CreateValueReplacer(cfg, nil)
+				valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
 				validateFile(filePath, valueReplacer, ch, stopCh)
 			}(filePath)
 
@@ -128,10 +131,10 @@ func TestValidateResponse_Integration(t *testing.T) {
 			if res.reqErr != "" || res.respErr != "" {
 				fmt.Printf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
 				if res.reqErr != "" {
-					fmt.Printf("Request error: %s\n", res.reqErr)
+					fmt.Printf("GeneratedRequest error: %s\n", res.reqErr)
 				}
 				if res.respErr != "" {
-					fmt.Printf("Response error: %s\n", res.respErr)
+					fmt.Printf("GeneratedResponse error: %s\n", res.respErr)
 				}
 			}
 
@@ -140,7 +143,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	}
 }
 
-func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
+func validateFile(filePath string, replacer replacers.ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
 	fileName := filepath.Base(filePath)
 	// there should be a simple way to tmp skip some specs
 	if fileName[0] == '-' {
@@ -156,7 +159,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 		}
 	}()
 
-	doc, err := NewDocumentFromFileFactory(KinOpenAPIProvider)(filePath)
+	doc, err := NewDocumentFromFileFactory(config.KinOpenAPIProvider)(filePath)
 	// doc, err := NewDocumentFromFileFactory(LibOpenAPIProvider)(filePath)
 	if err != nil {
 		ch <- validationResult{
@@ -177,11 +180,11 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
 			log.Printf("Validating [%s]: %s %s\n", fileName, method, resource)
-			operation := doc.FindOperation(&OperationDescription{
+			operation := doc.FindOperation(&openapi.OperationDescription{
 				Resource: resource,
 				Method:   method,
 			})
-			operation = operation.WithParseConfig(&ParseConfig{
+			operation = operation.WithParseConfig(&config.ParseConfig{
 				OnlyRequired: true,
 			})
 
@@ -204,7 +207,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 				}
 			}
 
-			// compose request payload
+			// compose GeneratedRequest payload
 			if req.Body != "" {
 				switch reqContentType {
 				case "application/json":
@@ -214,7 +217,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 					if err := json.Unmarshal([]byte(req.Body), &params); err != nil {
 						ch <- validationResult{
 							file:   fileName,
-							docErr: fmt.Sprintf("Failed to parse request body: %v", err),
+							docErr: fmt.Sprintf("Failed to parse GeneratedRequest body: %v", err),
 						}
 						continue
 					}
@@ -225,7 +228,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 					if decodeErr != nil {
 						ch <- validationResult{
 							file:   fileName,
-							docErr: fmt.Sprintf("Failed to parse request body: %v", err),
+							docErr: fmt.Sprintf("Failed to parse GeneratedRequest body: %v", err),
 						}
 						continue
 					}
@@ -249,17 +252,17 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 
 			success := false
 
-			reqErrs := validator.ValidateRequest(&Request{
+			reqErrs := validator.ValidateRequest(&openapi.GeneratedRequest{
 				Headers:     headers,
 				Method:      request.Method,
 				Path:        request.URL.Path,
 				ContentType: reqContentType,
-				operation:   operation,
-				request:     request,
+				Operation:   operation,
+				Request:     request,
 			})
 			reqErrMsg := ""
 			if len(reqErrs) > 0 {
-				reqErrMsg = fmt.Sprintf("Request validation failed: %d errors\n", len(reqErrs))
+				reqErrMsg = fmt.Sprintf("GeneratedRequest validation failed: %d errors\n", len(reqErrs))
 				for _, reqErr := range reqErrs {
 					reqErrMsg += reqErr.Error() + "\n"
 				}
@@ -270,7 +273,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 			respErrs := validator.ValidateResponse(response)
 
 			if len(respErrs) > 0 {
-				respErrMsg = fmt.Sprintf("Response validation failed: %d errors\n", len(respErrs))
+				respErrMsg = fmt.Sprintf("GeneratedResponse validation failed: %d errors\n", len(respErrs))
 				for _, respErr := range respErrs {
 					respErrMsg += respErr.Error() + "\n"
 				}

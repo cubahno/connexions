@@ -2,6 +2,9 @@ package connexions
 
 import (
 	"encoding/json"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/providers/kin"
+	"github.com/cubahno/connexions/replacers"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/jaswdr/faker"
 	base2 "github.com/pb33f/libopenapi/datamodel/high/base"
@@ -119,9 +122,9 @@ func CreateKinSchemaFromString(t *testing.T, jsonSrc string) *openapi3.Schema {
 	return schema
 }
 
-func CreateSchemaFromString(t *testing.T, jsonSrc string) *Schema {
+func CreateSchemaFromString(t *testing.T, jsonSrc string) *openapi.Schema {
 	t.Helper()
-	return NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
+	return kin.NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
 }
 
 func CreateLibSchemaFromString(t *testing.T, ymlSchema string) *base2.SchemaProxy {
@@ -157,8 +160,8 @@ func GetJSONPair(expected, actual any) (string, string) {
 	return string(expectedJSON), string(actualJSON)
 }
 
-func NewTestReplaceContext(schema any) *ReplaceContext {
-	return &ReplaceContext{
+func NewTestReplaceContext(schema any) *replacers.ReplaceContext {
+	return &replacers.ReplaceContext{
 		Faker:  faker.New(),
 		Schema: schema,
 	}

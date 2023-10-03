@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log"
@@ -35,7 +36,7 @@ func TestMain(m *testing.M) {
 }
 
 func SetupApp(appDir string) (*Router, error) {
-	cfg := connexions.MustConfig(appDir)
+	cfg := config.MustConfig(appDir)
 	err := MustFileStructure(cfg.App.Paths)
 	if err != nil {
 		return nil, err

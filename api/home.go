@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"io"
@@ -92,10 +93,10 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 			return
 		}
 		tmpl := template.Must(tpl, nil)
-		config := router.Config.App
+		cfg := router.Config.App
 
 		type TemplateData struct {
-			AppConfig *connexions.AppConfig
+			AppConfig *config.AppConfig
 			Contents  map[string]template.HTML
 			Version   string
 		}
@@ -106,7 +107,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 		}
 
 		data := &TemplateData{
-			AppConfig: config,
+			AppConfig: cfg,
 			Contents: map[string]template.HTML{
 				"Home": template.HTML(homeContents),
 			},

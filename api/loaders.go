@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/contexts"
 	"github.com/cubahno/connexions/internal"
 	"log"
 	"os"
@@ -110,7 +111,7 @@ func loadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	type parsed struct {
-		ctx      *connexions.ParsedContextResult
+		ctx      *contexts.ParsedContextResult
 		err      error
 		filePath string
 	}
@@ -126,7 +127,7 @@ func loadContexts(router *Router) error {
 
 		go func(filePath string) {
 			defer wg.Done()
-			ctx, err := connexions.ParseContextFile(filePath, connexions.Fakes)
+			ctx, err := contexts.ParseContextFile(filePath, contexts.Fakes)
 			ch <- parsed{
 				ctx:      ctx,
 				err:      err,
