@@ -15,33 +15,34 @@ export const newForm = () => {
     navi.setupTabbedContent(`new-service-tab-container`);
 
     config.serviceCreateContainer.style.display = 'block';
+    showServiceForm(`fixed-service-form`);
+    showServiceForm(`openapi-service-form`);
+}
 
-    const onSubmit = formId => {
-        const formCont = document.getElementById(formId);
-        const submitBtn = formCont.querySelector('.button');
-        submitBtn.addEventListener('click', async event => {
-            event.preventDefault();
-            await saveFormWithFile(formCont);
-        });
+const showServiceForm = formId => {
+    const formCont = document.getElementById(formId);
 
-        const textResp = formCont.querySelector('.selected-text-response');
-        const ctEl = formCont.querySelector('.response-content-type');
-        const editor = commons.getEditorForm(textResp.id, ctEl.id);
+    const textResp = formCont.querySelector('.selected-text-response');
+    const ctEl = formCont.querySelector('.response-content-type');
+    const editor = commons.getEditorForm(textResp.id, ctEl.id);
 
-        const fileEl = formCont.querySelector('[type="file"]');
-        fileEl.addEventListener('change', event => {
-            const file = event.target.files[0];
-            const selectedFilenameElement = formCont.querySelector('.selected-filename');
-            selectedFilenameElement.textContent = '';
-            if (file) {
-                selectedFilenameElement.textContent = file.name;
-                editor.setValue(``);
-            }
-        });
-    }
+    const fileEl = formCont.querySelector('[type="file"]');
+    fileEl.addEventListener('change', event => {
+        const file = event.target.files[0];
+        const selectedFilenameElement = formCont.querySelector('.selected-filename');
+        selectedFilenameElement.textContent = '';
+        if (file) {
+            selectedFilenameElement.textContent = file.name;
+            editor.setValue(``);
+        }
+    });
+}
 
-    onSubmit(`fixed-service-form`);
-    onSubmit(`openapi-service-form`);
+export async function onNewServiceSubmit(formId) {
+    console.log(`submitting ${formId}`);
+    const formCont = document.getElementById(formId);
+    await saveFormWithFile(formCont);
+    return false;
 }
 
 export const show = (selected = '') => {
@@ -245,5 +246,7 @@ async function save(formData) {
             show();
         }
         return res;
+    }).then(res => {
+        navi.scrollToTop();
     });
 }
