@@ -25,7 +25,7 @@ type Config struct {
 
 	Replacers []Replacer `koanf:"-" json:"-" yaml:"-"`
 
-	baseDir string `koanf:"-"`
+	BaseDir string `koanf:"-"`
 	mu      sync.Mutex
 }
 
@@ -258,7 +258,7 @@ func (c *Config) GetServiceConfig(service string) *ServiceConfig {
 
 // EnsureConfigValues ensures that all config values are set.
 func (c *Config) EnsureConfigValues() {
-	defaultConfig := NewDefaultConfig(c.baseDir)
+	defaultConfig := NewDefaultConfig(c.BaseDir)
 	app := c.GetApp()
 
 	c.mu.Lock()
@@ -407,7 +407,7 @@ func MustConfig(baseDir string) *Config {
 	}
 	cfg.EnsureConfigValues()
 	cfg.App.Paths = paths
-	cfg.baseDir = baseDir
+	cfg.BaseDir = baseDir
 
 	return cfg
 }
@@ -455,6 +455,21 @@ func NewDefaultConfig(baseDir string) *Config {
 		App:       NewDefaultAppConfig(baseDir),
 		Services:  make(map[string]*ServiceConfig),
 		Replacers: Replacers,
-		baseDir:   baseDir,
+		BaseDir:   baseDir,
 	}
+}
+
+// Paths is a struct that holds all the paths used by the application.
+type Paths struct {
+	Base              string
+	Resources         string
+	Data              string
+	Contexts          string
+	Docs              string
+	Samples           string
+	Services          string
+	ServicesOpenAPI   string
+	ServicesFixedRoot string
+	UI                string
+	ConfigFile        string
 }

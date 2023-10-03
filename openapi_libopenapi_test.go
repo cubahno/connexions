@@ -35,19 +35,19 @@ func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
 	})
 
 	t.Run("invalid-yaml", func(t *testing.T) {
-		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-invalid.yml"))
+		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-invalid.yml"))
 		assert.Nil(res)
 		assert.NotNil(err)
 	})
 
 	t.Run("circular-swagger", func(t *testing.T) {
-		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-circular-with-references-v2.yml"))
+		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-circular-with-references-v2.yml"))
 		assert.NotNil(res)
 		assert.NoError(err)
 	})
 
 	t.Run("error-swagger", func(t *testing.T) {
-		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-invalid-v2.yml"))
+		res, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-invalid-v2.yml"))
 		assert.Nil(res)
 		assert.Error(err)
 	})
@@ -56,7 +56,7 @@ func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
 func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 	t.Parallel()
 	assert := assert2.New(t)
-	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-person-with-friends.yml"))
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-person-with-friends.yml"))
 	assert.Nil(err)
 	doc := libDoc.(*LibV3Document)
 
@@ -66,7 +66,7 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 	})
 
 	t.Run("files", func(t *testing.T) {
-		libDoc1, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-files-circular.yml"))
+		libDoc1, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-files-circular.yml"))
 		assert.Nil(err)
 		circDoc := libDoc1.(*LibV3Document)
 		libSchema := circDoc.Model.Paths.PathItems["/files"].Get.Responses.Codes["200"].Content["application/json"].Schema.Schema()
@@ -435,7 +435,7 @@ properties:
 	})
 
 	t.Run("stripe", func(t *testing.T) {
-		libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-psp.yml"))
+		libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-psp.yml"))
 		assert.Nil(err)
 		doc := libDoc.(*LibV3Document)
 		libSchema := doc.Model.Components.Schemas["charge"].Schema()
@@ -514,7 +514,7 @@ additionalProperties:
 func TestMergeLibOpenAPISubSchemas(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-person-with-friends.yml"))
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-person-with-friends.yml"))
 	assert.Nil(err)
 	doc := libDoc.(*LibV3Document)
 
@@ -621,7 +621,7 @@ func TestMergeLibOpenAPISubSchemas(t *testing.T) {
 func TestPickLibOpenAPISchemaProxy(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("test_fixtures", "document-person-with-friends.yml"))
+	libDoc, err := NewLibOpenAPIDocumentFromFile(filepath.Join("testdata", "document-person-with-friends.yml"))
 	assert.Nil(err)
 	doc := libDoc.(*LibV3Document)
 

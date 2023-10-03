@@ -1,7 +1,8 @@
-package connexions
+package api
 
 import (
 	"bytes"
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -72,13 +73,13 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 
 	payload, _ := io.ReadAll(r.Body)
 
-	_, err := NewConfigFromContent(payload)
+	_, err := connexions.NewConfigFromContent(payload)
 	if err != nil {
 		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
 
-	if err = SaveFile(h.router.Config.App.Paths.ConfigFile, payload); err != nil {
+	if err = connexions.SaveFile(h.router.Config.App.Paths.ConfigFile, payload); err != nil {
 		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
@@ -93,10 +94,10 @@ func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 
 	dest := h.router.Config.App.Paths.ConfigFile
-	defaultCfg := NewDefaultConfig(h.router.Config.baseDir)
+	defaultCfg := connexions.NewDefaultConfig(h.router.Config.BaseDir)
 	defaultBts, _ := yaml.Marshal(defaultCfg)
 
-	if err := SaveFile(dest, defaultBts); err != nil {
+	if err := connexions.SaveFile(dest, defaultBts); err != nil {
 		h.Error(http.StatusInternalServerError, "Failed to restore config contents", w)
 		return
 	}

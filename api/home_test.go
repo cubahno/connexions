@@ -1,10 +1,11 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"log"
 	"mime/multipart"
@@ -28,7 +29,7 @@ func TestCreateHomeRoutes(t *testing.T) {
 
 	err = createHomeRoutes(router)
 	assert.Nil(err)
-	_ = CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
+	_ = connexions.CopyDirectory(filepath.Join("..", "resources", "ui"), router.Config.App.Paths.UI)
 
 	t.Run("home", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/.ui/", nil)
@@ -68,8 +69,8 @@ func TestCreateHomeRoutes(t *testing.T) {
 	})
 
 	t.Run("export", func(t *testing.T) {
-		_ = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml"))
-		_ = CopyFile(filepath.Join("test_fixtures", "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "petstore.yml"))
+		_ = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml"))
+		_ = connexions.CopyFile(filepath.Join("..", "testdata", "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "petstore.yml"))
 
 		// empty dirs ignored
 		_ = os.MkdirAll(filepath.Join(router.Config.App.Paths.Services, "petstore", "get", "pets"), 0755)
@@ -239,7 +240,7 @@ func TestCreateHomeRoutes_disabled(t *testing.T) {
 	router.Config.App.DisableUI = true
 	err = createHomeRoutes(router)
 	assert.Nil(err)
-	_ = CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
+	_ = connexions.CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
 
 	req := httptest.NewRequest("GET", "/.ui/", nil)
 	w := httptest.NewRecorder()
@@ -270,7 +271,7 @@ func TestCreateHomeRoutes_errors(t *testing.T) {
 	})
 
 	t.Run("template-not-found", func(t *testing.T) {
-		_ = CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
+		_ = connexions.CopyDirectory(filepath.Join("..", "resources", "ui"), router.Config.App.Paths.UI)
 		_ = os.Remove(filepath.Join(router.Config.App.Paths.UI, "home.html"))
 
 		req := httptest.NewRequest("GET", "/.ui/", nil)
@@ -282,7 +283,7 @@ func TestCreateHomeRoutes_errors(t *testing.T) {
 	})
 
 	t.Run("invalid-template", func(t *testing.T) {
-		_ = CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
+		_ = connexions.CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
 		indexPath := filepath.Join(router.Config.App.Paths.UI, "index.html")
 		tpl, _ := os.ReadFile(indexPath)
 		tplContents := strings.Replace(string(tpl), "{{.AppConfig", "{{.AppConfig2", 1)

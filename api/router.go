@@ -1,7 +1,8 @@
-package connexions
+package api
 
 import (
 	"encoding/json"
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
@@ -18,7 +19,7 @@ type Router struct {
 	*chi.Mux
 
 	// Config is a pointer to the global Config instance.
-	Config *Config
+	Config *connexions.Config
 
 	// Router keeps track of registered services and their routes.
 	services map[string]*ServiceItem
@@ -38,7 +39,7 @@ type Router struct {
 }
 
 // NewRouter creates a new Router instance from Config.
-func NewRouter(config *Config) *Router {
+func NewRouter(config *connexions.Config) *Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(ConditionalLoggingMiddleware(config))
@@ -123,7 +124,7 @@ func (r *Router) GetContexts() map[string]map[string]any {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return CopyNestedMap(r.contexts)
+	return connexions.CopyNestedMap(r.contexts)
 }
 
 func (r *Router) GetDefaultContexts() []map[string]string {

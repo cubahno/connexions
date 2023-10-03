@@ -24,7 +24,7 @@ func TestLibV3Operation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	withFriendsPath := filepath.Join("test_fixtures", "document-person-with-friends.yml")
+	withFriendsPath := filepath.Join("testdata", "document-person-with-friends.yml")
 	docWithFriends, err := NewLibOpenAPIDocumentFromFile(withFriendsPath)
 	assert.Nil(err)
 

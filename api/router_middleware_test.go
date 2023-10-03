@@ -1,6 +1,7 @@
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -17,8 +18,8 @@ func TestConditionalLoggingMiddleware(t *testing.T) {
 			_ = os.Setenv("DISABLE_LOGGER", current)
 		}()
 		_ = os.Setenv("DISABLE_LOGGER", "false")
-		cfg := &Config{
-			App: NewDefaultAppConfig(t.TempDir()),
+		cfg := &connexions.Config{
+			App: connexions.NewDefaultAppConfig(t.TempDir()),
 		}
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

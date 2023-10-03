@@ -1,11 +1,12 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"mime/multipart"
 	"net/http"
@@ -30,12 +31,12 @@ func TestServiceItem_AddOpenAPIFile(t *testing.T) {
 	assert := assert2.New(t)
 
 	svc := &ServiceItem{}
-	fileProps := &FileProperties{
+	fileProps := &connexions.FileProperties{
 		FileName: "index.yaml",
 	}
 	svc.AddOpenAPIFile(fileProps)
 	svc.AddOpenAPIFile(fileProps)
-	assert.Equal([]*FileProperties{fileProps}, svc.OpenAPIFiles)
+	assert.Equal([]*connexions.FileProperties{fileProps}, svc.OpenAPIFiles)
 }
 
 func TestServiceItem_AddRoutes(t *testing.T) {
@@ -98,7 +99,7 @@ func TestServiceHandler_list(t *testing.T) {
 	router.services = map[string]*ServiceItem{
 		"svc-a": {Name: "svc-a"},
 		"svc-c": {Name: "svc-c"},
-		"svc-b": {Name: "svc-b", OpenAPIFiles: []*FileProperties{
+		"svc-b": {Name: "svc-b", OpenAPIFiles: []*connexions.FileProperties{
 			{Prefix: "/svc-b-1"},
 			{Prefix: "/svc-b-2"},
 		}},
@@ -194,7 +195,7 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 
 	_ = writer.WriteField("path", "petstore")
 	_ = writer.WriteField("isOpenApi", "true")
-	err = AddTestFileToForm(writer, "file", filepath.Join("test_fixtures", "document-petstore.yml"))
+	err = AddTestFileToForm(writer, "file", filepath.Join("..", "testdata", "document-petstore.yml"))
 	assert.Nil(err)
 
 	_ = writer.Close()
@@ -212,7 +213,7 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 	assert.Equal("Resource saved!", resp.Message)
 
 	svc := router.services["petstore"]
-	expectedFileProps := &FileProperties{
+	expectedFileProps := &connexions.FileProperties{
 		ServiceName: "petstore",
 		IsOpenAPI:   false,
 		Method:      "",
@@ -227,7 +228,7 @@ func TestServiceHandler_save_openAPI(t *testing.T) {
 
 	expected := &ServiceItem{
 		Name: "petstore",
-		OpenAPIFiles: []*FileProperties{
+		OpenAPIFiles: []*connexions.FileProperties{
 			expectedFileProps,
 		},
 		Routes: []*RouteDescription{
@@ -295,7 +296,7 @@ func TestServiceHandler_save_fixed(t *testing.T) {
 
 	svc := router.services["petstore"]
 	targetPath := filepath.Join(router.Config.App.Paths.Services, "petstore", "patch", "pets", "update", "{tag}", "index.json")
-	expectedFileProps := &FileProperties{
+	expectedFileProps := &connexions.FileProperties{
 		ServiceName: "petstore",
 		IsOpenAPI:   false,
 		Method:      http.MethodPatch,
@@ -454,7 +455,7 @@ func TestServiceHandler_resources_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.services/"+RootServiceName, nil)
+		req := httptest.NewRequest("GET", "/.services/"+connexions.RootServiceName, nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -501,7 +502,7 @@ func TestServiceHandler_resources(t *testing.T) {
 		"petstore": {
 			Name:   "petstore",
 			Routes: routes,
-			OpenAPIFiles: []*FileProperties{
+			OpenAPIFiles: []*connexions.FileProperties{
 				{
 					Prefix: "index-pets.yml",
 				},
@@ -537,7 +538,7 @@ func TestServiceHandler_deleteService_errors(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
 
 	err = createServiceRoutes(router)
@@ -572,7 +573,7 @@ func TestServiceHandler_deleteService(t *testing.T) {
 				{
 					Method: http.MethodGet,
 					Path:   "/pets",
-					File: &FileProperties{
+					File: &connexions.FileProperties{
 						FilePath: filepath.Join(router.Config.App.Paths.Services, "get", "pets", "index.json"),
 					},
 				},
@@ -583,7 +584,7 @@ func TestServiceHandler_deleteService(t *testing.T) {
 	err = createServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("DELETE", "/.services/"+RootServiceName, nil)
+	req := httptest.NewRequest("DELETE", "/.services/"+connexions.RootServiceName, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -607,7 +608,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.services/"+RootServiceName+"/spec", nil)
+		req := httptest.NewRequest("GET", "/.services/"+connexions.RootServiceName+"/spec", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -636,7 +637,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 		router.services = map[string]*ServiceItem{
 			"petstore": {
 				Name: "petstore",
-				OpenAPIFiles: []*FileProperties{
+				OpenAPIFiles: []*connexions.FileProperties{
 					{
 						Prefix: "index-pets.yml",
 					},
@@ -664,13 +665,13 @@ func TestServiceHandler_spec_happyPath(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
 	assert.Nil(err)
 
 	router.services = map[string]*ServiceItem{
 		"petstore": {
 			Name: "petstore",
-			OpenAPIFiles: []*FileProperties{
+			OpenAPIFiles: []*connexions.FileProperties{
 				{
 					FilePath: filePath,
 				},
@@ -704,7 +705,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/.services/"+RootServiceName+"/0", nil)
+		req := httptest.NewRequest("POST", "/.services/"+connexions.RootServiceName+"/0", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -783,9 +784,9 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-		err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+		err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
 		assert.Nil(err)
-		file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+		file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 		assert.Nil(err)
 
 		router.services = map[string]*ServiceItem{
@@ -823,12 +824,12 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-	err = CopyFile(filepath.Join("test_fixtures", "document-petstore.yml"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
 	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
-	router.Config.Services[file.ServiceName] = &ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &connexions.ServiceConfig{}
 
 	router.services = map[string]*ServiceItem{
 		"petstore": {
@@ -863,17 +864,17 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	expected := &GenerateResponse{
-		Request: &Request{
+		Request: &connexions.Request{
 			Method:      http.MethodPost,
 			Path:        "/petstore/pets",
 			Body:        `{"tag":"Hund","name":"Hans"}`,
 			ContentType: "application/json",
 			Query:       "",
-			Examples: &ContentExample{
+			Examples: &connexions.ContentExample{
 				CURL: `--data-raw '{"name":"Hans","tag":"Hund"}'`,
 			},
 		},
-		Response: &Response{
+		Response: &connexions.Response{
 			Content:     []byte(`{"id":10,"name":"Hans","tag":"Hund"}`),
 			ContentType: "application/json",
 			StatusCode:  http.StatusOK,
@@ -923,9 +924,9 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	err = connexions.CopyFile(filepath.Join("..", "testdata", "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
-	file, err := GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 	if err != nil {
 		t.FailNow()
@@ -953,12 +954,12 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	expected := &GenerateResponse{
-		Request: &Request{
+		Request: &connexions.Request{
 			Method:      http.MethodPost,
 			Path:        "/petstore/pets",
 			ContentType: "application/json",
 		},
-		Response: &Response{
+		Response: &connexions.Response{
 			Content:     []byte(`{"id":1,"name":"Bulbasaur","tag":"beedrill"}`),
 			ContentType: "application/json",
 			StatusCode:  http.StatusOK,
@@ -1048,7 +1049,7 @@ func TestServiceHandler_getResource_errors(t *testing.T) {
 						Method: http.MethodPost,
 						Path:   "/pets",
 						Type:   FixedRouteType,
-						File: &FileProperties{
+						File: &connexions.FileProperties{
 							FilePath: "unknown",
 						},
 					},
@@ -1076,7 +1077,7 @@ func TestServiceHandler_getResource_errors(t *testing.T) {
 						Method: http.MethodPost,
 						Path:   "/pets",
 						Type:   OpenAPIRouteType,
-						File:   &FileProperties{},
+						File:   &connexions.FileProperties{},
 					},
 				},
 			},
@@ -1107,9 +1108,9 @@ func TestServiceHandler_getResource(t *testing.T) {
 	assert.Nil(err)
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	_ = CopyFile(filepath.Join("test_fixtures", "fixed-petstore-post-pets.json"), filePath)
+	_ = connexions.CopyFile(filepath.Join("..", "testdata", "fixed-petstore-post-pets.json"), filePath)
 	fileContents, _ := os.ReadFile(filePath)
-	fileProps, _ := GetPropertiesFromFilePath(filePath, router.Config.App)
+	fileProps, _ := connexions.GetPropertiesFromFilePath(filePath, router.Config.App)
 
 	router.services = map[string]*ServiceItem{
 		"petstore": {
@@ -1226,7 +1227,7 @@ func TestServiceHandler_deleteResource_errors(t *testing.T) {
 						Method: http.MethodPost,
 						Path:   "/pets",
 						Type:   FixedRouteType,
-						File: &FileProperties{
+						File: &connexions.FileProperties{
 							FilePath: "unknown",
 						},
 					},
@@ -1296,7 +1297,7 @@ func TestSaveService_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	appDir := t.TempDir()
-	appCfg := NewDefaultAppConfig(appDir)
+	appCfg := connexions.NewDefaultAppConfig(appDir)
 	_, _ = SetupApp(appDir)
 
 	t.Run("invalid-url-resource", func(t *testing.T) {
@@ -1395,9 +1396,127 @@ func TestServiceHandler_getRouteIndex(t *testing.T) {
 	}
 
 	t.Run("service-not-found", func(t *testing.T) {
-		res := handler.getRouteIndex(&FileProperties{
+		res := handler.getRouteIndex(&connexions.FileProperties{
 			ServiceName: "nice",
 		})
 		assert.Equal(-1, res)
 	})
+}
+
+func TestComposeFileSavePath(t *testing.T) {
+	t.Parallel()
+
+	appCfg := connexions.NewDefaultAppConfig("/app")
+	paths := appCfg.Paths
+
+	testCases := []struct {
+		service  *ServiceDescription
+		expected string
+	}{
+		{
+			service: &ServiceDescription{
+				Path: "/foo.html",
+			},
+			expected: paths.Services + "/.root/get/foo.html",
+		},
+		{
+			service: &ServiceDescription{
+				Method: "patch",
+				Path:   "/foo.html",
+			},
+			expected: paths.Services + "/.root/patch/foo.html",
+		},
+		{
+			service: &ServiceDescription{
+				Method: "get",
+				Path:   "test/test-path",
+				Ext:    ".json",
+			},
+			expected: paths.Services + "/test/get/test-path/index.json",
+		},
+		{
+			service: &ServiceDescription{
+				Path: "/foo/bar",
+			},
+			expected: paths.Services + "/foo/get/bar/index.txt",
+		},
+		{
+			service: &ServiceDescription{
+				Path:   "/nice",
+				Method: "patch",
+			},
+			expected: paths.Services + "/nice/patch/index.txt",
+		},
+		{
+			service: &ServiceDescription{
+				Path: "/x",
+				Ext:  ".json",
+			},
+			expected: paths.Services + "/x/get/index.json",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			actual := ComposeFileSavePath(tc.service, paths)
+			if actual != tc.expected {
+				t.Errorf("ComposeFileSavePath(%v): - Expected: %v, Got: %v",
+					tc.service, tc.expected, actual)
+			}
+		})
+	}
+}
+
+func TestComposeOpenAPISavePath(t *testing.T) {
+	t.Parallel()
+
+	appCfg := connexions.NewDefaultAppConfig("/app")
+	paths := appCfg.Paths
+
+	testCases := []struct {
+		service  *ServiceDescription
+		expected string
+	}{
+		{
+			service:  &ServiceDescription{},
+			expected: paths.ServicesOpenAPI + "/index",
+		},
+		{
+			service: &ServiceDescription{
+				Ext: ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/index.yml",
+		},
+		{
+			service: &ServiceDescription{
+				Path: "petstore",
+				Ext:  ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/petstore/index.yml",
+		},
+		{
+			service: &ServiceDescription{
+				Path: "/petstore/v1",
+				Ext:  ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/petstore/v1/index.yml",
+		},
+		{
+			service: &ServiceDescription{
+				Path: "/nice/dice/rice",
+				Ext:  ".yml",
+			},
+			expected: paths.ServicesOpenAPI + "/nice/dice/rice/index.yml",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			actual := ComposeOpenAPISavePath(tc.service, paths.ServicesOpenAPI)
+			if actual != tc.expected {
+				t.Errorf("ComposeFileSavePath(%v): Expected: %v, Got: %v",
+					tc.service, tc.expected, actual)
+			}
+		})
+	}
 }

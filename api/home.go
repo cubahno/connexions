@@ -1,8 +1,9 @@
-package connexions
+package api
 
 import (
 	"archive/zip"
 	"fmt"
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"io"
@@ -94,7 +95,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 		config := router.Config.App
 
 		type TemplateData struct {
-			AppConfig *AppConfig
+			AppConfig *connexions.AppConfig
 			Contents  map[string]template.HTML
 			Version   string
 		}
@@ -174,7 +175,7 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Exclude empty directories
-		if info.IsDir() && IsEmptyDir(path) {
+		if info.IsDir() && connexions.IsEmptyDir(path) {
 			return nil
 		}
 
@@ -273,7 +274,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		path.Base(h.router.Config.App.Paths.Contexts),
 	}
 
-	err = ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
+	err = connexions.ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
 	if err != nil {
 		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
 			Message: err.Error(),

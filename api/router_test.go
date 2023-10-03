@@ -1,9 +1,10 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
 	"bytes"
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
@@ -11,7 +12,7 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	assert := assert2.New(t)
-	config := &Config{}
+	config := &connexions.Config{}
 	router := NewRouter(config)
 
 	assert.NotNil(router)

@@ -1,8 +1,9 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
@@ -23,7 +24,7 @@ func TestHandleErrorAndLatency(t *testing.T) {
 
 	t.Run("latency>0", func(t *testing.T) {
 		t1 := time.Now()
-		svcConfig := &ServiceConfig{
+		svcConfig := &connexions.ServiceConfig{
 			Latency: 100 * time.Millisecond,
 		}
 
@@ -37,9 +38,9 @@ func TestHandleErrorAndLatency(t *testing.T) {
 	})
 
 	t.Run("errors-chance-0", func(t *testing.T) {
-		svcConfig := &ServiceConfig{
+		svcConfig := &connexions.ServiceConfig{
 			Latency: 100 * time.Millisecond,
-			Errors: &ServiceError{
+			Errors: &connexions.ServiceError{
 				Codes: map[int]int{
 					400: 100,
 				},
@@ -52,9 +53,9 @@ func TestHandleErrorAndLatency(t *testing.T) {
 	})
 
 	t.Run("errors-chance-100", func(t *testing.T) {
-		svcConfig := &ServiceConfig{
+		svcConfig := &connexions.ServiceConfig{
 			Latency: 100 * time.Millisecond,
-			Errors: &ServiceError{
+			Errors: &connexions.ServiceError{
 				Codes: map[int]int{
 					400: 100,
 				},
@@ -70,9 +71,9 @@ func TestHandleErrorAndLatency(t *testing.T) {
 	})
 
 	t.Run("errors-chance-100-without-codes", func(t *testing.T) {
-		svcConfig := &ServiceConfig{
+		svcConfig := &connexions.ServiceConfig{
 			Latency: 100 * time.Millisecond,
-			Errors: &ServiceError{
+			Errors: &connexions.ServiceError{
 				Chance: 100,
 			},
 		}

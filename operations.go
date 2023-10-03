@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Request is a struct that represents a generated request to be used when building real endpoint request.
@@ -26,6 +27,23 @@ type Request struct {
 	// internal fields. needed for some validation providers.
 	operation Operationer
 	request   *http.Request
+	mu        sync.Mutex
+}
+
+func (r *Request) WithOperation(operation Operationer) *Request {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.operation = operation
+	return r
+}
+
+func (r *Request) WithRequest(request *http.Request) *Request {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.request = request
+	return r
 }
 
 // ContentExample is a struct that represents a generated cURL example.
@@ -167,7 +185,7 @@ func createCURLBody(content any, contentType string) (string, error) {
 	return "", nil
 }
 
-func newRequestFromFixedResource(path, method, contentType string, valueReplacer ValueReplacer) *Request {
+func NewRequestFromFixedResource(path, method, contentType string, valueReplacer ValueReplacer) *Request {
 	// TODO(cubahno): add cURL example
 	return &Request{
 		Method:      method,
@@ -209,18 +227,8 @@ func NewResponseFromOperation(req *http.Request, operation Operationer, valueRep
 	}
 }
 
-// replaceRequestResource replaces the resource in the request with the given one.
-// Our services might get the extra prefix from the service name but the OpenAPI spec doesn't have it:
-// so validation will fail.
-func replaceRequestResource(req *http.Request, resource string) *http.Request {
-	newReq := new(http.Request)
-	*newReq = *req
-	newReq.URL = newReq.URL.ResolveReference(&url.URL{Path: resource})
-	return newReq
-}
-
-func newResponseFromFixedResource(filePath, contentType string, valueReplacer ValueReplacer) *Response {
-	content := generateContentFromFileProperties(filePath, contentType, valueReplacer)
+func NewResponseFromFixedResource(filePath, contentType string, valueReplacer ValueReplacer) *Response {
+	content := GenerateContentFromFileProperties(filePath, contentType, valueReplacer)
 	hs := make(http.Header)
 	hs.Set("content-type", contentType)
 
@@ -504,7 +512,7 @@ func GenerateResponseHeaders(headers OpenAPIHeaders, valueReplacer ValueReplacer
 	return res
 }
 
-func generateContentFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) []byte {
+func GenerateContentFromFileProperties(filePath, contentType string, valueReplacer ValueReplacer) []byte {
 	if filePath == "" {
 		log.Println("file path is empty")
 		return nil

@@ -70,7 +70,7 @@ func TestConfig(t *testing.T) {
 	t.Run("EnsureConfigValues-when-empty", func(t *testing.T) {
 		cfg := &Config{
 			Replacers: Replacers,
-			baseDir:   "/app",
+			BaseDir:   "/app",
 		}
 		cfg.EnsureConfigValues()
 		assert.Equal(NewDefaultConfig("/app"), cfg)
@@ -80,7 +80,7 @@ func TestConfig(t *testing.T) {
 		cfg := &Config{
 			App:       &AppConfig{},
 			Replacers: Replacers,
-			baseDir:   "/app",
+			BaseDir:   "/app",
 		}
 		cfg.EnsureConfigValues()
 
@@ -94,7 +94,7 @@ func TestConfig(t *testing.T) {
 				Port: 5555,
 			},
 			Replacers: Replacers,
-			baseDir:   "/app",
+			BaseDir:   "/app",
 		}
 		cfg.EnsureConfigValues()
 
@@ -249,7 +249,7 @@ services:
       response: true
 `
 		expected := &Config{
-			baseDir: tempDir,
+			BaseDir: tempDir,
 			App: &AppConfig{
 				Port:              8000,
 				HomeURL:           "/new-ui",
@@ -377,7 +377,7 @@ services:
 
 		cfg := MustConfig(tempDir)
 		assert.NotNil(cfg)
-		assert.Equal(tempDir, cfg.baseDir)
+		assert.Equal(tempDir, cfg.BaseDir)
 	})
 
 	t.Run("transformation-error", func(t *testing.T) {
@@ -438,7 +438,7 @@ app:
 				},
 			},
 			Services: make(map[string]*ServiceConfig),
-			baseDir:  "",
+			BaseDir:  "",
 		}
 
 		cfg, err := NewConfigFromContent([]byte(contents))
@@ -493,7 +493,7 @@ func TestNewDefaultConfig(t *testing.T) {
 		},
 		Replacers: Replacers,
 		Services:  map[string]*ServiceConfig{},
-		baseDir:   "/app",
+		BaseDir:   "/app",
 	}
 	assert.Equal(expected, cfg)
 }

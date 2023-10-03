@@ -1,10 +1,11 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
 	"errors"
 	"fmt"
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -20,14 +21,14 @@ func TestNewApp(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("no-file-config", func(t *testing.T) {
-		cfg := MustConfig("/app")
+		cfg := connexions.MustConfig("/app")
 		app := NewApp(cfg)
 		assert.NotNil(app)
 		assert.Equal(0, len(app.Router.services))
 	})
 
 	t.Run("no-file-config-with-pre-create", func(t *testing.T) {
-		cfg := MustConfig("/app")
+		cfg := connexions.MustConfig("/app")
 		cfg.App.CreateFileStructure = true
 
 		defer func() {
@@ -46,7 +47,7 @@ func TestNewApp(t *testing.T) {
 
 	t.Run("existing-dir-with-pre-create", func(t *testing.T) {
 		dir := t.TempDir()
-		cfg := MustConfig(dir)
+		cfg := connexions.MustConfig(dir)
 		cfg.App.CreateFileStructure = true
 
 		app := NewApp(cfg)
@@ -60,7 +61,7 @@ func TestMustFileStructure(t *testing.T) {
 
 	t.Run("dirs-exist", func(t *testing.T) {
 		dir := t.TempDir()
-		paths := NewPaths(dir)
+		paths := connexions.NewPaths(dir)
 
 		_, _ = os.Create(paths.Resources)
 		_, _ = os.Create(paths.Samples)
@@ -76,7 +77,7 @@ func TestApp_AddBluePrint(t *testing.T) {
 	assert := assert2.New(t)
 
 	dir := t.TempDir()
-	cfg := MustConfig(dir)
+	cfg := connexions.MustConfig(dir)
 	cfg.EnsureConfigValues()
 	cfg.App.DisableUI = true
 
@@ -95,8 +96,8 @@ func TestApp_AddBluePrint(t *testing.T) {
 		// status-quo: no routes
 		assert.Equal(0, len(router.Routes()))
 
-		err := CopyFile(
-			filepath.Join("test_fixtures", "document-petstore.yml"),
+		err := connexions.CopyFile(
+			filepath.Join("..", "testdata", "document-petstore.yml"),
 			filepath.Join(cfg.App.Paths.ServicesOpenAPI, "pets", "index.yml"))
 		assert.Nil(err)
 
@@ -129,7 +130,7 @@ func TestApp_Run_panics(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	cfg := MustConfig(dir)
+	cfg := connexions.MustConfig(dir)
 	cfg.EnsureConfigValues()
 	cfg.App.DisableUI = true
 	cfg.App.Port = 80
@@ -164,7 +165,7 @@ func TestApp_Run(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	cfg := MustConfig(dir)
+	cfg := connexions.MustConfig(dir)
 	cfg.EnsureConfigValues()
 	cfg.App.DisableUI = true
 	cfg.App.Port = 22333

@@ -1,6 +1,7 @@
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,8 +14,8 @@ func loadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
 	var mu sync.Mutex
 
-	openAPIFiles := make([]*FileProperties, 0)
-	fixedFiles := make([]*FileProperties, 0)
+	openAPIFiles := make([]*connexions.FileProperties, 0)
+	fixedFiles := make([]*connexions.FileProperties, 0)
 	appCfg := router.Config.App
 
 	err := filepath.Walk(appCfg.Paths.Services, func(filePath string, info os.FileInfo, err error) error {
@@ -27,7 +28,7 @@ func loadServices(router *Router) error {
 			return nil
 		}
 
-		fileProps, err := GetPropertiesFromFilePath(filePath, appCfg)
+		fileProps, err := connexions.GetPropertiesFromFilePath(filePath, appCfg)
 		if err != nil {
 			log.Printf("Failed to get file properties from %s: %s\n", filePath, err.Error())
 			// don't return error, as we have more files to process
@@ -49,7 +50,7 @@ func loadServices(router *Router) error {
 	for _, fileProps := range openAPIFiles {
 		wg.Add(1)
 
-		go func(props *FileProperties) {
+		go func(props *connexions.FileProperties) {
 			defer wg.Done()
 
 			mu.Lock()
@@ -76,7 +77,7 @@ func loadServices(router *Router) error {
 	for _, fileProps := range fixedFiles {
 		wg.Add(1)
 
-		go func(props *FileProperties) {
+		go func(props *connexions.FileProperties) {
 			defer wg.Done()
 			mu.Lock()
 			defer mu.Unlock()
@@ -108,7 +109,7 @@ func loadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	type parsed struct {
-		ctx      *ParsedContextResult
+		ctx      *connexions.ParsedContextResult
 		err      error
 		filePath string
 	}
@@ -124,7 +125,7 @@ func loadContexts(router *Router) error {
 
 		go func(filePath string) {
 			defer wg.Done()
-			ctx, err := ParseContextFile(filePath, fakes)
+			ctx, err := connexions.ParseContextFile(filePath, connexions.Fakes)
 			ch <- parsed{
 				ctx:      ctx,
 				err:      err,
@@ -162,8 +163,8 @@ func loadContexts(router *Router) error {
 		for ctxSourceKey, aliasTarget := range requiredAliases {
 			parts := strings.Split(aliasTarget, ".")
 			ns, nsPath := parts[0], strings.Join(parts[1:], ".")
-			if res := GetValueByDottedPath(contexts[ns], nsPath); res != nil {
-				SetValueByDottedPath(contexts[ctxName], ctxSourceKey, res)
+			if res := connexions.GetValueByDottedPath(contexts[ns], nsPath); res != nil {
+				connexions.SetValueByDottedPath(contexts[ctxName], ctxSourceKey, res)
 			} else {
 				log.Printf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey)
 			}

@@ -1,6 +1,7 @@
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"os"
@@ -9,7 +10,7 @@ import (
 
 // ConditionalLoggingMiddleware is a middleware that conditionally can disable logger.
 // For example, in tests or when fetching static files.
-func ConditionalLoggingMiddleware(cfg *Config) func(http.Handler) http.Handler {
+func ConditionalLoggingMiddleware(cfg *connexions.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		logger := middleware.DefaultLogger(next)
 		disableLogger := os.Getenv("DISABLE_LOGGER") == "true"

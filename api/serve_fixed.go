@@ -1,13 +1,14 @@
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	"log"
 	"net/http"
 	"strings"
 )
 
 // registerFixedRoutes registers fixed routes for a service.
-func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescription {
+func registerFixedRoute(fileProps *connexions.FileProperties, router *Router) *RouteDescription {
 	log.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
 
 	baseResource := strings.TrimSuffix(fileProps.Prefix+fileProps.Resource, "/")
@@ -38,7 +39,7 @@ func registerFixedRoute(fileProps *FileProperties, router *Router) *RouteDescrip
 }
 
 // createFixedResponseHandler creates a http.HandlerFunc for fixed routes.
-func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.HandlerFunc {
+func createFixedResponseHandler(router *Router, fileProps *connexions.FileProperties) http.HandlerFunc {
 	config := router.Config
 	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
 
@@ -46,15 +47,15 @@ func createFixedResponseHandler(router *Router, fileProps *FileProperties) http.
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := CreateValueReplacer(config, contexts)
+	contexts := connexions.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := connexions.CreateValueReplacer(config, contexts)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if HandleErrorAndLatency(serviceCfg, w) {
 			return
 		}
 
-		content := generateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		content := connexions.GenerateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 		NewAPIResponse(w).WithHeader("Content-Type", fileProps.ContentType).Send(content)
 	}
 }

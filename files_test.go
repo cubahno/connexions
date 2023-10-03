@@ -247,7 +247,7 @@ func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 		_ = os.MkdirAll(dir, 0755)
 
 		filePath := filepath.Join(dir, "index.yml")
-		contents, _ := os.ReadFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		contents, _ := os.ReadFile(filepath.Join("testdata", "document-petstore.yml"))
 		err := SaveFile(filePath, contents)
 		assert.NoError(err)
 
@@ -276,7 +276,7 @@ func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 		_ = os.MkdirAll(dir, 0755)
 
 		filePath := filepath.Join(dir, "rice.yml")
-		contents, _ := os.ReadFile(filepath.Join("test_fixtures", "document-petstore.yml"))
+		contents, _ := os.ReadFile(filepath.Join("testdata", "document-petstore.yml"))
 		err := SaveFile(filePath, contents)
 		assert.NoError(err)
 
@@ -295,124 +295,6 @@ func TestGetPropertiesFromOpenAPIFile(t *testing.T) {
 		}
 		AssertJSONEqual(t, expectedProps, props)
 	})
-}
-
-func TestComposeFileSavePath(t *testing.T) {
-	t.Parallel()
-
-	appCfg := NewDefaultAppConfig("/app")
-	paths := appCfg.Paths
-
-	testCases := []struct {
-		service  *ServiceDescription
-		expected string
-	}{
-		{
-			service: &ServiceDescription{
-				Path: "/foo.html",
-			},
-			expected: paths.Services + "/.root/get/foo.html",
-		},
-		{
-			service: &ServiceDescription{
-				Method: "patch",
-				Path:   "/foo.html",
-			},
-			expected: paths.Services + "/.root/patch/foo.html",
-		},
-		{
-			service: &ServiceDescription{
-				Method: "get",
-				Path:   "test/test-path",
-				Ext:    ".json",
-			},
-			expected: paths.Services + "/test/get/test-path/index.json",
-		},
-		{
-			service: &ServiceDescription{
-				Path: "/foo/bar",
-			},
-			expected: paths.Services + "/foo/get/bar/index.txt",
-		},
-		{
-			service: &ServiceDescription{
-				Path:   "/nice",
-				Method: "patch",
-			},
-			expected: paths.Services + "/nice/patch/index.txt",
-		},
-		{
-			service: &ServiceDescription{
-				Path: "/x",
-				Ext:  ".json",
-			},
-			expected: paths.Services + "/x/get/index.json",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
-			actual := ComposeFileSavePath(tc.service, paths)
-			if actual != tc.expected {
-				t.Errorf("ComposeFileSavePath(%v): - Expected: %v, Got: %v",
-					tc.service, tc.expected, actual)
-			}
-		})
-	}
-}
-
-func TestComposeOpenAPISavePath(t *testing.T) {
-	t.Parallel()
-
-	appCfg := NewDefaultAppConfig("/app")
-	paths := appCfg.Paths
-
-	testCases := []struct {
-		service  *ServiceDescription
-		expected string
-	}{
-		{
-			service:  &ServiceDescription{},
-			expected: paths.ServicesOpenAPI + "/index",
-		},
-		{
-			service: &ServiceDescription{
-				Ext: ".yml",
-			},
-			expected: paths.ServicesOpenAPI + "/index.yml",
-		},
-		{
-			service: &ServiceDescription{
-				Path: "petstore",
-				Ext:  ".yml",
-			},
-			expected: paths.ServicesOpenAPI + "/petstore/index.yml",
-		},
-		{
-			service: &ServiceDescription{
-				Path: "/petstore/v1",
-				Ext:  ".yml",
-			},
-			expected: paths.ServicesOpenAPI + "/petstore/v1/index.yml",
-		},
-		{
-			service: &ServiceDescription{
-				Path: "/nice/dice/rice",
-				Ext:  ".yml",
-			},
-			expected: paths.ServicesOpenAPI + "/nice/dice/rice/index.yml",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
-			actual := ComposeOpenAPISavePath(tc.service, paths.ServicesOpenAPI)
-			if actual != tc.expected {
-				t.Errorf("ComposeFileSavePath(%v): Expected: %v, Got: %v",
-					tc.service, tc.expected, actual)
-			}
-		})
-	}
 }
 
 func TestSaveFile(t *testing.T) {
@@ -462,13 +344,13 @@ func TestCopyFile(t *testing.T) {
 	})
 
 	t.Run("invalid-dest-dir", func(t *testing.T) {
-		src := filepath.Join("test_fixtures", "operation.yml")
+		src := filepath.Join("testdata", "operation.yml")
 		err := CopyFile(src, "/root/foo/op.yml")
 		assert.Error(err)
 	})
 
 	t.Run("invalid-dest-path", func(t *testing.T) {
-		src := filepath.Join("test_fixtures", "operation.yml")
+		src := filepath.Join("testdata", "operation.yml")
 		err := CopyFile(src, "/root")
 		assert.Error(err)
 	})

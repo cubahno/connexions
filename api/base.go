@@ -1,6 +1,7 @@
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	"log"
 	"net/http"
 	"time"
@@ -42,7 +43,7 @@ func (h *BaseHandler) Error(code int, message string, w http.ResponseWriter) {
 
 // HandleErrorAndLatency handles error and latency defined in the service configuration.
 // Returns true if error was handled.
-func HandleErrorAndLatency(svcConfig *ServiceConfig, w http.ResponseWriter) bool {
+func HandleErrorAndLatency(svcConfig *connexions.ServiceConfig, w http.ResponseWriter) bool {
 	if svcConfig.Latency > 0 {
 		log.Printf("Encountered latency of %s\n", svcConfig.Latency)
 

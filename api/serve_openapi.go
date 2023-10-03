@@ -1,10 +1,12 @@
-package connexions
+package api
 
 import (
 	"fmt"
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -12,14 +14,14 @@ import (
 type OpenAPIHandler struct {
 	*BaseHandler
 	router        *Router
-	fileProps     *FileProperties
-	cache         CacheStorage
-	valueReplacer ValueReplacer
+	fileProps     *connexions.FileProperties
+	cache         connexions.CacheStorage
+	valueReplacer connexions.ValueReplacer
 }
 
 // registerOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
-func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescriptions {
+func registerOpenAPIRoutes(fileProps *connexions.FileProperties, router *Router) RouteDescriptions {
 	log.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
 	res := make(RouteDescriptions, 0)
@@ -31,13 +33,13 @@ func registerOpenAPIRoutes(fileProps *FileProperties, router *Router) RouteDescr
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := CreateValueReplacer(config, contexts)
+	contexts := connexions.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := connexions.CreateValueReplacer(config, contexts)
 
 	handler := &OpenAPIHandler{
 		router:        router,
 		fileProps:     fileProps,
-		cache:         NewMemoryStorage(),
+		cache:         connexions.NewMemoryStorage(),
 		valueReplacer: valueReplacer,
 	}
 
@@ -71,7 +73,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 
 	resourcePath := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 
-	findOptions := &OperationDescription{
+	findOptions := &connexions.OperationDescription{
 		Service:  h.fileProps.ServiceName,
 		Resource: resourcePath,
 		Method:   r.Method,
@@ -85,11 +87,11 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if serviceCfg.Cache.Schema {
-		operation = NewCacheOperationAdapter(h.fileProps.ServiceName, operation, h.cache)
+		operation = connexions.NewCacheOperationAdapter(h.fileProps.ServiceName, operation, h.cache)
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	validator := NewOpenAPIValidator(doc)
+	validator := connexions.NewOpenAPIValidator(doc)
 	req := replaceRequestResource(r, resourcePath)
 
 	if serviceCfg.Validate.Request && validator != nil {
@@ -98,14 +100,12 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 			hdrs[name] = values
 		}
 
-		errs := validator.ValidateRequest(&Request{
+		errs := validator.ValidateRequest((&connexions.Request{
 			Headers:     hdrs,
 			Method:      r.Method,
 			Path:        resourcePath,
 			ContentType: req.Header.Get("Content-Type"),
-			operation:   operation,
-			request:     req,
-		})
+		}).WithOperation(operation).WithRequest(req))
 		if len(errs) > 0 {
 			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{
 				Message: fmt.Sprintf("Invalid request: %d errors: %v", len(errs), errs),
@@ -115,7 +115,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := NewResponseFromOperation(req, operation, h.valueReplacer)
+	response := connexions.NewResponseFromOperation(req, operation, h.valueReplacer)
 	if serviceCfg.Validate.Response && validator != nil {
 		errs := validator.ValidateResponse(response)
 		if len(errs) > 0 {
@@ -142,6 +142,16 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res.Send(response.Content)
+}
+
+// replaceRequestResource replaces the resource in the request with the given one.
+// Our services might get the extra prefix from the service name but the OpenAPI spec doesn't have it:
+// so validation will fail.
+func replaceRequestResource(req *http.Request, resource string) *http.Request {
+	newReq := new(http.Request)
+	*newReq = *req
+	newReq.URL = newReq.URL.ResolveReference(&url.URL{Path: resource})
+	return newReq
 }
 
 // ResourceGeneratePayload is a payload for generating resources.

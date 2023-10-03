@@ -1,4 +1,4 @@
-package connexions
+package api
 
 import (
 	"encoding/json"

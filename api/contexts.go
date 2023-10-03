@@ -1,7 +1,8 @@
-package connexions
+package api
 
 import (
 	"fmt"
+	"github.com/cubahno/connexions"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -111,13 +112,13 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 
 	// ignore result as we need to reload them all because of the possible cross-references in aliases
-	_, err := ParseContextFromBytes([]byte(content), fakes)
+	_, err := connexions.ParseContextFromBytes([]byte(content), connexions.Fakes)
 	if err != nil {
 		h.Error(http.StatusBadRequest, "Invalid context: "+err.Error(), w)
 		return
 	}
 
-	if err = SaveFile(filePath, []byte(content)); err != nil {
+	if err = connexions.SaveFile(filePath, []byte(content)); err != nil {
 		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}

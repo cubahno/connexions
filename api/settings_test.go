@@ -1,8 +1,9 @@
 //go:build !integration
 
-package connexions
+package api
 
 import (
+	"github.com/cubahno/connexions"
 	assert2 "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -66,7 +67,7 @@ app:
 	t.Run("post", func(t *testing.T) {
 		// save invalid config
 		filePath := router.Config.App.Paths.ConfigFile
-		err = SaveFile(filePath, []byte(""))
+		err = connexions.SaveFile(filePath, []byte(""))
 		assert.Nil(err)
 
 		// now restore it
