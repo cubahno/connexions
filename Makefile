@@ -3,7 +3,7 @@ IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 
-MIN_COVERAGE = 97
+MIN_COVERAGE = 99
 
 define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
@@ -18,11 +18,7 @@ lint:
 
 .PHONY: test
 test:
-	@if [ "$(with_docker)" = "true" ]; then \
-		$(call docker-cmd, sh -c "/wait && go test -race $(go list ./... | grep -v /resources/) -coverprofile .testCoverage.txt -count=1"); \
-	else \
-		go test -race $(go list ./... | grep -v /resources/ | grep -v /cmd/) -coverprofile .testCoverage.txt -count=1; \
-	fi;
+	go test -race -coverpkg=$(go list ./... | grep -v /resources/) -coverprofile .testCoverage.txt -count=1 ./...
 
 .PHONY: test-integration
 test-integration:

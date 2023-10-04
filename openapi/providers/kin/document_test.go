@@ -5,6 +5,7 @@ package kin
 import (
 	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/providers"
 	"github.com/getkin/kin-openapi/openapi3"
 	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
@@ -24,20 +25,20 @@ func TestNewDocumentFromFile(t *testing.T) {
 }
 
 func TestDocument(t *testing.T) {
-	assert := assert2.New(t)
-	t.Parallel()
-	testData := filepath.Join("..", "..", "..", "testdata")
-	filePath := filepath.Join(testData, "document-petstore.yml")
-	res, err := NewDocumentFromFile(filePath)
-	assert.Nil(err)
-
-	assert.Equal(config.KinOpenAPIProvider, res.Provider())
-	assert.Greater(len(res.GetResources()), 0)
+	tc := &providers.DocumentTestCase{
+		DocFactory: NewDocumentFromFile,
+	}
+	tc.Run(t)
 }
 
-func TestKinOperation(t *testing.T) {
+func TestOperation(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
+
+	tc := &providers.OperationTestCase{
+		DocFactory: NewDocumentFromFile,
+	}
+	tc.Run(t)
 
 	t.Run("ID", func(t *testing.T) {
 		operation := &KinOperation{Operation: &openapi3.Operation{
@@ -138,10 +139,28 @@ func TestKinOperation(t *testing.T) {
 	})
 }
 
-func TestNewSchemaFromKin(t *testing.T) {
+func TestNewSchema(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 	testData := filepath.Join("..", "..", "..", "testdata")
+
+	t.Run("NewSchemaSuite", func(t *testing.T) {
+		getSchema := func(t *testing.T, fileName, componentID string, parseConfig *config.ParseConfig) *openapi.Schema {
+			t.Helper()
+			kinDoc, err := NewDocumentFromFile(filepath.Join(testData, fileName))
+			assert.Nil(err)
+			doc := kinDoc.(*Document)
+			kinSchema := doc.Components.Schemas[componentID].Value
+			assert.NotNil(kinSchema)
+
+			return NewSchemaFromKin(kinSchema, parseConfig)
+		}
+		tc := &providers.NewSchemaTestSuite{
+			SchemaFactory: getSchema,
+		}
+
+		tc.Run(t)
+	})
 
 	t.Run("nested-all-of", func(t *testing.T) {
 		target := openapi3.NewSchema()
@@ -206,7 +225,7 @@ func TestNewSchemaFromKin(t *testing.T) {
 	})
 }
 
-func TestMergeKinSubSchemas(t *testing.T) {
+func TestMergeSubSchemas(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
@@ -266,7 +285,7 @@ func TestMergeKinSubSchemas(t *testing.T) {
 	})
 }
 
-func TestPickKinSchemaProxy(t *testing.T) {
+func TestPickSchemaProxy(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
@@ -291,7 +310,7 @@ func TestPickKinSchemaProxy(t *testing.T) {
 	})
 }
 
-func TestGetKinAdditionalProperties(t *testing.T) {
+func TestGetAdditionalProperties(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 

@@ -37,6 +37,21 @@ func TestValidator_ValidateRequest(t *testing.T) {
 	tc.MissingRequired(t, []string{`missing properties: 'name'`})
 }
 
+func TestValidator_ValidateRequest_NonJSON(t *testing.T) {
+	assert := require.New(t)
+	testData := filepath.Join("..", "..", "..", "testdata")
+	doc, err := NewDocumentFromFile(filepath.Join(testData, "document-connexions.yml"))
+	assert.Nil(err)
+	validator := NewValidator(doc)
+
+	tc := &providers.RequestValidatorTestCase{
+		Doc:       doc,
+		Validator: validator,
+	}
+
+	tc.FormPayload(t, nil)
+}
+
 func TestValidator_ValidateResponse(t *testing.T) {
 	assert := require.New(t)
 	testData := filepath.Join("..", "..", "..", "testdata")
@@ -57,17 +72,32 @@ func TestValidator_ValidateResponse(t *testing.T) {
 	tc.NoResponseSchema(t, nil)
 }
 
-func TestValidator_NonJSON_ValidateResponse(t *testing.T) {
+func TestValidator_ValidateResponse_NonJSON(t *testing.T) {
 	assert := require.New(t)
 	testData := filepath.Join("..", "..", "..", "testdata")
 	doc, err := NewDocumentFromFile(filepath.Join(testData, "document-with-other-responses.yml"))
 	assert.Nil(err)
 	validator := NewValidator(doc)
 
-	tc := &providers.ResponseValidatorNonJsonTestCase{
+	tc := &providers.ResponseValidatorTestCase{
 		Doc:       doc,
 		Validator: validator,
 	}
 
 	tc.PlainText(t, nil)
+}
+
+func TestValidator_ValidateResponse_NoSchema(t *testing.T) {
+	assert := require.New(t)
+	testData := filepath.Join("..", "..", "..", "testdata")
+	doc, err := NewDocumentFromFile(filepath.Join(testData, "document-without-response.yml"))
+	assert.Nil(err)
+	validator := NewValidator(doc)
+
+	tc := &providers.ResponseValidatorTestCase{
+		Doc:       doc,
+		Validator: validator,
+	}
+
+	tc.NoSchemaResponse(t, nil)
 }

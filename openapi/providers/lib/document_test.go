@@ -5,6 +5,7 @@ package lib
 import (
 	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/providers"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	assert2 "github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
@@ -26,7 +27,7 @@ func GetLibYamlExpectations(t *testing.T, schema *openapi.Schema, expected strin
 	return expectedYaml, resYaml, renderedYaml
 }
 
-func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
+func TestNewDocumentFromFile(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
@@ -57,7 +58,21 @@ func TestNewLibOpenAPIDocumentFromFile(t *testing.T) {
 	})
 }
 
-func TestNewSchemaFromLibOpenAPI(t *testing.T) {
+func TestDocument(t *testing.T) {
+	tc := &providers.DocumentTestCase{
+		DocFactory: NewDocumentFromFile,
+	}
+	tc.Run(t)
+}
+
+func TestOperation(t *testing.T) {
+	tc := &providers.OperationTestCase{
+		DocFactory: NewDocumentFromFile,
+	}
+	tc.Run(t)
+}
+
+func TestNewSchema(t *testing.T) {
 	t.Parallel()
 	assert := assert2.New(t)
 
@@ -65,6 +80,24 @@ func TestNewSchemaFromLibOpenAPI(t *testing.T) {
 	libDoc, err := NewDocumentFromFile(filepath.Join(testData, "document-person-with-friends.yml"))
 	assert.Nil(err)
 	doc := libDoc.(*V3Document)
+
+	t.Run("NewSchemaSuite", func(t *testing.T) {
+		getSchema := func(t *testing.T, fileName, componentID string, parseConfig *config.ParseConfig) *openapi.Schema {
+			t.Helper()
+			d, err := NewDocumentFromFile(filepath.Join(testData, fileName))
+			assert.Nil(err)
+			v3Doc := d.(*V3Document)
+			libSchema := v3Doc.Model.Components.Schemas[componentID].Schema()
+			assert.NotNil(libSchema)
+
+			return NewSchema(libSchema, parseConfig)
+		}
+		tc := &providers.NewSchemaTestSuite{
+			SchemaFactory: getSchema,
+		}
+
+		tc.Run(t)
+	})
 
 	t.Run("no-schema", func(t *testing.T) {
 		res := NewSchema(nil, nil)

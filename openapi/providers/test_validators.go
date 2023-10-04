@@ -1,9 +1,11 @@
 package providers
 
 import (
+	"bytes"
 	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/openapi"
 	"github.com/stretchr/testify/assert"
+	"mime/multipart"
 	"net/http"
 	"strings"
 	"testing"
@@ -158,12 +160,7 @@ func (tc *ResponseValidatorTestCase) NoResponseSchema(t *testing.T, expectedErro
 	}
 }
 
-type ResponseValidatorNonJsonTestCase struct {
-	Doc       openapi.Document
-	Validator openapi.Validator
-}
-
-func (tc *ResponseValidatorNonJsonTestCase) PlainText(t *testing.T, expectedErrors []string) {
+func (tc *ResponseValidatorTestCase) PlainText(t *testing.T, expectedErrors []string) {
 	doc := tc.Doc
 	validator := tc.Validator
 
@@ -176,6 +173,31 @@ func (tc *ResponseValidatorNonJsonTestCase) PlainText(t *testing.T, expectedErro
 		Content:     []byte(`Hallo, Welt!`),
 		Headers: http.Header{
 			"Content-Type": []string{"text/plain"},
+		},
+		Request:   req,
+		Operation: op,
+	}
+	errs := validator.ValidateResponse(res)
+
+	assert.Equal(t, len(expectedErrors), len(errs))
+	for i, expectedErr := range expectedErrors {
+		assert.Contains(t, errs[i].Error(), expectedErr)
+	}
+}
+
+func (tc *ResponseValidatorTestCase) NoSchemaResponse(t *testing.T, expectedErrors []string) {
+	doc := tc.Doc
+	validator := tc.Validator
+
+	req, _ := http.NewRequest(http.MethodGet, "http://example.com/", nil)
+	op := doc.FindOperation(&openapi.OperationDescription{Resource: "/", Method: http.MethodGet})
+
+	res := &openapi.GeneratedResponse{
+		StatusCode:  http.StatusOK,
+		ContentType: "application/json",
+		Content:     nil,
+		Headers: http.Header{
+			"Content-Type": []string{"application/json"},
 		},
 		Request:   req,
 		Operation: op,
@@ -208,8 +230,9 @@ func (tc *RequestValidatorTestCase) BaseCase(t *testing.T, expectedErrors []stri
 
 	op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: http.MethodPost})
 	errs := validator.ValidateRequest(&openapi.GeneratedRequest{
-		Operation: op,
-		Request:   req,
+		ContentType: req.Header.Get("Content-Type"),
+		Operation:   op,
+		Request:     req,
 	})
 
 	assert.Equal(t, len(expectedErrors), len(errs))
@@ -258,6 +281,36 @@ func (tc *RequestValidatorTestCase) MissingRequired(t *testing.T, expectedErrors
 	req.Header.Set("Content-Type", "application/json")
 
 	op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: http.MethodPost})
+	errs := validator.ValidateRequest(&openapi.GeneratedRequest{
+		ContentType: req.Header.Get("Content-Type"),
+		Operation:   op,
+		Request:     req,
+	})
+
+	assert.Equal(t, len(expectedErrors), len(errs))
+	for i, expectedErr := range expectedErrors {
+		assert.Contains(t, errs[i].Error(), expectedErr)
+	}
+}
+
+func (tc *RequestValidatorTestCase) FormPayload(t *testing.T, expectedErrors []string) {
+	doc := tc.Doc
+	validator := tc.Validator
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	_ = writer.WriteField("path", "petstore")
+	_ = writer.Close()
+
+	req, err := http.NewRequest(http.MethodPost, "http://example.com/.ui/import", &body)
+	if err != nil {
+		t.Errorf("Error creating GeneratedRequest: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	op := doc.FindOperation(&openapi.OperationDescription{Resource: "/.ui/import", Method: http.MethodPost})
 	errs := validator.ValidateRequest(&openapi.GeneratedRequest{
 		ContentType: req.Header.Get("Content-Type"),
 		Operation:   op,

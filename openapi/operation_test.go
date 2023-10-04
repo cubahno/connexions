@@ -35,7 +35,7 @@ func TestEncodeContent(t *testing.T) {
 	})
 
 	t.Run("JSON Content", func(t *testing.T) {
-		content := map[string]interface{}{
+		content := map[string]any{
 			"key1": "value1",
 			"key2": 42,
 		}
@@ -125,7 +125,7 @@ func TestCreateCURLBody(t *testing.T) {
 	t.Run("FormURLEncoded", func(t *testing.T) {
 		t.Parallel()
 
-		content := map[string]interface{}{
+		content := map[string]any{
 			"name":  "John",
 			"age":   30,
 			"email": "john@example.com",
@@ -159,7 +159,7 @@ func TestCreateCURLBody(t *testing.T) {
 	t.Run("MultipartFormData", func(t *testing.T) {
 		t.Parallel()
 
-		content := map[string]interface{}{
+		content := map[string]any{
 			"name":  "Jane",
 			"age":   25,
 			"email": "jane@example.com",
@@ -193,7 +193,7 @@ func TestCreateCURLBody(t *testing.T) {
 	t.Run("JSON", func(t *testing.T) {
 		t.Parallel()
 
-		content := map[string]interface{}{
+		content := map[string]any{
 			"name":  "Alice",
 			"age":   28,
 			"email": "alice@example.com",
@@ -205,6 +205,19 @@ func TestCreateCURLBody(t *testing.T) {
 		enc, _ := json.Marshal(content)
 		expected := fmt.Sprintf("--data-raw '%s'", string(enc))
 		assert.Equal(expected, result)
+	})
+
+	t.Run("JSON-invalid", func(t *testing.T) {
+		t.Parallel()
+
+		content := map[string]any{
+			"name":  "Alice",
+			"email": func() {},
+		}
+
+		result, err := CreateCURLBody(content, "application/json")
+		assert.Error(err)
+		assert.Equal("", result)
 	})
 
 	t.Run("XML", func(t *testing.T) {

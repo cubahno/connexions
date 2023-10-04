@@ -16,7 +16,10 @@ import (
 // It uses libopenapi to parse the file and then builds a model.
 // Circular references are handled by logging the error and returning Document without errors.
 func NewDocumentFromFile(filePath string) (openapi.Document, error) {
-	src, _ := os.ReadFile(filePath)
+	src, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
 
 	lib, err := libopenapi.NewDocument(src)
 	if err != nil {
