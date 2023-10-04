@@ -18,7 +18,7 @@ lint:
 
 .PHONY: test
 test:
-	go test -race -coverpkg=$(go list ./... | grep -v /resources/) -coverprofile .testCoverage.txt -count=1 ./...
+	go test -race -coverpkg=$(go list ./... | grep -v /examples/) -coverprofile .testCoverage.txt -count=1 ./...
 
 .PHONY: test-integration
 test-integration:

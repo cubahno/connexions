@@ -1,5 +1,5 @@
 
-Usage in `docker-compose` is not much different from the [docker](/usage-in-docker). <br/>
+Usage in `docker-compose` is not much different from the [docker](example-docker.md). <br/>
 
 ```yaml title="docker-compose.yml"
 version: '3'

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Connexions
   description: Connexions
-  version: 1.0.0
+  version: v0.1.18
   contact:
     name: cubahno
 servers:
@@ -12,6 +12,8 @@ paths:
     get:
       summary: Export data
       description: Export Services and Contexts in zip format
+      tags:
+        - home
       operationId: getExport
       responses:
         '200':
@@ -31,6 +33,8 @@ paths:
     post:
       summary: Import data
       description: Import Services and Contexts from zip file
+      tags:
+        - home
       operationId: postImport
       requestBody:
         content:
@@ -61,6 +65,8 @@ paths:
     get:
       summary: Get services
       description: Get list of served services
+      tags:
+        - services
       operationId: getServices
       responses:
         '200':
@@ -72,6 +78,8 @@ paths:
     post:
       summary: Add service
       description: Add new service
+      tags:
+        - services
       operationId: postService
       requestBody:
         content:
@@ -95,6 +103,8 @@ paths:
     get:
       summary: Get service resources
       description: Get service resources by name
+      tags:
+        - services
       operationId: getServiceResources
       parameters:
         - name: name
@@ -120,6 +130,8 @@ paths:
     delete:
       summary: Delete service
       description: Delete service by name
+      tags:
+        - services
       operationId: deleteService
       parameters:
         - name: name
@@ -146,6 +158,8 @@ paths:
     get:
       summary: Get service spec
       description: Get service OpenAPI definition
+      tags:
+        - services
       operationId: getServiceSpec
       parameters:
         - name: name
@@ -189,6 +203,8 @@ paths:
     get:
       summary: Get service resource details
       description: Get service resource details by name and route id
+      tags:
+        - services
       operationId: getServiceResource
       parameters:
         - name: name
@@ -233,6 +249,8 @@ paths:
     post:
       summary: Generate request and response
       description: Generate resource parameters by name and route id
+      tags:
+        - services
       operationId: postServiceResource
       parameters:
         - name: name
@@ -282,6 +300,8 @@ paths:
     delete:
       summary: Delete resource
       description: Delete resource by service name and route id
+      tags:
+        - services
       operationId: deleteServiceResource
       parameters:
         - name: name
@@ -327,6 +347,8 @@ paths:
     get:
       summary: Get settings
       description: Get settings
+      tags:
+        - settings
       operationId: getSettings
       responses:
         '200':
@@ -343,6 +365,8 @@ paths:
     put:
       summary: Update settings
       description: Update settings
+      tags:
+        - settings
       operationId: putSettings
       requestBody:
         content:
@@ -376,6 +400,8 @@ paths:
     post:
       summary: Restore settings
       description: Restore initial settings
+      tags:
+        - settings
       operationId: postSettings
       responses:
         '200':
@@ -394,6 +420,8 @@ paths:
     get:
       summary: Get contexts
       description: Get list of contexts
+      tags:
+        - contexts
       operationId: getContexts
       responses:
         '200':
@@ -405,6 +433,8 @@ paths:
     put:
       summary: Add context
       description: Add new context or replace existing one
+      tags:
+        - contexts
       operationId: putContext
       requestBody:
         content:
@@ -434,6 +464,8 @@ paths:
     get:
       summary: Get context
       description: Get context by name
+      tags:
+        - contexts
       operationId: getContext
       parameters:
         - name: name
@@ -460,6 +492,8 @@ paths:
     delete:
       summary: Delete context
       description: Delete context by name
+      tags:
+        - contexts
       operationId: deleteContext
       parameters:
         - name: name

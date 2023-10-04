@@ -39,6 +39,8 @@ docker run -it --rm \
 
 Read full documentation at [cubahno.github.io/connexions](https://cubahno.github.io/connexions//).
 
+[OpenAPI Specification](https://editor.swagger.io/?url=https://raw.githubusercontent.com/cubahno/connexions/master/resources/openapi.yml)
+
 License
 ===================
 Copyright (c) 2023-present
