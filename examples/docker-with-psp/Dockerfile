@@ -1,4 +1,4 @@
-FROM cubahno/connexions:v0.1.16
+FROM cubahno/connexions:latest
 
 # clean start
 RUN rm -rf /app/resources/data/services
