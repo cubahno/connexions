@@ -131,7 +131,8 @@ export const show = (selected = '') => {
                                     commons.showSuccessOrError(res.message, res.success);
                                 }, 300)
                                 if (res.success) {
-                                    location.reload(true);
+                                    location.hash = `#/services`;
+                                    show();
                                 }
                             });
                     }
