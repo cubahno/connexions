@@ -443,8 +443,55 @@
             <div class="main-container">
                 <div class="left-container" id="code-editor"></div>
                 <div class="right-container">
-                    <button id="settings-save-button" class="save-button">Save</button>&nbsp;
-                    <button id="settings-default-save-button" class="save-alt-button">Restore Default</button>
+                    <table>
+                        <tr>
+                            <td>
+                                <div>
+                                    <button id="settings-save-button" class="save-button">Save</button>&nbsp;
+                                    <button id="settings-default-save-button" class="save-alt-button">Restore Default</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display: block;clear: left;">
+                                    <b>Reference:</b>
+                                    <pre class="code" style="text-align: left;font-size:0.8rem;">
+app:
+  editor:
+    theme: chrome
+    fontSize: 12
+
+services:
+  petstore:
+    latency: 0s
+
+    errors:
+      chance: 0%
+      codes:
+        400: 50%
+        500: 50%
+
+    contexts:
+      - common:
+      - fake: pet
+      - fake: gamer
+
+    parseConfig:
+      maxLevels: 6
+      maxRecursionLevels: 0
+
+    validate:
+      request: true
+      response: false
+
+    cache:
+      schema: true
+                                    </pre>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>

@@ -4,7 +4,7 @@ app:
   disableSwaggerUI: false
   editor:
     theme: chrome
-    fontSize: 12
+    fontSize: 16
 services:
   adyen:
     errors:
@@ -19,3 +19,5 @@ services:
         400: 50%
         401: 25%
         403: 25%
+  stripe:
+    latency: 123ms

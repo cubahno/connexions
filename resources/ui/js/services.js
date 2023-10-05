@@ -127,13 +127,12 @@ export const show = (selected = '') => {
                         })
                             .then(res => res.json())
                             .then(res => {
-                                if (res.success) {
-                                    navi.resetContents()
-                                }
                                 window.setTimeout(_ => {
                                     commons.showSuccessOrError(res.message, res.success);
                                 }, 300)
-                                location.hash = `#/services`;
+                                if (res.success) {
+                                    location.reload(true);
+                                }
                             });
                     }
                 });
