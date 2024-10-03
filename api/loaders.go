@@ -143,7 +143,7 @@ func loadContexts(router *Router) error {
 	}()
 
 	// Collect results
-	contexts := make(map[string]map[string]any)
+	cts := make(map[string]map[string]any)
 	aliases := make(map[string]map[string]string)
 
 	for p := range ch {
@@ -156,7 +156,7 @@ func loadContexts(router *Router) error {
 		name := base[0 : len(base)-len(ext)]
 		log.Printf("Adding context: %s from %s", name, filepath.Base(p.filePath))
 
-		contexts[name] = p.ctx.Result
+		cts[name] = p.ctx.Result
 		aliases[name] = p.ctx.Aliases
 	}
 
@@ -165,8 +165,8 @@ func loadContexts(router *Router) error {
 		for ctxSourceKey, aliasTarget := range requiredAliases {
 			parts := strings.Split(aliasTarget, ".")
 			ns, nsPath := parts[0], strings.Join(parts[1:], ".")
-			if res := internal.GetValueByDottedPath(contexts[ns], nsPath); res != nil {
-				internal.SetValueByDottedPath(contexts[ctxName], ctxSourceKey, res)
+			if res := internal.GetValueByDottedPath(cts[ns], nsPath); res != nil {
+				internal.SetValueByDottedPath(cts[ctxName], ctxSourceKey, res)
 			} else {
 				log.Printf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey)
 			}
@@ -174,15 +174,25 @@ func loadContexts(router *Router) error {
 	}
 
 	var defaultNamespaces []map[string]string
-	res := make(map[string]map[string]any, 0)
+	res := make(map[string]map[string]any)
 
-	for ctxNamespace, fileCollection := range contexts {
+	for ctxNamespace, fileCollection := range cts {
 		// take complete namespace
 		defaultNamespaces = append(defaultNamespaces, map[string]string{ctxNamespace: ""})
 
-		res[ctxNamespace] = make(map[string]any, 0)
+		res[ctxNamespace] = make(map[string]any)
 		for name, subCtx := range fileCollection {
 			res[ctxNamespace][name] = subCtx
+		}
+	}
+
+	// Set fake contexts if no contexts are defined
+	if len(res) == 0 {
+		res["fake"] = make(map[string]any)
+		defaultNamespaces = append(defaultNamespaces, map[string]string{"fake": ""})
+		for name, fakeFunc := range contexts.Fakes {
+			// this allows to use names like {fake:uuid.v4} in response templates
+			res["fake"]["fake:"+name] = fakeFunc
 		}
 	}
 

@@ -13,7 +13,7 @@ func main() {
 	baseDir := filepath.Dir(filepath.Dir(filepath.Dir(b)))
 	_ = godotenv.Load()
 
-	config := config.MustConfig(baseDir)
-	app := api.NewApp(config)
+	cfg := config.MustConfig(baseDir)
+	app := api.NewApp(cfg)
 	app.Run()
 }

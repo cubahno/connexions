@@ -65,9 +65,11 @@ nav:
       - 'Welcome to Connexions': 'index.md'
   - Usage:
       - Services: 'services.md'
-      - 'Contexts': 'contexts.md'
+      - Contexts: 'contexts.md'
       - Settings: 'settings.md'
   - Examples:
-      - 'Docker': 'example-docker.md'
+      - Docker: 'example-docker.md'
       - 'Docker-Compose': 'example-docker-compose.md'
       - 'As Library': 'example-as-library.md'
+  - Fakes:
+      - List of aliases: 'fake-list.md'

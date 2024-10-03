@@ -36,8 +36,8 @@ func registerOpenAPIRoutes(fileProps *connexions.FileProperties, router *Router)
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := contexts.CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, contexts)
+	cts := contexts.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, cts)
 
 	handler := &OpenAPIHandler{
 		router:        router,

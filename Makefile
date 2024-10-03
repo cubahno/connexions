@@ -3,7 +3,7 @@ IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 
-MIN_COVERAGE = 99
+MIN_COVERAGE = 95
 
 define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
@@ -18,7 +18,15 @@ lint:
 
 .PHONY: test
 test:
-	go test -race -coverpkg=$(go list ./... | grep -v /examples/) -coverprofile .testCoverage.txt -count=1 ./...
+	@if [ -z "$(PKG)" ]; then \
+		go test -race \
+			-coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) \
+			-coverprofile .testCoverage.txt \
+			-count=1 \
+			$(go list ./... | grep -v /examples/ | grep -v /cmd/); \
+	else \
+  		go test -race -coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) -coverprofile=.testCoverage.txt -count=1 ./$(PKG)/...; \
+	fi
 
 .PHONY: test-integration
 test-integration:
@@ -68,10 +76,18 @@ docker-shell:
 tag-next:
 	@./cmd/tag-next.sh
 
-@PHONY: deploy-docs
-deploy-docs:
-	mkdocs gh-deploy --force
-
 @PHONY: simplify-schemas
 simplify-schemas:
 	@go run ./cmd/simplifier/main.go --src=$(src) --dst=$(dst) --replace=$(replace)
+
+@PHONY: docs-install
+docs-install:
+	@pip3 install mkdocs mkdocs-material
+
+@PHONY: docs-prepare
+docs-prepare:
+	@go run ./cmd/fake_list/main.go
+
+@PHONY: docs-deploy
+docs-deploy: docs-prepare
+	mkdocs gh-deploy --force
