@@ -73,7 +73,7 @@ jobs:
         echo "TOTAL_COVERAGE=$total" >> $GITHUB_ENV
 
     - name: "Make coverage badge"
-      uses: schneegans/dynamic-badges-action@v1.4.0
+      uses: schneegans/dynamic-badges-action@v1.7.0
       with:
         auth: ${{ secrets.GIST_WRITER }}
         gistID: 4110782af3ec09dd1ebabc3304756f1f
