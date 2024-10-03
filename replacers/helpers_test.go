@@ -1,7 +1,7 @@
 package replacers
 
 import (
-	"github.com/jaswdr/faker"
+	"github.com/jaswdr/faker/v2"
 )
 
 func NewTestReplaceContext(schema any) *ReplaceContext {

@@ -1,4 +1,4 @@
-FROM golang:1.21 as builder
+FROM golang:1.23 as builder
 
 RUN apt-get update && apt-get install -y git nano
 
@@ -7,7 +7,7 @@ COPY . .
 RUN make build
 RUN git describe --tags --abbrev=0 > version.txt
 
-FROM golang:1.21
+FROM golang:1.23
 WORKDIR /app
 COPY --from=builder /app/.build/server/bootstrap /usr/local/bin/api
 COPY --from=builder /app/.build/simplifier/bootstrap /usr/local/bin/simplify-schemas
