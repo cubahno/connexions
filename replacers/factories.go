@@ -4,7 +4,7 @@ import (
 	"github.com/cubahno/connexions/config"
 	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/openapi"
-	"github.com/jaswdr/faker"
+	"github.com/jaswdr/faker/v2"
 	"reflect"
 )
 

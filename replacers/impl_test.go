@@ -7,7 +7,7 @@ import (
 	"github.com/cubahno/connexions/contexts"
 	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/openapi"
-	"github.com/jaswdr/faker"
+	"github.com/jaswdr/faker/v2"
 	assert2 "github.com/stretchr/testify/assert"
 	"net"
 	"strings"

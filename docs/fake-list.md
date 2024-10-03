@@ -124,6 +124,7 @@ fake:music.name
 fake:payment.credit_card_expiration_date_string
 fake:payment.credit_card_number
 fake:payment.credit_card_type
+fake:payment.iban
 fake:person.first_name
 fake:person.first_name_female
 fake:person.first_name_male

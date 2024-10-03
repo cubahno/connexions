@@ -2,7 +2,7 @@ package contexts
 
 import (
 	"github.com/cubahno/connexions/internal"
-	"github.com/jaswdr/faker"
+	"github.com/jaswdr/faker/v2"
 	"reflect"
 )
 
