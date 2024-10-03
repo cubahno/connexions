@@ -4,6 +4,7 @@ package api
 
 import (
 	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/contexts"
 	assert2 "github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -116,4 +117,20 @@ func TestLoadContexts(t *testing.T) {
 
 	res := router.contexts
 	assert.Equal(2, len(res))
+}
+
+func TestLoadContextsWithoutFilesLoadsFakes(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	_ = loadContexts(router)
+
+	res := router.contexts
+	assert.Equal(1, len(res))
+	assert.Equal(len(contexts.Fakes), len(res["fake"]))
 }

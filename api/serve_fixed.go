@@ -49,8 +49,8 @@ func createFixedResponseHandler(router *Router, fileProps *connexions.FileProper
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	contexts := contexts.CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, contexts)
+	cts := contexts.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, cts)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if HandleErrorAndLatency(serviceCfg, w) {
