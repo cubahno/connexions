@@ -1,0 +1,262 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "description": "Main configuration schema for Connexions",
+  "properties": {
+    "app": {
+      "type": "object",
+      "description": "Application-specific settings",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Port number for the application"
+        },
+        "contextAreaPrefix": {
+          "type": "string",
+          "description": "Prefix for context area URLs"
+        },
+        "contextUrl": {
+          "type": "string",
+          "description": "URL for accessing contexts"
+        },
+        "createFileStructure": {
+          "type": "boolean",
+          "description": "Whether to create file structure"
+        },
+        "disableSwaggerUI": {
+          "type": "boolean",
+          "description": "Disables Swagger UI if set to true"
+        },
+        "disableUI": {
+          "type": "boolean",
+          "description": "Disables the main UI if set to true"
+        },
+        "editor": {
+          "type": "object",
+          "description": "Settings for the built-in editor",
+          "properties": {
+            "fontSize": {
+              "type": "integer",
+              "description": "Font size for the editor"
+            },
+            "theme": {
+              "type": "string",
+              "description": "Theme for the editor"
+            }
+          }
+        },
+        "homeURL": {
+          "type": "string",
+          "description": "URL for the home UI"
+        },
+        "paths": {
+          "type": "object",
+          "description": "File path settings",
+          "properties": {
+            "base": {
+              "type": "string",
+              "description": "Base directory for the project"
+            },
+            "callbacks": {
+              "type": "string",
+              "description": "Directory for callback data"
+            },
+            "configfile": {
+              "type": "string",
+              "description": "Path to the configuration file"
+            },
+            "contexts": {
+              "type": "string",
+              "description": "Directory for context data"
+            },
+            "data": {
+              "type": "string",
+              "description": "Directory for general data"
+            },
+            "docs": {
+              "type": "string",
+              "description": "Directory for documentation"
+            },
+            "resources": {
+              "type": "string",
+              "description": "Directory for general resources"
+            },
+            "samples": {
+              "type": "string",
+              "description": "Directory for sample files"
+            },
+            "services": {
+              "type": "string",
+              "description": "Directory for service configurations"
+            },
+            "servicesfixedroot": {
+              "type": "string",
+              "description": "Directory for fixed root service data"
+            },
+            "servicesopenapi": {
+              "type": "string",
+              "description": "Directory for OpenAPI service data"
+            },
+            "ui": {
+              "type": "string",
+              "description": "Directory for the UI resources"
+            }
+          }
+        },
+        "schemaProvider": {
+          "type": "string",
+          "description": "Provider for API schema generation"
+        },
+        "serviceURL": {
+          "type": "string",
+          "description": "URL for accessing services"
+        },
+        "settingsURL": {
+          "type": "string",
+          "description": "URL for accessing settings"
+        }
+      }
+    },
+    "basedir": {
+      "type": "string",
+      "description": "Base directory for the project"
+    },
+    "services": {
+      "type": "object",
+      "description": "Configuration for services. Keys are service names.",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "type": "object",
+          "description": "Configuration for a single service",
+          "properties": {
+            "upstream": {
+              "type": "object",
+              "description": "Upstream service configuration",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "Upstream service URL"
+                },
+                "httpOptions": {
+                  "type": "object",
+                  "description": "HTTP options for the upstream service",
+                  "properties": {
+                    "headers": {
+                      "type": "object",
+                      "description": "Headers to send with the upstream request",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "requestTransformer": {
+                      "type": "string",
+                      "description": "Request transformer to modify the upstream request"
+                    }
+                  }
+                }
+              }
+            },
+            "failOn": {
+              "type": "object",
+              "description": "Conditions under which the request to upstream fails",
+              "properties": {
+                "timeOut": {
+                  "type": "string",
+                  "description": "Timeout duration for the upstream request"
+                },
+                "httpStatus": {
+                  "type": "array",
+                  "description": "List of HTTP statuses that should trigger a failure",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "exact": {
+                        "type": "integer",
+                        "description": "Exact status code to fail on"
+                      },
+                      "range": {
+                        "type": "string",
+                        "description": "Range of status codes to fail on (e.g., 400-499)"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "responseTransformer": {
+              "type": "string",
+              "description": "Transformer for the response from the upstream"
+            },
+            "latency": {
+              "type": "string",
+              "description": "Simulated latency for the service"
+            },
+            "errors": {
+              "type": "object",
+              "description": "Error simulation settings",
+              "properties": {
+                "chance": {
+                  "type": "string",
+                  "description": "Chance of error occurrence (in percentage) with % sign"
+                },
+                "codes": {
+                  "type": "object",
+                  "description": "Error codes to simulate and their probabilities",
+                  "additionalProperties": {
+                    "type": "string",
+                    "description": "Chance of returning this error code (in percentage) with % sign"
+                  }
+                }
+              }
+            },
+            "contexts": {
+              "type": "array",
+              "description": "List of contexts associated with the service",
+              "items": {
+                "type": "string"
+              }
+            },
+            "parseConfig": {
+              "type": "object",
+              "description": "Configuration for parsing service responses",
+              "properties": {
+                "maxLevels": {
+                  "type": "integer",
+                  "description": "Maximum levels to parse"
+                },
+                "maxRecursionLevels": {
+                  "type": "integer",
+                  "description": "Maximum recursion levels allowed"
+                }
+              }
+            },
+            "validate": {
+              "type": "object",
+              "description": "Request and response validation settings",
+              "properties": {
+                "request": {
+                  "type": "boolean",
+                  "description": "Whether to validate the request"
+                },
+                "response": {
+                  "type": "boolean",
+                  "description": "Whether to validate the response"
+                }
+              }
+            },
+            "cache": {
+              "type": "object",
+              "description": "Cache settings for the service",
+              "properties": {
+                "schema": {
+                  "type": "boolean",
+                  "description": "Whether to cache the schema"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

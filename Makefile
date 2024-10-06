@@ -45,6 +45,10 @@ test-with-check-coverage: test
 clean:
 	rm -rf ${build_dir}
 
+.PHONY: clean-cache
+clean-cache:
+	go clean -cache -modcache -i -r
+
 .PHONY: build
 build: clean
 	@GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./cmd/server/main.go

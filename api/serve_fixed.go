@@ -25,9 +25,22 @@ func registerFixedRoute(fileProps *connexions.FileProperties, router *Router) *R
 		resources = append(resources, baseResource+"/"+fileProps.FileName)
 	}
 
+	config := router.Config
+	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
+
 	// register all routes
 	for _, resource := range resources {
-		router.Method(fileProps.Method, resource, createFixedResponseHandler(router, fileProps))
+		mwParams := &MiddlewareParams{
+			ServiceConfig:  serviceCfg,
+			Service:        fileProps.ServiceName,
+			Resource:       resource,
+			ResourcePrefix: fileProps.Prefix,
+			Plugin:         router.callbacksPlugin,
+		}
+
+		router.
+			With(CreateResponseMiddleware(mwParams)).
+			Method(fileProps.Method, resource, createFixedResponseHandler(router, fileProps))
 	}
 
 	return &RouteDescription{

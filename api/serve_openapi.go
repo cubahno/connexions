@@ -47,9 +47,20 @@ func registerOpenAPIRoutes(fileProps *connexions.FileProperties, router *Router)
 	}
 
 	for resName, resMethods := range fileProps.Spec.GetResources() {
+		mwParams := &MiddlewareParams{
+			ServiceConfig:  serviceCfg,
+			Service:        fileProps.ServiceName,
+			Resource:       resName,
+			ResourcePrefix: fileProps.Prefix,
+			Plugin:         router.callbacksPlugin,
+		}
+
 		for _, method := range resMethods {
 			// register route
-			router.MethodFunc(method, fileProps.Prefix+resName, handler.serve)
+			router.
+				With(CreateUpstreamRequestMiddleware(mwParams)).
+				With(CreateResponseMiddleware(mwParams)).
+				MethodFunc(method, fileProps.Prefix+resName, handler.serve)
 
 			res = append(res, &RouteDescription{
 				Method:      method,
