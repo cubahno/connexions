@@ -8,7 +8,9 @@ import (
 	"github.com/knadh/koanf/providers/rawbytes"
 	"log"
 	"math/rand"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -29,6 +31,8 @@ type Config struct {
 }
 
 type ServiceConfig struct {
+	Upstream *UpstreamConfig `koanf:"upstream" json:"upstream" yaml:"upstream"`
+
 	// Latency is the latency to add to the response.
 	// Latency not used in the services API, only when endpoint queried directly.
 	Latency time.Duration `koanf:"latency" json:"latency" yaml:"latency"`
@@ -48,8 +52,34 @@ type ServiceConfig struct {
 	// It is used to validate the request and/or response outside of the Services API.
 	Validate *ServiceValidateConfig `koanf:"validate" json:"validate" yaml:"validate"`
 
+	// ResponseTransformer is a callback function name which should exist inside callbacks directory and be visible to the plugin.
+	ResponseTransformer string `koanf:"responseTransformer" json:"responseTransformer" yaml:"responseTransformer"`
+
 	// Cache is the cache config.
 	Cache *ServiceCacheConfig `koanf:"cache" json:"cache" yaml:"cache"`
+}
+
+type UpstreamConfig struct {
+	URL         string                     `koanf:"url" json:"url" yaml:"url"`
+	HTTPOptions *UpstreamHTTPOptionsConfig `koanf:"httpOptions" json:"httpOptions" yaml:"httpOptions"`
+	FailOn      *UpstreamFailOnConfig      `koanf:"failOn" json:"failOn" yaml:"failOn"`
+}
+
+type UpstreamHTTPOptionsConfig struct {
+	Headers            map[string]string `koanf:"headers" json:"headers" yaml:"headers"`
+	RequestTransformer string            `koanf:"requestTransformer" json:"requestTransformer" yaml:"requestTransformer"`
+}
+
+type HttpStatusFailOnConfig []HTTPStatusConfig
+
+type UpstreamFailOnConfig struct {
+	TimeOut    time.Duration          `koanf:"timeout" json:"timeout" yaml:"timeout"`
+	HTTPStatus HttpStatusFailOnConfig `koanf:"httpStatus" json:"httpStatus" yaml:"httpStatus"`
+}
+
+type HTTPStatusConfig struct {
+	Exact int    `koanf:"exact" json:"exact" yaml:"exact"`
+	Range string `koanf:"range" json:"range" yaml:"range"`
 }
 
 type ServiceError struct {
@@ -130,7 +160,7 @@ type AppConfig struct {
 	//
 	// for example:
 	// in-path:
-	//   user_id: "fake.ids.int8"
+	//   user_id: "fake:ids.int8"
 	ContextAreaPrefix string `json:"contextAreaPrefix" yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
 
 	// DisableUI is a flag whether to disable the UI.
@@ -194,12 +224,14 @@ func NewPaths(baseDir string) *Paths {
 	resDir := filepath.Join(baseDir, "resources")
 	dataDir := filepath.Join(resDir, "data")
 	svcDir := filepath.Join(dataDir, "services")
+	cbDir := filepath.Join(dataDir, "callbacks")
 
 	return &Paths{
 		Base:      baseDir,
 		Resources: resDir,
 
 		Data:              dataDir,
+		Callbacks:         cbDir,
 		Contexts:          filepath.Join(dataDir, "contexts"),
 		ConfigFile:        filepath.Join(dataDir, "config.yml"),
 		Services:          svcDir,
@@ -306,10 +338,27 @@ func (c *Config) EnsureConfigValues() {
 func (c *Config) transformConfig(k *koanf.Koanf) *koanf.Koanf {
 	transformed := koanf.New(".")
 	for key, value := range k.All() {
-		if v, isString := value.(string); isString && strings.HasSuffix(v, "%") {
-			value = strings.TrimSuffix(v, "%")
+		envKey := strings.ToUpper(internal.ToSnakeCase(key))
+		finalValue := value
+
+		switch v := value.(type) {
+		case int, float64, bool:
+			if envValue, exists := os.LookupEnv(envKey); exists {
+				finalValue = envValue
+			}
+		case string:
+			// Check if the value is a string and ends with '%'
+			if strings.HasSuffix(v, "%") {
+				finalValue = strings.TrimSuffix(v, "%")
+			}
+
+			// Check for corresponding environment variable
+			if envValue, exists := os.LookupEnv(envKey); exists {
+				finalValue = envValue
+			}
 		}
-		_ = transformed.Set(key, value)
+
+		_ = transformed.Set(key, finalValue)
 	}
 	return transformed
 }
@@ -380,6 +429,35 @@ func (s *ServiceError) GetError() int {
 	return defaultErrorCode
 }
 
+func (ss HttpStatusFailOnConfig) Is(status int) bool {
+	for _, s := range ss {
+		if s.Is(status) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s *HTTPStatusConfig) Is(status int) bool {
+	if s.Exact == status {
+		return true
+	}
+
+	rangeParts := strings.Split(s.Range, "-")
+	if len(rangeParts) != 2 {
+		return false
+	}
+
+	lower, err1 := strconv.Atoi(rangeParts[0])
+	upper, err2 := strconv.Atoi(rangeParts[1])
+	if err1 == nil && err2 == nil && status >= lower && status <= upper {
+		return true
+	}
+
+	return false
+}
+
 // MustConfig creates a new config from a YAML file path.
 // In case it file does not exist or has incorrect YAML:
 // - it creates a new default config
@@ -443,7 +521,7 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 		Paths:             NewPaths(baseDir),
 		Editor: &EditorConfig{
 			Theme:    "chrome",
-			FontSize: 12,
+			FontSize: 16,
 		},
 	}
 }
@@ -462,6 +540,7 @@ type Paths struct {
 	Base              string
 	Resources         string
 	Data              string
+	Callbacks         string
 	Contexts          string
 	Docs              string
 	Samples           string

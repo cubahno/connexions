@@ -46,6 +46,7 @@ func NewApp(config *config.Config) *App {
 	res.Router = router
 
 	bluePrints := []RouteRegister{
+		loadCallbacks,
 		loadContexts,
 		loadServices,
 
@@ -68,7 +69,7 @@ func NewApp(config *config.Config) *App {
 
 // MustFileStructure creates the necessary directories and files
 func MustFileStructure(paths *config.Paths) error {
-	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts}
+	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts, paths.Callbacks}
 
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -98,9 +99,9 @@ func (a *App) AddBluePrint(bluePrint RouteRegister) error {
 // Run starts the application and the server.
 // Blocks until the server is stopped.
 func (a *App) Run() {
-	config := a.Router.Config
-	port := config.App.Port
-	homeURL := strings.TrimPrefix(config.App.HomeURL, "/")
+	cfg := a.Router.Config
+	port := cfg.App.Port
+	homeURL := strings.TrimPrefix(cfg.App.HomeURL, "/")
 
 	log.Printf("\n\nServer started on port %d. Press Ctrl+C to quit", port)
 	log.Printf("Visit http://localhost:%d/%s to view the home page", port, homeURL)

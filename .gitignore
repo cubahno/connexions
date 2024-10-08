@@ -4,6 +4,7 @@
 .data
 .build
 .testCoverage.txt
+resources/data/callbacks
 resources/data/services
 resources/data/config.yml
 resources/data/contexts

@@ -16,6 +16,7 @@ var (
 func ToSnakeCase(input string) string {
 	snake := matchFirstCap.ReplaceAllString(input, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
+	snake = strings.ReplaceAll(snake, ".", "_")
 	snake = strings.ReplaceAll(snake, "__", "_")
 	snake = strings.Trim(snake, "_")
 	return strings.ToLower(snake)

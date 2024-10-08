@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
 	"net/http"
+	"plugin"
 	"sort"
 	"sync"
 	"time"
@@ -21,6 +22,8 @@ type Router struct {
 
 	// Config is a pointer to the global Config instance.
 	Config *config.Config
+
+	callbacksPlugin *plugin.Plugin
 
 	// Router keeps track of registered services and their routes.
 	services map[string]*ServiceItem

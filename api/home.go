@@ -271,8 +271,9 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	only := []string{
-		path.Base(h.router.Config.App.Paths.Services),
+		path.Base(h.router.Config.App.Paths.Callbacks),
 		path.Base(h.router.Config.App.Paths.Contexts),
+		path.Base(h.router.Config.App.Paths.Services),
 	}
 
 	err = connexions.ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
@@ -291,6 +292,13 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 
 	// there's never an error
 	_ = loadContexts(h.router)
+
+	if err = loadCallbacks(h.router); err != nil {
+		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
+			Message: err.Error(),
+		})
+		return
+	}
 
 	h.Success("Imported successfully!", w)
 }

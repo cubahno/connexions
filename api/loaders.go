@@ -1,12 +1,16 @@
 package api
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/cubahno/connexions"
 	"github.com/cubahno/connexions/contexts"
 	"github.com/cubahno/connexions/internal"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"plugin"
 	"strings"
 	"sync"
 )
@@ -186,17 +190,122 @@ func loadContexts(router *Router) error {
 		}
 	}
 
-	// Set fake contexts if no contexts are defined
-	if len(res) == 0 {
-		res["fake"] = make(map[string]any)
-		defaultNamespaces = append(defaultNamespaces, map[string]string{"fake": ""})
-		for name, fakeFunc := range contexts.Fakes {
-			// this allows to use names like {fake:uuid.v4} in response templates
-			res["fake"]["fake:"+name] = fakeFunc
-		}
+	// Set fake contexts
+	res["fake"] = make(map[string]any)
+	defaultNamespaces = append(defaultNamespaces, map[string]string{"fake": ""})
+	for name, fakeFunc := range contexts.Fakes {
+		// this allows to use names like {fake:uuid.v4} in response templates
+		res["fake"]["fake:"+name] = fakeFunc
 	}
 
 	router.SetContexts(res, defaultNamespaces)
+
+	return nil
+}
+
+// LoadCallbacks compiles user-provided Go code, including dependencies.
+func loadCallbacks(router *Router) error {
+	dir := router.Config.App.Paths.Callbacks
+	if dir == "" {
+		return nil
+	}
+
+	// Create a temporary directory
+	tmpDir, err := os.MkdirTemp("", "usergo")
+	if err != nil {
+		return err
+	}
+	// Clean up
+	defer os.RemoveAll(tmpDir)
+
+	// Copy user-provided Go files into the temporary directory
+	if err := filepath.Walk(dir, func(src string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		dst := filepath.Join(tmpDir, info.Name())
+		content, err := os.ReadFile(src)
+		if err != nil {
+			return err
+		}
+
+		return os.WriteFile(dst, content, 0644)
+	}); err != nil {
+		return err
+	}
+
+	if err := initModuleIfNone(tmpDir); err != nil {
+		return fmt.Errorf("failed to initialize module: %v", err)
+	}
+
+	cmd := exec.Command("go", "mod", "tidy")
+	cmd.Dir = tmpDir
+	// Create buffers to capture output and errors
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to tidy callback modules: %v", err)
+	}
+
+	soName := "userlib.so"
+
+	// Build the user code into a shared library
+	// Change working directory to the temporary directory
+	cmdArgs := []string{"build", "-buildmode=plugin"}
+
+	// Check if the environment variable is set
+	if os.Getenv("DEBUG_BUILD") == "true" {
+		cmdArgs = append(cmdArgs, "-gcflags", "all=-N -l")
+	}
+
+	cmdArgs = append(cmdArgs, "-o", soName, ".")
+
+	cmd = exec.Command("go", cmdArgs...)
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=1", "GOOS=linux", "GOARCH=amd64", "GO111MODULE=on")
+	cmd.Dir = tmpDir
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to build callbacks: %s", out.String())
+	}
+
+	// Load the compiled shared library
+	p, err := plugin.Open(filepath.Join(tmpDir, soName))
+	if err != nil {
+		return fmt.Errorf("failed to open callbacks plugin: %v", err)
+	}
+
+	router.callbacksPlugin = p
+
+	log.Println("Callbacks loaded successfully")
+
+	return nil
+}
+
+func initModuleIfNone(tmpDir string) error {
+	goModPath := tmpDir + "/go.mod"
+
+	if _, err := os.Stat(goModPath); err == nil {
+		// go.mod already exists, nothing to do
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check for go.mod: %v", err)
+	}
+
+	// Initialize module with a name
+	cmd := exec.Command("go", "mod", "init", "callbacks")
+	cmd.Dir = tmpDir
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to initialize module: %s", out.String())
+	}
 
 	return nil
 }
