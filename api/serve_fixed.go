@@ -36,9 +36,12 @@ func registerFixedRoute(fileProps *connexions.FileProperties, router *Router) *R
 			Resource:       resource,
 			ResourcePrefix: fileProps.Prefix,
 			Plugin:         router.callbacksPlugin,
+			history:        router.history,
 		}
 
 		router.
+			With(CreateRequestTransformerMiddleware(mwParams)).
+			With(CreateUpstreamRequestMiddleware(mwParams)).
 			With(CreateResponseMiddleware(mwParams)).
 			Method(fileProps.Method, resource, createFixedResponseHandler(router, fileProps))
 	}

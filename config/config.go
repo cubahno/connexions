@@ -49,8 +49,10 @@ type ServiceConfig struct {
 	ParseConfig *ParseConfig `json:"parseConfig" yaml:"parseConfig" koanf:"parseConfig"`
 
 	// Validate is the validation config.
-	// It is used to validate the request and/or response outside of the Services API.
+	// It is used to validate the request and/or response outside the Services API.
 	Validate *ServiceValidateConfig `koanf:"validate" json:"validate" yaml:"validate"`
+
+	RequestTransformer string `koanf:"requestTransformer" json:"requestTransformer" yaml:"requestTransformer"`
 
 	// ResponseTransformer is a callback function name which should exist inside callbacks directory and be visible to the plugin.
 	ResponseTransformer string `koanf:"responseTransformer" json:"responseTransformer" yaml:"responseTransformer"`
@@ -60,14 +62,9 @@ type ServiceConfig struct {
 }
 
 type UpstreamConfig struct {
-	URL         string                     `koanf:"url" json:"url" yaml:"url"`
-	HTTPOptions *UpstreamHTTPOptionsConfig `koanf:"httpOptions" json:"httpOptions" yaml:"httpOptions"`
-	FailOn      *UpstreamFailOnConfig      `koanf:"failOn" json:"failOn" yaml:"failOn"`
-}
-
-type UpstreamHTTPOptionsConfig struct {
-	Headers            map[string]string `koanf:"headers" json:"headers" yaml:"headers"`
-	RequestTransformer string            `koanf:"requestTransformer" json:"requestTransformer" yaml:"requestTransformer"`
+	URL     string                `koanf:"url" json:"url" yaml:"url"`
+	Headers map[string]string     `koanf:"headers" json:"headers" yaml:"headers"`
+	FailOn  *UpstreamFailOnConfig `koanf:"failOn" json:"failOn" yaml:"failOn"`
 }
 
 type HttpStatusFailOnConfig []HTTPStatusConfig
