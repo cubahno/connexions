@@ -39,6 +39,8 @@ type Router struct {
 	// - fake:payments
 	defaultContexts []map[string]string
 
+	history *CurrentRequestStorage
+
 	mu sync.RWMutex
 }
 
@@ -48,7 +50,7 @@ func NewRouter(config *config.Config) *Router {
 	r.Use(middleware.RequestID)
 	r.Use(ConditionalLoggingMiddleware(config))
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(10 * time.Second))
+	r.Use(middleware.Timeout(30 * time.Second))
 
 	return &Router{
 		Mux:             r,
@@ -56,6 +58,7 @@ func NewRouter(config *config.Config) *Router {
 		services:        make(map[string]*ServiceItem),
 		contexts:        make(map[string]map[string]any),
 		defaultContexts: make([]map[string]string, 0),
+		history:         NewCurrentRequestStorage(),
 	}
 }
 

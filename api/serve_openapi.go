@@ -53,11 +53,13 @@ func registerOpenAPIRoutes(fileProps *connexions.FileProperties, router *Router)
 			Resource:       resName,
 			ResourcePrefix: fileProps.Prefix,
 			Plugin:         router.callbacksPlugin,
+			history:        router.history,
 		}
 
 		for _, method := range resMethods {
 			// register route
 			router.
+				With(CreateRequestTransformerMiddleware(mwParams)).
 				With(CreateUpstreamRequestMiddleware(mwParams)).
 				With(CreateResponseMiddleware(mwParams)).
 				MethodFunc(method, fileProps.Prefix+resName, handler.serve)
@@ -86,6 +88,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	ctx := chi.RouteContext(r.Context())
 
 	resourcePath := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
+	h.router.history.Set(resourcePath, r, nil)
 
 	findOptions := &openapi.OperationDescription{
 		Service:  h.fileProps.ServiceName,
@@ -96,7 +99,8 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	if operation == nil {
 		// edge case: we get here only if the file gets removed while router is running.
 		// not json response because if path doesn't exist, it's just plain 404.
-		h.Response(w).WithStatusCode(http.StatusNotFound).Send([]byte(ErrResourceNotFound.Error()))
+		contents := []byte(ErrResourceNotFound.Error())
+		h.Response(w).WithStatusCode(http.StatusNotFound).Send(contents)
 		return
 	}
 

@@ -21,6 +21,7 @@ type MiddlewareParams struct {
 	Resource       string
 	ResourcePrefix string
 	Plugin         *plugin.Plugin
+	history        *CurrentRequestStorage
 }
 
 // responseWriter is a custom response writer that captures the response body
@@ -57,11 +58,53 @@ func ConditionalLoggingMiddleware(cfg *config.Config) func(http.Handler) http.Ha
 	}
 }
 
+func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
+	cfg := params.ServiceConfig
+	p := params.Plugin
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if p == nil || cfg == nil || cfg.ResponseTransformer == "" {
+				next.ServeHTTP(w, req)
+				return
+			}
+
+			fn := cfg.RequestTransformer
+			log.Printf("Service has request transformer %s defined", fn)
+
+			symbol, err := p.Lookup(fn)
+			if err != nil {
+				log.Printf("request transformer function not found for %s\n", fn)
+				next.ServeHTTP(w, req)
+				return
+			}
+
+			transformer, ok := symbol.(func(string, *http.Request) (*http.Request, error))
+			if !ok {
+				log.Printf("invalid request transformer function signature for %s\n", fn)
+				next.ServeHTTP(w, req)
+				return
+			}
+
+			req, err = transformer(params.Resource, req)
+			if err != nil {
+				log.Printf("Error transforming request: %v", err)
+				next.ServeHTTP(w, req)
+				return
+			}
+			log.Println("Request transformed")
+
+			// Proceed to the next handler
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
 func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
 	timeOut := 30 * time.Second
 	cfg := params.ServiceConfig.Upstream
 	failOn := cfg.FailOn
-	if failOn.TimeOut > 0 {
+	if failOn != nil && failOn.TimeOut > 0 {
 		timeOut = failOn.TimeOut
 	}
 
@@ -134,17 +177,10 @@ func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.
 
 func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, error) {
 	cfg := params.ServiceConfig.Upstream
-	upstreamHTTPOptions := cfg.HTTPOptions
-	if upstreamHTTPOptions == nil {
-		upstreamHTTPOptions = &config.UpstreamHTTPOptionsConfig{
-			Headers: map[string]string{},
-		}
-	}
 
 	failOn := cfg.FailOn
 	resource := params.Resource
 	resourcePrefix := params.ResourcePrefix
-	p := params.Plugin
 
 	var bodyBytes []byte
 	if req.Body != nil {
@@ -169,26 +205,6 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 	}
 	upReq.Header.Set("User-Agent", "Connexions/0.1")
 
-	// custom request transformer
-	if p != nil && upstreamHTTPOptions.RequestTransformer != "" {
-		fn := upstreamHTTPOptions.RequestTransformer
-		symbol, err := p.Lookup(fn)
-		if err != nil {
-			return nil, fmt.Errorf("request transformer function not found for %s", fn)
-		}
-
-		transformer, ok := symbol.(func(string, *http.Request) (*http.Request, error))
-		if !ok {
-			return nil, fmt.Errorf("invalid request transformer function signature for %s", fn)
-		}
-
-		upReq, err = transformer(resource, upReq)
-		if err != nil {
-			return nil, err
-		}
-		log.Println("Request transformed")
-	}
-
 	log.Printf("Request Method: %s, URL: %s, Headers: %+v", upReq.Method, upReq.URL.String(), upReq.Header)
 	resp, err := http.DefaultClient.Do(upReq)
 	if err != nil {
@@ -207,19 +223,38 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 		return nil, fmt.Errorf("failOn condition met for status code: %d", statusCode)
 	}
 
+	if statusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("upstream response failed with status code %d, body: %s", statusCode, string(body))
+	}
+
+	log.Printf("received successful upstream response: %s", string(body))
+
+	historyResponse := &HistoryResponse{
+		Data:           body,
+		StatusCode:     statusCode,
+		IsFromUpstream: true,
+	}
+	params.history.Set(resource, req, historyResponse)
+
 	return body, nil
 }
 
 // handleResponseCallback uses router's internal data to trigger callbacks
-func handleResponseCallback(params *MiddlewareParams, req *http.Request, response []byte, statusCode int) ([]byte, error) {
+func handleResponseCallback(params *MiddlewareParams, request *http.Request, response []byte, statusCode int) ([]byte, error) {
+	record, _ := params.history.Get(request)
+	isFromUpstream := false
+	if record != nil && record.Response != nil {
+		isFromUpstream = record.Response.IsFromUpstream
+	}
+
 	funcName := params.ServiceConfig.ResponseTransformer
+	// nothing to transform, return original
 	if params.Plugin == nil || funcName == "" {
 		return response, nil
 	}
 
 	service := params.Service
-	resource := params.Resource
-	log.Println("Response callback", service, req.Method, req.URL.Path)
+	log.Println("Response callback", service, request.Method, request.URL.String())
 
 	if statusCode >= http.StatusBadRequest {
 		log.Println("Response status code is not 2xx, skipping callback")
@@ -234,10 +269,10 @@ func handleResponseCallback(params *MiddlewareParams, req *http.Request, respons
 	}
 
 	// Assert the function's type
-	callback, ok := symbol.(func(string, *http.Request, []byte) ([]byte, error))
+	callback, ok := symbol.(func(string, *http.Request, []byte, bool) ([]byte, error))
 	if !ok {
 		return nil, fmt.Errorf("invalid callback function signature for %s", funcName)
 	}
 
-	return callback(resource, req, response)
+	return callback(params.Resource, request, response, isFromUpstream)
 }
