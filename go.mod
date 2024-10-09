@@ -3,6 +3,7 @@ module github.com/cubahno/connexions
 go 1.23.1
 
 require (
+	github.com/cubahno/connexions_plugin v0.1.2
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/jaswdr/faker/v2 v2.3.0
