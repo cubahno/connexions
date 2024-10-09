@@ -106,7 +106,7 @@ func (a *App) Run() {
 	log.Printf("\n\nServer started on port %d. Press Ctrl+C to quit", port)
 	log.Printf("Visit http://localhost:%d/%s to view the home page", port, homeURL)
 
-	err := http.ListenAndServe(fmt.Sprintf(":%v", port), a.Router)
+	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), a.Router)
 	if err != nil {
 		panic(err)
 	}
