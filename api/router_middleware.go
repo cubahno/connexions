@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions_plugin"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sony/gobreaker/v2"
 	"io"
@@ -102,14 +103,19 @@ func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Hand
 
 func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
 	timeOut := 30 * time.Second
+	upstreamURL := ""
 	cfg := params.ServiceConfig.Upstream
-	failOn := cfg.FailOn
-	if failOn != nil && failOn.TimeOut > 0 {
-		timeOut = failOn.TimeOut
+
+	if cfg != nil && cfg.FailOn != nil && cfg.FailOn.TimeOut > 0 {
+		timeOut = cfg.FailOn.TimeOut
+	}
+
+	if cfg != nil {
+		upstreamURL = cfg.URL
 	}
 
 	cbSettings := gobreaker.Settings{
-		Name:    cfg.URL,
+		Name:    upstreamURL,
 		Timeout: timeOut,
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
@@ -124,7 +130,7 @@ func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if cfg == nil || cfg.URL == "" {
+			if cfg == nil || upstreamURL == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
@@ -164,7 +170,12 @@ func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.
 
 			next.ServeHTTP(rw, req)
 
-			modifiedResponse, err := handleResponseCallback(params, req, rw.body.Bytes(), rw.statusCode)
+			params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
+				Data:           rw.body.Bytes(),
+				StatusCode:     rw.statusCode,
+				IsFromUpstream: false,
+			})
+			modifiedResponse, err := handleResponseCallback(params, req)
 			if err != nil {
 				http.Error(w, fmt.Sprintf("error handling callback: %v", err), http.StatusInternalServerError)
 				return
@@ -229,7 +240,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 
 	log.Printf("received successful upstream response: %s", string(body))
 
-	historyResponse := &HistoryResponse{
+	historyResponse := &connexions_plugin.HistoryResponse{
 		Data:           body,
 		StatusCode:     statusCode,
 		IsFromUpstream: true,
@@ -240,39 +251,36 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 }
 
 // handleResponseCallback uses router's internal data to trigger callbacks
-func handleResponseCallback(params *MiddlewareParams, request *http.Request, response []byte, statusCode int) ([]byte, error) {
+func handleResponseCallback(params *MiddlewareParams, request *http.Request) ([]byte, error) {
 	record, _ := params.history.Get(request)
-	isFromUpstream := false
-	if record != nil && record.Response != nil {
-		isFromUpstream = record.Response.IsFromUpstream
-	}
+	response := record.Response
 
 	funcName := params.ServiceConfig.ResponseTransformer
 	// nothing to transform, return original
 	if params.Plugin == nil || funcName == "" {
-		return response, nil
+		return response.Data, nil
 	}
 
 	service := params.Service
 	log.Println("Response callback", service, request.Method, request.URL.String())
 
-	if statusCode >= http.StatusBadRequest {
+	if response.StatusCode >= http.StatusBadRequest {
 		log.Println("Response status code is not 2xx, skipping callback")
-		return response, nil
+		return response.Data, nil
 	}
 
 	// Lookup the user-defined function
 	symbol, err := params.Plugin.Lookup(funcName)
 	if err != nil {
 		log.Printf("service %s does not have any callback function %s", service, funcName)
-		return response, nil
+		return response.Data, nil
 	}
 
 	// Assert the function's type
-	callback, ok := symbol.(func(string, *http.Request, []byte, bool) ([]byte, error))
+	callback, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
 	if !ok {
 		return nil, fmt.Errorf("invalid callback function signature for %s", funcName)
 	}
 
-	return callback(params.Resource, request, response, isFromUpstream)
+	return callback(record)
 }

@@ -69,6 +69,8 @@ func createFixedResponseHandler(router *Router, fileProps *connexions.FileProper
 	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, cts)
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		router.history.Set(fileProps.Resource, r, nil)
+
 		if HandleErrorAndLatency(serviceCfg, w) {
 			return
 		}
