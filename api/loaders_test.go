@@ -5,6 +5,7 @@ package api
 import (
 	"github.com/cubahno/connexions"
 	"github.com/cubahno/connexions/contexts"
+	"github.com/cubahno/connexions_plugin"
 	assert2 "github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
@@ -133,4 +134,34 @@ func TestLoadContextsWithoutFilesLoadsFakes(t *testing.T) {
 	res := router.contexts
 	assert.Equal(1, len(res))
 	assert.Equal(len(contexts.Fakes), len(res["fake"]))
+}
+
+func TestLoadCallbacks(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	filePath := filepath.Join(router.Config.App.Paths.Callbacks, "foo.go")
+	if err = connexions.CopyFile(filepath.Join("..", "testdata", "callbacks", "foo.go"), filePath); err != nil {
+		t.Errorf("Error copying file: %v", err)
+		t.FailNow()
+	}
+
+	if err = loadCallbacks(router); err != nil {
+		t.Errorf("Error loading callbacks: %v", err)
+		t.FailNow()
+	}
+
+	symbol, err := router.callbacksPlugin.Lookup("Foo")
+	if err != nil {
+		t.Errorf("Error looking up symbol: %v", err)
+		t.FailNow()
+	}
+
+	_, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
+	assert.True(ok)
 }

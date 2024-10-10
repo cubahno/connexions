@@ -65,7 +65,7 @@ func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Hand
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if p == nil || cfg == nil || cfg.ResponseTransformer == "" {
+			if p == nil || cfg == nil || cfg.RequestTransformer == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
@@ -87,7 +87,7 @@ func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Hand
 				return
 			}
 
-			req, err = transformer(params.Resource, req)
+			newReq, err := transformer(params.Resource, req)
 			if err != nil {
 				log.Printf("Error transforming request: %v", err)
 				next.ServeHTTP(w, req)
@@ -96,7 +96,7 @@ func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Hand
 			log.Println("Request transformed")
 
 			// Proceed to the next handler
-			next.ServeHTTP(w, req)
+			next.ServeHTTP(w, newReq)
 		})
 	}
 }

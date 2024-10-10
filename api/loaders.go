@@ -210,10 +210,22 @@ func loadCallbacks(router *Router) error {
 		return nil
 	}
 
+	p, err := compilePlugin(dir)
+	if err != nil {
+		return fmt.Errorf("failed to open callbacks plugin: %v", err)
+	}
+
+	router.callbacksPlugin = p
+	log.Println("Callbacks loaded successfully")
+
+	return nil
+}
+
+func compilePlugin(dir string) (*plugin.Plugin, error) {
 	// Create a temporary directory
 	tmpDir, err := os.MkdirTemp("", "usergo")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// Clean up
 	defer os.RemoveAll(tmpDir)
@@ -235,21 +247,22 @@ func loadCallbacks(router *Router) error {
 
 		return os.WriteFile(dst, content, 0644)
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := initModuleIfNone(tmpDir); err != nil {
-		return fmt.Errorf("failed to initialize module: %v", err)
+		return nil, fmt.Errorf("failed to initialize module: %v", err)
 	}
 
 	cmd := exec.Command("go", "mod", "tidy")
 	cmd.Dir = tmpDir
+
 	// Create buffers to capture output and errors
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to tidy callback modules: %v", err)
+		return nil, fmt.Errorf("failed to tidy callback modules: %v", err)
 	}
 
 	soName := "userlib.so"
@@ -271,20 +284,10 @@ func loadCallbacks(router *Router) error {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to build callbacks: %s", out.String())
+		return nil, fmt.Errorf("failed to build callbacks: %s", out.String())
 	}
 
-	// Load the compiled shared library
-	p, err := plugin.Open(filepath.Join(tmpDir, soName))
-	if err != nil {
-		return fmt.Errorf("failed to open callbacks plugin: %v", err)
-	}
-
-	router.callbacksPlugin = p
-
-	log.Println("Callbacks loaded successfully")
-
-	return nil
+	return plugin.Open(filepath.Join(tmpDir, soName))
 }
 
 func initModuleIfNone(tmpDir string) error {
