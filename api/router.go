@@ -58,7 +58,7 @@ func NewRouter(config *config.Config) *Router {
 		services:        make(map[string]*ServiceItem),
 		contexts:        make(map[string]map[string]any),
 		defaultContexts: make([]map[string]string, 0),
-		history:         NewCurrentRequestStorage(),
+		history:         NewCurrentRequestStorage(5 * time.Minute),
 	}
 }
 

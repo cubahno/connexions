@@ -99,6 +99,9 @@ func (a *App) AddBluePrint(bluePrint RouteRegister) error {
 // Run starts the application and the server.
 // Blocks until the server is stopped.
 func (a *App) Run() {
+	defer func() {
+		a.Router.history.Cancel()
+	}()
 	cfg := a.Router.Config
 	port := cfg.App.Port
 	homeURL := strings.TrimPrefix(cfg.App.HomeURL, "/")
