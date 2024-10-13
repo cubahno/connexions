@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"github.com/cubahno/connexions_plugin"
 	"github.com/go-chi/chi/v5/middleware"
 	"io"
@@ -11,28 +12,34 @@ import (
 )
 
 type CurrentRequestStorage struct {
-	data map[string]*connexions_plugin.RequestedResource
-	mu   sync.RWMutex
+	data       map[string]*connexions_plugin.RequestedResource
+	cancelFunc context.CancelFunc
+	mu         sync.RWMutex
 }
 
-func NewCurrentRequestStorage() *CurrentRequestStorage {
+func NewCurrentRequestStorage(clearTimeout time.Duration) *CurrentRequestStorage {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	storage := &CurrentRequestStorage{
-		data: make(map[string]*connexions_plugin.RequestedResource),
+		data:       make(map[string]*connexions_plugin.RequestedResource),
+		cancelFunc: cancel,
 	}
-	startResetTicker(storage)
+	startResetTicker(ctx, storage, clearTimeout)
 	return storage
 }
 
-func startResetTicker(storage *CurrentRequestStorage) {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	// Start a goroutine that clears the storage every time the ticker triggers
+func startResetTicker(ctx context.Context, storage *CurrentRequestStorage, clearTimeout time.Duration) {
+	ticker := time.NewTicker(clearTimeout)
 	go func() {
+		defer ticker.Stop()
+
 		for {
-			<-ticker.C
-			storage.Clear()
-			log.Println("Current request storage cleared")
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				storage.Clear()
+			}
 		}
 	}()
 }
@@ -97,6 +104,12 @@ func (s *CurrentRequestStorage) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data = make(map[string]*connexions_plugin.RequestedResource)
+}
+
+func (s *CurrentRequestStorage) Cancel() {
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
 }
 
 func (s *CurrentRequestStorage) getKey(req *http.Request) string {

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"plugin"
 	"testing"
+	"time"
 )
 
 func createPlugin(t *testing.T, fn string) *plugin.Plugin {
@@ -107,7 +108,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
-		history := NewCurrentRequestStorage()
+		history := NewCurrentRequestStorage(100 * time.Millisecond)
 
 		params := &MiddlewareParams{
 			ServiceConfig: &config.ServiceConfig{
@@ -147,7 +148,7 @@ func Foo(resource *connexions_plugin.RequestedResource) ([]byte, error){
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 
-		history := NewCurrentRequestStorage()
+		history := NewCurrentRequestStorage(100 * time.Millisecond)
 		history.Set("foo", req, nil)
 
 		params := &MiddlewareParams{
