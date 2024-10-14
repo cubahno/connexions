@@ -5,33 +5,29 @@ import (
 )
 
 // ReplaceState is a struct that holds information about the current state of the replace operation.
+//
+// NamePath is a slice of names of the current element.
+// It is used to build a path to the current element.
+// For example, "users", "name", "first".
+//
+// ElementIndex is an index of the current element if required structure to generate is an array.
+// IsHeader is a flag that indicates that the current element we're replacing is a header.
+// IsPathParam is a flag that indicates that the current element we're replacing is a path parameter.
+// ContentType is a content type of the current element.
+// IsContentReadOnly is a flag that indicates that the current element we're replacing is a read-only content.
+// This value is used only when Schema has ReadOnly set to true.
+//
+// IsContentWriteOnly is a flag that indicates that the current element we're replacing is a write-only content.
+// This value is used only when Schema has WriteOnly set to true.
 type ReplaceState struct {
-	// NamePath is a slice of names of the current element.
-	// It is used to build a path to the current element.
-	// For example, "users", "name", "first".
-	NamePath []string
-
-	// ElementIndex is an index of the current element if required structure to generate is an array.
-	ElementIndex int
-
-	// IsHeader is a flag that indicates that the current element we're replacing is a header.
-	IsHeader bool
-
-	// IsPathParam is a flag that indicates that the current element we're replacing is a path parameter.
-	IsPathParam bool
-
-	// ContentType is a content type of the current element.
-	ContentType string
-
-	// IsContentReadOnly is a flag that indicates that the current element we're replacing is a read-only content.
-	// This value is used only when Schema has ReadOnly set to true.
-	IsContentReadOnly bool
-
-	// IsContentWriteOnly is a flag that indicates that the current element we're replacing is a write-only content.
-	// This value is used only when Schema has WriteOnly set to true.
+	NamePath           []string
+	ElementIndex       int
+	IsHeader           bool
+	IsPathParam        bool
+	ContentType        string
+	IsContentReadOnly  bool
 	IsContentWriteOnly bool
-
-	mu sync.Mutex
+	mu                 sync.Mutex
 }
 
 func NewReplaceState(opts ...ReplaceStateOption) *ReplaceState {

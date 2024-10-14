@@ -47,17 +47,24 @@ Connexions resources file structure:
 ```text
 resources
     └─── data
-        └───.openapi
-            └───service-1
-                └───index.yml
-        └───.root
-            └───get
-                └───index.json
-        └───service-2
-            └───patch
-                └───users
+        └───services
+            └───.openapi
+                └───service-1
+                    └───index.yml
+            └───.root
+                └───get
                     └───index.json
-     
+            └───service-2
+                └───patch
+                    └───users
+                        └───index.json
+        └───callbacks
+            └───foo.go
+            └───bar.go
+        └───contexts
+            └───service-1.yml
+            └───service-2.yml
+        
 ```
 
 !!! note "Directory pattern"
@@ -78,7 +85,7 @@ resources
 ```bash
 docker run -it --rm \
   -p 2200:2200 \
-  -v /path/to/your/services-data:/app/resources/data \
+  -v /path/to/your/data:/app/resources/data \
   cubahno/connexions api
 ```
 

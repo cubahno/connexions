@@ -12,31 +12,35 @@ import (
 // This function should encapsulate all the logic, data, contexts etc. of replacing values.
 type ValueReplacer func(schemaOrContent any, state *ReplaceState) any
 
+// ReplaceContext is a context that is used to replace values in schemas and contents.
+//
+// Schema is a schema that is used to replace values.
+// Currently only OpenAPI Schema is supported.
+// It does not depend on schema provider as this is already converted to internal Schema type.
+//
+// State is a state of the current replace operation.
+// It is used to store information about the current element, including its name, index, content type etc.
+//
+// AreaPrefix is a prefix that is used to identify the correct section
+// in the context config for specific replacement area.
+// e.g. in-
+// then in the contexts we should have:
+// in-header:
+//
+//	X-GeneratedRequest-ID: 123
+//
+// in-path:
+//
+//	user_id: 123
+//
+// Data is a list of contexts that are used to replace values.
+// Faker is a faker instance that is used to generate fake data.
 type ReplaceContext struct {
-	// Schema is a schema that is used to replace values.
-	// Currently only OpenAPI Schema is supported.
-	// It does not depend on schema provider as this is already converted to internal Schema type.
-	Schema any
-
-	// State is a state of the current replace operation.
-	// It is used to store information about the current element, including its name, index, content type etc.
-	State *ReplaceState
-
-	// AreaPrefix is a prefix that is used to identify the correct section
-	// in the context config for specific replacement area.
-	// e.g. in-
-	// then in the contexts we should have:
-	// in-header:
-	//   X-GeneratedRequest-ID: 123
-	// in-path:
-	//   user_id: 123
+	Schema     any
+	State      *ReplaceState
 	AreaPrefix string
-
-	// Data is a list of contexts that are used to replace values.
-	Data []map[string]any
-
-	// Faker is a faker instance that is used to generate fake data.
-	Faker faker.Faker
+	Data       []map[string]any
+	Faker      faker.Faker
 }
 
 // Replacers is a list of replacers that are used to replace values in schemas and contents in the specified order.

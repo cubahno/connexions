@@ -3,11 +3,11 @@
 Functions are extracted from [jaswdr/faker](https://github.com/jaswdr/faker) library to generate dynamic values.
 
 ## Usage
-Use inside curly brackets in your response, for example:
+Use inside curly brackets in your fixed responses, for example:
 ```json
 {
-    "id": "fake:uuid.v4",
-    "name": "fake:person.name"
+    "id": "{fake:uuid.v4}",
+    "name": "{fake:person.name}"
 }
 ```
 
