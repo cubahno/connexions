@@ -16,49 +16,41 @@ import (
 	"time"
 )
 
+// Config is the main configuration struct.
+// App is the app config.
+// Services is a map of service name and the corresponding config.
+// ServiceName is the first part of the path.
+// e.g. /petstore/v1/pets -> petstore
+// in case, there's no service name, the name ".root" will be used.
 type Config struct {
-	// App is the app config.
-	App *AppConfig `koanf:"app" json:"app" yaml:"app"`
-
-	// Services is a map of service name and the corresponding config.
-	// ServiceName is the first part of the path.
-	// e.g. /petstore/v1/pets -> petstore
-	// in case, there's no service name, the name ".root" will be used.
+	App      *AppConfig                `koanf:"app" json:"app" yaml:"app"`
 	Services map[string]*ServiceConfig `koanf:"services" json:"services" yaml:"services"`
-
-	BaseDir string `koanf:"-"`
-	mu      sync.Mutex
+	BaseDir  string                    `koanf:"-"`
+	mu       sync.Mutex
 }
 
+// ServiceConfig defines the configuration for a particular service.
+// Latency is the latency to add to the response.
+// Latency not used in the services API, only when endpoint queried directly.
+// Errors is the error config.
+// Contexts is the list of contexts to use for replacements.
+// It is a map of context name defined either in the UI or filename without extension.
+// You can refer to the name when building aliases.
+// ParseConfig is the config for parsing the OpenAPI spec.
+// Validate is the validation config.
+// It is used to validate the request and/or response outside the Services API.
+// ResponseTransformer is a callback function name which should exist inside callbacks directory and be visible to the plugin.
+// Cache is the cache config.
 type ServiceConfig struct {
-	Upstream *UpstreamConfig `koanf:"upstream" json:"upstream" yaml:"upstream"`
-
-	// Latency is the latency to add to the response.
-	// Latency not used in the services API, only when endpoint queried directly.
-	Latency time.Duration `koanf:"latency" json:"latency" yaml:"latency"`
-
-	// Errors is the error config.
-	Errors *ServiceError `koanf:"errors" json:"errors" yaml:"errors"`
-
-	// Contexts is the list of contexts to use for replacements.
-	// It is a map of context name defined either in the UI or filename without extension.
-	// You can refer to the name when building aliases.
-	Contexts []map[string]string `koanf:"contexts" json:"contexts" yaml:"contexts"`
-
-	// ParseConfig is the config for parsing the OpenAPI spec.
-	ParseConfig *ParseConfig `json:"parseConfig" yaml:"parseConfig" koanf:"parseConfig"`
-
-	// Validate is the validation config.
-	// It is used to validate the request and/or response outside the Services API.
-	Validate *ServiceValidateConfig `koanf:"validate" json:"validate" yaml:"validate"`
-
-	RequestTransformer string `koanf:"requestTransformer" json:"requestTransformer" yaml:"requestTransformer"`
-
-	// ResponseTransformer is a callback function name which should exist inside callbacks directory and be visible to the plugin.
-	ResponseTransformer string `koanf:"responseTransformer" json:"responseTransformer" yaml:"responseTransformer"`
-
-	// Cache is the cache config.
-	Cache *ServiceCacheConfig `koanf:"cache" json:"cache" yaml:"cache"`
+	Upstream            *UpstreamConfig        `koanf:"upstream" json:"upstream" yaml:"upstream"`
+	Latency             time.Duration          `koanf:"latency" json:"latency" yaml:"latency"`
+	Errors              *ServiceError          `koanf:"errors" json:"errors" yaml:"errors"`
+	Contexts            []map[string]string    `koanf:"contexts" json:"contexts" yaml:"contexts"`
+	ParseConfig         *ParseConfig           `json:"parseConfig" yaml:"parseConfig" koanf:"parseConfig"`
+	Validate            *ServiceValidateConfig `koanf:"validate" json:"validate" yaml:"validate"`
+	RequestTransformer  string                 `koanf:"requestTransformer" json:"requestTransformer" yaml:"requestTransformer"`
+	ResponseTransformer string                 `koanf:"responseTransformer" json:"responseTransformer" yaml:"responseTransformer"`
+	Cache               *ServiceCacheConfig    `koanf:"cache" json:"cache" yaml:"cache"`
 }
 
 type UpstreamConfig struct {
@@ -79,45 +71,44 @@ type HTTPStatusConfig struct {
 	Range string `koanf:"range" json:"range" yaml:"range"`
 }
 
+// ServiceError defines the error configuration for a service.
+// Chance is the chance to return an error.
+// In the config, it can be set with %-suffix.
+// Codes is a map of error codes and their weights if Chance > 0.
+// If no error codes are specified, it returns a 500 error code.
 type ServiceError struct {
-	// Chance is the chance to return an error.
-	// In the config, it can be set with %-suffix.
-	Chance int `koanf:"chance" json:"chance" yaml:"chance"`
-
-	// Codes is a map of error codes and their weights if Chance > 0.
-	// If no error codes are specified, it returns a 500 error code.
-	Codes map[int]int `koanf:"codes" json:"codes" yaml:"codes"`
-
-	mu sync.Mutex
+	Chance int         `koanf:"chance" json:"chance" yaml:"chance"`
+	Codes  map[int]int `koanf:"codes" json:"codes" yaml:"codes"`
+	mu     sync.Mutex
 }
 
+// ServiceValidateConfig defines the validation configuration for a service.
+// Request is a flag whether to validate the request.
+// Default: true
+// Response is a flag whether to validate the response.
+// Default: false
 type ServiceValidateConfig struct {
-	// Request is a flag whether to validate the request.
-	// Default: true
-	Request bool `koanf:"request" json:"request" yaml:"request"`
-
-	// Response is a flag whether to validate the response.
-	// Default: false
+	Request  bool `koanf:"request" json:"request" yaml:"request"`
 	Response bool `koanf:"response" json:"response" yaml:"response"`
 }
 
+// ServiceCacheConfig defines the cache configuration for a service.
+// Avoid multiple schema parsing by caching the parsed schema.
+// Default: true
 type ServiceCacheConfig struct {
-	// Avoid multiple schema parsing by caching the parsed schema.
-	// Default: true
 	Schema bool `koanf:"schema" json:"schema" yaml:"schema"`
 }
 
+// ParseConfig defines the parsing configuration for a service.
+// MaxLevels is the maximum level to parse.
+// MaxRecursionLevels is the maximum level to parse recursively.
+// 0 means no recursion: property will get nil value.
+// OnlyRequired is a flag whether to include only required fields.
+// If the spec contains deep references, this might significantly speed up parsing.
 type ParseConfig struct {
-	// MaxLevels is the maximum level to parse.
-	MaxLevels int `koanf:"maxLevels" json:"maxLevels" yaml:"maxLevels"`
-
-	// MaxRecursionLevels is the maximum level to parse recursively.
-	// 0 means no recursion: property will get nil value.
-	MaxRecursionLevels int `koanf:"maxRecursionLevels" json:"maxRecursionLevels" yaml:"maxRecursionLevels"`
-
-	// OnlyRequired is a flag whether to include only required fields.
-	// If the spec contains deep references, this might significantly speed up parsing.
-	OnlyRequired bool `koanf:"onlyRequired" json:"onlyRequired" yaml:"onlyRequired"`
+	MaxLevels          int  `koanf:"maxLevels" json:"maxLevels" yaml:"maxLevels"`
+	MaxRecursionLevels int  `koanf:"maxRecursionLevels" json:"maxRecursionLevels" yaml:"maxRecursionLevels"`
+	OnlyRequired       bool `koanf:"onlyRequired" json:"onlyRequired" yaml:"onlyRequired"`
 }
 
 const (
@@ -137,48 +128,39 @@ const (
 )
 
 // AppConfig is the app configuration.
+// Port is the port number to listen on.
+// HomeURL is the URL for the UI home page.
+// ServiceURL is the URL for the service and resources endpoints in the UI.
+// SettingsURL is the URL for the settings endpoint in the UI.
+// ContextURL is the URL for the context endpoint in the UI.
+// ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place.
+//
+// for example:
+// in-path:
+//
+//	user_id: "fake:ids.int8"
+//
+// DisableUI is a flag whether to disable the UI.
+// DisableSpec is a flag whether to disable the Swagger UI.
+// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
+// Paths is the paths to various resource directories.
+// CreateFileStructure is a flag whether to create the initial resources file structure:
+// contexts, services, etc.
+// It will also copy sample files from the samples directory into services.
+// Default: true
 type AppConfig struct {
-	// Port is the port number to listen on.
-	Port int `json:"port" yaml:"port" koanf:"port"`
-
-	// HomeURL is the URL for the UI home page.
-	HomeURL string `json:"homeUrl" yaml:"homeURL" koanf:"homeUrl"`
-
-	// ServiceURL is the URL for the service and resources endpoints in the UI.
-	ServiceURL string `json:"serviceUrl" yaml:"serviceURL" koanf:"serviceUrl"`
-
-	// SettingsURL is the URL for the settings endpoint in the UI.
-	SettingsURL string `json:"settingsUrl" yaml:"settingsURL" koanf:"settingsUrl"`
-
-	// ContextURL is the URL for the context endpoint in the UI.
-	ContextURL string `json:"contextUrl" yaml:"contextUrl" koanf:"contextUrl"`
-
-	// ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place.
-	//
-	// for example:
-	// in-path:
-	//   user_id: "fake:ids.int8"
-	ContextAreaPrefix string `json:"contextAreaPrefix" yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
-
-	// DisableUI is a flag whether to disable the UI.
-	DisableUI bool `json:"disableUI" yaml:"disableUI" koanf:"disableUI"`
-
-	// DisableSpec is a flag whether to disable the Swagger UI.
-	DisableSwaggerUI bool `json:"disableSwaggerUI" yaml:"disableSwaggerUI" koanf:"disableSwaggerUI"`
-
-	// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
-	SchemaProvider SchemaProvider `json:"schemaProvider" yaml:"schemaProvider" koanf:"schemaProvider"`
-
-	// Paths is the paths to various resource directories.
-	Paths *Paths `json:"-" koanf:"-"`
-
-	// CreateFileStructure is a flag whether to create the initial resources file structure:
-	// contexts, services, etc.
-	// It will also copy sample files from the samples directory into services.
-	// Default: true
-	CreateFileStructure bool `koanf:"createFileStructure" json:"createFileStructure" yaml:"createFileStructure"`
-
-	Editor *EditorConfig `koanf:"editor" json:"editor" yaml:"editor"`
+	Port                int            `json:"port" yaml:"port" koanf:"port"`
+	HomeURL             string         `json:"homeUrl" yaml:"homeURL" koanf:"homeUrl"`
+	ServiceURL          string         `json:"serviceUrl" yaml:"serviceURL" koanf:"serviceUrl"`
+	SettingsURL         string         `json:"settingsUrl" yaml:"settingsURL" koanf:"settingsUrl"`
+	ContextURL          string         `json:"contextUrl" yaml:"contextUrl" koanf:"contextUrl"`
+	ContextAreaPrefix   string         `json:"contextAreaPrefix" yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
+	DisableUI           bool           `json:"disableUI" yaml:"disableUI" koanf:"disableUI"`
+	DisableSwaggerUI    bool           `json:"disableSwaggerUI" yaml:"disableSwaggerUI" koanf:"disableSwaggerUI"`
+	SchemaProvider      SchemaProvider `json:"schemaProvider" yaml:"schemaProvider" koanf:"schemaProvider"`
+	Paths               *Paths         `json:"-" koanf:"-"`
+	CreateFileStructure bool           `koanf:"createFileStructure" json:"createFileStructure" yaml:"createFileStructure"`
+	Editor              *EditorConfig  `koanf:"editor" json:"editor" yaml:"editor"`
 }
 
 type EditorConfig struct {

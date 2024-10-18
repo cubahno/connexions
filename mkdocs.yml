@@ -64,8 +64,9 @@ nav:
   - Get Started:
       - 'Welcome to Connexions': 'index.md'
   - Usage:
-      - Services: 'services.md'
+      - Callbacks: 'callbacks.md'
       - Contexts: 'contexts.md'
+      - Services: 'services.md'
       - Settings: 'settings.md'
   - Examples:
       - Docker: 'example-docker.md'

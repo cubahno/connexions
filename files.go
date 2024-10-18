@@ -22,38 +22,32 @@ import (
 )
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
+//
+// ServiceName is the name of the service that the file belongs to.
+// It represents the first directory in the file path.
+//
+// IsOpenAPI indicates whether the file is an OpenAPI specification.
+// Method is the HTTP method of the resource, which this file describes.
+// Prefix is the path prefix of the resource, which this file describes.
+// This is service name with a leading slash.
+//
+// Resource is the path of the resource, which this file describes without prefix.
+// FilePath is the full path to the file.
+// FileName is the name of the file with the extension.
+// Extension is the extension of the file, with the leading dot.
+// ContentType is the MIME type of the file.
+// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
 type FileProperties struct {
-	// ServiceName is the name of the service that the file belongs to.
-	// It represents the first directory in the file path.
 	ServiceName string
-
-	// IsOpenAPI indicates whether the file is an OpenAPI specification.
-	IsOpenAPI bool
-
-	// Method is the HTTP method of the resource, which this file describes.
-	Method string
-
-	// Prefix is the path prefix of the resource, which this file describes.
-	// This is service name with a leading slash.
-	Prefix string
-
-	// Resource is the path of the resource, which this file describes without prefix.
-	Resource string
-
-	// FilePath is the full path to the file.
-	FilePath string
-
-	// FileName is the name of the file with the extension.
-	FileName string
-
-	// Extension is the extension of the file, with the leading dot.
-	Extension string
-
-	// ContentType is the MIME type of the file.
+	IsOpenAPI   bool
+	Method      string
+	Prefix      string
+	Resource    string
+	FilePath    string
+	FileName    string
+	Extension   string
 	ContentType string
-
-	// Spec is the OpenAPI specification of the file if the file iis an OpenAPI specification.
-	Spec openapi.Document `json:"-"`
+	Spec        openapi.Document `json:"-"`
 }
 
 // IsEqual compares two FileProperties structs.
@@ -71,18 +65,15 @@ func (f *FileProperties) IsEqual(other *FileProperties) bool {
 }
 
 // UploadedFile represents an uploaded file.
+// Content is the content of the file.
+// Filename is the name of the file.
+// Extension is the extension of the file with the leading dot.
+// Size is the size of the file in bytes.
 type UploadedFile struct {
-	// Content is the content of the file.
-	Content []byte
-
-	// Filename is the name of the file.
-	Filename string
-
-	// Extension is the extension of the file with the leading dot.
+	Content   []byte
+	Filename  string
 	Extension string
-
-	// Size is the size of the file in bytes.
-	Size int64
+	Size      int64
 }
 
 // GetRequestFile gets an uploaded file from a GeneratedRequest.

@@ -92,6 +92,10 @@ docs-install:
 docs-prepare:
 	@go run ./cmd/fake_list/main.go
 
+@PHONY: docs-serve
+docs-serve: docs-prepare
+	mkdocs serve
+
 @PHONY: docs-deploy
 docs-deploy: docs-prepare
 	mkdocs gh-deploy --force

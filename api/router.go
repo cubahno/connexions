@@ -17,29 +17,26 @@ import (
 type RouteRegister func(router *Router) error
 
 // Router is a wrapper around chi.Mux that adds some extra functionality.
+//
+// Config is a pointer to the global Config instance.
+// services: Router keeps track of registered services and their routes.
+// contexts is a map of registered context namespaces.
+// Each namespace is a map of context names and their values.
+//
+// defaultContexts is a slice of registered context namespaces.
+// It can refer to complete context namespace or just a part of it:
+// e.g. in yaml config
+// - common:
+// - fake:payments
 type Router struct {
 	*chi.Mux
 
-	// Config is a pointer to the global Config instance.
-	Config *config.Config
-
+	Config          *config.Config
 	callbacksPlugin *plugin.Plugin
-
-	// Router keeps track of registered services and their routes.
-	services map[string]*ServiceItem
-
-	// contexts is a map of registered context namespaces.
-	// Each namespace is a map of context names and their values.
-	contexts map[string]map[string]any
-
-	// defaultContexts is a slice of registered context namespaces.
-	// It can refer to complete context namespace or just a part of it:
-	// e.g. in yaml config
-	// - common:
-	// - fake:payments
+	services        map[string]*ServiceItem
+	contexts        map[string]map[string]any
 	defaultContexts []map[string]string
-
-	history *CurrentRequestStorage
+	history         *CurrentRequestStorage
 
 	mu sync.RWMutex
 }

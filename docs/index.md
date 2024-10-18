@@ -15,7 +15,9 @@
 - generate meaningful responses
 
 ## Features
-- Randomized response contents, allowing you to redefine the response for any path in a locale of your choice
+- Using upstream services with circuit breaker
+- Randomized response contents, allowing you to redefine the response for any path in a locale of your choice if upstream service is not defined or not available
+- Modify response contents on the fly by providing custom function callbacks
 - Mimic error responses and status codes
 - Configurable latency in responses
 
