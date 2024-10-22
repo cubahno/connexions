@@ -7,6 +7,7 @@ import (
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3high "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"github.com/pb33f/libopenapi/orderedmap"
 	"net/http"
 	"sort"
 	"strings"
@@ -44,9 +45,9 @@ func (d *V3Document) GetResources() map[string][]string {
 		return res
 	}
 
-	for name, path := range d.Model.Paths.PathItems {
+	for name, path := range d.Model.Paths.PathItems.FromOldest() {
 		res[name] = make([]string, 0)
-		for method := range path.GetOperations() {
+		for method := range path.GetOperations().KeysFromOldest() {
 			res[name] = append(res[name], strings.ToUpper(method))
 		}
 	}
@@ -58,12 +59,12 @@ func (d *V3Document) FindOperation(options *openapi.OperationDescription) openap
 	if options == nil {
 		return nil
 	}
-	path, ok := d.Model.Paths.PathItems[options.Resource]
+	path, ok := d.Model.Paths.PathItems.Get(options.Resource)
 	if !ok {
 		return nil
 	}
 
-	for m, op := range path.GetOperations() {
+	for m, op := range path.GetOperations().FromOldest() {
 		if strings.EqualFold(m, options.Method) {
 			return &V3Operation{
 				Operation: op,
@@ -93,7 +94,7 @@ func (op *V3Operation) GetParameters() openapi.Parameters {
 		params = append(params, &openapi.Parameter{
 			Name:     param.Name,
 			In:       param.In,
-			Required: param.Required,
+			Required: *param.Required,
 			Schema:   schema,
 			Example:  param.Example,
 		})
@@ -122,8 +123,9 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 	statusCode := http.StatusOK
 
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		responseRef = available[fmt.Sprintf("%v", code)]
-		if responseRef != nil {
+		ok := false
+		responseRef, ok = available.Get(fmt.Sprintf("%v", code))
+		if ok {
 			statusCode = code
 			break
 		}
@@ -131,7 +133,7 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 
 	// Get first defined
 	if responseRef == nil {
-		for codeName, respRef := range available {
+		for codeName, respRef := range available.FromOldest() {
 			// There's no default expected in this library implementation
 			responseRef = respRef
 			statusCode = openapi.TransformHTTPCode(codeName)
@@ -150,7 +152,7 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 	}
 
 	parsedHeaders := make(openapi.Headers)
-	for name, header := range responseRef.Headers {
+	for name, header := range responseRef.Headers.FromOldest() {
 		var schema *openapi.Schema
 		if header.Schema != nil {
 			hSchema := header.Schema.Schema()
@@ -170,7 +172,12 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 		parsedHeaders = nil
 	}
 
-	libContent, contentType := op.getContent(responseRef.Content)
+	contentTypes := make(map[string]*v3high.MediaType)
+	for k, v := range responseRef.Content.FromOldest() {
+		contentTypes[k] = v
+	}
+
+	libContent, contentType := op.getContent(contentTypes)
 	content := NewSchema(libContent, op.parseConfig)
 
 	return &openapi.Response{
@@ -216,8 +223,8 @@ func (op *V3Operation) GetRequestBody() (*openapi.Schema, string) {
 	}
 
 	contentTypes := op.RequestBody.Content
-	if len(contentTypes) == 0 {
-		contentTypes = make(map[string]*v3high.MediaType)
+	if contentTypes.Len() == 0 {
+		contentTypes = orderedmap.New[string, *v3high.MediaType]()
 	}
 
 	typesOrder := []string{
@@ -227,8 +234,8 @@ func (op *V3Operation) GetRequestBody() (*openapi.Schema, string) {
 		"application/octet-stream",
 	}
 	for _, contentType := range typesOrder {
-		if _, ok := contentTypes[contentType]; ok {
-			px := contentTypes[contentType].Schema
+		if v, ok := contentTypes.Get(contentType); ok {
+			px := v.Schema
 			if px == nil {
 				continue
 			}
@@ -237,7 +244,7 @@ func (op *V3Operation) GetRequestBody() (*openapi.Schema, string) {
 	}
 
 	// Get first defined
-	for contentType, mediaType := range contentTypes {
+	for contentType, mediaType := range contentTypes.FromOldest() {
 		px := mediaType.Schema
 		if px == nil {
 			continue

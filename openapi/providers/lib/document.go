@@ -6,6 +6,7 @@ import (
 	"github.com/cubahno/connexions/openapi"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
+	"github.com/pb33f/libopenapi/orderedmap"
 	"log"
 	"os"
 	"strconv"
@@ -122,9 +123,9 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 	}
 
 	var properties map[string]*openapi.Schema
-	if len(merged.Properties) > 0 {
+	if merged.Properties.Len() > 0 {
 		properties = make(map[string]*openapi.Schema)
-		for propName, sProxy := range merged.Properties {
+		for propName, sProxy := range merged.Properties.FromOldest() {
 			if parseConfig.OnlyRequired && !internal.SliceContains(merged.Required, propName) {
 				continue
 			}
@@ -180,6 +181,11 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 		items = &openapi.Schema{Type: openapi.TypeString}
 	}
 
+	enums := make([]any, 0)
+	for _, enum := range merged.Enum {
+		enums = append(enums, enum)
+	}
+
 	return &openapi.Schema{
 		Type:          typ,
 		Items:         items,
@@ -195,13 +201,13 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 		MaxProperties: internal.RemovePointer(merged.MaxProperties),
 		MinProperties: internal.RemovePointer(merged.MinProperties),
 		Required:      merged.Required,
-		Enum:          merged.Enum,
+		Enum:          enums,
 		Properties:    properties,
 		Not:           not,
 		Default:       merged.Default,
 		Nullable:      internal.RemovePointer(merged.Nullable),
-		ReadOnly:      merged.ReadOnly,
-		WriteOnly:     merged.WriteOnly,
+		ReadOnly:      *merged.ReadOnly,
+		WriteOnly:     *merged.WriteOnly,
 		Example:       merged.Example,
 		Deprecated:    internal.RemovePointer(merged.Deprecated),
 	}
@@ -236,8 +242,8 @@ func mergeSubSchemas(schema *base.Schema) (*base.Schema, string) {
 	schema.Not = nil
 
 	properties := schema.Properties
-	if len(properties) == 0 {
-		properties = make(map[string]*base.SchemaProxy)
+	if properties.Len() == 0 {
+		properties = orderedmap.New[string, *base.SchemaProxy]()
 	}
 	required := schema.Required
 	if len(required) == 0 {
@@ -270,7 +276,7 @@ func mergeSubSchemas(schema *base.Schema) (*base.Schema, string) {
 			if len(subSchema.Type) > 0 {
 				impliedType = subSchema.Type[0]
 			}
-			if impliedType == "" && subSchema.Items != nil && subSchema.Items.IsA() && len(subSchema.Items.A.Schema().Properties) > 0 {
+			if impliedType == "" && subSchema.Items != nil && subSchema.Items.IsA() && subSchema.Items.A.Schema().Properties.Len() > 0 {
 				impliedType = openapi.TypeArray
 			}
 			if impliedType == "" {
@@ -279,11 +285,11 @@ func mergeSubSchemas(schema *base.Schema) (*base.Schema, string) {
 		}
 
 		if impliedType == openapi.TypeObject {
-			for propertyName, property := range subSchema.Properties {
+			for propertyName, property := range subSchema.Properties.FromOldest() {
 				if subRef == "" {
 					subRef = property.GetReference()
 				}
-				properties[propertyName] = property
+				properties.Store(propertyName, property)
 			}
 		}
 

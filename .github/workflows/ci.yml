@@ -66,13 +66,17 @@ jobs:
     - run: go fmt ./...
     - run: git --no-pager diff --exit-code
 
-    - name: Test
+    - name: Unit tests
       id: test_step
       run: |
         make test-with-check-coverage
         total=$(go tool cover -func=.testCoverage.txt | awk '/^total:/{printf "%d", $3}' | tr -d '%')
         echo "TOTAL_COVERAGE=$total" >> $GITHUB_ENV
         echo "::set-output name=total_coverage::$total"
+
+    - name: Integration Tests
+      run: |
+        make test-integration
 
     outputs:
       total_coverage: ${{ steps.test_step.outputs.total_coverage }}

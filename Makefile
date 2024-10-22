@@ -19,7 +19,7 @@ lint:
 .PHONY: test
 test:
 	@if [ -z "$(PKG)" ]; then \
-		go test -race \
+		go test -v -race \
 			-coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) \
 			-coverprofile .testCoverage.txt \
 			-count=1 \
@@ -28,8 +28,14 @@ test:
   		go test -race -coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) -coverprofile=.testCoverage.txt -count=1 ./$(PKG)/...; \
 	fi
 
+.PHONY: fetch-specs
+fetch-specs:
+	rm -rf ./testdata/specs
+	git clone https://github.com/cubahno/specs.git ./testdata/specs
+	rm -rf ./testdata/specs/.[^.]*
+
 .PHONY: test-integration
-test-integration:
+test-integration: fetch-specs
 	@go test -race -tags=integration -count=1
 
 .PHONY: test-with-check-coverage
