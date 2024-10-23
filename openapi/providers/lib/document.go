@@ -123,7 +123,7 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 	}
 
 	var properties map[string]*openapi.Schema
-	if merged.Properties.Len() > 0 {
+	if merged.Properties != nil {
 		properties = make(map[string]*openapi.Schema)
 		for propName, sProxy := range merged.Properties.FromOldest() {
 			if parseConfig.OnlyRequired && !internal.SliceContains(merged.Required, propName) {
@@ -186,6 +186,15 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 		enums = append(enums, enum)
 	}
 
+	readOnly := false
+	if merged.ReadOnly != nil {
+		readOnly = *merged.ReadOnly
+	}
+	writeOnly := false
+	if merged.WriteOnly != nil {
+		writeOnly = *merged.WriteOnly
+	}
+
 	return &openapi.Schema{
 		Type:          typ,
 		Items:         items,
@@ -206,8 +215,8 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 		Not:           not,
 		Default:       merged.Default,
 		Nullable:      internal.RemovePointer(merged.Nullable),
-		ReadOnly:      *merged.ReadOnly,
-		WriteOnly:     *merged.WriteOnly,
+		ReadOnly:      readOnly,
+		WriteOnly:     writeOnly,
 		Example:       merged.Example,
 		Deprecated:    internal.RemovePointer(merged.Deprecated),
 	}
@@ -242,7 +251,7 @@ func mergeSubSchemas(schema *base.Schema) (*base.Schema, string) {
 	schema.Not = nil
 
 	properties := schema.Properties
-	if properties.Len() == 0 {
+	if properties == nil {
 		properties = orderedmap.New[string, *base.SchemaProxy]()
 	}
 	required := schema.Required
@@ -276,7 +285,7 @@ func mergeSubSchemas(schema *base.Schema) (*base.Schema, string) {
 			if len(subSchema.Type) > 0 {
 				impliedType = subSchema.Type[0]
 			}
-			if impliedType == "" && subSchema.Items != nil && subSchema.Items.IsA() && subSchema.Items.A.Schema().Properties.Len() > 0 {
+			if impliedType == "" && subSchema.Items != nil && subSchema.Items.IsA() && subSchema.Items.A.Schema().Properties != nil {
 				impliedType = openapi.TypeArray
 			}
 			if impliedType == "" {
@@ -284,7 +293,7 @@ func mergeSubSchemas(schema *base.Schema) (*base.Schema, string) {
 			}
 		}
 
-		if impliedType == openapi.TypeObject {
+		if impliedType == openapi.TypeObject && subSchema.Properties != nil {
 			for propertyName, property := range subSchema.Properties.FromOldest() {
 				if subRef == "" {
 					subRef = property.GetReference()

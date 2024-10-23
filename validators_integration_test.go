@@ -135,7 +135,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 		for i, res := range failsDescr {
 			log.Printf("Fail %d:\n====================\n", i+1)
 			if res.docErr != "" {
-				log.Printf("Document error in file: %s\n%s\n\n", res.file, res.docErr)
+				log.Printf("Document error in file: %s\n%v\n\n", res.file, res.docErr)
 				continue
 			}
 			if res.reqErr != "" || res.respErr != "" {
@@ -163,8 +163,8 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 	defer func() {
 		if r := recover(); r != nil {
 			ch <- validationResult{
-				file:   fileName,
-				docErr: fmt.Sprintf("Panic: %s", r),
+				file:   filePath,
+				docErr: fmt.Sprintf("Panic: %v", r),
 			}
 		}
 	}()

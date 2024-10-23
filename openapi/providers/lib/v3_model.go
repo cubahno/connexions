@@ -45,10 +45,12 @@ func (d *V3Document) GetResources() map[string][]string {
 		return res
 	}
 
-	for name, path := range d.Model.Paths.PathItems.FromOldest() {
-		res[name] = make([]string, 0)
-		for method := range path.GetOperations().KeysFromOldest() {
-			res[name] = append(res[name], strings.ToUpper(method))
+	if d.Model.Paths.PathItems != nil {
+		for name, path := range d.Model.Paths.PathItems.FromOldest() {
+			res[name] = make([]string, 0)
+			for method := range path.GetOperations().KeysFromOldest() {
+				res[name] = append(res[name], strings.ToUpper(method))
+			}
 		}
 	}
 	return res
@@ -64,7 +66,11 @@ func (d *V3Document) FindOperation(options *openapi.OperationDescription) openap
 		return nil
 	}
 
-	for m, op := range path.GetOperations().FromOldest() {
+	pathOps := path.GetOperations()
+	if pathOps == nil {
+		return nil
+	}
+	for m, op := range pathOps.FromOldest() {
 		if strings.EqualFold(m, options.Method) {
 			return &V3Operation{
 				Operation: op,
@@ -118,6 +124,9 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 		}
 	}
 	available := op.Responses.Codes
+	if available == nil {
+		available = orderedmap.New[string, *v3high.Response]()
+	}
 
 	var responseRef *v3high.Response
 	statusCode := http.StatusOK
@@ -152,19 +161,22 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 	}
 
 	parsedHeaders := make(openapi.Headers)
-	for name, header := range responseRef.Headers.FromOldest() {
-		var schema *openapi.Schema
-		if header.Schema != nil {
-			hSchema := header.Schema.Schema()
-			schema = NewSchema(hSchema, op.parseConfig)
-		}
+	headers := responseRef.Headers
+	if headers != nil {
+		for name, header := range headers.FromOldest() {
+			var schema *openapi.Schema
+			if header.Schema != nil {
+				hSchema := header.Schema.Schema()
+				schema = NewSchema(hSchema, op.parseConfig)
+			}
 
-		name = strings.ToLower(name)
-		parsedHeaders[name] = &openapi.Parameter{
-			Name:     name,
-			In:       openapi.ParameterInHeader,
-			Required: header.Required,
-			Schema:   schema,
+			name = strings.ToLower(name)
+			parsedHeaders[name] = &openapi.Parameter{
+				Name:     name,
+				In:       openapi.ParameterInHeader,
+				Required: header.Required,
+				Schema:   schema,
+			}
 		}
 	}
 
@@ -173,8 +185,10 @@ func (op *V3Operation) GetResponse() *openapi.Response {
 	}
 
 	contentTypes := make(map[string]*v3high.MediaType)
-	for k, v := range responseRef.Content.FromOldest() {
-		contentTypes[k] = v
+	if responseRef.Content != nil {
+		for k, v := range responseRef.Content.FromOldest() {
+			contentTypes[k] = v
+		}
 	}
 
 	libContent, contentType := op.getContent(contentTypes)
@@ -223,7 +237,7 @@ func (op *V3Operation) GetRequestBody() (*openapi.Schema, string) {
 	}
 
 	contentTypes := op.RequestBody.Content
-	if contentTypes.Len() == 0 {
+	if contentTypes == nil {
 		contentTypes = orderedmap.New[string, *v3high.MediaType]()
 	}
 
