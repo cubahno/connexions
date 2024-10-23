@@ -66,13 +66,16 @@ func TestValidateResponse_Integration(t *testing.T) {
 	stopCh := make(chan struct{})
 
 	cfg := config.NewDefaultConfig("")
+	// TODO: test all providers
+	provider := config.KinOpenAPIProvider
+	cfg.App.SchemaProvider = provider
 
 	if filePath != "" {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
-			validateFile(filePath, valueReplacer, ch, stopCh)
+			validateFile(provider, filePath, valueReplacer, ch, stopCh)
 		}()
 	} else {
 		_ = filepath.Walk(dirPath, func(filePath string, info os.FileInfo, fileErr error) error {
@@ -95,7 +98,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 			go func(filePath string) {
 				defer wg.Done()
 				valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
-				validateFile(filePath, valueReplacer, ch, stopCh)
+				validateFile(provider, filePath, valueReplacer, ch, stopCh)
 			}(filePath)
 
 			return nil
@@ -150,7 +153,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	}
 }
 
-func validateFile(filePath string, replacer replacers.ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
+func validateFile(provider config.SchemaProvider, filePath string, replacer replacers.ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
 	fileName := filepath.Base(filePath)
 	// there should be a simple way to tmp skip some specs
 	if fileName[0] == '-' {
@@ -166,7 +169,7 @@ func validateFile(filePath string, replacer replacers.ValueReplacer, ch chan<- v
 		}
 	}()
 
-	doc, err := NewDocumentFromFileFactory(config.KinOpenAPIProvider)(filePath)
+	doc, err := NewDocumentFromFileFactory(provider)(filePath)
 	// doc, err := NewDocumentFromFileFactory(LibOpenAPIProvider)(filePath)
 	if err != nil {
 		ch <- validationResult{

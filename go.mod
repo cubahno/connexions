@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	github.com/cubahno/connexions_plugin v0.1.3
-	github.com/getkin/kin-openapi v0.118.0
+	github.com/getkin/kin-openapi v0.128.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/jaswdr/faker/v2 v2.3.0
 	github.com/joho/godotenv v1.5.1

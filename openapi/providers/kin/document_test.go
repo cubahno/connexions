@@ -68,8 +68,8 @@ func TestOperation(t *testing.T) {
 
 	t.Run("GetResponse-headers-with-nil-cases", func(t *testing.T) {
 		operation := &KinOperation{Operation: &openapi3.Operation{
-			Responses: openapi3.Responses{
-				"200": &openapi3.ResponseRef{
+			Responses: openapi3.NewResponses(
+				openapi3.WithStatus(http.StatusOK, &openapi3.ResponseRef{
 					Value: &openapi3.Response{
 						Headers: openapi3.Headers{
 							"X-Rate-Limit-Limit": &openapi3.HeaderRef{
@@ -78,7 +78,7 @@ func TestOperation(t *testing.T) {
 										Name: "X-Rate-Limit-Limit",
 										Schema: &openapi3.SchemaRef{
 											Value: &openapi3.Schema{
-												Type: "integer",
+												Type: &openapi3.Types{"integer"},
 											},
 										},
 									},
@@ -89,8 +89,8 @@ func TestOperation(t *testing.T) {
 							},
 						},
 					},
-				},
-			},
+				}),
+			),
 		}}
 		res := operation.GetResponse()
 		expected := openapi.Response{
@@ -232,7 +232,7 @@ func TestMergeSubSchemas(t *testing.T) {
 	t.Run("implied-string-type", func(t *testing.T) {
 		target := &openapi3.Schema{
 			OneOf: openapi3.SchemaRefs{
-				{Value: &openapi3.Schema{Type: "string"}},
+				{Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeString}}},
 			},
 			Not: &openapi3.SchemaRef{
 				Value: &openapi3.Schema{Enum: []any{"doggie"}},
@@ -250,7 +250,7 @@ func TestMergeSubSchemas(t *testing.T) {
 			OneOf: openapi3.SchemaRefs{
 				{Value: &openapi3.Schema{
 					Items: &openapi3.SchemaRef{
-						Value: &openapi3.Schema{Type: "string"},
+						Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeString}},
 					},
 				}},
 			},
@@ -292,8 +292,8 @@ func TestPickSchemaProxy(t *testing.T) {
 	t.Run("happy-path", func(t *testing.T) {
 		items := []*openapi3.SchemaRef{
 			nil,
-			{Value: &openapi3.Schema{Type: "string"}},
-			{Value: &openapi3.Schema{Type: "integer"}},
+			{Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeString}}},
+			{Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeInteger}}},
 		}
 		res := pickKinSchemaProxy(items)
 		assert.Equal(items[1], res)
@@ -302,7 +302,7 @@ func TestPickSchemaProxy(t *testing.T) {
 	t.Run("prefer-reference", func(t *testing.T) {
 		items := []*openapi3.SchemaRef{
 			nil,
-			{Value: &openapi3.Schema{Type: "string"}},
+			{Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeString}}},
 			{Ref: "#ref"},
 		}
 		res := pickKinSchemaProxy(items)
@@ -324,7 +324,7 @@ func TestGetAdditionalProperties(t *testing.T) {
 		*has = true
 		res := getKinAdditionalProperties(openapi3.AdditionalProperties{Has: has})
 		expected := &openapi3.Schema{
-			Type: openapi.TypeString,
+			Type: &openapi3.Types{openapi.TypeString},
 		}
 		assert.Equal(expected, res)
 	})
@@ -333,16 +333,16 @@ func TestGetAdditionalProperties(t *testing.T) {
 		source := openapi3.AdditionalProperties{
 			Schema: &openapi3.SchemaRef{
 				Value: &openapi3.Schema{
-					Type: openapi.TypeObject,
+					Type: &openapi3.Types{openapi.TypeObject},
 					Properties: map[string]*openapi3.SchemaRef{
 						"name": {
 							Value: &openapi3.Schema{
-								Type: openapi.TypeString,
+								Type: &openapi3.Types{openapi.TypeString},
 							},
 						},
 						"age": {
 							Value: &openapi3.Schema{
-								Type: openapi.TypeInteger,
+								Type: &openapi3.Types{openapi.TypeInteger},
 							},
 						},
 					},
@@ -351,13 +351,13 @@ func TestGetAdditionalProperties(t *testing.T) {
 		}
 
 		expected := &openapi3.Schema{
-			Type: openapi.TypeObject,
+			Type: &openapi3.Types{openapi.TypeObject},
 			Properties: map[string]*openapi3.SchemaRef{
 				"name": {
-					Value: &openapi3.Schema{Type: openapi.TypeString},
+					Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeString}},
 				},
 				"age": {
-					Value: &openapi3.Schema{Type: openapi.TypeInteger},
+					Value: &openapi3.Schema{Type: &openapi3.Types{openapi.TypeInteger}},
 				},
 			},
 		}

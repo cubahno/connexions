@@ -50,7 +50,7 @@ func (d *Document) GetVersion() string {
 // GetResources returns a map of resource names and their methods.
 func (d *Document) GetResources() map[string][]string {
 	res := make(map[string][]string)
-	for resName, pathItem := range d.Paths {
+	for resName, pathItem := range d.Paths.Map() {
 		res[resName] = make([]string, 0)
 		for method := range pathItem.Operations() {
 			res[resName] = append(res[resName], method)
@@ -157,7 +157,7 @@ func (op *KinOperation) GetResponse() *openapi.Response {
 	statusCode := 200
 
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		if codeResp := available.Get(code); codeResp != nil {
+		if codeResp := available.Value(strconv.Itoa(code)); codeResp != nil {
 			libResponse = codeResp.Value
 			statusCode = code
 			break
@@ -166,7 +166,7 @@ func (op *KinOperation) GetResponse() *openapi.Response {
 
 	// Get first defined
 	if libResponse == nil {
-		for codeName, respRef := range available {
+		for codeName, respRef := range available.Map() {
 			if codeName == "default" || respRef == nil {
 				continue
 			}
@@ -291,8 +291,13 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *config.ParseConfig, 
 		return nil
 	}
 
-	typ := merged.Type
-	typ = openapi.FixSchemaTypeTypos(typ)
+	typ := ""
+	for _, t := range merged.Type.Slice() {
+		typ = openapi.FixSchemaTypeTypos(t)
+		if typ != "" {
+			break
+		}
+	}
 
 	var items *openapi.Schema
 	if merged.Items != nil && merged.Items.Value != nil {
@@ -366,7 +371,7 @@ func newSchemaFromKin(schema *openapi3.Schema, parseConfig *config.ParseConfig, 
 		not = newSchemaFromKin(merged.Not.Value, parseConfig, refPath, namePath)
 	}
 
-	if merged.Type == openapi.TypeArray && items == nil {
+	if merged.Type.Is(openapi.TypeArray) && items == nil {
 		// if no items specified means they could be anything, so let's assume string
 		items = &openapi.Schema{Type: openapi.TypeString}
 	}
@@ -407,7 +412,7 @@ func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 
 	// base case: schema is flat
 	if len(allOf) == 0 && len(anyOf) == 0 && len(oneOf) == 0 && not == nil {
-		if schema != nil && len(schema.Type) == 0 {
+		if schema != nil && len(schema.Type.Slice()) == 0 {
 			typ := openapi.TypeObject
 			if len(schema.Enum) > 0 {
 				enumType := openapi.GetOpenAPITypeFromValue(schema.Enum[0])
@@ -415,7 +420,7 @@ func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 					typ = enumType
 				}
 			}
-			schema.Type = typ
+			schema.Type = &openapi3.Types{typ}
 		}
 		return schema, ""
 	}
@@ -458,8 +463,9 @@ func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 		}
 
 		if impliedType == "" {
-			if len(subSchema.Type) > 0 {
-				impliedType = subSchema.Type
+			types := subSchema.Type.Slice()
+			if len(types) > 0 {
+				impliedType = types[0]
 			}
 			if impliedType == "" && subSchema.Items != nil && subSchema.Items.Value != nil {
 				impliedType = openapi.TypeArray
@@ -501,12 +507,12 @@ func mergeKinSubSchemas(schema *openapi3.Schema) (*openapi3.Schema, string) {
 		resultNot, _ := mergeKinSubSchemas(not.Value)
 		if resultNot != nil {
 			// not is always an object
-			resultNot.Type = openapi.TypeObject
+			resultNot.Type = &openapi3.Types{openapi.TypeObject}
 		}
 		schema.Not = openapi3.NewSchemaRef("", resultNot)
 	}
 
-	schema.Type = impliedType
+	schema.Type = &openapi3.Types{impliedType}
 	schema.Properties = properties
 	schema.Required = required
 
@@ -553,7 +559,7 @@ func getKinAdditionalProperties(source openapi3.AdditionalProperties) *openapi3.
 		}
 		// case when additionalProperties is true
 		return &openapi3.Schema{
-			Type: openapi.TypeString,
+			Type: &openapi3.Types{openapi.TypeString},
 		}
 	}
 
