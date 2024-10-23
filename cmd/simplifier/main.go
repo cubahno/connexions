@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -306,17 +305,15 @@ func convertOperation(operation openapi.Operation) *openapi3.Operation {
 		OperationID: operation.ID(),
 		Parameters:  params,
 		RequestBody: requestBody,
-		Responses: openapi3.Responses{
-			strconv.Itoa(response.StatusCode): {
-				Value: &openapi3.Response{
-					Content: map[string]*openapi3.MediaType{
-						contentType: {
-							Schema: convertSchema(contentSchema),
-						},
+		Responses: openapi3.NewResponses(openapi3.WithStatus(response.StatusCode, &openapi3.ResponseRef{
+			Value: &openapi3.Response{
+				Content: map[string]*openapi3.MediaType{
+					contentType: {
+						Schema: convertSchema(contentSchema),
 					},
 				},
 			},
-		},
+		})),
 	}
 }
 
@@ -354,7 +351,7 @@ func convertSchema(src *openapi.Schema) *openapi3.SchemaRef {
 	return &openapi3.SchemaRef{
 		Value: &openapi3.Schema{
 			Not:        convertSchema(src.Not),
-			Type:       src.Type,
+			Type:       &openapi3.Types{src.Type},
 			Format:     src.Format,
 			Enum:       src.Enum,
 			Default:    src.Default,
