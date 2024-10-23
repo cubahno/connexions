@@ -40,9 +40,9 @@ func (d *V2Document) GetVersion() string {
 func (d *V2Document) GetResources() map[string][]string {
 	res := make(map[string][]string)
 
-	for name, path := range d.Model.Paths.PathItems {
+	for name, path := range d.Model.Paths.PathItems.FromOldest() {
 		res[name] = make([]string, 0)
-		for method := range path.GetOperations() {
+		for method := range path.GetOperations().KeysFromOldest() {
 			res[name] = append(res[name], strings.ToUpper(method))
 		}
 	}
@@ -54,12 +54,12 @@ func (d *V2Document) FindOperation(options *openapi.OperationDescription) openap
 	if options == nil {
 		return nil
 	}
-	path, ok := d.Model.Paths.PathItems[options.Resource]
+	path, ok := d.Model.Paths.PathItems.Get(options.Resource)
 	if !ok {
 		return nil
 	}
 
-	for m, op := range path.GetOperations() {
+	for m, op := range path.GetOperations().FromOldest() {
 		if strings.EqualFold(m, options.Method) {
 			return &V2Operation{
 				Operation:   op,
@@ -110,8 +110,9 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 	statusCode := http.StatusOK
 
 	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		responseRef = available[fmt.Sprintf("%v", code)]
-		if responseRef != nil {
+		ok := false
+		responseRef, ok = available.Get(fmt.Sprintf("%v", code))
+		if ok {
 			statusCode = code
 			break
 		}
@@ -119,7 +120,7 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 
 	// Get first defined
 	if responseRef == nil {
-		for codeName, respRef := range available {
+		for codeName, respRef := range available.FromOldest() {
 			// There's no default expected in this library implementation
 			responseRef = respRef
 			statusCode = openapi.TransformHTTPCode(codeName)
@@ -148,11 +149,16 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 
 	// libopenapi is missing required property for header
 	parsedHeaders := make(openapi.Headers)
-	for name, header := range responseRef.Headers {
+	for name, header := range responseRef.Headers.FromOldest() {
 		var items *openapi.Schema
 
 		hItems := header.Items
 		if hItems != nil {
+			enums := make([]any, 0)
+			for _, e := range hItems.Enum {
+				enums = append(enums, e)
+			}
+
 			items = &openapi.Schema{
 				Type:       hItems.Type,
 				Format:     hItems.Format,
@@ -162,7 +168,7 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 				MinItems:   int64(hItems.MinItems),
 				MaxItems:   int64(hItems.MaxItems),
 				Pattern:    hItems.Pattern,
-				Enum:       hItems.Enum,
+				Enum:       enums,
 				Default:    hItems.Default,
 			}
 		}
@@ -294,6 +300,10 @@ func (op *V2Operation) parseParameter(param *v2high.Parameter) *openapi.Schema {
 
 	var items *openapi.Schema
 	if param.Items != nil {
+		enums := make([]any, 0)
+		for _, e := range param.Items.Enum {
+			enums = append(enums, e)
+		}
 		items = &openapi.Schema{
 			Type:       param.Items.Type,
 			Format:     param.Items.Format,
@@ -305,9 +315,14 @@ func (op *V2Operation) parseParameter(param *v2high.Parameter) *openapi.Schema {
 			MinLength:  int64(param.Items.MinLength),
 			MaxLength:  int64(param.Items.MaxLength),
 			Pattern:    param.Items.Pattern,
-			Enum:       param.Items.Enum,
+			Enum:       enums,
 			Default:    param.Items.Default,
 		}
+	}
+
+	enums := make([]any, 0)
+	for _, e := range param.Enum {
+		enums = append(enums, e)
 	}
 
 	return &openapi.Schema{
@@ -322,7 +337,7 @@ func (op *V2Operation) parseParameter(param *v2high.Parameter) *openapi.Schema {
 		MinLength:  int64(minLength),
 		MaxLength:  int64(maxLength),
 		Pattern:    param.Pattern,
-		Enum:       param.Enum,
+		Enum:       enums,
 		Default:    param.Default,
 	}
 }

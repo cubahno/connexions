@@ -35,12 +35,15 @@ type validationResult struct {
 
 // TestValidateResponse_Integration is an end-to-end test that validates the response of the API.
 // This test is skipped by default. To run this test, use make test-integration.
-// Specs should be located in resources/specs, they all .gitignored except petstore.yml.
+// Specs should be located in testdata/specs, they all .gitignored except petstore.yml.
 func TestValidateResponse_Integration(t *testing.T) {
+	log.SetOutput(os.Stdout)
+	defer log.SetOutput(&testingLogWriter{})
+
 	filePath := os.Getenv("SPEC")
 	dirPath := os.Getenv("SPEC_DIR")
 	if dirPath == "" {
-		dirPath = filepath.Join("resources", "test", "specs")
+		dirPath = filepath.Join("testdata", "specs")
 	}
 
 	maxFailsVal := os.Getenv("MAX_FAILS")
@@ -52,7 +55,11 @@ func TestValidateResponse_Integration(t *testing.T) {
 		maxFails = 5
 	}
 
-	println("Validating specs...", filePath)
+	atLocation := filePath
+	if atLocation == "" {
+		atLocation = dirPath
+	}
+	log.Printf("Validating specs at %s...\n", atLocation)
 
 	wg := &sync.WaitGroup{}
 	ch := make(chan validationResult)
@@ -113,32 +120,32 @@ func TestValidateResponse_Integration(t *testing.T) {
 		fails++
 
 		if fails >= maxFails {
-			fmt.Printf("Max fails reached: %d\n", maxFails)
+			log.Printf("Max fails reached: %d\n", maxFails)
 			close(stopCh)
 			break
 		}
 	}
 
-	fmt.Printf("Success: %d, Fails: %d\n", success, fails)
+	log.Printf("Success: %d, Fails: %d\n", success, fails)
 	if fails > 0 {
 		t.Errorf("Failed to validate %d resources", fails)
 		for i, res := range failsDescr {
-			fmt.Printf("Fail %d:\n====================\n", i+1)
+			log.Printf("Fail %d:\n====================\n", i+1)
 			if res.docErr != "" {
-				fmt.Printf("Document error in file: %s\n%s\n\n", res.file, res.docErr)
+				log.Printf("Document error in file: %s\n%s\n\n", res.file, res.docErr)
 				continue
 			}
 			if res.reqErr != "" || res.respErr != "" {
-				fmt.Printf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
+				log.Printf("File: %s\nPath: %s\nMethod: %s\n", res.file, res.path, res.method)
 				if res.reqErr != "" {
-					fmt.Printf("GeneratedRequest error: %s\n", res.reqErr)
+					log.Printf("GeneratedRequest error: %s\n", res.reqErr)
 				}
 				if res.respErr != "" {
-					fmt.Printf("GeneratedResponse error: %s\n", res.respErr)
+					log.Printf("GeneratedResponse error: %s\n", res.respErr)
 				}
 			}
 
-			fmt.Printf("==========================\n\n")
+			log.Printf("==========================\n\n")
 		}
 	}
 }
@@ -179,7 +186,7 @@ func validateFile(filePath string, replacer replacers.ValueReplacer, ch chan<- v
 
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
-			log.Printf("Validating [%s]: %s %s\n", fileName, method, resource)
+			resultMsg := fmt.Sprintf("Validating [%s]: %s %s", fileName, method, resource)
 			operation := doc.FindOperation(&openapi.OperationDescription{
 				Resource: resource,
 				Method:   method,
@@ -281,6 +288,12 @@ func validateFile(filePath string, replacer replacers.ValueReplacer, ch chan<- v
 
 			if respErrMsg == "" && reqErrMsg == "" {
 				success = true
+			}
+
+			if success {
+				log.Printf("%s: ok\n", resultMsg)
+			} else {
+				log.Printf("%s: failed\n", resultMsg)
 			}
 
 			select {
