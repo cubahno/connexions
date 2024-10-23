@@ -6,6 +6,7 @@ import (
 	"github.com/cubahno/connexions/openapi"
 	"github.com/pb33f/libopenapi"
 	v2high "github.com/pb33f/libopenapi/datamodel/high/v2"
+	"github.com/pb33f/libopenapi/orderedmap"
 	"net/http"
 	"sort"
 	"strings"
@@ -40,10 +41,12 @@ func (d *V2Document) GetVersion() string {
 func (d *V2Document) GetResources() map[string][]string {
 	res := make(map[string][]string)
 
-	for name, path := range d.Model.Paths.PathItems.FromOldest() {
-		res[name] = make([]string, 0)
-		for method := range path.GetOperations().KeysFromOldest() {
-			res[name] = append(res[name], strings.ToUpper(method))
+	if d.Model.Paths.PathItems == nil {
+		for name, path := range d.Model.Paths.PathItems.FromOldest() {
+			res[name] = make([]string, 0)
+			for method := range path.GetOperations().KeysFromOldest() {
+				res[name] = append(res[name], strings.ToUpper(method))
+			}
 		}
 	}
 	return res
@@ -59,11 +62,13 @@ func (d *V2Document) FindOperation(options *openapi.OperationDescription) openap
 		return nil
 	}
 
-	for m, op := range path.GetOperations().FromOldest() {
-		if strings.EqualFold(m, options.Method) {
-			return &V2Operation{
-				Operation:   op,
-				ParseConfig: d.ParseConfig,
+	if pathOps := path.GetOperations(); pathOps != nil {
+		for m, op := range pathOps.FromOldest() {
+			if strings.EqualFold(m, options.Method) {
+				return &V2Operation{
+					Operation:   op,
+					ParseConfig: d.ParseConfig,
+				}
 			}
 		}
 	}
@@ -109,17 +114,19 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 	var responseRef *v2high.Response
 	statusCode := http.StatusOK
 
-	for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
-		ok := false
-		responseRef, ok = available.Get(fmt.Sprintf("%v", code))
-		if ok {
-			statusCode = code
-			break
+	if available != nil {
+		for _, code := range []int{http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent} {
+			ok := false
+			responseRef, ok = available.Get(fmt.Sprintf("%v", code))
+			if ok {
+				statusCode = code
+				break
+			}
 		}
 	}
 
 	// Get first defined
-	if responseRef == nil {
+	if responseRef == nil && available != nil {
 		for codeName, respRef := range available.FromOldest() {
 			// There's no default expected in this library implementation
 			responseRef = respRef
@@ -149,7 +156,11 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 
 	// libopenapi is missing required property for header
 	parsedHeaders := make(openapi.Headers)
-	for name, header := range responseRef.Headers.FromOldest() {
+	responseHeaders := responseRef.Headers
+	if responseHeaders == nil {
+		responseHeaders = orderedmap.New[string, *v2high.Header]()
+	}
+	for name, header := range responseHeaders.FromOldest() {
 		var items *openapi.Schema
 
 		hItems := header.Items
