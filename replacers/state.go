@@ -15,10 +15,10 @@ import (
 // IsPathParam is a flag that indicates that the current element we're replacing is a path parameter.
 // ContentType is a content type of the current element.
 // IsContentReadOnly is a flag that indicates that the current element we're replacing is a read-only content.
-// This value is used only when Schema has ReadOnly set to true.
+// This value is used only when Scheme has ReadOnly set to true.
 //
 // IsContentWriteOnly is a flag that indicates that the current element we're replacing is a write-only content.
-// This value is used only when Schema has WriteOnly set to true.
+// This value is used only when Scheme has WriteOnly set to true.
 type ReplaceState struct {
 	NamePath           []string
 	ElementIndex       int

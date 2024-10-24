@@ -11,15 +11,23 @@ import (
 	"strings"
 )
 
+type GenerateRequestOptions struct {
+	PathPrefix string
+	Path       string
+	Method     string
+	Operation  Operation
+}
+
 // GeneratedRequest is a struct that represents a generated GeneratedRequest to be used when building real endpoint GeneratedRequest.
 type GeneratedRequest struct {
-	Headers     map[string]any  `json:"headers,omitempty"`
-	Method      string          `json:"method,omitempty"`
-	Path        string          `json:"path,omitempty"`
-	Query       string          `json:"query,omitempty"`
-	Body        string          `json:"body,omitempty"`
-	ContentType string          `json:"contentType,omitempty"`
-	Examples    *ContentExample `json:"examples,omitempty"`
+	Headers       map[string]any  `json:"headers,omitempty"`
+	Method        string          `json:"method,omitempty"`
+	Path          string          `json:"path,omitempty"`
+	Query         string          `json:"query,omitempty"`
+	Body          string          `json:"body,omitempty"`
+	ContentType   string          `json:"contentType,omitempty"`
+	ContentSchema *Schema         `json:"contentSchema,omitempty"`
+	Examples      *ContentExample `json:"examples,omitempty"`
 
 	// internal fields. needed for some validation providers.
 	Operation Operation     `json:"-"`

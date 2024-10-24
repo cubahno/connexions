@@ -40,9 +40,8 @@ func (v *Validator) ValidateRequest(req *openapi.GeneratedRequest) []error {
 	newReq.URL = newReq.URL.ResolveReference(&url.URL{Path: req.Path})
 
 	inp := &openapi3filter.RequestValidationInput{Request: newReq}
-	operation := req.Operation
+	bodySchema := req.ContentSchema
 
-	bodySchema, contentType := operation.GetRequestBody()
 	if _, supported := v.supportedRequestContentTypes[req.ContentType]; !supported {
 		return nil
 	}
@@ -56,7 +55,7 @@ func (v *Validator) ValidateRequest(req *openapi.GeneratedRequest) []error {
 
 	reqBody := openapi3.NewRequestBody().WithSchema(
 		schema,
-		[]string{contentType},
+		[]string{req.ContentType},
 	)
 
 	err := openapi3filter.ValidateRequestBody(context.Background(), inp, reqBody)

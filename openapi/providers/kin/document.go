@@ -5,6 +5,7 @@ import (
 	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/openapi"
 	"github.com/getkin/kin-openapi/openapi3"
+	"log"
 	"net/http"
 	"sort"
 	"strconv"
@@ -59,6 +60,61 @@ func (d *Document) GetResources() map[string][]string {
 	return res
 }
 
+func (d *Document) GetSecurity() openapi.SecurityComponents {
+	schemes := d.Components
+	if schemes == nil {
+		return nil
+	}
+
+	securitySchemes := schemes.SecuritySchemes
+	if securitySchemes == nil {
+		return nil
+	}
+
+	res := make(openapi.SecurityComponents)
+	for name, schemeRef := range securitySchemes {
+		if v := schemeRef.Value; v != nil {
+			// the other allowed value is "cookie"
+			in := openapi.AuthLocationHeader
+			switch v.In {
+			case "header":
+				in = openapi.AuthLocationHeader
+			case "query":
+				in = openapi.AuthLocationQuery
+			}
+
+			var typ openapi.AuthType
+			switch v.Type {
+			case "http":
+				typ = openapi.AuthTypeHTTP
+			case "apiKey":
+				typ = openapi.AuthTypeApiKey
+			default:
+				continue
+			}
+
+			var scheme openapi.AuthScheme
+			switch v.Scheme {
+			case "bearer":
+				scheme = openapi.AuthSchemeBearer
+			case "basic":
+				scheme = openapi.AuthSchemeBasic
+			}
+
+			res[name] = &openapi.SecurityComponent{
+				Type:   typ,
+				Scheme: scheme,
+				In:     in,
+				Name:   v.Name,
+			}
+		} else if ref := schemeRef.Ref; ref != "" {
+			log.Printf("Security scheme reference %s resolve is not supported yet", ref)
+			continue
+		}
+	}
+	return res
+}
+
 // FindOperation finds an operation by resource and method.
 func (d *Document) FindOperation(options *openapi.OperationDescription) openapi.Operation {
 	if options == nil {
@@ -83,8 +139,25 @@ func (op *KinOperation) ID() string {
 	return op.Operation.OperationID
 }
 
-// GetParameters returns the operation parameters
-func (op *KinOperation) GetParameters() openapi.Parameters {
+func (op *KinOperation) GetRequest(securityComponents openapi.SecurityComponents) *openapi.Request {
+	params := op.getParameters(securityComponents)
+	content, contentType := op.getRequestBody()
+
+	return &openapi.Request{
+		Parameters: params,
+		Body: &openapi.RequestBody{
+			Schema: content,
+			Type:   contentType,
+		},
+	}
+}
+
+// getParameters returns the operation parameters
+func (op *KinOperation) getParameters(securityComponents openapi.SecurityComponents) openapi.Parameters {
+	if securityComponents == nil {
+		securityComponents = make(openapi.SecurityComponents)
+	}
+
 	var params []*openapi.Parameter
 	for _, param := range op.Parameters {
 		p := param.Value
@@ -105,6 +178,45 @@ func (op *KinOperation) GetParameters() openapi.Parameters {
 		})
 	}
 
+	// loop through the required security components
+	for _, name := range op.getSecurity() {
+		sec := securityComponents[name]
+		if sec == nil {
+			continue
+		}
+		var format string
+		switch sec.Type {
+		case openapi.AuthTypeHTTP:
+			switch sec.Scheme {
+			case openapi.AuthSchemeBearer:
+				format = "bearer"
+			case openapi.AuthSchemeBasic:
+				format = "basic"
+			default:
+				continue
+
+			}
+			params = append(params, &openapi.Parameter{
+				Name:     "authorization",
+				In:       "header",
+				Required: true,
+				Schema: &openapi.Schema{
+					Type:   openapi.TypeString,
+					Format: format,
+				},
+			})
+		case openapi.AuthTypeApiKey:
+			params = append(params, &openapi.Parameter{
+				Name:     sec.Name,
+				In:       string(sec.In),
+				Required: true,
+				Schema: &openapi.Schema{
+					Type: openapi.TypeString,
+				},
+			})
+		}
+	}
+
 	sort.Slice(params, func(i, j int) bool {
 		return params[i].Name < params[j].Name
 	})
@@ -113,7 +225,7 @@ func (op *KinOperation) GetParameters() openapi.Parameters {
 }
 
 // GetRequestBody returns the operation request body
-func (op *KinOperation) GetRequestBody() (*openapi.Schema, string) {
+func (op *KinOperation) getRequestBody() (*openapi.Schema, string) {
 	if op.RequestBody == nil {
 		return nil, ""
 	}
@@ -147,6 +259,21 @@ func (op *KinOperation) GetRequestBody() (*openapi.Schema, string) {
 	}
 
 	return content, contentType
+}
+
+func (op *KinOperation) getSecurity() []string {
+	securityReqs := op.Security
+	res := make([]string, 0)
+	if securityReqs == nil {
+		return res
+	}
+
+	for _, securityReq := range *securityReqs {
+		for secName, _ := range securityReq {
+			res = append(res, secName)
+		}
+	}
+	return res
 }
 
 // GetResponse returns the operation response
@@ -260,7 +387,7 @@ func (op *KinOperation) WithParseConfig(config *config.ParseConfig) openapi.Oper
 	return op
 }
 
-// NewSchemaFromKin creates a new Schema from a Kin schema
+// NewSchemaFromKin creates a new Scheme from a Kin schema
 func NewSchemaFromKin(schema *openapi3.Schema, parseConfig *config.ParseConfig) *openapi.Schema {
 	if parseConfig == nil {
 		parseConfig = config.NewParseConfig()

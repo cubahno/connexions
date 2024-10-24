@@ -27,7 +27,7 @@ func TestNewRequestFromOperation(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("base-case", func(t *testing.T) {
-		valueResolver := func(content any, state *replacers.ReplaceState) any {
+		valueReplacer := func(content any, state *replacers.ReplaceState) any {
 			schema, _ := content.(*openapi.Schema)
 			if state.NamePath[0] == "userId" {
 				return "123"
@@ -41,7 +41,13 @@ func TestNewRequestFromOperation(t *testing.T) {
 		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation.yml"), operation)
 
-		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
+		opts := &openapi.GenerateRequestOptions{
+			PathPrefix: "/foo",
+			Path:       "/users/{userId}",
+			Method:     "POST",
+			Operation:  operation,
+		}
+		req := NewRequestFromOperation(opts, nil, valueReplacer)
 
 		expectedBodyM := map[string]any{
 			"username": "john_doe",
@@ -60,11 +66,17 @@ func TestNewRequestFromOperation(t *testing.T) {
 	})
 
 	t.Run("invalid-resolve-value", func(t *testing.T) {
-		valueResolver := func(content any, state *replacers.ReplaceState) any { return func() {} }
+		valueReplacer := func(content any, state *replacers.ReplaceState) any { return func() {} }
 		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-with-invalid-req-body.yml"), operation)
 
-		req := NewRequestFromOperation("/foo", "/users/{userId}", "POST", operation, valueResolver)
+		opts := &openapi.GenerateRequestOptions{
+			PathPrefix: "/foo",
+			Path:       "/users/{userId}",
+			Method:     "POST",
+			Operation:  operation,
+		}
+		req := NewRequestFromOperation(opts, nil, valueReplacer)
 		assert.Equal("", req.Body)
 	})
 }

@@ -183,7 +183,7 @@ func newSchema(schema *base.Schema, parseConfig *config.ParseConfig, refPath []s
 
 	enums := make([]any, 0)
 	for _, enum := range merged.Enum {
-		enums = append(enums, enum)
+		enums = append(enums, enum.Value)
 	}
 
 	readOnly := false

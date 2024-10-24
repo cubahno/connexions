@@ -52,6 +52,61 @@ func (d *V2Document) GetResources() map[string][]string {
 	return res
 }
 
+func (d *V2Document) GetSecurity() openapi.SecurityComponents {
+	schemes := d.Model.SecurityDefinitions
+	if schemes == nil {
+		return nil
+	}
+
+	definitions := schemes.Definitions
+	if definitions == nil {
+		return nil
+	}
+
+	res := make(openapi.SecurityComponents)
+	for name, v := range definitions.FromOldest() {
+		if v == nil {
+			continue
+		}
+
+		paramName := v.Name
+		var scheme openapi.AuthScheme
+
+		in := openapi.AuthLocationHeader
+		switch strings.ToLower(v.In) {
+		case "header":
+			in = openapi.AuthLocationHeader
+		case "query":
+			in = openapi.AuthLocationQuery
+		}
+
+		var typ openapi.AuthType
+		switch v.Type {
+		case "basic":
+			typ = openapi.AuthTypeHTTP
+			scheme = openapi.AuthSchemeBasic
+		case "apiKey":
+			scheme = openapi.AuthSchemeBearer
+			if paramName == "authorization" {
+				typ = openapi.AuthTypeHTTP
+			} else {
+				typ = openapi.AuthTypeApiKey
+			}
+		default:
+			continue
+		}
+
+		res[name] = &openapi.SecurityComponent{
+			Type:   typ,
+			Scheme: scheme,
+			In:     in,
+			Name:   paramName,
+		}
+	}
+
+	return res
+}
+
 // FindOperation finds an operation by resource and method.
 func (d *V2Document) FindOperation(options *openapi.OperationDescription) openapi.Operation {
 	if options == nil {
@@ -81,8 +136,25 @@ func (op *V2Operation) ID() string {
 	return op.Operation.OperationId
 }
 
-// GetParameters returns a list of parameters for this operation
-func (op *V2Operation) GetParameters() openapi.Parameters {
+func (op *V2Operation) GetRequest(securityComponents openapi.SecurityComponents) *openapi.Request {
+	params := op.getParameters(securityComponents)
+	content, contentType := op.getRequestBody()
+
+	return &openapi.Request{
+		Parameters: params,
+		Body: &openapi.RequestBody{
+			Schema: content,
+			Type:   contentType,
+		},
+	}
+}
+
+// getParameters returns a list of parameters for this operation
+func (op *V2Operation) getParameters(securityComponents openapi.SecurityComponents) openapi.Parameters {
+	if securityComponents == nil {
+		securityComponents = make(openapi.SecurityComponents)
+	}
+
 	params := make(openapi.Parameters, 0)
 
 	for _, param := range op.Parameters {
@@ -99,12 +171,70 @@ func (op *V2Operation) GetParameters() openapi.Parameters {
 		})
 	}
 
+	// loop through the required security components
+	for _, name := range op.getSecurity() {
+		sec := securityComponents[name]
+		if sec == nil {
+			continue
+		}
+		var format string
+		switch sec.Type {
+		case openapi.AuthTypeHTTP:
+			switch sec.Scheme {
+			case openapi.AuthSchemeBearer:
+				format = "bearer"
+			case openapi.AuthSchemeBasic:
+				format = "basic"
+			default:
+				continue
+
+			}
+			params = append(params, &openapi.Parameter{
+				Name:     "authorization",
+				In:       "header",
+				Required: true,
+				Schema: &openapi.Schema{
+					Type:   openapi.TypeString,
+					Format: format,
+				},
+			})
+		case openapi.AuthTypeApiKey:
+			params = append(params, &openapi.Parameter{
+				Name:     sec.Name,
+				In:       string(sec.In),
+				Required: true,
+				Schema: &openapi.Schema{
+					Type: openapi.TypeString,
+				},
+			})
+		}
+	}
+
 	// original names not sorted
 	sort.Slice(params, func(i, j int) bool {
 		return params[i].Name < params[j].Name
 	})
 
 	return params
+}
+
+func (op *V2Operation) getSecurity() []string {
+	securityReqs := op.Security
+	if securityReqs == nil {
+		return nil
+	}
+
+	res := make([]string, 0)
+
+	for _, securityReq := range securityReqs {
+		if securityReq == nil || securityReq.Requirements == nil {
+			continue
+		}
+		for secName, _ := range securityReq.Requirements.FromOldest() {
+			res = append(res, secName)
+		}
+	}
+	return res
 }
 
 // GetResponse returns the response for this operation
@@ -225,7 +355,7 @@ func (op *V2Operation) GetResponse() *openapi.Response {
 }
 
 // GetRequestBody returns the request body for this operation
-func (op *V2Operation) GetRequestBody() (*openapi.Schema, string) {
+func (op *V2Operation) getRequestBody() (*openapi.Schema, string) {
 	var body *v2high.Parameter
 	for _, param := range op.Parameters {
 		// https://swagger.io/specification/v2/#parameter-object

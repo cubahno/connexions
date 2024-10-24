@@ -119,7 +119,103 @@ func TestReplaceInHeaders(t *testing.T) {
 		assert.Nil(res)
 	})
 
-	t.Run("in-headers", func(t *testing.T) {
+	t.Run("basic authorization header uses corresponding context with base64", func(t *testing.T) {
+		state := NewReplaceState(WithName("authorization"), WithHeader())
+		res := ReplaceInHeaders(&ReplaceContext{
+			Faker:      fake,
+			State:      state,
+			AreaPrefix: "in-",
+			Data: []map[string]any{
+				{
+					"in-header": map[string]any{
+						"authorization": "user:password",
+					},
+				},
+			},
+			Schema: &openapi.Schema{
+				Type:   openapi.TypeString,
+				Format: "basic",
+			},
+		})
+		assert.Equal("Basic dXNlcjpwYXNzd29yZA==", res)
+	})
+
+	t.Run("basic authorization header without context uses random password", func(t *testing.T) {
+		state := NewReplaceState(WithName("authorization"), WithHeader())
+		res, ok := ReplaceInHeaders(&ReplaceContext{
+			Faker: fake,
+			State: state,
+			Schema: &openapi.Schema{
+				Type:   openapi.TypeString,
+				Format: "basic",
+			},
+		}).(string)
+
+		assert.True(ok)
+		assert.True(strings.HasPrefix(res, "Basic "))
+		assert.Greater(len(res), 10)
+	})
+
+	t.Run("bearer authorization header uses corresponding context", func(t *testing.T) {
+		state := NewReplaceState(WithName("authorization"), WithHeader())
+		res := ReplaceInHeaders(&ReplaceContext{
+			Faker:      fake,
+			State:      state,
+			AreaPrefix: "in-",
+			Data: []map[string]any{
+				{
+					"in-header": map[string]any{
+						"authorization": "token",
+					},
+				},
+			},
+			Schema: &openapi.Schema{
+				Type:   openapi.TypeString,
+				Format: "bearer",
+			},
+		})
+		assert.Equal("Bearer token", res)
+	})
+
+	t.Run("bearer authorization header without context uses random password", func(t *testing.T) {
+		state := NewReplaceState(WithName("authorization"), WithHeader())
+		res, ok := ReplaceInHeaders(&ReplaceContext{
+			Faker: fake,
+			State: state,
+			Schema: &openapi.Schema{
+				Type:   openapi.TypeString,
+				Format: "bearer",
+			},
+		}).(string)
+
+		assert.True(ok)
+		assert.True(strings.HasPrefix(res, "Bearer "))
+		assert.Greater(len(res), 10)
+	})
+
+	t.Run("custom authorization header uses value from the context", func(t *testing.T) {
+		state := NewReplaceState(WithName("authorization"), WithHeader())
+		res := ReplaceInHeaders(&ReplaceContext{
+			Faker:      fake,
+			State:      state,
+			AreaPrefix: "in-",
+			Data: []map[string]any{
+				{
+					"in-header": map[string]any{
+						"authorization": "custom-token",
+					},
+				},
+			},
+			Schema: &openapi.Schema{
+				Type:   openapi.TypeString,
+				Format: "custom",
+			},
+		}).(string)
+
+		assert.Equal("custom-token", res)
+	})
+
+	t.Run("custom header uses corresponding context value", func(t *testing.T) {
 		state := NewReplaceStateWithName("userID").WithOptions(WithHeader())
 		res := ReplaceInHeaders(&ReplaceContext{
 			Faker:      fake,
@@ -982,22 +1078,36 @@ func TestApplySchemaNumberConstraints(t *testing.T) {
 func TestCreateStringFromPattern(t *testing.T) {
 	assert := assert2.New(t)
 
-	type testcase struct {
-		pattern  string
-		expected string
+	type testCase struct {
+		pattern           string
+		expectedLength    int
+		expectedMinLength int
+		expectedMaxLength int
 	}
 
-	testcases := []testcase{
-		{"", ""},
-		{"^/abc", "/abc"},
-		{"^/abcd$", "/abcd"},
-		{"^/v1/calculations/[^/]+/items", "/v1/calculations/123/items"},
+	testCases := []testCase{
+		{pattern: `^/abc$`, expectedLength: 4},
+		{pattern: `^/abc`, expectedMinLength: 4},
+		{pattern: "^/v1/calculations/[^/]+/items"},
+		{pattern: `^((-?[0-9]+)|(-?([0-9]+)?[.][0-9]+))$`},
+		{pattern: `^([A-Z]{2}|C2)$`, expectedLength: 2},
+		{pattern: `^[0-9]{1,10}(\.[0-9]{1,2})?$`, expectedMinLength: 3, expectedMaxLength: 13},
+		{pattern: `^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`, expectedMinLength: 7, expectedMaxLength: 15},
 	}
 
-	for i, tc := range testcases {
+	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
 			res := createStringFromPattern(tc.pattern)
-			assert.Equal(tc.expected, res)
+
+			assert.True(internal.ValidateStringWithPattern(res, tc.pattern))
+
+			if tc.expectedLength > 0 {
+				assert.Len(res, tc.expectedLength)
+			} else if tc.expectedMinLength > 0 {
+				assert.GreaterOrEqual(len(res), tc.expectedMinLength)
+			} else if tc.expectedMaxLength > 0 {
+				assert.LessOrEqual(len(res), tc.expectedMaxLength)
+			}
 		})
 	}
 }

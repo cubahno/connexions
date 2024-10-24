@@ -12,16 +12,21 @@ type Document interface {
 	Provider() config.SchemaProvider
 	GetVersion() string
 	GetResources() map[string][]string
+	GetSecurity() SecurityComponents
 	FindOperation(options *OperationDescription) Operation
 }
 
 // Operation is an interface that represents an OpenAPI operation needed for content generation.
 type Operation interface {
 	ID() string
-	GetParameters() Parameters
-	GetRequestBody() (*Schema, string)
+	GetRequest(securityComponents SecurityComponents) *Request
 	GetResponse() *Response
 	WithParseConfig(*config.ParseConfig) Operation
+}
+
+type Request struct {
+	Parameters Parameters
+	Body       *RequestBody
 }
 
 // Response is a struct that represents an OpenAPI response.
@@ -31,6 +36,36 @@ type Response struct {
 	ContentType string
 	StatusCode  int
 }
+
+type SecurityComponents map[string]*SecurityComponent
+
+type SecurityComponent struct {
+	Type   AuthType
+	Scheme AuthScheme
+	In     AuthLocation
+	Name   string
+}
+
+type AuthScheme string
+
+const (
+	AuthSchemeBearer AuthScheme = "bearer"
+	AuthSchemeBasic  AuthScheme = "basic"
+)
+
+type AuthType string
+
+const (
+	AuthTypeHTTP   AuthType = "http"
+	AuthTypeApiKey AuthType = "apiKey"
+)
+
+type AuthLocation string
+
+const (
+	AuthLocationHeader AuthLocation = "header"
+	AuthLocationQuery  AuthLocation = "query"
+)
 
 // OperationDescription is a struct that used to find an operation in an OpenAPI document.
 type OperationDescription struct {
@@ -53,6 +88,11 @@ type Parameters []*Parameter
 
 // Headers is a map of Parameter.
 type Headers map[string]*Parameter
+
+type RequestBody struct {
+	Schema *Schema
+	Type   string
+}
 
 // Schema is a struct that represents an OpenAPI schema.
 // It is compatible with all versions of OpenAPI.

@@ -17,6 +17,9 @@ func jsonPair(expected, actual any) (string, string) {
 	return string(expectedJSON), string(actualJSON)
 }
 
+// DocumentTestCase is a test case for every Document implementation.
+// It tests the basic functionality of the Document interface.
+// The actual test run is defined in each provider's document_test file.
 type DocumentTestCase struct {
 	DocFactory func(filePath string) (openapi.Document, error)
 }
@@ -43,11 +46,21 @@ func (tc *DocumentTestCase) Run(t *testing.T) {
 		assert.ElementsMatch(expected["/pets/{id}"], res["/pets/{id}"])
 	})
 
+	t.Run("GetSecurity", func(t *testing.T) {
+		res := doc.GetSecurity()
+		expected := openapi.SecurityComponents{
+			"HTTPBearer": &openapi.SecurityComponent{
+				Type:   openapi.AuthTypeHTTP,
+				Scheme: openapi.AuthSchemeBearer,
+				In:     openapi.AuthLocationHeader,
+			},
+		}
+		assert.Equal(expected, res)
+	})
+
 	t.Run("FindOperation", func(t *testing.T) {
 		op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: "GET"})
 		assert.NotNil(op)
-
-		assert.Equal(2, len(op.GetParameters()))
 	})
 
 	t.Run("FindOperation-res-not-found", func(t *testing.T) {
@@ -80,9 +93,10 @@ func (tc *OperationTestCase) Run(t *testing.T) {
 		assert.Nil(op)
 	})
 
-	t.Run("GetParameters", func(t *testing.T) {
+	t.Run("getParameters", func(t *testing.T) {
 		op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: "GET"})
-		params := op.GetParameters()
+		req := op.GetRequest(nil)
+		params := req.Parameters
 
 		expected := openapi.Parameters{
 			{
@@ -113,9 +127,12 @@ func (tc *OperationTestCase) Run(t *testing.T) {
 		}
 	})
 
-	t.Run("GetRequestBody", func(t *testing.T) {
+	t.Run("getRequestBody", func(t *testing.T) {
 		op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: "POST"})
-		body, contentType := op.GetRequestBody()
+		req := op.GetRequest(nil)
+		payload := req.Body
+		body := payload.Schema
+		contentType := payload.Type
 
 		expectedBody := &openapi.Schema{
 			Type: "object",
@@ -156,34 +173,43 @@ func (tc *OperationTestCase) Run(t *testing.T) {
 		assert.ElementsMatch([]string{"name", "tag", "id"}, props)
 	})
 
-	t.Run("GetRequestBody-empty", func(t *testing.T) {
+	t.Run("getRequestBody-empty", func(t *testing.T) {
 		docWithFriends, err := tc.DocFactory(docWithFriendsPath)
 		assert.NoError(err)
 
 		op := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "POST"})
-		body, contentType := op.GetRequestBody()
+		req := op.GetRequest(nil)
+		payload := req.Body
+		body := payload.Schema
+		contentType := payload.Type
 
 		assert.Nil(body)
 		assert.Equal("", contentType)
 	})
 
-	t.Run("GetRequestBody-empty-content", func(t *testing.T) {
+	t.Run("getRequestBody-empty-content", func(t *testing.T) {
 		docWithFriends, err := tc.DocFactory(docWithFriendsPath)
 		assert.NoError(err)
 
 		op := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "DELETE"})
-		body, contentType := op.GetRequestBody()
+		req := op.GetRequest(nil)
+		payload := req.Body
+		body := payload.Schema
+		contentType := payload.Type
 
 		assert.Nil(body)
 		assert.Equal("", contentType)
 	})
 
-	t.Run("GetRequestBody-with-xml-type", func(t *testing.T) {
+	t.Run("getRequestBody-with-xml-type", func(t *testing.T) {
 		docWithFriends, err := tc.DocFactory(docWithFriendsPath)
 		assert.NoError(err)
 
 		op := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "PATCH"})
-		body, contentType := op.GetRequestBody()
+		req := op.GetRequest(nil)
+		payload := req.Body
+		body := payload.Schema
+		contentType := payload.Type
 
 		expectedBody := &openapi.Schema{
 			Type: "object",

@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -159,6 +160,7 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 	if fileName[0] == '-' {
 		return
 	}
+	withStackTrace := os.Getenv("WITH_STACK_TRACE")
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -166,11 +168,14 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 				file:   filePath,
 				docErr: fmt.Sprintf("Panic: %v", r),
 			}
+			if withStackTrace != "" {
+				log.Printf("Stack trace:\n")
+				log.Printf("%s\n", string(debug.Stack()))
+			}
 		}
 	}()
 
 	doc, err := NewDocumentFromFileFactory(provider)(filePath)
-	// doc, err := NewDocumentFromFileFactory(LibOpenAPIProvider)(filePath)
 	if err != nil {
 		ch <- validationResult{
 			file:   fileName,
@@ -180,12 +185,11 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 	}
 	validator := NewOpenAPIValidator(doc)
 	if validator == nil {
-		ch <- validationResult{
-			file:   fileName,
-			docErr: "Failed to create validator",
-		}
+		log.Printf("Validator not available for %s\n", fileName)
 		return
 	}
+
+	security := doc.GetSecurity()
 
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
@@ -195,11 +199,18 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 				Method:   method,
 			})
 			operation = operation.WithParseConfig(&config.ParseConfig{
-				OnlyRequired: true,
+				//OnlyRequired: true,
 			})
+			r := operation.GetRequest(security)
+			payload := r.Body
 
-			_, reqContentType := operation.GetRequestBody()
-			req := NewRequestFromOperation("", resource, method, operation, replacer)
+			reqContentType := payload.Type
+			opts := &openapi.GenerateRequestOptions{
+				Path:      resource,
+				Method:    method,
+				Operation: operation,
+			}
+			req := NewRequestFromOperation(opts, security, replacer)
 
 			var body io.Reader
 			headers := map[string]any{}
@@ -250,7 +261,7 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 				}
 			}
 
-			target := resource
+			target := req.Path
 			if req.Query != "" {
 				target += "?" + req.Query
 			}
@@ -263,12 +274,13 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 			success := false
 
 			reqErrs := validator.ValidateRequest(&openapi.GeneratedRequest{
-				Headers:     headers,
-				Method:      request.Method,
-				Path:        request.URL.Path,
-				ContentType: reqContentType,
-				Operation:   operation,
-				Request:     request,
+				Headers:       headers,
+				Method:        request.Method,
+				Path:          request.URL.Path,
+				ContentSchema: r.Body.Schema,
+				ContentType:   reqContentType,
+				Operation:     operation,
+				Request:       request,
 			})
 			reqErrMsg := ""
 			if len(reqErrs) > 0 {

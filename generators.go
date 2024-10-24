@@ -16,12 +16,19 @@ import (
 // NewRequestFromOperation creates a new GeneratedRequest from an Operation.
 // It used to pre-generate payloads from the UI or provide service to generate such.
 // It's not part of OpenAPI endpoint handler.
-func NewRequestFromOperation(pathPrefix, path, method string, operation openapi.Operation, valueReplacer replacers.ValueReplacer) *openapi.GeneratedRequest {
-	reqBody, contentType := operation.GetRequestBody()
+func NewRequestFromOperation(
+	options *openapi.GenerateRequestOptions,
+	securityComponents openapi.SecurityComponents,
+	replacer replacers.ValueReplacer) *openapi.GeneratedRequest {
+	request := options.Operation.GetRequest(securityComponents)
+	payload := request.Body
+	reqBody := payload.Schema
+	contentType := payload.Type
+
 	state := replacers.NewReplaceState(
 		replacers.WithContentType(contentType),
 		replacers.WithWriteOnly())
-	content := GenerateContentFromSchema(reqBody, valueReplacer, state)
+	content := GenerateContentFromSchema(reqBody, replacer, state)
 	body, err := openapi.EncodeContent(content, contentType)
 	if err != nil {
 		log.Printf("Error encoding GeneratedRequest: %v", err.Error())
@@ -32,19 +39,20 @@ func NewRequestFromOperation(pathPrefix, path, method string, operation openapi.
 		log.Printf("Error creating cURL example body: %v", err.Error())
 	}
 
-	params := operation.GetParameters()
+	params := request.Parameters
 
 	return &openapi.GeneratedRequest{
-		Headers:     GenerateRequestHeaders(params, valueReplacer),
-		Method:      method,
-		Path:        pathPrefix + GenerateURLFromSchemaParameters(path, valueReplacer, params),
-		Query:       GenerateQuery(valueReplacer, params),
-		Body:        string(body),
-		ContentType: contentType,
+		Headers:       GenerateRequestHeaders(params, replacer),
+		Method:        options.Method,
+		Path:          options.PathPrefix + GenerateURLFromSchemaParameters(options.Path, replacer, params),
+		Query:         GenerateQuery(replacer, params),
+		Body:          string(body),
+		ContentSchema: reqBody,
+		ContentType:   contentType,
 		Examples: &openapi.ContentExample{
 			CURL: curlExample,
 		},
-		Operation: operation,
+		Operation: options.Operation,
 	}
 }
 
@@ -310,15 +318,14 @@ func GenerateContentArray(schema *openapi.Schema, valueReplacer replacers.ValueR
 
 // GenerateRequestHeaders generates GeneratedRequest headers from the given parameters.
 func GenerateRequestHeaders(parameters openapi.Parameters, valueReplacer replacers.ValueReplacer) map[string]any {
-	res := map[string]interface{}{}
+	res := map[string]any{}
 
 	for _, param := range parameters {
 		if param == nil {
 			continue
 		}
 
-		in := strings.ToLower(param.In)
-		if in != openapi.ParameterInHeader {
+		if in := strings.ToLower(param.In); in != openapi.ParameterInHeader {
 			continue
 		}
 

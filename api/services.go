@@ -386,8 +386,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	rd := service.Routes[ix]
 	fileProps := rd.File
 
-	config := h.router.Config
-	serviceCfg := config.GetServiceConfig(service.Name)
+	cfg := h.router.Config
+	serviceCfg := cfg.GetServiceConfig(service.Name)
 
 	res := &GenerateResponse{}
 
@@ -401,8 +401,8 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = h.router.GetDefaultContexts()
 	}
-	contexts := contexts.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
-	valueReplacer := replacers.CreateValueReplacer(config, replacers.Replacers, contexts)
+	cts := contexts.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
+	valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, cts)
 
 	if !fileProps.IsOpenAPI {
 		res.Request = connexions.NewRequestFromFixedResource(
@@ -429,7 +429,13 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	req := connexions.NewRequestFromOperation(fileProps.Prefix, rd.Path, rd.Method, operation, valueReplacer)
+	opts := &openapi.GenerateRequestOptions{
+		PathPrefix: fileProps.Prefix,
+		Path:       rd.Path,
+		Method:     rd.Method,
+		Operation:  operation,
+	}
+	req := connexions.NewRequestFromOperation(opts, spec.GetSecurity(), valueReplacer)
 
 	res.Request = req
 	res.Response = connexions.NewResponseFromOperation(r, operation, valueReplacer)

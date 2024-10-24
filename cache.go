@@ -45,7 +45,7 @@ func (s *MemoryStorage) Get(key string) (any, bool) {
 }
 
 // SchemaWithContentType is a schema with a content type.
-// It is used to cache the result of GetRequestBody and wrap 2 values together.
+// It is used to cache the result of getRequestBody and wrap 2 values together.
 type SchemaWithContentType struct {
 	Schema      *openapi.Schema
 	ContentType string
@@ -80,44 +80,21 @@ func (a *CacheOperationAdapter) ID() string {
 	return a.operation.ID()
 }
 
-// GetParameters returns the parameters for the Operation.
-func (a *CacheOperationAdapter) GetParameters() openapi.Parameters {
+func (a *CacheOperationAdapter) GetRequest(securityComponents openapi.SecurityComponents) *openapi.Request {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	key := a.key("parameters")
+	key := a.key("request")
 	if cached, ok := a.cacheStorage.Get(key); ok {
-		return cached.(openapi.Parameters)
+		return cached.(*openapi.Request)
 	}
 
-	value := a.operation.GetParameters()
+	value := a.operation.GetRequest(securityComponents)
 	if err := a.cacheStorage.Set(key, value); err != nil {
-		log.Printf("Failed to set cache parameters for %s: %s\n", key, err.Error())
+		log.Printf("Failed to set cache request for %s: %s\n", key, err.Error())
 	}
 
 	return value
-}
-
-// GetRequestBody returns the GeneratedRequest body for the Operation.
-func (a *CacheOperationAdapter) GetRequestBody() (*openapi.Schema, string) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	key := a.key("requestBody")
-	if cached, ok := a.cacheStorage.Get(key); ok {
-		res := cached.(*SchemaWithContentType)
-		return res.Schema, res.ContentType
-	}
-
-	value, contentType := a.operation.GetRequestBody()
-	if err := a.cacheStorage.Set(key, &SchemaWithContentType{
-		Schema:      value,
-		ContentType: contentType,
-	}); err != nil {
-		log.Printf("Failed to set cache requestBody for %s: %s\n", key, err.Error())
-	}
-
-	return value, contentType
 }
 
 // GetResponse returns the response for the Operation.
