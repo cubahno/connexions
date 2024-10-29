@@ -27,6 +27,19 @@ func TestLibV2Document(t *testing.T) {
 		assert.Equal(config.LibOpenAPIProvider, doc.Provider())
 	})
 
+	t.Run("GetSecurity", func(t *testing.T) {
+		res := doc.GetSecurity()
+		expected := openapi.SecurityComponents{
+			"api_key": &openapi.SecurityComponent{
+				Type:   openapi.AuthTypeApiKey,
+				Scheme: openapi.AuthSchemeBearer,
+				In:     openapi.AuthLocationHeader,
+				Name:   "api_key",
+			},
+		}
+		assert.Equal(expected, res)
+	})
+
 	t.Run("GetResources", func(t *testing.T) {
 		res := doc.GetResources()
 		expected := map[string][]string{
@@ -50,7 +63,7 @@ func TestLibV2Document(t *testing.T) {
 		assert.True(ok)
 		assert.NotNil(libOp)
 
-		assert.Equal(2, len(op.GetParameters()))
+		assert.Equal(2, len(libOp.getParameters(nil)))
 		assert.Equal("findPetsByStatus", libOp.OperationId)
 	})
 
@@ -85,9 +98,9 @@ func TestLibV2Operation(t *testing.T) {
 		assert.Nil(op)
 	})
 
-	t.Run("GetParameters", func(t *testing.T) {
-		op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pet/findByStatus", Method: "GET"})
-		params := op.GetParameters()
+	t.Run("getParameters", func(t *testing.T) {
+		op, _ := doc.FindOperation(&openapi.OperationDescription{Resource: "/pet/findByStatus", Method: "GET"}).(*V2Operation)
+		params := op.getParameters(nil)
 
 		expected := openapi.Parameters{
 			{
@@ -116,10 +129,10 @@ func TestLibV2Operation(t *testing.T) {
 		AssertJSONEqual(t, expected, params)
 	})
 
-	t.Run("GetRequestBody", func(t *testing.T) {
-		op := doc.FindOperation(&openapi.OperationDescription{Resource: "/pet", Method: "POST"})
+	t.Run("getRequestBody", func(t *testing.T) {
+		op, _ := doc.FindOperation(&openapi.OperationDescription{Resource: "/pet", Method: "POST"}).(*V2Operation)
 		assert.NotNil(op)
-		body, contentType := op.GetRequestBody()
+		body, contentType := op.getRequestBody()
 
 		expectedBody := &openapi.Schema{
 			Type: "object",
@@ -177,26 +190,26 @@ func TestLibV2Operation(t *testing.T) {
 		AssertJSONEqual(t, expectedBody, body)
 	})
 
-	t.Run("GetRequestBody-empty", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "POST"})
-		body, contentType := op.GetRequestBody()
+	t.Run("getRequestBody-empty", func(t *testing.T) {
+		op, _ := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "POST"}).(*V2Operation)
+		body, contentType := op.getRequestBody()
 
 		assert.Nil(body)
 		assert.Equal("", contentType)
 	})
 
-	t.Run("GetRequestBody-empty-content", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "DELETE"})
+	t.Run("getRequestBody-empty-content", func(t *testing.T) {
+		op, _ := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "DELETE"}).(*V2Operation)
 		assert.NotNil(op)
-		body, contentType := op.GetRequestBody()
+		body, contentType := op.getRequestBody()
 
 		assert.Nil(body)
 		assert.Equal("application/json", contentType)
 	})
 
-	t.Run("GetRequestBody-with-xml-type", func(t *testing.T) {
-		op := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "PATCH"})
-		body, contentType := op.GetRequestBody()
+	t.Run("getRequestBody-with-xml-type", func(t *testing.T) {
+		op, _ := docWithFriends.FindOperation(&openapi.OperationDescription{Resource: "/person/{id}/find", Method: "PATCH"}).(*V2Operation)
+		body, contentType := op.getRequestBody()
 
 		expectedBody := &openapi.Schema{
 			Type: "object",

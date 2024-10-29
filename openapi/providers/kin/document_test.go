@@ -48,7 +48,7 @@ func TestOperation(t *testing.T) {
 		assert.Equal("findNice", res)
 	})
 
-	t.Run("GetParameters-nil-case", func(t *testing.T) {
+	t.Run("getParameters-nil-case", func(t *testing.T) {
 		operation := &KinOperation{Operation: &openapi3.Operation{
 			Parameters: openapi3.Parameters{
 				{
@@ -59,11 +59,88 @@ func TestOperation(t *testing.T) {
 				},
 			},
 		}}
-		res := operation.GetParameters()
+		res := operation.getParameters(nil)
 		expected := openapi.Parameters{
 			{Name: "name"},
 		}
 		assert.Equal(expected, res)
+	})
+
+	t.Run("getParameters has headers", func(t *testing.T) {
+		operation := &KinOperation{Operation: &openapi3.Operation{
+			Parameters: openapi3.Parameters{
+				{
+					Value: &openapi3.Parameter{Name: "code", In: "header"},
+				},
+			},
+			Security: &openapi3.SecurityRequirements{
+				{
+					"HTTPBearer": {},
+					"APIKey":     {},
+				},
+			},
+		}}
+		securityComponents := openapi.SecurityComponents{
+			"HTTPBearer": &openapi.SecurityComponent{
+				Type:   openapi.AuthTypeHTTP,
+				Scheme: openapi.AuthSchemeBearer,
+			},
+			"APIKey": &openapi.SecurityComponent{
+				Type: openapi.AuthTypeApiKey,
+				In:   openapi.AuthLocationQuery,
+				Name: "x-api-key",
+			},
+		}
+
+		expected := openapi.Parameters{
+			{
+				Name: "code",
+				In:   "header",
+			},
+			{
+				Name:     "authorization",
+				In:       "header",
+				Required: true,
+				Schema: &openapi.Schema{
+					Type:   "string",
+					Format: "bearer",
+				},
+			},
+			{
+				Name:     "x-api-key",
+				In:       "query",
+				Required: true,
+				Schema: &openapi.Schema{
+					Type: "string",
+				},
+			},
+		}
+
+		res := operation.getParameters(securityComponents)
+
+		assert.Equal(expected, res)
+	})
+
+	t.Run("getSecurity if present returned", func(t *testing.T) {
+		operation := &KinOperation{Operation: &openapi3.Operation{
+			Security: &openapi3.SecurityRequirements{
+				{
+					"HTTPBearer": {},
+					"APIKey":     {},
+					"Foo":        {},
+				}},
+		},
+		}
+		res := operation.getSecurity()
+
+		expected := []string{"HTTPBearer", "APIKey", "Foo"}
+		assert.Equal(expected, res)
+	})
+
+	t.Run("getSecurity if not present nil returned", func(t *testing.T) {
+		operation := &KinOperation{Operation: &openapi3.Operation{}}
+		res := operation.getSecurity()
+		assert.Equal(0, len(res))
 	})
 
 	t.Run("GetResponse-headers-with-nil-cases", func(t *testing.T) {

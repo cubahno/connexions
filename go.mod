@@ -9,6 +9,7 @@ require (
 	github.com/jaswdr/faker/v2 v2.3.0
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf v1.5.0
+	github.com/lucasjones/reggen v0.0.0-20200904144131-37ba4fa293bb
 	github.com/pb33f/libopenapi v0.18.4
 	github.com/pb33f/libopenapi-validator v0.2.2
 	github.com/sony/gobreaker/v2 v2.0.0

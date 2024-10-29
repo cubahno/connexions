@@ -74,43 +74,14 @@ func TestCacheOperationAdapter(t *testing.T) {
 		assert.Equal("addPet", cachedAddPet.ID())
 	})
 
-	t.Run("GetParameters", func(t *testing.T) {
-		_ = cachedAddPet.GetParameters()
-		res := cachedAddPet.GetParameters()
-		assert.Equal(addPetOp.GetParameters(), res)
+	t.Run("GetRequest", func(t *testing.T) {
+		_ = cachedAddPet.GetRequest(nil)
+		res := cachedAddPet.GetRequest(nil)
+		assert.Equal(addPetOp.GetRequest(nil), res)
 
-		c, ok := storage.Get("petstore:addPet:parameters")
+		c, ok := storage.Get("petstore:addPet:request")
 		assert.True(ok)
 		assert.Equal(res, c)
-	})
-
-	t.Run("GetParameters-missed", func(t *testing.T) {
-		res := cachedAddPetWithFalsyStorage.GetParameters()
-		assert.Equal(addPetOp.GetParameters(), res)
-	})
-
-	t.Run("GetRequestBody", func(t *testing.T) {
-		opSchema, opContentType := addPetOp.GetRequestBody()
-		_, _ = cachedAddPet.GetRequestBody()
-		schema, contentType := cachedAddPet.GetRequestBody()
-
-		assert.Equal(opSchema, schema)
-		assert.Equal(opContentType, contentType)
-
-		c, ok := storage.Get("petstore:addPet:requestBody")
-		assert.True(ok)
-		assert.Equal(&SchemaWithContentType{
-			Schema:      opSchema,
-			ContentType: opContentType,
-		}, c)
-	})
-
-	t.Run("GetRequestBody-missed", func(t *testing.T) {
-		opSchema, opContentType := addPetOp.GetRequestBody()
-		schema, contentType := cachedAddPetWithFalsyStorage.GetRequestBody()
-
-		assert.Equal(opSchema, schema)
-		assert.Equal(opContentType, contentType)
 	})
 
 	t.Run("GetResponse", func(t *testing.T) {

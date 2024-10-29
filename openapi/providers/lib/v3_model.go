@@ -56,6 +56,59 @@ func (d *V3Document) GetResources() map[string][]string {
 	return res
 }
 
+func (d *V3Document) GetSecurity() openapi.SecurityComponents {
+	components := d.Model.Components
+	if components == nil {
+		return nil
+	}
+	schemes := components.SecuritySchemes
+	if schemes == nil {
+		return nil
+	}
+
+	res := make(openapi.SecurityComponents)
+	for name, v := range schemes.FromOldest() {
+		if v == nil {
+			continue
+		}
+
+		in := openapi.AuthLocationHeader
+		switch v.In {
+		case "header":
+			in = openapi.AuthLocationHeader
+		case "query":
+			in = openapi.AuthLocationQuery
+		}
+
+		var typ openapi.AuthType
+		switch v.Type {
+		case "http":
+			typ = openapi.AuthTypeHTTP
+		case "apiKey":
+			typ = openapi.AuthTypeApiKey
+		default:
+			continue
+		}
+
+		var scheme openapi.AuthScheme
+		switch v.Scheme {
+		case "bearer":
+			scheme = openapi.AuthSchemeBearer
+		case "basic":
+			scheme = openapi.AuthSchemeBasic
+		}
+
+		res[name] = &openapi.SecurityComponent{
+			Type:   typ,
+			Scheme: scheme,
+			In:     in,
+			Name:   v.Name,
+		}
+	}
+
+	return res
+}
+
 // FindOperation finds an operation by resource and method.
 func (d *V3Document) FindOperation(options *openapi.OperationDescription) openapi.Operation {
 	if options == nil {
@@ -86,9 +139,25 @@ func (op *V3Operation) ID() string {
 	return op.Operation.OperationId
 }
 
-// GetParameters returns a list of parameters for the operation
-func (op *V3Operation) GetParameters() openapi.Parameters {
+func (op *V3Operation) GetRequest(securityComponents openapi.SecurityComponents) *openapi.Request {
+	params := op.getParameters(securityComponents)
+	content, contentType := op.getRequestBody()
+
+	return &openapi.Request{
+		Parameters: params,
+		Body: &openapi.RequestBody{
+			Schema: content,
+			Type:   contentType,
+		},
+	}
+}
+
+// getParameters returns a list of parameters for the operation
+func (op *V3Operation) getParameters(securityComponents openapi.SecurityComponents) openapi.Parameters {
 	params := make(openapi.Parameters, 0)
+	if securityComponents == nil {
+		securityComponents = make(openapi.SecurityComponents)
+	}
 
 	for _, param := range op.Parameters {
 		var schema *openapi.Schema
@@ -96,14 +165,56 @@ func (op *V3Operation) GetParameters() openapi.Parameters {
 			px := param.Schema
 			schema = NewSchema(px.Schema(), op.parseConfig)
 		}
-
+		required := false
+		if param.Required != nil {
+			required = *param.Required
+		}
 		params = append(params, &openapi.Parameter{
 			Name:     param.Name,
 			In:       param.In,
-			Required: *param.Required,
+			Required: required,
 			Schema:   schema,
 			Example:  param.Example,
 		})
+	}
+
+	// loop through the required security components
+	for _, name := range op.getSecurity() {
+		sec := securityComponents[name]
+		if sec == nil {
+			continue
+		}
+		var format string
+		switch sec.Type {
+		case openapi.AuthTypeHTTP:
+			switch sec.Scheme {
+			case openapi.AuthSchemeBearer:
+				format = "bearer"
+			case openapi.AuthSchemeBasic:
+				format = "basic"
+			default:
+				continue
+
+			}
+			params = append(params, &openapi.Parameter{
+				Name:     "authorization",
+				In:       "header",
+				Required: true,
+				Schema: &openapi.Schema{
+					Type:   openapi.TypeString,
+					Format: format,
+				},
+			})
+		case openapi.AuthTypeApiKey:
+			params = append(params, &openapi.Parameter{
+				Name:     sec.Name,
+				In:       string(sec.In),
+				Required: true,
+				Schema: &openapi.Schema{
+					Type: openapi.TypeString,
+				},
+			})
+		}
 	}
 
 	// original names not sorted
@@ -112,6 +223,25 @@ func (op *V3Operation) GetParameters() openapi.Parameters {
 	})
 
 	return params
+}
+
+func (op *V3Operation) getSecurity() []string {
+	securityReqs := op.Security
+	if securityReqs == nil {
+		return nil
+	}
+
+	res := make([]string, 0)
+
+	for _, securityReq := range securityReqs {
+		if securityReq == nil || securityReq.Requirements == nil {
+			continue
+		}
+		for secName, _ := range securityReq.Requirements.FromOldest() {
+			res = append(res, secName)
+		}
+	}
+	return res
 }
 
 // GetResponse returns the response for the operation.
@@ -231,7 +361,7 @@ func (op *V3Operation) getContent(contentTypes map[string]*v3high.MediaType) (*b
 }
 
 // GetRequestBody returns the request body for the operation.
-func (op *V3Operation) GetRequestBody() (*openapi.Schema, string) {
+func (op *V3Operation) getRequestBody() (*openapi.Schema, string) {
 	if op.RequestBody == nil {
 		return nil, ""
 	}

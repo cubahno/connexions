@@ -194,6 +194,8 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 	var wg sync.WaitGroup
 	num := 0
 
+	securityComponents := doc.GetSecurity()
+
 	for resName, resMethods := range doc.GetResources() {
 		num += 1
 		for _, method := range resMethods {
@@ -211,7 +213,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 					MaxRecursionLevels: parseConfig.MaxRecursionLevels,
 					OnlyRequired:       parseConfig.OnlyRequired,
 				})
-				item := convertOperation(operation)
+				item := convertOperation(operation, securityComponents)
 
 				ch <- parsed{
 					resource: resName,
@@ -265,8 +267,12 @@ func getSourceDocument(src string) (openapi.Document, error) {
 	return connexions.NewDocumentFromFileFactory(config.LibOpenAPIProvider)(src)
 }
 
-func convertOperation(operation openapi.Operation) *openapi3.Operation {
-	reqBody, reqContentType := operation.GetRequestBody()
+func convertOperation(operation openapi.Operation, securityComponents openapi.SecurityComponents) *openapi3.Operation {
+	request := operation.GetRequest(securityComponents)
+	payload := request.Body
+	reqBody := payload.Schema
+	reqContentType := payload.Type
+
 	response := operation.GetResponse()
 
 	var requestBody *openapi3.RequestBodyRef
@@ -289,7 +295,7 @@ func convertOperation(operation openapi.Operation) *openapi3.Operation {
 	}
 
 	var params openapi3.Parameters
-	for _, param := range operation.GetParameters() {
+	for _, param := range request.Parameters {
 		params = append(params, &openapi3.ParameterRef{
 			Value: &openapi3.Parameter{
 				Name:     param.Name,

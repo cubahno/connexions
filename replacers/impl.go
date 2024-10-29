@@ -5,6 +5,7 @@ import (
 	"github.com/cubahno/connexions/contexts"
 	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/openapi"
+	"github.com/lucasjones/reggen"
 	"log"
 	"math"
 	"strconv"
@@ -69,7 +70,32 @@ func ReplaceInHeaders(ctx *ReplaceContext) any {
 	if !ctx.State.IsHeader {
 		return nil
 	}
-	return replaceInArea(ctx, "header")
+	v := replaceInArea(ctx, "header")
+
+	schema, ok := ctx.Schema.(*openapi.Schema)
+	if !ok {
+		return v
+	}
+
+	name := ctx.State.NamePath[0]
+	format := schema.Format
+
+	if name == "authorization" {
+		switch format {
+		case "basic":
+			if v == nil {
+				v = fmt.Sprintf("%s:%s", ctx.Faker.Internet().User(), ctx.Faker.Internet().Password())
+			}
+			return "Basic " + internal.Base64Encode(v.(string))
+		case "bearer":
+			if v == nil {
+				v = ctx.Faker.Internet().Password()
+			}
+			return "Bearer " + v.(string)
+		}
+	}
+
+	return v
 }
 
 // ReplaceInPath is a replacer that replaces values only in path parameters.
@@ -403,23 +429,11 @@ func createStringFromPattern(pattern string) string {
 	if pattern == "" {
 		return ""
 	}
-
-	res := pattern
-	// replace the beginning
-	if res[0] == '^' {
-		res = res[1:]
+	result, err := reggen.Generate(pattern, 10)
+	if err != nil {
+		return ""
 	}
-
-	// and the end
-	if res[len(res)-1] == '$' {
-		res = res[:len(res)-1]
-	}
-
-	// TODO(cubahno): decide if to bring faker here
-	// add other patterns here
-	res = strings.ReplaceAll(res, `[^/]+`, "123")
-
-	return res
+	return result
 }
 
 // ReplaceFromSchemaFallback is the last resort to get a value from the schema.

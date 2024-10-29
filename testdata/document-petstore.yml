@@ -156,3 +156,7 @@ components:
           format: int32
         message:
           type: string
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

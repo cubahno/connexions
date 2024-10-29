@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/base64"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -56,4 +57,8 @@ func ToString(value any) string {
 // ExtractPlaceholders extracts all placeholders including curly brackets from a pattern.
 func ExtractPlaceholders(input string) []string {
 	return PlaceholderRegex.FindAllString(input, -1)
+}
+
+func Base64Encode(input string) string {
+	return base64.StdEncoding.EncodeToString([]byte(input))
 }
