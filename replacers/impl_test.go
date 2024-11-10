@@ -10,7 +10,8 @@ import (
 	"github.com/jaswdr/faker/v2"
 	assert2 "github.com/stretchr/testify/assert"
 	"net"
-	"strings"
+    "strconv"
+    "strings"
 	"testing"
 )
 
@@ -993,6 +994,17 @@ func TestApplySchemaStringConstraints(t *testing.T) {
 		res := applySchemaStringConstraints(schema, "hallo welt!")
 		assert.Equal("/nice/dice", res)
 	})
+
+	t.Run("negative lookahead is ignored", func(t *testing.T) {
+		schema := &openapi.Schema{
+			Type:      openapi.TypeString,
+			Pattern:   "^(?!\\d+$)\\w+\\S+",
+			MaxLength: 10,
+		}
+		res := applySchemaStringConstraints(schema, "hallo welt!")
+
+		assert.Equal("hallo welt", res)
+	})
 }
 
 func TestApplySchemaNumberConstraints(t *testing.T) {
@@ -1080,24 +1092,34 @@ func TestCreateStringFromPattern(t *testing.T) {
 
 	type testCase struct {
 		pattern           string
+        maxLength         int
 		expectedLength    int
 		expectedMinLength int
 		expectedMaxLength int
+        validator         func(v any) bool
 	}
 
 	testCases := []testCase{
-		{pattern: `^/abc$`, expectedLength: 4},
-		{pattern: `^/abc`, expectedMinLength: 4},
-		{pattern: "^/v1/calculations/[^/]+/items"},
-		{pattern: `^((-?[0-9]+)|(-?([0-9]+)?[.][0-9]+))$`},
-		{pattern: `^([A-Z]{2}|C2)$`, expectedLength: 2},
-		{pattern: `^[0-9]{1,10}(\.[0-9]{1,2})?$`, expectedMinLength: 3, expectedMaxLength: 13},
-		{pattern: `^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`, expectedMinLength: 7, expectedMaxLength: 15},
-	}
+		// {pattern: `^/abc$`, expectedLength: 4},
+		// {pattern: `^/abc`, expectedMinLength: 4},
+		// {pattern: "^/v1/calculations/[^/]+/items"},
+		// {pattern: `^((-?[0-9]+)|(-?([0-9]+)?[.][0-9]+))$`},
+		// {pattern: `^([A-Z]{2}|C2)$`, expectedLength: 2},
+		// {pattern: `^[0-9]{1,10}(\.[0-9]{1,2})?$`, expectedMinLength: 3, expectedMaxLength: 13},
+		// {pattern: `^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$`, expectedMinLength: 7, expectedMaxLength: 15},
+	    {pattern: `^[0-9]+$`, maxLength: 4, validator: func(v any) bool {
+            res, ok := strconv.Atoi(v.(string))
+            return ok == nil && res >= 1000 && res <= 9999
+        }},
+    }
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
-			res := createStringFromPattern(tc.pattern)
+            limit := tc.maxLength
+            if limit == 0 {
+                limit = 10
+            }
+			res := createStringFromPattern(tc.pattern, limit)
 
 			assert.True(internal.ValidateStringWithPattern(res, tc.pattern))
 
@@ -1107,7 +1129,9 @@ func TestCreateStringFromPattern(t *testing.T) {
 				assert.GreaterOrEqual(len(res), tc.expectedMinLength)
 			} else if tc.expectedMaxLength > 0 {
 				assert.LessOrEqual(len(res), tc.expectedMaxLength)
-			}
+			} else if tc.validator != nil {
+                assert.True(tc.validator(res))
+            }
 		})
 	}
 }

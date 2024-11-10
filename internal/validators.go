@@ -1,7 +1,8 @@
 package internal
 
 import (
-	"net/http"
+    "log"
+    "net/http"
 	"regexp"
 	"strings"
 	"sync"
@@ -64,6 +65,7 @@ func IsValidURLResource(urlPattern string) bool {
 func ValidateStringWithPattern(input string, pattern string) bool {
 	compiledRegex, err := getOrCreateCompiledRegex(pattern)
 	if err != nil {
+        log.Printf("Error compiling regex pattern: %s\n", err)
 		return false
 	}
 
@@ -80,6 +82,7 @@ func getOrCreateCompiledRegex(pattern string) (*regexp.Regexp, error) {
 		return cachedRegex, nil
 	}
 
+    pattern = ReplaceNegativeLookahead(pattern)
 	compiledRegex, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err

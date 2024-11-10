@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+	matchFirstCap     = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap       = regexp.MustCompile("([a-z0-9])([A-Z])")
+	negativeLookAhead = regexp.MustCompile(`\(\?!.*?\)`)
 )
 
 // ToSnakeCase converts a string to snake_case case
@@ -61,4 +62,8 @@ func ExtractPlaceholders(input string) []string {
 
 func Base64Encode(input string) string {
 	return base64.StdEncoding.EncodeToString([]byte(input))
+}
+
+func ReplaceNegativeLookahead(pattern string) string {
+	return negativeLookAhead.ReplaceAllString(pattern, "")
 }

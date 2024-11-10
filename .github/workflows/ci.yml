@@ -76,6 +76,7 @@ jobs:
 
     - name: Integration Tests
       run: |
+        make fetch-specs
         make test-integration
 
     outputs:
