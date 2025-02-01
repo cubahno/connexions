@@ -2,15 +2,17 @@ package api
 
 import (
 	"fmt"
-	"github.com/cubahno/connexions"
-	"github.com/cubahno/connexions/contexts"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/replacers"
-	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/contexts"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	"github.com/cubahno/connexions/replacers"
+	"github.com/go-chi/chi/v5"
 )
 
 // OpenAPIHandler handles OpenAPI routes serve.
@@ -109,7 +111,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	validator := connexions.NewOpenAPIValidator(doc)
+	validator := provider.NewValidator(doc)
 	req := replaceRequestResource(r, resourcePath)
 
 	if serviceCfg.Validate.Request && validator != nil {

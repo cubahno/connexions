@@ -2,17 +2,18 @@ package connexions
 
 import (
 	"encoding/json"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/openapi/providers/kin"
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 // Custom testingLogWriter that discards log output
@@ -119,7 +120,7 @@ func CreateKinSchemaFromString(t *testing.T, jsonSrc string) *openapi3.Schema {
 
 func CreateSchemaFromString(t *testing.T, jsonSrc string) *openapi.Schema {
 	t.Helper()
-	return kin.NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
+	return provider.NewSchemaFromKin(CreateKinSchemaFromString(t, jsonSrc), nil)
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {

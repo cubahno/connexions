@@ -6,10 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/internal"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/replacers"
 	"io"
 	"log"
 	"mime/multipart"
@@ -22,6 +18,12 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	"github.com/cubahno/connexions/replacers"
 )
 
 type validationResult struct {
@@ -67,16 +69,12 @@ func TestValidateResponse_Integration(t *testing.T) {
 	stopCh := make(chan struct{})
 
 	cfg := config.NewDefaultConfig("")
-	// TODO: test all providers
-	provider := config.KinOpenAPIProvider
-	cfg.App.SchemaProvider = provider
-
 	if filePath != "" {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
-			validateFile(provider, filePath, valueReplacer, ch, stopCh)
+			validateFile(filePath, valueReplacer, ch, stopCh)
 		}()
 	} else {
 		_ = filepath.Walk(dirPath, func(filePath string, info os.FileInfo, fileErr error) error {
@@ -99,7 +97,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 			go func(filePath string) {
 				defer wg.Done()
 				valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
-				validateFile(provider, filePath, valueReplacer, ch, stopCh)
+				validateFile(filePath, valueReplacer, ch, stopCh)
 			}(filePath)
 
 			return nil
@@ -154,7 +152,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	}
 }
 
-func validateFile(provider config.SchemaProvider, filePath string, replacer replacers.ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
+func validateFile(filePath string, replacer replacers.ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
 	fileName := filepath.Base(filePath)
 	// there should be a simple way to tmp skip some specs
 	if fileName[0] == '-' {
@@ -175,7 +173,7 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 		}
 	}()
 
-	doc, err := NewDocumentFromFileFactory(provider)(filePath)
+	doc, err := provider.NewDocumentFromFile(filePath)
 	if err != nil {
 		ch <- validationResult{
 			file:   fileName,
@@ -183,7 +181,7 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 		}
 		return
 	}
-	validator := NewOpenAPIValidator(doc)
+	validator := provider.NewValidator(doc)
 	if validator == nil {
 		log.Printf("Validator not available for %s\n", fileName)
 		return
@@ -199,7 +197,7 @@ func validateFile(provider config.SchemaProvider, filePath string, replacer repl
 				Method:   method,
 			})
 			operation = operation.WithParseConfig(&config.ParseConfig{
-				//OnlyRequired: true,
+				OnlyRequired: true,
 			})
 			r := operation.GetRequest(security)
 			payload := r.Body

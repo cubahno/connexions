@@ -1,12 +1,13 @@
-package kin
+package provider
 
 import (
 	"encoding/json"
+	"os"
+	"testing"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"os"
-	"testing"
 )
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {

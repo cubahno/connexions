@@ -10,17 +10,7 @@ go get github.com/cubahno/connexions
 ### OpenAPI Parser
 
 Load and parse OpenAPI specification file.<br/>
-You can choose which provider to use: 
-
-- [libopenapi](https://github.com/pb33f/libopenapi)
-
-- [kin-openapi](https://github.com/getkin/kin-openapi)
-
-`libopenapi` supports OpenAPI 3.1 and can handle circular references.<br/>
-`kin-openapi` has validation functions.
-
-Swagger is supported out of the box.<br>
-Document implements `Document` interface.
+[kin-openapi](https://github.com/getkin/kin-openapi) used as a parser.<br/>
 
 ```go
 --8<-- "openapi_parser/main.go"

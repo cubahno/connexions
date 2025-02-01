@@ -1,16 +1,17 @@
-package kin
+package provider
 
 import (
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/internal"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/getkin/kin-openapi/openapi3"
 	"log"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 // Document is a wrapper around openapi3.T
@@ -36,11 +37,6 @@ func NewDocumentFromFile(filePath string) (openapi.Document, error) {
 	return &Document{
 		T: doc,
 	}, err
-}
-
-// Provider returns the SchemaProvider for this document
-func (d *Document) Provider() config.SchemaProvider {
-	return config.KinOpenAPIProvider
 }
 
 // GetVersion returns the version of the document

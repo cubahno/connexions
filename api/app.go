@@ -2,8 +2,6 @@ package api
 
 import (
 	"fmt"
-	"github.com/cubahno/connexions"
-	"github.com/cubahno/connexions/config"
 	"log"
 	"math/rand"
 	"net/http"
@@ -11,6 +9,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
 )
 
 // App is the main application struct

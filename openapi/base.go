@@ -1,15 +1,15 @@
 package openapi
 
 import (
-	"github.com/cubahno/connexions/config"
 	"strconv"
 	"strings"
+
+	"github.com/cubahno/connexions/config"
 )
 
 // Document is an interface that represents an OpenAPI document needed for content generation.
 // It is implemented by the LibV2Document and LibV3Document types.
 type Document interface {
-	Provider() config.SchemaProvider
 	GetVersion() string
 	GetResources() map[string][]string
 	GetSecurity() SecurityComponents
@@ -96,7 +96,7 @@ type RequestBody struct {
 
 // Schema is a struct that represents an OpenAPI schema.
 // It is compatible with all versions of OpenAPI.
-// All schema providers should implement the Document and Operation interfaces.
+// All schema provider should implement the Document and Operation interfaces.
 // This provides a unified way to work with different OpenAPI parsers.
 type Schema struct {
 	Type string `json:"type,omitempty" yaml:"type,omitempty"`
@@ -146,7 +146,6 @@ const (
 	ParameterInQuery  = "query"
 	ParameterInHeader = "header"
 	// ParameterInBody v2 Swagger only
-	ParameterInBody = "body"
 )
 
 // FixSchemaTypeTypos fixes common typos in schema types.

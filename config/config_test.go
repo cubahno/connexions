@@ -4,13 +4,14 @@ package config
 
 import (
 	"fmt"
-	assert2 "github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	assert2 "github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestAppConfig(t *testing.T) {
@@ -256,7 +257,6 @@ services:
 				DisableUI:         true,
 				DisableSwaggerUI:  true,
 				ContextAreaPrefix: "from-",
-				SchemaProvider:    DefaultSchemaProvider,
 				Paths:             paths,
 				Editor: &EditorConfig{
 					Theme:    "dark",
@@ -426,7 +426,6 @@ app:
 				DisableUI:         true,
 				DisableSwaggerUI:  true,
 				ContextAreaPrefix: "from-",
-				SchemaProvider:    DefaultSchemaProvider,
 				Paths:             NewPaths(""),
 				Editor: &EditorConfig{
 					Theme:    "chrome",
@@ -480,7 +479,6 @@ func TestNewDefaultConfig(t *testing.T) {
 			SettingsURL:       "/.settings",
 			ContextURL:        "/.contexts",
 			ContextAreaPrefix: "in-",
-			SchemaProvider:    DefaultSchemaProvider,
 			Paths:             NewPaths("/app"),
 			Editor: &EditorConfig{
 				Theme:    "chrome",

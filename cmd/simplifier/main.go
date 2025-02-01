@@ -4,15 +4,17 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/cubahno/connexions"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/getkin/kin-openapi/openapi3"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 var (
@@ -264,7 +266,7 @@ func getSourceDocument(src string) (openapi.Document, error) {
 		return nil, ErrNotRegularFile
 	}
 
-	return connexions.NewDocumentFromFileFactory(config.LibOpenAPIProvider)(src)
+	return provider.NewDocumentFromFile(src)
 }
 
 func convertOperation(operation openapi.Operation, securityComponents openapi.SecurityComponents) *openapi3.Operation {

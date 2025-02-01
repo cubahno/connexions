@@ -1,14 +1,15 @@
-package kin
+package provider
 
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/url"
+
 	"github.com/cubahno/connexions/openapi"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
-	"net/http"
-	"net/url"
 )
 
 type Validator struct {
