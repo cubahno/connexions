@@ -4,15 +4,16 @@ package connexions
 
 import (
 	"encoding/json"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/openapi/providers/kin"
-	"github.com/cubahno/connexions/replacers"
-	"github.com/getkin/kin-openapi/openapi3"
-	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"path/filepath"
 	"testing"
+
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	"github.com/cubahno/connexions/replacers"
+	"github.com/getkin/kin-openapi/openapi3"
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func newOpenAPIParameter(name, in string, schema *openapi.Schema) *openapi.Parameter {
@@ -38,7 +39,7 @@ func TestNewRequestFromOperation(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
+		operation := &provider.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation.yml"), operation)
 
 		opts := &openapi.GenerateRequestOptions{
@@ -67,7 +68,7 @@ func TestNewRequestFromOperation(t *testing.T) {
 
 	t.Run("invalid-resolve-value", func(t *testing.T) {
 		valueReplacer := func(content any, state *replacers.ReplaceState) any { return func() {} }
-		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
+		operation := &provider.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-with-invalid-req-body.yml"), operation)
 
 		opts := &openapi.GenerateRequestOptions{
@@ -111,7 +112,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
+		operation := &provider.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-base.yml"), operation)
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
 		res := NewResponseFromOperation(r, operation, valueResolver)
@@ -144,7 +145,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 			return schema.Default
 		}
 
-		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
+		operation := &provider.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-without-content-type.yml"), operation)
 
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
@@ -170,7 +171,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 			return func() {}
 		}
 
-		operation := &kin.KinOperation{Operation: openapi3.NewOperation()}
+		operation := &provider.KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join("testdata", "operation-base.yml"), operation)
 
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
@@ -414,7 +415,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 
 		target := openapi3.NewSchema()
 		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-base.yml"), target)
-		schema := kin.NewSchemaFromKin(target, nil)
+		schema := provider.NewSchemaFromKin(target, nil)
 
 		res := GenerateContentFromSchema(schema, valueResolver, nil)
 
@@ -498,7 +499,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 
 		target := openapi3.NewSchema()
 		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-with-nested-all-of.yml"), target)
-		schema := kin.NewSchemaFromKin(target, nil)
+		schema := provider.NewSchemaFromKin(target, nil)
 
 		expected := map[string]any{"name": "Jane Doe", "age": 30, "tag": "#doe", "league": "premier", "rating": 345.6}
 
@@ -558,7 +559,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		}
 
 		filePath := filepath.Join("testdata", "document-with-circular-array.yml")
-		doc, err := kin.NewDocumentFromFile(filePath)
+		doc, err := provider.NewDocumentFromFile(filePath)
 		assert.Nil(err)
 
 		resp := doc.FindOperation(&openapi.OperationDescription{Resource: "/nodes/{id}", Method: http.MethodGet}).GetResponse()
@@ -589,7 +590,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			return nil
 		}
 		filePath := filepath.Join("testdata", "document-circular-with-references.yml")
-		doc, err := kin.NewDocumentFromFile(filePath)
+		doc, err := provider.NewDocumentFromFile(filePath)
 		assert.Nil(err)
 
 		resp := doc.FindOperation(&openapi.OperationDescription{Resource: "/nodes/{id}", Method: http.MethodGet}).GetResponse()
@@ -618,7 +619,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 			return nil
 		}
 		filePath := filepath.Join("testdata", "document-circular-with-inline.yml")
-		doc, err := kin.NewDocumentFromFile(filePath)
+		doc, err := provider.NewDocumentFromFile(filePath)
 		assert.Nil(err)
 
 		resp := doc.FindOperation(&openapi.OperationDescription{Resource: "/nodes/{id}", Method: http.MethodGet}).GetResponse()
@@ -640,7 +641,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 	t.Run("with-circular-level-1", func(t *testing.T) {
 		valueReplacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, nil)
 		filePath := filepath.Join("testdata", "document-circular-ucr.yml")
-		doc, err := kin.NewDocumentFromFile(filePath)
+		doc, err := provider.NewDocumentFromFile(filePath)
 		assert.Nil(err)
 
 		operation := doc.FindOperation(&openapi.OperationDescription{Resource: "/api/org-api/v1/organization/{acctStructureCode}", Method: http.MethodGet})
@@ -790,7 +791,7 @@ func TestGenerateContentObject(t *testing.T) {
 	t.Run("GenerateContentObject", func(t *testing.T) {
 		target := openapi3.NewSchema()
 		CreateSchemaFromYAMLFile(t, filepath.Join("testdata", "schema-with-name-obj-and-age.yml"), target)
-		schema := kin.NewSchemaFromKin(target, nil)
+		schema := provider.NewSchemaFromKin(target, nil)
 
 		valueResolver := func(schema any, state *replacers.ReplaceState) any {
 			namePath := state.NamePath

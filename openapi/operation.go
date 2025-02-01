@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/cubahno/connexions/internal"
-	"gopkg.in/yaml.v3"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/cubahno/connexions/internal"
+	"gopkg.in/yaml.v3"
 )
 
 type GenerateRequestOptions struct {
@@ -29,7 +30,7 @@ type GeneratedRequest struct {
 	ContentSchema *Schema         `json:"contentSchema,omitempty"`
 	Examples      *ContentExample `json:"examples,omitempty"`
 
-	// internal fields. needed for some validation providers.
+	// internal fields. needed for some validation provider.
 	Operation Operation     `json:"-"`
 	Request   *http.Request `json:"-"`
 }
@@ -46,7 +47,7 @@ type GeneratedResponse struct {
 	ContentType string      `json:"contentType,omitempty"`
 	StatusCode  int         `json:"statusCode,omitempty"`
 
-	// internal fields. needed for some validation providers.
+	// internal fields. needed for some validation provider.
 	Operation Operation     `json:"-"`
 	Request   *http.Request `json:"-"`
 }

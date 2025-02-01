@@ -6,10 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/internal"
-	"github.com/cubahno/connexions/openapi"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"mime"
@@ -19,6 +15,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	"gopkg.in/yaml.v3"
 )
 
 // FileProperties contains inferred properties of a file that is being loaded from service directory.
@@ -131,7 +133,7 @@ func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *c
 		prefix = strings.TrimSuffix(prefix, "/")
 	}
 
-	doc, err := NewDocumentFromFileFactory(appCfg.SchemaProvider)(filePath)
+	doc, err := provider.NewDocumentFromFile(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +154,7 @@ func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *c
 func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *FileProperties {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
+	// TODO: fix content type for all platforms
 	contentType := mime.TypeByExtension(ext)
 	resource := ""
 

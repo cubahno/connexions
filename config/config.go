@@ -1,11 +1,6 @@
 package config
 
 import (
-	"github.com/cubahno/connexions/internal"
-	"github.com/knadh/koanf"
-	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/providers/rawbytes"
 	"log"
 	"math/rand"
 	"os"
@@ -14,6 +9,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cubahno/connexions/internal"
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/rawbytes"
 )
 
 // Config is the main configuration struct.
@@ -119,14 +120,6 @@ const (
 	RootOpenAPIName = ".openapi"
 )
 
-type SchemaProvider string
-
-const (
-	KinOpenAPIProvider    SchemaProvider = "kin-openapi"
-	LibOpenAPIProvider    SchemaProvider = "libopenapi"
-	DefaultSchemaProvider SchemaProvider = LibOpenAPIProvider
-)
-
 // AppConfig is the app configuration.
 // Port is the port number to listen on.
 // HomeURL is the URL for the UI home page.
@@ -142,25 +135,23 @@ const (
 //
 // DisableUI is a flag whether to disable the UI.
 // DisableSpec is a flag whether to disable the Swagger UI.
-// SchemaProvider is the schema provider to use: kin-openapi or libopenapi.
 // Paths is the paths to various resource directories.
 // CreateFileStructure is a flag whether to create the initial resources file structure:
 // contexts, services, etc.
 // It will also copy sample files from the samples directory into services.
 // Default: true
 type AppConfig struct {
-	Port                int            `json:"port" yaml:"port" koanf:"port"`
-	HomeURL             string         `json:"homeUrl" yaml:"homeURL" koanf:"homeUrl"`
-	ServiceURL          string         `json:"serviceUrl" yaml:"serviceURL" koanf:"serviceUrl"`
-	SettingsURL         string         `json:"settingsUrl" yaml:"settingsURL" koanf:"settingsUrl"`
-	ContextURL          string         `json:"contextUrl" yaml:"contextUrl" koanf:"contextUrl"`
-	ContextAreaPrefix   string         `json:"contextAreaPrefix" yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
-	DisableUI           bool           `json:"disableUI" yaml:"disableUI" koanf:"disableUI"`
-	DisableSwaggerUI    bool           `json:"disableSwaggerUI" yaml:"disableSwaggerUI" koanf:"disableSwaggerUI"`
-	SchemaProvider      SchemaProvider `json:"schemaProvider" yaml:"schemaProvider" koanf:"schemaProvider"`
-	Paths               *Paths         `json:"-" koanf:"-"`
-	CreateFileStructure bool           `koanf:"createFileStructure" json:"createFileStructure" yaml:"createFileStructure"`
-	Editor              *EditorConfig  `koanf:"editor" json:"editor" yaml:"editor"`
+	Port                int           `json:"port" yaml:"port" koanf:"port"`
+	HomeURL             string        `json:"homeUrl" yaml:"homeURL" koanf:"homeUrl"`
+	ServiceURL          string        `json:"serviceUrl" yaml:"serviceURL" koanf:"serviceUrl"`
+	SettingsURL         string        `json:"settingsUrl" yaml:"settingsURL" koanf:"settingsUrl"`
+	ContextURL          string        `json:"contextUrl" yaml:"contextUrl" koanf:"contextUrl"`
+	ContextAreaPrefix   string        `json:"contextAreaPrefix" yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
+	DisableUI           bool          `json:"disableUI" yaml:"disableUI" koanf:"disableUI"`
+	DisableSwaggerUI    bool          `json:"disableSwaggerUI" yaml:"disableSwaggerUI" koanf:"disableSwaggerUI"`
+	Paths               *Paths        `json:"-" koanf:"-"`
+	CreateFileStructure bool          `koanf:"createFileStructure" json:"createFileStructure" yaml:"createFileStructure"`
+	Editor              *EditorConfig `koanf:"editor" json:"editor" yaml:"editor"`
 }
 
 type EditorConfig struct {
@@ -300,10 +291,6 @@ func (c *Config) EnsureConfigValues() {
 	if app.ContextAreaPrefix == "" {
 		app.ContextAreaPrefix = defaultConfig.App.ContextAreaPrefix
 	}
-	if app.SchemaProvider == "" {
-		app.SchemaProvider = defaultConfig.App.SchemaProvider
-	}
-
 	if app.Editor == nil {
 		app.Editor = defaultConfig.App.Editor
 	}
@@ -496,7 +483,6 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 		SettingsURL:       "/.settings",
 		ContextURL:        "/.contexts",
 		ContextAreaPrefix: "in-",
-		SchemaProvider:    DefaultSchemaProvider,
 		Paths:             NewPaths(baseDir),
 		Editor: &EditorConfig{
 			Theme:    "chrome",

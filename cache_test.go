@@ -2,13 +2,14 @@ package connexions
 
 import (
 	"errors"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/openapi/providers/kin"
-	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"path/filepath"
 	"testing"
+
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/openapi"
+	"github.com/cubahno/connexions/openapi/provider"
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func TestMemoryStorage(t *testing.T) {
@@ -53,7 +54,7 @@ func TestCacheOperationAdapter(t *testing.T) {
 	t.Parallel()
 
 	petStorePath := filepath.Join("testdata", "document-petstore.yml")
-	doc, err := kin.NewDocumentFromFile(petStorePath)
+	doc, err := provider.NewDocumentFromFile(petStorePath)
 	assert.Nil(err)
 
 	addPetOp := doc.FindOperation(&openapi.OperationDescription{Resource: "/pets", Method: http.MethodPost})

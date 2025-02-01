@@ -3,15 +3,16 @@
 package api
 
 import (
-	"github.com/cubahno/connexions"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/replacers"
-	assert2 "github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/cubahno/connexions"
+	"github.com/cubahno/connexions/config"
+	"github.com/cubahno/connexions/replacers"
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func TestRegisterOpenAPIRoutes(t *testing.T) {
@@ -69,9 +70,6 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		t.Errorf("Error setting up app: %v", err)
 		t.FailNow()
 	}
-	// response validation only with Kim for now
-	router.Config.App.SchemaProvider = config.KinOpenAPIProvider
-
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
 	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-petstore.yml"), filePath)
 	assert.Nil(err)
@@ -179,9 +177,6 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 		t.Errorf("Error setting up app: %v", err)
 		t.FailNow()
 	}
-	// response validation only with Kim for now
-	router.Config.App.SchemaProvider = config.KinOpenAPIProvider
-
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml")
 	err = connexions.CopyFile(filepath.Join("..", "testdata", "document-pet-single.yml"), filePath)
 	assert.Nil(err)

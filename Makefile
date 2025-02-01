@@ -32,7 +32,7 @@ test:
 fetch-specs:
 	rm -rf ./testdata/specs
 	git clone https://github.com/cubahno/specs.git ./testdata/specs
-	rm -rf ./testdata/specs/.[^.]*
+	find ./testdata/specs -mindepth 1 -name ".*" -exec rm -rf {} +
 
 .PHONY: test-integration
 test-integration: fetch-specs
