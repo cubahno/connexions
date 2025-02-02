@@ -63,7 +63,7 @@ build: clean
 
 .PHONY: docker-build
 docker-build:
-	@docker build \
+	@docker buildx build \
 		--platform linux/arm64,linux/amd64 \
 		--no-cache . \
 		--tag $(IMAGE_NAME):latest \

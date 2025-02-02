@@ -22,10 +22,9 @@ jobs:
         run: docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract Tag Name
-        id: extract_tag
-        run: echo "::set-output name=TAG_NAME::${GITHUB_REF#refs/tags/}"
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Build and Push Docker Image
         run: |
-          VERSION=${{ steps.extract_tag.outputs.TAG_NAME }} make docker-build
-          VERSION=${{ steps.extract_tag.outputs.TAG_NAME }} make docker-push
+          VERSION=${{ env.TAG_NAME }} make docker-build
+          VERSION=${{ env.TAG_NAME }} make docker-push
