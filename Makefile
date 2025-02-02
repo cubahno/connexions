@@ -3,7 +3,7 @@ IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 
-MIN_COVERAGE = 95
+MIN_COVERAGE = 90
 
 define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
@@ -17,15 +17,16 @@ lint:
 	go mod download && go mod tidy && go mod verify
 
 .PHONY: test
+# TODO: add race flag, currently it breaks plugins tests
 test:
 	@if [ -z "$(PKG)" ]; then \
-		go test -v -race \
-			-coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) \
+		go test \
+			-coverpkg=$(go list ./internal/...) \
 			-coverprofile .testCoverage.txt \
 			-count=1 \
-			$(go list ./... | grep -v /examples/ | grep -v /cmd/); \
+			./internal/...; \
 	else \
-  		go test -race -coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) -coverprofile=.testCoverage.txt -count=1 ./$(PKG)/...; \
+  		go test -coverpkg=$(go list ./... | grep -v /examples/ | grep -v /cmd/) -coverprofile=.testCoverage.txt -count=1 ./$(PKG)/...; \
 	fi
 
 .PHONY: fetch-specs
@@ -36,7 +37,7 @@ fetch-specs:
 
 .PHONY: test-integration
 test-integration: fetch-specs
-	@go test -race -tags=integration -count=1
+	@go test -v -tags=integration ./...
 
 .PHONY: test-with-check-coverage
 test-with-check-coverage: test

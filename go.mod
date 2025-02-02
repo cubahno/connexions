@@ -1,9 +1,10 @@
 module github.com/cubahno/connexions
 
-go 1.23.1
+go 1.23.3
 
 require (
-	github.com/cubahno/connexions_plugin v0.1.3
+	github.com/cubahno/connexions_plugin v0.1.4
+	github.com/cubewise-code/go-mime v0.0.0-20200519001935-8c5762b177d8
 	github.com/getkin/kin-openapi v0.129.0
 	github.com/go-chi/chi/v5 v5.2.0
 	github.com/jaswdr/faker/v2 v2.3.3

@@ -4,9 +4,10 @@ package internal
 
 import (
 	"fmt"
-	assert2 "github.com/stretchr/testify/assert"
 	"math"
 	"testing"
+
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func TestIsNumber(t *testing.T) {

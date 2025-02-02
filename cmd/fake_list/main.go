@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/cubahno/connexions/contexts"
 	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/cubahno/connexions/internal"
 )
 
 // main generates a list of available fake functions for documentation.
@@ -28,8 +29,8 @@ func main() {
 	var sb strings.Builder
 	sb.WriteString("```\n")
 
-	names := make([]string, 0, len(contexts.Fakes))
-	for name := range contexts.Fakes {
+	names := make([]string, 0, len(internal.Fakes))
+	for name := range internal.Fakes {
 		names = append(names, "fake:"+name)
 	}
 	sort.Strings(names)

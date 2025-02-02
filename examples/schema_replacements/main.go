@@ -2,18 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/cubahno/connexions"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/replacers"
+
+	"github.com/cubahno/connexions/internal"
 )
 
 func main() {
-	cfg := config.NewDefaultConfig("")
+	cfg := internal.NewDefaultConfig("")
 
-	schema := &openapi.Schema{
+	schema := &internal.Schema{
 		Type: "object",
-		Properties: map[string]*openapi.Schema{
+		Properties: map[string]*internal.Schema{
 			"id": {
 				Type:   "string",
 				Format: "uuid",
@@ -36,8 +34,8 @@ func main() {
 			"name": "Jane",
 		},
 	}
-	replacer := replacers.CreateValueReplacer(cfg, replacers.Replacers, contexts)
-	res := connexions.GenerateContentFromSchema(schema, replacer, nil)
+	replacer := internal.CreateValueReplacer(cfg, internal.Replacers, contexts)
+	res := internal.GenerateContentFromSchema(schema, replacer, nil)
 	fmt.Printf("%+v\n", res)
 
 	// will print either:
