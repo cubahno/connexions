@@ -63,7 +63,9 @@ build: clean
 
 .PHONY: docker-build
 docker-build:
-	@docker build --no-cache . \
+	@docker build \
+		--platform linux/arm64,linux/amd64 \
+		--no-cache . \
 		--tag $(IMAGE_NAME):latest \
 		--tag $(IMAGE_NAME):$(VERSION)
 
@@ -75,6 +77,7 @@ docker-push:
 .PHONY: docker-run
 docker-run:
 	@docker run -it --rm \
+		--platform=linux/arm64 \
 		-p 2200:2200 \
 		$(IMAGE_NAME) api
 
