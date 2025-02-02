@@ -3,10 +3,11 @@
 package internal
 
 import (
-	assert2 "github.com/stretchr/testify/assert"
 	"net/url"
 	"reflect"
 	"testing"
+
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func TestIsMap(t *testing.T) {

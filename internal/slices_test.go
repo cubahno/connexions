@@ -3,8 +3,9 @@
 package internal
 
 import (
-	assert2 "github.com/stretchr/testify/assert"
 	"testing"
+
+	assert2 "github.com/stretchr/testify/assert"
 )
 
 func TestSliceDeleteAtIndex(t *testing.T) {

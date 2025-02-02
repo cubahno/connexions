@@ -10,10 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cubahno/connexions"
-	"github.com/cubahno/connexions/config"
-	"github.com/cubahno/connexions/openapi"
-	"github.com/cubahno/connexions/openapi/provider"
+	"github.com/cubahno/connexions/internal"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -207,11 +204,11 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 			go func(resName, method string) {
 				defer wg.Done()
 
-				operation := doc.FindOperation(&openapi.OperationDescription{
+				operation := doc.FindOperation(&internal.OperationDescription{
 					Resource: resName,
 					Method:   method,
 				})
-				operation = operation.WithParseConfig(&config.ParseConfig{
+				operation = operation.WithParseConfig(&internal.ParseConfig{
 					MaxRecursionLevels: parseConfig.MaxRecursionLevels,
 					OnlyRequired:       parseConfig.OnlyRequired,
 				})
@@ -245,7 +242,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 		return err
 	}
 
-	err = connexions.SaveFile(dest, contents)
+	err = internal.SaveFile(dest, contents)
 	if parseConfig.Replace {
 		_ = os.Remove(src)
 	}
@@ -253,7 +250,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 	return err
 }
 
-func getSourceDocument(src string) (openapi.Document, error) {
+func getSourceDocument(src string) (internal.Document, error) {
 	if _, err := os.Stat(src); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -266,10 +263,10 @@ func getSourceDocument(src string) (openapi.Document, error) {
 		return nil, ErrNotRegularFile
 	}
 
-	return provider.NewDocumentFromFile(src)
+	return internal.NewDocumentFromFile(src)
 }
 
-func convertOperation(operation openapi.Operation, securityComponents openapi.SecurityComponents) *openapi3.Operation {
+func convertOperation(operation internal.Operation, securityComponents internal.SecurityComponents) *openapi3.Operation {
 	request := operation.GetRequest(securityComponents)
 	payload := request.Body
 	reqBody := payload.Schema
@@ -325,7 +322,7 @@ func convertOperation(operation openapi.Operation, securityComponents openapi.Se
 	}
 }
 
-func convertSchema(src *openapi.Schema) *openapi3.SchemaRef {
+func convertSchema(src *internal.Schema) *openapi3.SchemaRef {
 	if src == nil {
 		return nil
 	}

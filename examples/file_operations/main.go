@@ -1,10 +1,12 @@
 package main
 
-import "github.com/cubahno/connexions"
+import (
+	"github.com/cubahno/connexions/internal"
+)
 
 func main() {
 	// will create complete path if it does not exist
-	_ = connexions.SaveFile("/path/a/b/c/test.txt", []byte("hello world"))
-	_ = connexions.CopyFile("/path/a/b/c/test.txt", "/path/a/b/c/test2.txt")
-	_ = connexions.CopyDirectory("/path/a/b/c", "/path/a/b/c2")
+	_ = internal.SaveFile("/path/a/b/c/test.txt", []byte("hello world"))
+	_ = internal.CopyFile("/path/a/b/c/test.txt", "/path/a/b/c/test2.txt")
+	_ = internal.CopyDirectory("/path/a/b/c", "/path/a/b/c2")
 }

@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/cubahno/connexions/api"
-	"github.com/cubahno/connexions/config"
-	"github.com/joho/godotenv"
 	"path/filepath"
 	"runtime"
+
+	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/api"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 	baseDir := filepath.Dir(filepath.Dir(filepath.Dir(b)))
 	_ = godotenv.Load()
 
-	cfg := config.MustConfig(baseDir)
+	cfg := internal.MustConfig(baseDir)
 	app := api.NewApp(cfg)
 	app.Run()
 }
