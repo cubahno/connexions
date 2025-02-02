@@ -197,9 +197,3 @@ func TransformHTTPCode(httpCode string) int {
 
 	return codeInt
 }
-
-// Validator is an interface that represents an OpenAPI validator.
-type Validator interface {
-	ValidateRequest(req *GeneratedRequest) []error
-	ValidateResponse(res *GeneratedResponse) []error
-}
