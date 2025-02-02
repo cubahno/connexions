@@ -26,5 +26,4 @@ jobs:
 
       - name: Build and Push Docker Image
         run: |
-          VERSION=${{ env.TAG_NAME }} make docker-build
-          VERSION=${{ env.TAG_NAME }} make docker-push
+          VERSION=${{ env.TAG_NAME }} make docker-build-multiarch

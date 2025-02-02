@@ -63,11 +63,19 @@ build: clean
 
 .PHONY: docker-build
 docker-build:
+	@docker build \
+		--no-cache . \
+		--tag $(IMAGE_NAME):latest \
+		--tag $(IMAGE_NAME):$(VERSION)
+
+.PHONY: docker-build-multiarch
+docker-build-multiarch:
 	@docker buildx build \
 		--platform linux/arm64,linux/amd64 \
 		--no-cache . \
 		--tag $(IMAGE_NAME):latest \
-		--tag $(IMAGE_NAME):$(VERSION)
+		--tag $(IMAGE_NAME):$(VERSION) \
+		--push
 
 .PHONY: docker-push
 docker-push:
