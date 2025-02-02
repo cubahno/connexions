@@ -126,6 +126,7 @@ export const generateResult = (service, ix, path, method) => {
         config.generatorCont.style.display = 'block';
         config.resourceRefreshBtn.onclick = () => generateResult(service, ix, path, method);
         config.resourceRefreshBtn.style.display = 'block';
+        console.log(`done`);
     }
     commons.hideMessage();
     let replacements = null;
@@ -157,10 +158,16 @@ export const generateResult = (service, ix, path, method) => {
         .then(res => res && res.json())
         .then(res => {
             if (!res) {
+                console.log(`No response`);
                 return;
             }
-            const reqPath = res["request"]["path"];
+            const query = res["request"]["query"];
+            let reqPath = res["request"]["path"];
+            console.log(`reqPath: ${reqPath}, query: ${query}`);
             if (reqPath) {
+                if (query) {
+                    reqPath += `?${query}`;
+                }
                 document.getElementById('request-path').innerHTML = reqPath;
                 document.getElementById('request-path-container').style.display = 'block';
             }
