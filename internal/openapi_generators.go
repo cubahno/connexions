@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// NewRequestFromOperation creates a new GeneratedRequest from an KinOperation.
-// It used to pre-generate payloads from the UI or provide service to generate such.
+// NewRequestFromOperation creates a new GeneratedRequest.
+// It is used to pre-generate payloads from the UI or provide service to generate such.
 // It's not part of OpenAPI endpoint handler.
 func NewRequestFromOperation(
 	options *GenerateRequestOptions,
@@ -41,8 +41,8 @@ func NewRequestFromOperation(
 	return &GeneratedRequest{
 		Headers:       GenerateRequestHeaders(params, replacer),
 		Method:        options.Method,
-		Path:          options.PathPrefix + GenerateURLFromSchemaParameters(options.Path, replacer, params),
-		Query:         GenerateQuery(replacer, params),
+		Path:          options.PathPrefix + generateURLFromSchemaParameters(options.Path, replacer, params),
+		Query:         generateQuery(replacer, params),
 		Body:          string(body),
 		ContentSchema: reqBody,
 		ContentType:   contentType,
@@ -61,7 +61,7 @@ func NewRequestFromFixedResource(path, method, contentType string, valueReplacer
 	}
 }
 
-// NewResponseFromOperation creates a new response from an KinOperation.
+// NewResponseFromOperation creates generated response.
 // It used to pre-generate payloads from the UI or provide service to generate such.
 func NewResponseFromOperation(req *http.Request, operation Operation, valueReplacer ValueReplacer) *GeneratedResponse {
 	response := operation.GetResponse()
@@ -108,8 +108,8 @@ func NewResponseFromFixedResource(filePath, contentType string, valueReplacer Va
 	}
 }
 
-// GenerateURLFromSchemaParameters generates URL from the given path and parameters.
-func GenerateURLFromSchemaParameters(path string, valueResolver ValueReplacer, params Parameters) string {
+// generateURLFromSchemaParameters generates URL from the given path and parameters.
+func generateURLFromSchemaParameters(path string, valueResolver ValueReplacer, params Parameters) string {
 	for _, param := range params {
 		// param := paramRef.Parameter
 		if param == nil || param.In != ParameterInPath {
@@ -156,8 +156,8 @@ func generateURLFromFixedResourcePath(path string, valueReplacer ValueReplacer) 
 	return path
 }
 
-// GenerateQuery generates query string from the given parameters.
-func GenerateQuery(valueReplacer ValueReplacer, params Parameters) string {
+// generateQuery generates query string from the given parameters.
+func generateQuery(valueReplacer ValueReplacer, params Parameters) string {
 	queryValues := url.Values{}
 
 	// avoid encoding [] in the query

@@ -1,5 +1,5 @@
 id: "alias:fake.uuid.v4"
-_id$: "alias:fake.u_int8"
+_id$: "alias:fake.uuid.v4"
 _count$: "alias:fake.u_int8"
 _amount$: "alias:fake.u_int8"
 phone_number: "alias:fake.phone.number"

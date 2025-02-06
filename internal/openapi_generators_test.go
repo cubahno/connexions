@@ -279,7 +279,7 @@ func TestGenerateURLFromSchemaParameters(t *testing.T) {
 			newOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
 			newOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
 		}
-		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
+		res := generateURLFromSchemaParameters(path, valueResolver, params)
 		assert.Equal("/users/123/foo", res)
 	})
 
@@ -291,7 +291,7 @@ func TestGenerateURLFromSchemaParameters(t *testing.T) {
 			newOpenAPIParameter("id", "path", CreateSchemaFromString(t, `{"type": "integer"}`)),
 			newOpenAPIParameter("file-id", "path", CreateSchemaFromString(t, `{"type": "string"}`)),
 		}
-		res := GenerateURLFromSchemaParameters(path, valueResolver, params)
+		res := generateURLFromSchemaParameters(path, valueResolver, params)
 		assert.Equal("/users/{id}/{file-id}", res)
 	})
 }
@@ -337,7 +337,7 @@ func TestGenerateQuery(t *testing.T) {
 			newOpenAPIParameter("id", "query", CreateSchemaFromString(t, `{"type": "integer"}`)),
 			newOpenAPIParameter("file-id", "query", CreateSchemaFromString(t, `{"type": "foo"}`)),
 		}
-		res := GenerateQuery(valueResolver, params)
+		res := generateQuery(valueResolver, params)
 
 		// TODO(cubahno): fix order of query params
 		assert.Contains([]string{"id=123&file-id=foo", "file-id=foo&id=123"}, res)
@@ -354,7 +354,7 @@ func TestGenerateQuery(t *testing.T) {
 				CreateSchemaFromString(t, `{"type": "array", "items": {"type": "string"}}`),
 			),
 		}
-		res := GenerateQuery(valueResolver, params)
+		res := generateQuery(valueResolver, params)
 
 		expected := "tags[]=foo+bar"
 		assert.Equal(expected, res)
@@ -371,7 +371,7 @@ func TestGenerateQuery(t *testing.T) {
 				CreateSchemaFromString(t, `{"type": "integer"}`),
 			),
 		}
-		res := GenerateQuery(valueResolver, params)
+		res := generateQuery(valueResolver, params)
 
 		expected := "id="
 		assert.Equal(expected, res)
