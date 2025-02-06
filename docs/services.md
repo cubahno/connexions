@@ -1,6 +1,6 @@
 ### About
 Services represent collection of resources available under the same first part of the path.<br/>
-In case the path empty, the service name is empty too but in the `UI` it's seen as `/` and in the application code: `.root`.<br/>
+In case the path empty, the service name is empty too but in the `UI` it's seen as `/` and in the application code: `root`.<br/>
 
 Service can contain both OpenAPI resources and fixed resources.<br/>
 Resources considered to be **OpenAPI** if their schema validates against either OpenAPI v3 or Swagger v2 schema.<br/>
@@ -28,7 +28,7 @@ At any time you can import or export services and resources using `UI` or `API`.
 #### OpenAPI resources
 ``` yaml
 services
-└───.openapi
+└───openapi
     └───service-1.yml # (1)!
     └───service-2.json # (2)!
     └───service-3
@@ -47,7 +47,7 @@ services
 #### Fixed resources without service name
 ``` yaml
 services
-└───.root
+└───root
     └───get
         └───index.json # (1)!
     └───index.json # (2)!

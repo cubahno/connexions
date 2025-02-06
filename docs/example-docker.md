@@ -48,10 +48,10 @@ Connexions resources file structure:
 resources
     └─── data
         └───services
-            └───.openapi
+            └───openapi
                 └───service-1
                     └───index.yml
-            └───.root
+            └───root
                 └───get
                     └───index.json
             └───service-2
