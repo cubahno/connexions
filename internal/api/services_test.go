@@ -1418,14 +1418,14 @@ func TestComposeFileSavePath(t *testing.T) {
 			service: &ServiceDescription{
 				Path: "/foo.html",
 			},
-			expected: paths.Services + "/.root/get/foo.html",
+			expected: paths.Services + "/root/get/foo.html",
 		},
 		{
 			service: &ServiceDescription{
 				Method: "patch",
 				Path:   "/foo.html",
 			},
-			expected: paths.Services + "/.root/patch/foo.html",
+			expected: paths.Services + "/root/patch/foo.html",
 		},
 		{
 			service: &ServiceDescription{

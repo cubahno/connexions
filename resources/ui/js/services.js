@@ -78,7 +78,7 @@ export const show = (selected = '') => {
                 let nameLink = name;
                 if (name === ``) {
                     name = "/"
-                    nameLink = `.root`
+                    nameLink = `root`
                 }
                 const svcNameCell = document.createElement('td');
                 svcNameCell.innerHTML = `<a href="#/services/${nameLink}">${name}</a>`;
@@ -118,7 +118,7 @@ export const show = (selected = '') => {
                     let nameLink = serviceName;
                     if (serviceName === ``) {
                         name = "/"
-                        nameLink = `.root`
+                        nameLink = `root`
                     }
 
                     if (confirm(`Are you sure you want to remove service ${serviceName}?\nAll files will be deleted!`)) {

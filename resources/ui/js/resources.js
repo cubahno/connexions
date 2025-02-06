@@ -26,7 +26,7 @@ export const show = match => {
 
             const endpoints = data['endpoints'];
             let name = service;
-            if (name === `.root`) {
+            if (name === `root`) {
                 name = `Root level`
             } else {
                 name = `/${name}`

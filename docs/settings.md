@@ -148,7 +148,7 @@ Default: `12`<br/>
 Map of service configurations, where the `key` is the service name.<br/>
 Service name is the first part of the path.<br/>
 e.g. `/petstore/v1/pets -> petstore`<br/>
-In case, service name is omitted, `.root` name will be used internally in directory structure.
+In case, service name is omitted, `root` name will be used internally in directory structure.
 
 #### latency
 Applies `time.Duration` latency to all service responses.

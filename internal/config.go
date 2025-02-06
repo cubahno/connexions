@@ -21,7 +21,7 @@ import (
 // Services is a map of service name and the corresponding config.
 // ServiceName is the first part of the path.
 // e.g. /petstore/v1/pets -> petstore
-// in case, there's no service name, the name ".root" will be used.
+// in case, there's no service name, the name "root" will be used.
 type Config struct {
 	App      *AppConfig                `koanf:"app" json:"app" yaml:"app"`
 	Services map[string]*ServiceConfig `koanf:"services" json:"services" yaml:"services"`
@@ -113,10 +113,10 @@ type ParseConfig struct {
 
 const (
 	// RootServiceName is the name and location in the service directory of the service without a name.
-	RootServiceName = ".root"
+	RootServiceName = "root"
 
 	// RootOpenAPIName is the name and location of the OpenAPI service without a name.
-	RootOpenAPIName = ".openapi"
+	RootOpenAPIName = "openapi"
 )
 
 // AppConfig is the app configuration.

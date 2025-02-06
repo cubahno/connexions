@@ -111,7 +111,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	t.Parallel()
 
 	t.Run("service-root-direct", func(t *testing.T) {
-		filePath := paths.Services + "/.root/users.html"
+		filePath := paths.Services + "/root/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{
@@ -126,7 +126,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		}, props)
 	})
 
-	// result should be as above, in the .root
+	// result should be as above, in the `root`
 	t.Run("service-direct", func(t *testing.T) {
 		filePath := paths.Services + "/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
@@ -143,7 +143,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 		}, props)
 	})
 
-	// result should be as above, in the .root
+	// result should be as above, in the `root`
 	t.Run("service-direct-index", func(t *testing.T) {
 		filePath := paths.Services + "/index.json"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
@@ -161,7 +161,7 @@ func TestGetPropertiesFromFilePath(t *testing.T) {
 	})
 
 	t.Run("service-root-with-method", func(t *testing.T) {
-		filePath := paths.Services + "/.root/patch/users.html"
+		filePath := paths.Services + "/root/patch/users.html"
 		props, _ := GetPropertiesFromFilePath(filePath, appCfg)
 
 		AssertJSONEqual(t, &FileProperties{

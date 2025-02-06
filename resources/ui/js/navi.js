@@ -73,7 +73,7 @@ export const applySelection = (targetEl, selectionClassName) => {
         return;
     }
 
-    if (targetEl === `service-.root`) {
+    if (targetEl === `service-root`) {
         targetEl = `service-`;
     }
 
