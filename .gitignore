@@ -3,6 +3,7 @@
 .gitconfig
 .data
 .build
+.DS_Store
 .testCoverage.txt
 resources/data/callbacks
 resources/data/services
@@ -12,3 +13,5 @@ testdata/specs*/**/*
 !/testdata/specs/petstore.yml
 site
 .env
+*.so
+

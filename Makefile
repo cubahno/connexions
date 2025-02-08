@@ -2,6 +2,8 @@ build_dir := ./.build
 IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
+GO_VERSION := $(shell awk '/^go / {print $$2}' go.mod)
+PACKAGE := github.com/cubahno/connexions
 
 MIN_COVERAGE = 90
 
@@ -58,8 +60,10 @@ clean-cache:
 
 .PHONY: build
 build: clean
-	@GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./cmd/server/main.go
-	@GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${build_dir}/simplifier/bootstrap ./cmd/simplifier/main.go
+	@echo "Go version: $(GO_VERSION)"
+	@go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./cmd/server/main.go
+	@go build -ldflags="-s -w" -o ${build_dir}/simplifier/bootstrap ./cmd/simplifier/main.go
+	@go build -ldflags="-s -w -X main.goVersion=$(GO_VERSION)" -o ${build_dir}/plugin_checker/bootstrap ./cmd/plugin_checker/main.go
 
 .PHONY: docker-build
 docker-build:
