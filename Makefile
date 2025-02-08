@@ -108,7 +108,7 @@ simplify-schemas:
 
 @PHONY: docs-install
 docs-install:
-	@pip3 install mkdocs mkdocs-material
+	@brew install mkdocs-material
 
 @PHONY: docs-prepare
 docs-prepare:

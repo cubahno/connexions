@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("base-case", func(t *testing.T) {
-		router.Config.Services[file.ServiceName] = &internal.ServiceConfig{}
+		router.Config.Services[file.ServiceName] = config.NewServiceConfig()
 
 		rs := registerFixedRoute(file, router)
 
@@ -96,12 +97,11 @@ func TestRegisterFixedRoute(t *testing.T) {
 	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
-		router.Config.Services[file.ServiceName].Errors = &internal.ServiceError{
-			Codes: map[int]int{
-				400: 100,
-			},
-			Chance: 100,
+		router.Config.Services[file.ServiceName] = config.NewServiceConfig()
+		router.Config.Services[file.ServiceName].Errors = map[string]int{
+			"p100": 400,
 		}
+		_ = registerFixedRoute(file, router)
 
 		req := httptest.NewRequest(http.MethodPost, "/petstore/pets", nil)
 		req.Header.Set("Content-Type", "application/json")
@@ -109,6 +109,6 @@ func TestRegisterFixedRoute(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(http.StatusBadRequest, w.Code)
-		assert.Equal("Random config error", w.Body.String())
+		assert.Equal("configured service error: 400", w.Body.String())
 	})
 }

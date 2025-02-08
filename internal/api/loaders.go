@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/types"
 )
 
 // loadServices loads all services from the `services` directory.
@@ -165,8 +166,8 @@ func loadContexts(router *Router) error {
 		for ctxSourceKey, aliasTarget := range requiredAliases {
 			parts := strings.Split(aliasTarget, ".")
 			ns, nsPath := parts[0], strings.Join(parts[1:], ".")
-			if res := internal.GetValueByDottedPath(cts[ns], nsPath); res != nil {
-				internal.SetValueByDottedPath(cts[ctxName], ctxSourceKey, res)
+			if res := types.GetValueByDottedPath(cts[ns], nsPath); res != nil {
+				types.SetValueByDottedPath(cts[ctxName], ctxSourceKey, res)
 			} else {
 				log.Printf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey)
 			}

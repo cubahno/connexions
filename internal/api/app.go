@@ -11,19 +11,20 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 )
 
 // App is the main application struct
 type App struct {
 	Router *Router
-	Paths  *internal.Paths
+	Paths  *config.Paths
 
 	bluePrints []RouteRegister
 	mu         sync.Mutex
 }
 
 // NewApp creates a new App instance from Config and registers predefined blueprints.
-func NewApp(config *internal.Config) *App {
+func NewApp(config *config.Config) *App {
 	paths := config.App.Paths
 	res := &App{
 		Paths: paths,
@@ -68,7 +69,7 @@ func NewApp(config *internal.Config) *App {
 }
 
 // MustFileStructure creates the necessary directories and files
-func MustFileStructure(paths *internal.Paths) error {
+func MustFileStructure(paths *config.Paths) error {
 	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts, paths.Callbacks}
 
 	for _, dir := range dirs {

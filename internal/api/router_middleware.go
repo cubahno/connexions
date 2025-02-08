@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/cubahno/connexions_plugin"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sony/gobreaker/v2"
 )
 
 type MiddlewareParams struct {
-	ServiceConfig  *internal.ServiceConfig
+	ServiceConfig  *config.ServiceConfig
 	Service        string
 	Resource       string
 	ResourcePrefix string
@@ -45,7 +45,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 
 // ConditionalLoggingMiddleware is a middleware that conditionally can disable logger.
 // For example, in tests or when fetching static files.
-func ConditionalLoggingMiddleware(cfg *internal.Config) func(http.Handler) http.Handler {
+func ConditionalLoggingMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		logger := middleware.DefaultLogger(next)
 		disableLogger := os.Getenv("DISABLE_LOGGER") == "true"

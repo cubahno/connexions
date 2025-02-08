@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -23,14 +24,14 @@ func TestNewApp(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("no-file-config", func(t *testing.T) {
-		cfg := internal.MustConfig("/app")
+		cfg := config.MustConfig("/app")
 		app := NewApp(cfg)
 		assert.NotNil(app)
 		assert.Equal(0, len(app.Router.services))
 	})
 
 	t.Run("no-file-config-with-pre-create", func(t *testing.T) {
-		cfg := internal.MustConfig("/app")
+		cfg := config.MustConfig("/app")
 		cfg.App.CreateFileStructure = true
 
 		defer func() {
@@ -49,7 +50,7 @@ func TestNewApp(t *testing.T) {
 
 	t.Run("existing-dir-with-pre-create", func(t *testing.T) {
 		dir := t.TempDir()
-		cfg := internal.MustConfig(dir)
+		cfg := config.MustConfig(dir)
 		cfg.App.CreateFileStructure = true
 
 		app := NewApp(cfg)
@@ -63,7 +64,7 @@ func TestMustFileStructure(t *testing.T) {
 
 	t.Run("dirs-exist", func(t *testing.T) {
 		dir := t.TempDir()
-		paths := internal.NewPaths(dir)
+		paths := config.NewPaths(dir)
 
 		_, _ = os.Create(paths.Resources)
 		_, _ = os.Create(paths.Samples)
@@ -79,7 +80,7 @@ func TestApp_AddBluePrint(t *testing.T) {
 	assert := assert2.New(t)
 
 	dir := t.TempDir()
-	cfg := internal.MustConfig(dir)
+	cfg := config.MustConfig(dir)
 	cfg.EnsureConfigValues()
 	cfg.App.DisableUI = true
 
@@ -132,7 +133,7 @@ func TestApp_Run_panics(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	cfg := internal.MustConfig(dir)
+	cfg := config.MustConfig(dir)
 	cfg.EnsureConfigValues()
 	cfg.App.DisableUI = true
 	cfg.App.Port = 80
@@ -167,7 +168,7 @@ func TestApp_Run(t *testing.T) {
 	t.Parallel()
 
 	dir := t.TempDir()
-	cfg := internal.MustConfig(dir)
+	cfg := config.MustConfig(dir)
 	cfg.EnsureConfigValues()
 	cfg.App.DisableUI = true
 	cfg.App.Port = 22333

@@ -5,6 +5,7 @@ package internal
 import (
 	"testing"
 
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -21,14 +22,14 @@ func TestCreateValueReplacer(t *testing.T) {
 	forceNullReplacer := func(ctx *ReplaceContext) any { return NULL }
 
 	t.Run("with-nil-state", func(t *testing.T) {
-		cfg := NewDefaultConfig("")
+		cfg := config.NewDefaultConfig("")
 		fn := CreateValueReplacer(cfg, []Replacer{fooReplacer}, nil)
 		res := fn("", nil)
 		assert.Equal("foo", res)
 	})
 
 	t.Run("with-incorrect-schema-type", func(t *testing.T) {
-		cfg := NewDefaultConfig("")
+		cfg := config.NewDefaultConfig("")
 		fn := CreateValueReplacer(cfg, []Replacer{fooReplacer, intReplacer}, nil)
 		schema := &Schema{Type: TypeInteger}
 		res := fn(schema, nil)
@@ -36,21 +37,21 @@ func TestCreateValueReplacer(t *testing.T) {
 	})
 
 	t.Run("with-force-null", func(t *testing.T) {
-		cfg := NewDefaultConfig("")
+		cfg := config.NewDefaultConfig("")
 		fn := CreateValueReplacer(cfg, []Replacer{forceNullReplacer, fooReplacer}, nil)
 		res := fn("", nil)
 		assert.Nil(res)
 	})
 
 	t.Run("continues-on-nil", func(t *testing.T) {
-		cfg := NewDefaultConfig("")
+		cfg := config.NewDefaultConfig("")
 		fn := CreateValueReplacer(cfg, []Replacer{nilReplacer, fooReplacer}, nil)
 		res := fn("foo", nil)
 		assert.Equal("foo", res)
 	})
 
 	t.Run("finishes-with-nil", func(t *testing.T) {
-		cfg := NewDefaultConfig("")
+		cfg := config.NewDefaultConfig("")
 		fn := CreateValueReplacer(cfg, []Replacer{nilReplacer, nilReplacer}, nil)
 		res := fn("foo", nil)
 		assert.Nil(res)
@@ -61,7 +62,7 @@ func TestCreateValueReplacer(t *testing.T) {
 			Type:    TypeString,
 			Pattern: "^((0[1-9])|(1[0-2]))$",
 		}
-		cfg := NewDefaultConfig("")
+		cfg := config.NewDefaultConfig("")
 		replacers := []Replacer{func(ctx *ReplaceContext) any {
 			if len(ctx.State.NamePath) == 0 {
 				return "01"

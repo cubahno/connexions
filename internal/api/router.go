@@ -9,7 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -31,7 +32,7 @@ type RouteRegister func(router *Router) error
 type Router struct {
 	*chi.Mux
 
-	Config          *internal.Config
+	Config          *config.Config
 	callbacksPlugin *plugin.Plugin
 	services        map[string]*ServiceItem
 	contexts        map[string]map[string]any
@@ -42,7 +43,7 @@ type Router struct {
 }
 
 // NewRouter creates a new Router instance from Config.
-func NewRouter(config *internal.Config) *Router {
+func NewRouter(config *config.Config) *Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(ConditionalLoggingMiddleware(config))
@@ -128,7 +129,7 @@ func (r *Router) GetContexts() map[string]map[string]any {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return internal.CopyNestedMap(r.contexts)
+	return types.CopyNestedMap(r.contexts)
 }
 
 func (r *Router) GetDefaultContexts() []map[string]string {

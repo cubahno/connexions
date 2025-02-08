@@ -20,13 +20,14 @@
     
     services:
       petstore:
-        latency: 0s
+        latencies:
+          p25: 10ms
+          p99: 20ms
+          p100: 25ms
 
         errors:
-          chance: 0%
-          codes:
-            400: 50%
-            500: 50%
+          p10: 400
+          p20: 500
 
         contexts:
         - common:
@@ -155,24 +156,25 @@ Applies `time.Duration` latency to all service responses.
 
 Default: `0s`<br/>
 
-#### errors
-
-###### chance
-Default: `0`<br/>
-
-###### codes
-Map of error codes and their chances.
-
-Default: `{}`<br/>
+#### latencies
+Applies latency to specific percentiles of the service responses.
 
 ```yaml title="Example"
-chance: 25%
-codes:
-    400: 50%
-    500: 50%
+p25: 10ms
+p99: 20ms
+p100: 25ms
 ```
 
-The weights can be specified as `int` values as well and don't have to add up to 100.
+The keys are the percentile values, and the values are the latencies to be applied.<br/>
+
+#### errors
+
+```yaml title="Example"
+p10: 400
+p20: 500
+```
+
+The keys are the percentile values, and the values are the status codes to be returned.<br/>
 
 #### contexts
 

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/jaswdr/faker/v2"
 	assert2 "github.com/stretchr/testify/assert"
 )
@@ -707,7 +708,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
 
-		v, ok := ToInt32(res)
+		v, ok := types.ToInt32(res)
 		assert.True(ok)
 		assert.Greater(v, int32(0))
 	})
@@ -718,7 +719,7 @@ func TestReplaceFromSchemaFormat(t *testing.T) {
 		}
 		res := ReplaceFromSchemaFormat(NewTestReplaceContext(schema))
 		assert.NotNil(res)
-		v, ok := ToInt64(res)
+		v, ok := types.ToInt64(res)
 		assert.True(ok)
 		assert.Greater(v, int64(0))
 	})
@@ -1097,7 +1098,7 @@ func TestCreateStringFromPattern(t *testing.T) {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
 			res := createStringFromPattern(tc.pattern)
 
-			assert.True(ValidateStringWithPattern(res, tc.pattern))
+			assert.True(types.ValidateStringWithPattern(res, tc.pattern))
 
 			if tc.expectedLength > 0 {
 				assert.Len(res, tc.expectedLength)

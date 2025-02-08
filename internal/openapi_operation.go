@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/cubahno/connexions/internal/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -91,7 +92,7 @@ func CreateCURLBody(content any, contentType string) (string, error) {
 			return "", ErrUnexpectedFormURLEncodedType
 		}
 
-		keys := GetSortedMapKeys(data)
+		keys := types.GetSortedMapKeys(data)
 		builder := &strings.Builder{}
 
 		for _, key := range keys {
@@ -108,7 +109,7 @@ func CreateCURLBody(content any, contentType string) (string, error) {
 			return "", ErrUnexpectedFormDataType
 		}
 
-		keys := GetSortedMapKeys(data)
+		keys := types.GetSortedMapKeys(data)
 		builder := &strings.Builder{}
 
 		for _, key := range keys {

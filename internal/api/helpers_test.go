@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,7 +37,7 @@ func TestMain(m *testing.M) {
 }
 
 func SetupApp(appDir string) (*Router, error) {
-	cfg := internal.MustConfig(appDir)
+	cfg := config.MustConfig(appDir)
 	err := MustFileStructure(cfg.App.Paths)
 	if err != nil {
 		return nil, err

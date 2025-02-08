@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/getkin/kin-openapi/openapi3"
 	assert2 "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -365,7 +366,7 @@ func TestOperation(t *testing.T) {
 
 		op := docWithFriends.FindOperation(&OperationDescription{Resource: "/person/{id}/find", Method: "GET"})
 		assert.NotNil(op)
-		op = op.WithParseConfig(&ParseConfig{OnlyRequired: true})
+		op = op.WithParseConfig(&config.ParseConfig{OnlyRequired: true})
 
 		res := op.GetResponse()
 		expected := &Response{
@@ -569,11 +570,11 @@ func TestNewSchema(t *testing.T) {
 	t.Parallel()
 	testData := TestDataPath
 
-	getSchema := func(t *testing.T, fileName, componentID string, parseConfig *ParseConfig) *Schema {
+	getSchema := func(t *testing.T, fileName, componentID string, parseConfig *config.ParseConfig) *Schema {
 		t.Helper()
 		kinDoc, err := NewDocumentFromFile(filepath.Join(testData, fileName))
 		assert.Nil(err)
-		doc := kinDoc //.(*KinDocument)
+		doc := kinDoc
 		kinSchema := doc.Components.Schemas[componentID].Value
 		assert.NotNil(kinSchema)
 
@@ -582,7 +583,7 @@ func TestNewSchema(t *testing.T) {
 
 	t.Run("WithParseConfig-max-recursive-levels", func(t *testing.T) {
 		res := getSchema(t, "document-circular-ucr.yml", "OrgByIdResponseWrapperModel",
-			&ParseConfig{MaxRecursionLevels: 1})
+			&config.ParseConfig{MaxRecursionLevels: 1})
 
 		types := []any{
 			"Department",
@@ -664,7 +665,7 @@ func TestNewSchema(t *testing.T) {
 
 	t.Run("circular-with-additional-properties", func(t *testing.T) {
 		res := getSchema(t, "document-connexions.yml", "Map",
-			&ParseConfig{MaxRecursionLevels: 0})
+			&config.ParseConfig{MaxRecursionLevels: 0})
 
 		expected := &Schema{
 			Type: TypeObject,
@@ -730,7 +731,7 @@ func TestNewSchema(t *testing.T) {
 		target := openapi3.NewSchema()
 		CreateSchemaFromYAMLFile(t, filepath.Join(testData, "document-petstore.yml"), target)
 
-		res := newSchemaFromKin(target, &ParseConfig{MaxLevels: 1}, nil, []string{"user", "id"})
+		res := newSchemaFromKin(target, &config.ParseConfig{MaxLevels: 1}, nil, []string{"user", "id"})
 		assert.Nil(res)
 	})
 
@@ -738,7 +739,7 @@ func TestNewSchema(t *testing.T) {
 		target := openapi3.NewSchema()
 		CreateSchemaFromYAMLFile(t, filepath.Join(testData, "document-petstore.yml"), target)
 
-		res := newSchemaFromKin(target, &ParseConfig{}, []string{"#/components/User", "#/components/User"}, []string{"user", "id"})
+		res := newSchemaFromKin(target, &config.ParseConfig{}, []string{"#/components/User", "#/components/User"}, []string{"user", "id"})
 		assert.Nil(res)
 	})
 

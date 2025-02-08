@@ -1,6 +1,6 @@
 ### About
 
-Callbacks are Go functions that can be provided within a Docker image, allowing request and response contents to be modified on the fly.
+Callbacks are Go functions that can be shipped with Docker image, allowing request and response contents to be modified on the fly.
 
 ### Signature
 

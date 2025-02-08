@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -208,7 +209,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 					Resource: resName,
 					Method:   method,
 				})
-				operation = operation.WithParseConfig(&internal.ParseConfig{
+				operation = operation.WithParseConfig(&config.ParseConfig{
 					MaxRecursionLevels: parseConfig.MaxRecursionLevels,
 					OnlyRequired:       parseConfig.OnlyRequired,
 				})

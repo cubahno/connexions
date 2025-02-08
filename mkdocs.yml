@@ -63,14 +63,13 @@ extra_javascript:
 nav:
   - Get Started:
       - 'Welcome to Connexions': 'index.md'
-  - Usage:
-      - Callbacks: 'callbacks.md'
-      - Contexts: 'contexts.md'
-      - Services: 'services.md'
-      - Settings: 'settings.md'
   - Examples:
       - Docker: 'example-docker.md'
       - 'Docker-Compose': 'example-docker-compose.md'
-      - 'As Library': 'example-as-library.md'
+  - Usage:
+      - Settings: 'settings.md'
+      - Services: 'services.md'
+      - Callbacks: 'callbacks.md'
+      - Contexts: 'contexts.md'
   - Fakes:
       - List of aliases: 'fake-list.md'

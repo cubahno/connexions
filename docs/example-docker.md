@@ -1,4 +1,3 @@
-
 ## Fast track
 
 This will start Connexions with a default configuration, sample `petstore` API and contexts.<br/>

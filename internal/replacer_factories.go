@@ -3,6 +3,8 @@ package internal
 import (
 	"reflect"
 
+	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/jaswdr/faker/v2"
 )
 
@@ -53,7 +55,7 @@ var Replacers = []Replacer{
 }
 
 // CreateValueReplacer is a factory that creates a new ValueReplacer instance from the given config and contexts.
-func CreateValueReplacer(cfg *Config, replacers []Replacer, contexts []map[string]any) ValueReplacer {
+func CreateValueReplacer(cfg *config.Config, replacers []Replacer, contexts []map[string]any) ValueReplacer {
 	return func(content any, state *ReplaceState) any {
 		if state == nil {
 			state = NewReplaceState()
@@ -101,9 +103,9 @@ func IsCorrectlyReplacedType(value any, neededType string) bool {
 		_, ok := value.(string)
 		return ok
 	case TypeInteger:
-		return IsInteger(value)
+		return types.IsInteger(value)
 	case TypeNumber:
-		return IsNumber(value)
+		return types.IsNumber(value)
 	case TypeBoolean:
 		_, ok := value.(bool)
 		return ok
