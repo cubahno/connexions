@@ -11,6 +11,7 @@ FROM golang:1.23.3
 WORKDIR /app
 COPY --from=builder /app/.build/server/bootstrap /usr/local/bin/api
 COPY --from=builder /app/.build/simplifier/bootstrap /usr/local/bin/simplify-schemas
+COPY --from=builder /app/.build/plugin_checker/bootstrap /usr/local/bin/plugin-checker
 COPY --from=builder /app/version.txt /app/resources/version.txt
 
 RUN export APP_VERSION=$(cat /app/resources/version.txt) && \
