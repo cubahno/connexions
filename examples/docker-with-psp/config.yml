@@ -5,6 +5,7 @@ app:
   editor:
     theme: chrome
     fontSize: 16
+
 services:
   adyen:
     errors:

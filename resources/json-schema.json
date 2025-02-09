@@ -55,6 +55,10 @@
               "description": "Font size configuration for the editor."
             }
           }
+        },
+        "historyDuration": {
+          "type": "string",
+          "description": "HistoryDuration is the duration to keep the history of requests and responses. Default: 5m."
         }
       }
     },

@@ -119,6 +119,9 @@ func (c *Config) EnsureConfigValues() {
 	if app.Editor == nil {
 		app.Editor = defaultConfig.App.Editor
 	}
+	if app.HistoryDuration == 0 {
+		app.HistoryDuration = defaultConfig.App.HistoryDuration
+	}
 
 	app.Paths = defaultConfig.App.Paths
 	c.App = app

@@ -12,12 +12,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// CurrentRequestStorage is a storage for requests.
 type CurrentRequestStorage struct {
 	data       map[string]*connexions_plugin.RequestedResource
 	cancelFunc context.CancelFunc
 	mu         sync.RWMutex
 }
 
+// NewCurrentRequestStorage creates a new CurrentRequestStorage instance.
+// It also starts a goroutine that clears the storage every clearTimeout duration.
 func NewCurrentRequestStorage(clearTimeout time.Duration) *CurrentRequestStorage {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -107,6 +110,7 @@ func (s *CurrentRequestStorage) Clear() {
 	s.data = make(map[string]*connexions_plugin.RequestedResource)
 }
 
+// Cancel stops the goroutine that clears the storage
 func (s *CurrentRequestStorage) Cancel() {
 	if s.cancelFunc != nil {
 		s.cancelFunc()

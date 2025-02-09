@@ -13,7 +13,7 @@ import (
 
 func TestNewRouter(t *testing.T) {
 	assert := assert2.New(t)
-	cfg := &config.Config{}
+	cfg := config.NewDefaultConfig("/app")
 	router := NewRouter(cfg)
 
 	assert.NotNil(router)
