@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -20,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/replacer"
 	"github.com/cubahno/connexions/internal/types"
 )
 
@@ -40,10 +43,13 @@ func TestValidateResponse_Integration(t *testing.T) {
 	log.SetOutput(os.Stdout)
 	defer log.SetOutput(&testingLogWriter{})
 
+	_, b, _, _ := runtime.Caller(0)
+	testDataPath := filepath.Join(filepath.Dir(b), "..", "testdata")
+
 	filePath := os.Getenv("SPEC")
 	dirPath := os.Getenv("SPEC_DIR")
 	if dirPath == "" {
-		dirPath = filepath.Join(TestDataPath, "specs")
+		dirPath = filepath.Join(testDataPath, "specs")
 	}
 
 	maxFailsVal := os.Getenv("MAX_FAILS")
@@ -70,7 +76,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			valueReplacer := CreateValueReplacer(cfg, Replacers, nil)
+			valueReplacer := replacer.CreateValueReplacer(cfg, replacer.Replacers, nil)
 			validateFile(filePath, valueReplacer, ch, stopCh)
 		}()
 	} else {
@@ -93,7 +99,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 
 			go func(filePath string) {
 				defer wg.Done()
-				valueReplacer := CreateValueReplacer(cfg, Replacers, nil)
+				valueReplacer := replacer.CreateValueReplacer(cfg, replacer.Replacers, nil)
 				validateFile(filePath, valueReplacer, ch, stopCh)
 			}(filePath)
 
@@ -149,7 +155,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	}
 }
 
-func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
+func validateFile(filePath string, replacer replacer.ValueReplacer, ch chan<- validationResult, stop <-chan struct{}) {
 	fileName := filepath.Base(filePath)
 	// there should be a simple way to tmp skip some specs
 	if fileName[0] == '-' {
@@ -170,7 +176,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 		}
 	}()
 
-	doc, err := NewDocumentFromFile(filePath)
+	doc, err := openapi.NewDocumentFromFile(filePath)
 	if err != nil {
 		ch <- validationResult{
 			file:   fileName,
@@ -178,7 +184,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 		}
 		return
 	}
-	validator := NewValidator(doc)
+	validator := openapi.NewValidator(doc)
 	if validator == nil {
 		log.Printf("KinValidator not available for %s\n", fileName)
 		return
@@ -189,7 +195,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 	for resource, methods := range doc.GetResources() {
 		for _, method := range methods {
 			resultMsg := fmt.Sprintf("Validating [%s]: %s %s", fileName, method, resource)
-			operation := doc.FindOperation(&OperationDescription{
+			operation := doc.FindOperation(&openapi.OperationDescription{
 				Resource: resource,
 				Method:   method,
 			})
@@ -200,12 +206,12 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 			payload := r.Body
 
 			reqContentType := payload.Type
-			opts := &GenerateRequestOptions{
+			opts := &openapi.GenerateRequestOptions{
 				Path:      resource,
 				Method:    method,
 				Operation: operation,
 			}
-			req := NewRequestFromOperation(opts, security, replacer)
+			req := openapi.NewRequestFromOperation(opts, security, replacer)
 
 			var body io.Reader
 			headers := map[string]any{}
@@ -268,7 +274,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 
 			success := false
 
-			reqErrs := validator.ValidateRequest(&GeneratedRequest{
+			reqErrs := validator.ValidateRequest(&openapi.GeneratedRequest{
 				Headers:       headers,
 				Method:        request.Method,
 				Path:          request.URL.Path,
@@ -285,7 +291,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 			}
 
 			respErrMsg := ""
-			response := NewResponseFromOperation(request, operation, replacer)
+			response := openapi.NewResponseFromOperation(request, operation, replacer)
 			respErrs := validator.ValidateResponse(response)
 
 			if len(respErrs) > 0 {

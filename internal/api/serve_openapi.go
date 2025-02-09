@@ -7,7 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/replacer"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -15,14 +17,14 @@ import (
 type OpenAPIHandler struct {
 	*BaseHandler
 	router        *Router
-	fileProps     *internal.FileProperties
-	cache         internal.CacheStorage
-	valueReplacer internal.ValueReplacer
+	fileProps     *openapi.FileProperties
+	cache         openapi.CacheStorage
+	valueReplacer replacer.ValueReplacer
 }
 
 // registerOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
-func registerOpenAPIRoutes(fileProps *internal.FileProperties, router *Router) RouteDescriptions {
+func registerOpenAPIRoutes(fileProps *openapi.FileProperties, router *Router) RouteDescriptions {
 	log.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
 
 	res := make(RouteDescriptions, 0)
@@ -34,13 +36,13 @@ func registerOpenAPIRoutes(fileProps *internal.FileProperties, router *Router) R
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	cts := internal.CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := internal.CreateValueReplacer(config, internal.Replacers, cts)
+	cts := context.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := replacer.CreateValueReplacer(config, replacer.Replacers, cts)
 
 	handler := &OpenAPIHandler{
 		router:        router,
 		fileProps:     fileProps,
-		cache:         internal.NewMemoryStorage(),
+		cache:         openapi.NewMemoryStorage(),
 		valueReplacer: valueReplacer,
 	}
 
@@ -88,7 +90,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	resourcePath := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
 	h.router.history.Set(resourcePath, r, nil)
 
-	findOptions := &internal.OperationDescription{
+	findOptions := &openapi.OperationDescription{
 		Service:  h.fileProps.ServiceName,
 		Resource: resourcePath,
 		Method:   r.Method,
@@ -103,11 +105,11 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if serviceCfg.Cache.Schema {
-		operation = internal.NewCacheOperationAdapter(h.fileProps.ServiceName, operation, h.cache)
+		operation = openapi.NewCacheOperationAdapter(h.fileProps.ServiceName, operation, h.cache)
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	validator := internal.NewValidator(doc)
+	validator := openapi.NewValidator(doc)
 	req := replaceRequestResource(r, resourcePath)
 
 	if serviceCfg.Validate.Request && validator != nil {
@@ -116,7 +118,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 			hdrs[name] = values
 		}
 
-		errs := validator.ValidateRequest(&internal.GeneratedRequest{
+		errs := validator.ValidateRequest(&openapi.GeneratedRequest{
 			Headers:     hdrs,
 			Method:      r.Method,
 			Path:        resourcePath,
@@ -132,7 +134,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := internal.NewResponseFromOperation(req, operation, h.valueReplacer)
+	response := openapi.NewResponseFromOperation(req, operation, h.valueReplacer)
 	if serviceCfg.Validate.Response && validator != nil {
 		errs := validator.ValidateResponse(response)
 		if len(errs) > 0 {

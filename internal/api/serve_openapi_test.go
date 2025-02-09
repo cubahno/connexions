@@ -9,8 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/replacer"
+	"github.com/cubahno/connexions/internal/types"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -24,9 +26,9 @@ func TestRegisterOpenAPIRoutes(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "document-petstore.yml"), filePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 	assert.Nil(err)
-	file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	rs := registerOpenAPIRoutes(file, router)
@@ -70,9 +72,9 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		t.FailNow()
 	}
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "document-petstore.yml"), filePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 	assert.Nil(err)
-	file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	svc := &ServiceItem{
@@ -84,7 +86,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 			"petstore": {
 				"id": 12,
 				// NULL allows setting nil value explicitly and skip other replacers
-				"name": internal.NULL,
+				"name": replacer.NULL,
 				"tag":  "#hund",
 			},
 		},
@@ -121,9 +123,9 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 	t.Run("operation-not-found", func(t *testing.T) {
 		// substitute the file with a different one
 		filePath = filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "alt.yml")
-		err = internal.CopyFile(filepath.Join(internal.TestDataPath, "document-ab.yml"), filePath)
+		err = types.CopyFile(filepath.Join(testDataPath, "document-ab.yml"), filePath)
 		assert.Nil(err)
-		fileAlt, _ := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
+		fileAlt, _ := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 
 		oldSpec := file.Spec
 		file.Spec = fileAlt.Spec
@@ -177,9 +179,9 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 		t.FailNow()
 	}
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "document-pet-single.yml"), filePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "document-pet-single.yml"), filePath)
 	assert.Nil(err)
-	file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	router.Config.Services[file.ServiceName] = config.NewServiceConfig()

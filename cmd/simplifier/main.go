@@ -10,8 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -205,7 +206,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 			go func(resName, method string) {
 				defer wg.Done()
 
-				operation := doc.FindOperation(&internal.OperationDescription{
+				operation := doc.FindOperation(&openapi.OperationDescription{
 					Resource: resName,
 					Method:   method,
 				})
@@ -243,7 +244,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 		return err
 	}
 
-	err = internal.SaveFile(dest, contents)
+	err = types.SaveFile(dest, contents)
 	if parseConfig.Replace {
 		_ = os.Remove(src)
 	}
@@ -251,7 +252,7 @@ func processFile(src, dest string, parseConfig *ParseConfig) error {
 	return err
 }
 
-func getSourceDocument(src string) (internal.Document, error) {
+func getSourceDocument(src string) (openapi.Document, error) {
 	if _, err := os.Stat(src); os.IsNotExist(err) {
 		return nil, err
 	}
@@ -264,10 +265,10 @@ func getSourceDocument(src string) (internal.Document, error) {
 		return nil, ErrNotRegularFile
 	}
 
-	return internal.NewDocumentFromFile(src)
+	return openapi.NewDocumentFromFile(src)
 }
 
-func convertOperation(operation internal.Operation, securityComponents internal.SecurityComponents) *openapi3.Operation {
+func convertOperation(operation openapi.Operation, securityComponents openapi.SecurityComponents) *openapi3.Operation {
 	request := operation.GetRequest(securityComponents)
 	payload := request.Body
 	reqBody := payload.Schema
@@ -323,7 +324,7 @@ func convertOperation(operation internal.Operation, securityComponents internal.
 	}
 }
 
-func convertSchema(src *internal.Schema) *openapi3.SchemaRef {
+func convertSchema(src *types.Schema) *openapi3.SchemaRef {
 	if src == nil {
 		return nil
 	}

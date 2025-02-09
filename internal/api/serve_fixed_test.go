@@ -8,8 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/types"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -23,9 +24,9 @@ func TestRegisterFixedRoute(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "fixed-petstore-post-pets.json"), filePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
-	file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
+	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
 	t.Run("base-case", func(t *testing.T) {
@@ -62,9 +63,9 @@ func TestRegisterFixedRoute(t *testing.T) {
 
 	t.Run("empty-resource", func(t *testing.T) {
 		filePath := filepath.Join(router.Config.App.Paths.Services, "index.json")
-		err = internal.CopyFile(filepath.Join(internal.TestDataPath, "fixed-petstore-post-pets.json"), filePath)
+		err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 		assert.Nil(err)
-		file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
+		file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 		assert.Nil(err)
 
 		rs := registerFixedRoute(file, router)
