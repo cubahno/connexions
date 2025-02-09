@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -34,8 +35,8 @@ func TestConditionalLoggingMiddleware(t *testing.T) {
 			_ = os.Setenv("DISABLE_LOGGER", current)
 		}()
 		_ = os.Setenv("DISABLE_LOGGER", "false")
-		cfg := &internal.Config{
-			App: internal.NewDefaultAppConfig(t.TempDir()),
+		cfg := &config.Config{
+			App: config.NewDefaultAppConfig(t.TempDir()),
 		}
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +82,7 @@ func Foo(resource string, request *http.Request) (*http.Request, error){
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 
 		params := &MiddlewareParams{
-			ServiceConfig: &internal.ServiceConfig{
+			ServiceConfig: &config.ServiceConfig{
 				RequestTransformer: "Foo",
 			},
 			Service:  "Foo",
@@ -113,8 +114,8 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		history := NewCurrentRequestStorage(100 * time.Millisecond)
 
 		params := &MiddlewareParams{
-			ServiceConfig: &internal.ServiceConfig{
-				Upstream: &internal.UpstreamConfig{
+			ServiceConfig: &config.ServiceConfig{
+				Upstream: &config.UpstreamConfig{
 					URL: testServer.URL,
 				},
 			},
@@ -156,7 +157,7 @@ func Foo(resource *connexions_plugin.RequestedResource) ([]byte, error){
 		history.Set("foo", req, nil)
 
 		params := &MiddlewareParams{
-			ServiceConfig: &internal.ServiceConfig{
+			ServiceConfig: &config.ServiceConfig{
 				ResponseTransformer: "Foo",
 			},
 			Service:  "Foo",

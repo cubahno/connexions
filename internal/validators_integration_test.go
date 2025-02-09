@@ -18,6 +18,9 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 )
 
 type validationResult struct {
@@ -62,7 +65,7 @@ func TestValidateResponse_Integration(t *testing.T) {
 	ch := make(chan validationResult)
 	stopCh := make(chan struct{})
 
-	cfg := NewDefaultConfig("")
+	cfg := config.NewDefaultConfig("")
 	if filePath != "" {
 		wg.Add(1)
 		go func() {
@@ -190,7 +193,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 				Resource: resource,
 				Method:   method,
 			})
-			operation = operation.WithParseConfig(&ParseConfig{
+			operation = operation.WithParseConfig(&config.ParseConfig{
 				OnlyRequired: true,
 			})
 			r := operation.GetRequest(security)
@@ -234,7 +237,7 @@ func validateFile(filePath string, replacer ValueReplacer, ch chan<- validationR
 						}
 						continue
 					}
-					body = strings.NewReader(MapToURLEncodedForm(params))
+					body = strings.NewReader(types.MapToURLEncodedForm(params))
 					headers["content-type"] = "application/x-www-form-urlencoded"
 				case "multipart/form-data":
 					params, decodeErr := convertToFormValues(req.Body)
@@ -331,7 +334,7 @@ func convertToFormValues(body string) (map[string]string, error) {
 
 	res := make(map[string]string)
 	for k, v := range params {
-		res[k] = ToString(v)
+		res[k] = types.ToString(v)
 	}
 	return res, nil
 }

@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 	gomime "github.com/cubewise-code/go-mime"
 	"gopkg.in/yaml.v3"
 )
@@ -98,19 +100,19 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 }
 
 // GetPropertiesFromFilePath gets properties of a file from its path.
-func GetPropertiesFromFilePath(filePath string, appCfg *AppConfig) (*FileProperties, error) {
+func GetPropertiesFromFilePath(filePath string, appCfg *config.AppConfig) (*FileProperties, error) {
 	s := strings.TrimPrefix(strings.Replace(filePath, appCfg.Paths.Services, "", 1), "/")
 	parts := strings.Split(s, "/")
 	serviceName := parts[0]
 
-	if serviceName == RootOpenAPIName {
+	if serviceName == config.RootOpenAPIName {
 		return getPropertiesFromOpenAPIFile(filePath, parts[1:], appCfg)
 	}
 
 	return getPropertiesFromFixedFile(serviceName, filePath, parts), nil
 }
 
-func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *AppConfig) (*FileProperties, error) {
+func getPropertiesFromOpenAPIFile(filePath string, pathParts []string, appCfg *config.AppConfig) (*FileProperties, error) {
 	fileName := path.Base(filePath)
 	ext := strings.ToLower(filepath.Ext(fileName))
 
@@ -157,12 +159,12 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	method := http.MethodGet
 	prefix := ""
 
-	if serviceName == RootServiceName {
+	if serviceName == config.RootServiceName {
 		parts = parts[1:]
 		serviceName = parts[0]
 
 		// root service
-		if IsValidHTTPVerb(serviceName) {
+		if types.IsValidHTTPVerb(serviceName) {
 			method = strings.ToUpper(serviceName)
 			parts = parts[1:]
 		}
@@ -181,9 +183,9 @@ func getPropertiesFromFixedFile(serviceName, filePath string, parts []string) *F
 	} else if len(parts) > 1 {
 		serviceName = parts[0]
 		method_ := strings.ToUpper(parts[1])
-		if IsValidHTTPVerb(method_) {
+		if types.IsValidHTTPVerb(method_) {
 			method = method_
-			parts = SliceDeleteAtIndex[string](parts, 1)
+			parts = types.SliceDeleteAtIndex[string](parts, 1)
 		}
 		resource = fmt.Sprintf("/%s", strings.Join(parts[1:], "/"))
 		prefix = "/" + serviceName

@@ -1,11 +1,12 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 )
 
 // BaseHandler is a base handler type to be embedded in other handlers.
@@ -44,23 +45,21 @@ func (h *BaseHandler) Error(code int, message string, w http.ResponseWriter) {
 
 // HandleErrorAndLatency handles error and latency defined in the service configuration.
 // Returns true if error was handled.
-func HandleErrorAndLatency(svcConfig *internal.ServiceConfig, w http.ResponseWriter) bool {
-	if svcConfig.Latency > 0 {
-		log.Printf("Encountered latency of %s\n", svcConfig.Latency)
-
-		time.Sleep(svcConfig.Latency)
+func HandleErrorAndLatency(svcConfig *config.ServiceConfig, w http.ResponseWriter) bool {
+	latency := svcConfig.GetLatency()
+	if latency > 0 {
+		log.Printf("Encountered latency of %s\n", latency)
+		time.Sleep(latency)
 	}
 
-	errConfig := svcConfig.Errors
-	if errConfig == nil {
+	errCode := svcConfig.GetError()
+	if errCode == 0 {
 		return false
 	}
 
-	err := errConfig.GetError()
-	if err != 0 {
-		NewAPIResponse(w).WithStatusCode(err).WithHeader("content-type", "text/plain").Send([]byte("Random config error"))
-		return true
-	}
-
-	return false
+	NewAPIResponse(w).
+		WithStatusCode(errCode).
+		WithHeader("content-type", "text/plain").
+		Send([]byte(fmt.Sprintf("configured service error: %d", errCode)))
+	return true
 }

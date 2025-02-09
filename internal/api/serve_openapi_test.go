@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -94,15 +95,15 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 
 	svc.AddOpenAPIFile(file)
 	router.services["petstore"] = svc
-	router.Config.Services[file.ServiceName] = &internal.ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &config.ServiceConfig{}
 
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
-	svcCfg.Validate = &internal.ServiceValidateConfig{
+	svcCfg.Validate = &config.ServiceValidateConfig{
 		Request:  true,
 		Response: true,
 	}
-	svcCfg.Cache = &internal.ServiceCacheConfig{
+	svcCfg.Cache = &config.ServiceCacheConfig{
 		Schema: false,
 	}
 
@@ -181,10 +182,10 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
-	router.Config.Services[file.ServiceName] = &internal.ServiceConfig{}
+	router.Config.Services[file.ServiceName] = config.NewServiceConfig()
 	svcCfg := router.Config.Services[file.ServiceName]
 	svcCfg.Contexts = nil
-	svcCfg.Validate = &internal.ServiceValidateConfig{
+	svcCfg.Validate = &config.ServiceValidateConfig{
 		Request:  true,
 		Response: true,
 	}
@@ -230,18 +231,19 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 	})
 
 	t.Run("with-cfg-error", func(t *testing.T) {
-		router.Config.Services[file.ServiceName].Errors = &internal.ServiceError{
-			Codes: map[int]int{
-				400: 100,
-			},
-			Chance: 100,
+		router.Config.Services[file.ServiceName] = config.NewServiceConfig()
+		router.Config.Services[file.ServiceName].Errors = map[string]int{
+			"p100": 400,
 		}
+		rs := registerOpenAPIRoutes(file, router)
+		svc.AddRoutes(rs)
+
 		req := httptest.NewRequest(http.MethodGet, "/petstore/pets/12", nil)
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
 		assert.Equal(http.StatusBadRequest, w.Code)
-		assert.Equal("Random config error", w.Body.String())
+		assert.Equal("configured service error: 400", w.Body.String())
 	})
 }

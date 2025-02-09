@@ -3,6 +3,8 @@ package internal
 import (
 	"strconv"
 	"strings"
+
+	"github.com/cubahno/connexions/internal/config"
 )
 
 // Document is an interface that represents an OpenAPI document needed for content generation.
@@ -20,7 +22,7 @@ type Operation interface {
 	Unwrap() Operation
 	GetRequest(securityComponents SecurityComponents) *Request
 	GetResponse() *Response
-	WithParseConfig(*ParseConfig) Operation
+	WithParseConfig(*config.ParseConfig) Operation
 }
 
 type Request struct {

@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -456,7 +457,7 @@ func TestServiceHandler_resources_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.services/"+internal.RootServiceName, nil)
+		req := httptest.NewRequest("GET", "/.services/"+config.RootServiceName, nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -585,7 +586,7 @@ func TestServiceHandler_deleteService(t *testing.T) {
 	err = createServiceRoutes(router)
 	assert.Nil(err)
 
-	req := httptest.NewRequest("DELETE", "/.services/"+internal.RootServiceName, nil)
+	req := httptest.NewRequest("DELETE", "/.services/"+config.RootServiceName, nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -609,7 +610,7 @@ func TestServiceHandler_spec_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.services/"+internal.RootServiceName+"/spec", nil)
+		req := httptest.NewRequest("GET", "/.services/"+config.RootServiceName+"/spec", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -706,7 +707,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("unknown-service", func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/.services/"+internal.RootServiceName+"/0", nil)
+		req := httptest.NewRequest("POST", "/.services/"+config.RootServiceName+"/0", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -830,7 +831,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	file, err := internal.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
 
-	router.Config.Services[file.ServiceName] = &internal.ServiceConfig{}
+	router.Config.Services[file.ServiceName] = &config.ServiceConfig{}
 
 	router.services = map[string]*ServiceItem{
 		"petstore": {
@@ -1298,7 +1299,7 @@ func TestSaveService_errors(t *testing.T) {
 	assert := assert2.New(t)
 
 	appDir := t.TempDir()
-	appCfg := internal.NewDefaultAppConfig(appDir)
+	appCfg := config.NewDefaultAppConfig(appDir)
 	_, _ = SetupApp(appDir)
 
 	t.Run("invalid-url-resource", func(t *testing.T) {
@@ -1407,7 +1408,7 @@ func TestServiceHandler_getRouteIndex(t *testing.T) {
 func TestComposeFileSavePath(t *testing.T) {
 	t.Parallel()
 
-	appCfg := internal.NewDefaultAppConfig("/app")
+	appCfg := config.NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	testCases := []struct {
@@ -1471,7 +1472,7 @@ func TestComposeFileSavePath(t *testing.T) {
 func TestComposeOpenAPISavePath(t *testing.T) {
 	t.Parallel()
 
-	appCfg := internal.NewDefaultAppConfig("/app")
+	appCfg := config.NewDefaultAppConfig("/app")
 	paths := appCfg.Paths
 
 	testCases := []struct {

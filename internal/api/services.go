@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -538,7 +540,7 @@ func (h *ServiceHandler) deleteResource(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	service.Routes = internal.SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
+	service.Routes = types.SliceDeleteAtIndex[*RouteDescription](service.Routes, ix)
 
 	h.JSONResponse(w).Send(&SimpleResponse{
 		Message: "Resource deleted!",
@@ -552,7 +554,7 @@ func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 	defer h.mu.Unlock()
 
 	name := chi.URLParam(r, "name")
-	if name == internal.RootServiceName {
+	if name == config.RootServiceName {
 		name = ""
 	}
 
@@ -582,7 +584,7 @@ func (h *ServiceHandler) getRouteIndex(fileProps *internal.FileProperties) int {
 }
 
 // saveService saves the service resource.
-func saveService(payload *ServicePayload, appCfg *internal.AppConfig) (*internal.FileProperties, error) {
+func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*internal.FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
 	content := payload.Response
@@ -590,14 +592,14 @@ func saveService(payload *ServicePayload, appCfg *internal.AppConfig) (*internal
 	method := strings.ToUpper(payload.Method)
 	path := "/" + strings.Trim(payload.Path, "/")
 
-	if method != "" && !internal.IsValidHTTPVerb(method) {
+	if method != "" && !types.IsValidHTTPVerb(method) {
 		return nil, ErrInvalidHTTPVerb
 	}
 	if method == "" {
 		method = http.MethodGet
 	}
 
-	if !internal.IsValidURLResource(path) {
+	if !types.IsValidURLResource(path) {
 		return nil, ErrInvalidURLResource
 	}
 
@@ -720,7 +722,7 @@ type SavedResourceResponse struct {
 }
 
 // ComposeFileSavePath composes a save path for a file.
-func ComposeFileSavePath(descr *ServiceDescription, paths *internal.Paths) string {
+func ComposeFileSavePath(descr *ServiceDescription, paths *config.Paths) string {
 	if descr.IsOpenAPI {
 		return ComposeOpenAPISavePath(descr, paths.ServicesOpenAPI)
 	}
@@ -751,7 +753,7 @@ func ComposeFileSavePath(descr *ServiceDescription, paths *internal.Paths) strin
 	service := ""
 	if len(parts) == 1 {
 		if pathExt != "" {
-			service = internal.RootServiceName
+			service = config.RootServiceName
 		} else {
 			service = parts[0]
 			parts = []string{}

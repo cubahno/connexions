@@ -7,18 +7,18 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
 func TestNewRouter(t *testing.T) {
 	assert := assert2.New(t)
-	config := &internal.Config{}
-	router := NewRouter(config)
+	cfg := &config.Config{}
+	router := NewRouter(cfg)
 
 	assert.NotNil(router)
 	assert.NotNil(router.Mux)
-	assert.Equal(config, router.Config)
+	assert.Equal(cfg, router.Config)
 }
 
 func TestGetJSONPayload(t *testing.T) {

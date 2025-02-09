@@ -3,6 +3,8 @@ package internal
 import (
 	"log"
 	"sync"
+
+	"github.com/cubahno/connexions/internal/config"
 )
 
 // CacheStorage is an interface that describes a cache storage.
@@ -72,7 +74,7 @@ func (a *CacheOperationAdapter) Unwrap() Operation {
 }
 
 // WithParseConfig sets the ParseConfig for the KinOperation.
-func (a *CacheOperationAdapter) WithParseConfig(parseConfig *ParseConfig) Operation {
+func (a *CacheOperationAdapter) WithParseConfig(parseConfig *config.ParseConfig) Operation {
 	a.operation.WithParseConfig(parseConfig)
 	return a
 }

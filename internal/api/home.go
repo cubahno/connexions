@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -96,7 +97,7 @@ func createHomeHandlerFunc(router *Router) http.HandlerFunc {
 		cfg := router.Config.App
 
 		type TemplateData struct {
-			AppConfig *internal.AppConfig
+			AppConfig *config.AppConfig
 			Contents  map[string]template.HTML
 			Version   string
 		}

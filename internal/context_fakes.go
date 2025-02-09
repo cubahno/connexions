@@ -3,6 +3,7 @@ package internal
 import (
 	"reflect"
 
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/jaswdr/faker/v2"
 )
 
@@ -77,7 +78,7 @@ func getFakeFuncs(obj any, prefix string) map[string]FakeFunc {
 	for i := 0; i < ref.NumMethod(); i++ {
 		mType := ref.Type().Method(i)
 		name := mType.Name
-		mappedName := ToSnakeCase(name)
+		mappedName := types.ToSnakeCase(name)
 
 		fn := ref.MethodByName(name)
 		numIn := mType.Type.NumIn() - 1

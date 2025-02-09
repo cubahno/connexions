@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/api"
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/joho/godotenv"
 )
 
@@ -14,7 +14,7 @@ func main() {
 	baseDir := filepath.Dir(filepath.Dir(filepath.Dir(b)))
 	_ = godotenv.Load()
 
-	cfg := internal.MustConfig(baseDir)
+	cfg := config.MustConfig(baseDir)
 	app := api.NewApp(cfg)
 	app.Run()
 }

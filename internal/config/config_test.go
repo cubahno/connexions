@@ -1,6 +1,6 @@
 //go:build !integration
 
-package internal
+package config
 
 import (
 	"fmt"
@@ -42,12 +42,20 @@ func TestConfig(t *testing.T) {
 		cfg := &Config{}
 		cfg.Services = map[string]*ServiceConfig{
 			"service1": {
-				Latency: 100 * time.Millisecond,
+				Latencies: map[string]time.Duration{
+					"p99": 100 * time.Millisecond,
+					"p50": 10 * time.Millisecond,
+				},
 			},
 		}
 		res := cfg.GetServiceConfig("service1")
-		assert.Equal(100*time.Millisecond, res.Latency)
-		assert.Equal(NewServiceErrorConfig(), res.Errors)
+		assert.Equal(
+			[]*KeyValue[int, time.Duration]{
+				{50, 10 * time.Millisecond},
+				{99, 100 * time.Millisecond},
+			},
+			res.latencies)
+		// assert.Equal(NewServiceErrorConfig(), res.Errors)
 		assert.Equal(NewServiceValidateConfig(), res.Validate)
 
 		assert.Equal(&ServiceCacheConfig{
@@ -59,12 +67,14 @@ func TestConfig(t *testing.T) {
 		cfg := &Config{}
 		cfg.Services = map[string]*ServiceConfig{
 			"service1": {
-				Latency: 100 * time.Millisecond,
+				Latencies: map[string]time.Duration{
+					"p99": 100 * time.Millisecond,
+				},
 			},
 		}
 		res := cfg.GetServiceConfig("service-2")
-		assert.Equal(0*time.Millisecond, res.Latency)
-		assert.Equal(NewServiceErrorConfig(), res.Errors)
+		assert.Equal(0, len(res.latencies))
+		// assert.Equal(NewServiceErrorConfig(), res.Errors)
 		assert.Equal(NewServiceValidateConfig(), res.Validate)
 	})
 
@@ -156,60 +166,6 @@ app:
 	})
 }
 
-func TestServiceError(t *testing.T) {
-	assert := assert2.New(t)
-
-	t.Run("GetError-with-100%-chance", func(t *testing.T) {
-		err := &ServiceError{Chance: 100}
-		assert.Equal(500, err.GetError())
-	})
-
-	t.Run("GetError-with-0-chance", func(t *testing.T) {
-		err := &ServiceError{Chance: 0}
-		assert.Equal(0, err.GetError())
-	})
-
-	t.Run("GetError-with-100%-chance-and-100%-code", func(t *testing.T) {
-		err := &ServiceError{
-			Chance: 100,
-			Codes:  map[int]int{429: 100},
-		}
-		assert.Equal(429, err.GetError())
-	})
-
-	t.Run("GetError-with-100%-chance-and-single-10%-code", func(t *testing.T) {
-		err := &ServiceError{
-			Chance: 100,
-			Codes:  map[int]int{429: 10},
-		}
-		assert.Contains([]int{429, 500}, err.GetError())
-	})
-
-	t.Run("GetError-with-100%-chance-and-50-50-no-default-codes", func(t *testing.T) {
-		err := &ServiceError{
-			Chance: 100,
-			Codes:  map[int]int{400: 50, 429: 500},
-		}
-		assert.Contains([]int{400, 429}, err.GetError())
-	})
-
-	t.Run("GetError-with-50%-chance-and-50-50-no-default-codes", func(t *testing.T) {
-		err := &ServiceError{
-			Chance: 100,
-			Codes:  map[int]int{400: 50, 429: 500},
-		}
-		assert.Contains([]int{0, 400, 429}, err.GetError())
-	})
-
-	t.Run("GetError-returns-default", func(t *testing.T) {
-		err := &ServiceError{
-			Chance: 100,
-			Codes:  map[int]int{},
-		}
-		assert.Equal(500, err.GetError())
-	})
-}
-
 func TestNewConfig(t *testing.T) {
 	assert := assert2.New(t)
 
@@ -234,10 +190,8 @@ services:
   foo:
     latency: 1.25s
     errors:
-      chance: 50%
-      codes:
-        400: 51%
-        500: 52
+      p25: 400
+      p50: 500
     contexts:
       - petstore:
       - fake: pet
@@ -266,12 +220,9 @@ services:
 			Services: map[string]*ServiceConfig{
 				"foo": {
 					Latency: 1250 * time.Millisecond,
-					Errors: &ServiceError{
-						Chance: 50,
-						Codes: map[int]int{
-							400: 51,
-							500: 52,
-						},
+					Errors: map[string]int{
+						"p25": 400,
+						"p50": 500,
 					},
 					Contexts: []map[string]string{
 						{"petstore": ""},

@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/cubahno/connexions/internal/types"
 )
 
 // NewRequestFromOperation creates a new GeneratedRequest.
@@ -133,7 +135,7 @@ func generateURLFromSchemaParameters(path string, valueResolver ValueReplacer, p
 }
 
 func generateURLFromFixedResourcePath(path string, valueReplacer ValueReplacer) string {
-	placeHolders := ExtractPlaceholders(path)
+	placeHolders := types.ExtractPlaceholders(path)
 	if valueReplacer == nil {
 		return path
 	}
@@ -397,7 +399,7 @@ func generateContentFromJSON(data any, valueReplacer ValueReplacer, state *Repla
 			return val
 		}
 
-		placeHolders := ExtractPlaceholders(vStr)
+		placeHolders := types.ExtractPlaceholders(vStr)
 		vs := make(map[string]any)
 
 		for _, placeholder := range placeHolders {

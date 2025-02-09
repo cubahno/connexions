@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cubahno/connexions/internal/config"
 	"github.com/getkin/kin-openapi/openapi3"
 	assert2 "github.com/stretchr/testify/assert"
 )
@@ -380,7 +381,7 @@ func TestGenerateQuery(t *testing.T) {
 
 func TestGenerateContentFromSchema(t *testing.T) {
 	assert := assert2.New(t)
-	cfg := NewDefaultConfig("")
+	cfg := config.NewDefaultConfig("")
 
 	t.Run("base-case", func(t *testing.T) {
 		valueResolver := func(content any, state *ReplaceState) any {
@@ -641,7 +642,7 @@ func TestGenerateContentFromSchema(t *testing.T) {
 		assert.Nil(err)
 
 		operation := doc.FindOperation(&OperationDescription{Resource: "/api/org-api/v1/organization/{acctStructureCode}", Method: http.MethodGet})
-		operation.WithParseConfig(&ParseConfig{MaxRecursionLevels: 1})
+		operation.WithParseConfig(&config.ParseConfig{MaxRecursionLevels: 1})
 		resp := operation.GetResponse()
 		schema := resp.Content
 		res := GenerateContentFromSchema(schema, valueReplacer, nil)

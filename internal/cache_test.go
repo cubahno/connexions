@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cubahno/connexions/internal/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +65,7 @@ func TestCacheOperationAdapter(t *testing.T) {
 	cachedAddPetWithFalsyStorage := NewCacheOperationAdapter("petstore", addPetOp, falsyStorage)
 
 	t.Run("WithParseConfig", func(t *testing.T) {
-		res := cachedAddPet.WithParseConfig(&ParseConfig{MaxLevels: 2})
+		res := cachedAddPet.WithParseConfig(&config.ParseConfig{MaxLevels: 2})
 		assert.Equal(cachedAddPet, res)
 	})
 
