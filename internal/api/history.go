@@ -5,11 +5,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/cubahno/connexions_plugin"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 // CurrentRequestStorage is a storage for requests.
@@ -118,7 +118,12 @@ func (s *CurrentRequestStorage) Cancel() {
 }
 
 func (s *CurrentRequestStorage) getKey(req *http.Request) string {
-	return middleware.GetReqID(req.Context())
+	builder := []string{
+		req.Method,
+		req.URL.String(),
+	}
+
+	return strings.Join(builder, ":")
 }
 
 func (s *CurrentRequestStorage) getData() map[string]*connexions_plugin.RequestedResource {

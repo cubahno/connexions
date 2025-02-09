@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions_plugin"
-	"github.com/go-chi/chi/v5/middleware"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -56,7 +55,7 @@ func TestCurrentRequestStorage(t *testing.T) {
 		}
 		body, _ := json.Marshal(payload)
 		req, _ := http.NewRequest("PATCH", "/foo/1", bytes.NewBuffer(body))
-		req = req.WithContext(context.WithValue(req.Context(), middleware.RequestIDKey, "foo-123"))
+
 		req.Header.Set("authorization", "Bearer 123")
 		res := &connexions_plugin.HistoryResponse{
 			StatusCode:     204,
@@ -69,7 +68,10 @@ func TestCurrentRequestStorage(t *testing.T) {
 
 		assert.Equal(1, len(storage.getData()))
 
-		item := storage.getData()["foo-123"]
+		item := storage.getData()["PATCH:/foo/1"]
+		if item == nil {
+			t.Fatal("item not found")
+		}
 		assert.Equal("/foo/{id}", item.Resource)
 		assert.Equal("PATCH", item.Method)
 		assert.Equal(&url.URL{
@@ -87,7 +89,6 @@ func TestCurrentRequestStorage(t *testing.T) {
 
 	t.Run("SetResponse", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/foo/1", nil)
-		req = req.WithContext(context.WithValue(req.Context(), middleware.RequestIDKey, "foo-123"))
 		res := &connexions_plugin.HistoryResponse{
 			StatusCode: 200,
 			Data:       []byte(`{"message": "Hello, World!"}`),
@@ -97,17 +98,17 @@ func TestCurrentRequestStorage(t *testing.T) {
 		storage.Set("/foo/{id}", req, nil)
 		storage.SetResponse(req, res)
 
-		item := storage.getData()["foo-123"]
+		item := storage.getData()["GET:/foo/1"]
+		if item == nil {
+			t.Fatal("item not found")
+		}
 		assert.Equal(200, item.Response.StatusCode)
 		assert.Equal([]byte(`{"message": "Hello, World!"}`), item.Response.Data)
 	})
 
 	t.Run("Clear", func(t *testing.T) {
 		req1, _ := http.NewRequest("GET", "/foo/1", nil)
-		req1 = req1.WithContext(context.WithValue(req1.Context(), middleware.RequestIDKey, "foo-123"))
-
 		req2, _ := http.NewRequest("GET", "/foo/2", nil)
-		req2 = req1.WithContext(context.WithValue(req2.Context(), middleware.RequestIDKey, "foo-234"))
 
 		storage := NewCurrentRequestStorage(100 * time.Millisecond)
 		storage.Set("/foo/{id}", req1, nil)

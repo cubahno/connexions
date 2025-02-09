@@ -52,6 +52,7 @@ app:
 
         cache:
           schema: true
+          getRequests: true
 
     ```
 

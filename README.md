@@ -27,6 +27,7 @@ You can define single response for any arbitrary path on the fly.<br/>
 - Randomized response contents, allowing you to redefine the response for any path
 - Modify response contents on the fly by providing custom function callbacks
 - Configurable latencies and errors in responses
+- In memory cache for generated responses
 
 <div style="text-align: center; width:auto;">
     <img src="./resources/docs/images/schema-generic.png">

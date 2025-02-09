@@ -59,7 +59,8 @@ func TestConfig(t *testing.T) {
 		assert.Equal(NewServiceValidateConfig(), res.Validate)
 
 		assert.Equal(&ServiceCacheConfig{
-			Schema: true,
+			Schema:      true,
+			GetRequests: true,
 		}, res.Cache)
 	})
 
