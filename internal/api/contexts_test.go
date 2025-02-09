@@ -190,7 +190,7 @@ func TestContextHandler_save(t *testing.T) {
 		for name := range router.GetContexts() {
 			contexts = append(contexts, name)
 		}
-		assert.ElementsMatch([]string{"fake", "bob"}, contexts)
+		assert.ElementsMatch([]string{"bob"}, contexts)
 		_, err = os.ReadFile(filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
 		assert.Nil(err)
 	})
@@ -220,7 +220,7 @@ address: 123 Main St
 		for name := range router.GetContexts() {
 			contexts = append(contexts, name)
 		}
-		assert.ElementsMatch([]string{"fake", "bob"}, contexts)
+		assert.ElementsMatch([]string{"bob"}, contexts)
 		c, err := os.ReadFile(filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
 		assert.Nil(err)
 		assert.Equal(yamlCont, string(c))

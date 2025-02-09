@@ -149,7 +149,7 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 		}
 
 		assert.ElementsMatch([]string{"pets", "bets"}, services)
-		assert.ElementsMatch([]string{"fake", "pets", "common"}, contexts)
+		assert.ElementsMatch([]string{"pets", "common"}, contexts)
 	})
 
 	t.Run("missing-content-type", func(t *testing.T) {
