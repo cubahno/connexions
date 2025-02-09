@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Config Schema",
+  "type": "object",
+  "properties": {
+    "app": {
+      "type": "object",
+      "description": "App is the app config.",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Port is the port number to listen on."
+        },
+        "homeUrl": {
+          "type": "string",
+          "description": "HomeURL is the URL for the UI home page."
+        },
+        "serviceUrl": {
+          "type": "string",
+          "description": "ServiceURL is the URL for the service and resources endpoints in the UI."
+        },
+        "settingsUrl": {
+          "type": "string",
+          "description": "SettingsURL is the URL for the settings endpoint in the UI."
+        },
+        "contextUrl": {
+          "type": "string",
+          "description": "ContextURL is the URL for the context endpoint in the UI."
+        },
+        "contextAreaPrefix": {
+          "type": "string",
+          "description": "ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place."
+        },
+        "disableUI": {
+          "type": "boolean",
+          "description": "DisableUI is a flag whether to disable the UI."
+        },
+        "disableSwaggerUI": {
+          "type": "boolean",
+          "description": "DisableSpec is a flag whether to disable the Swagger UI."
+        },
+        "createFileStructure": {
+          "type": "boolean",
+          "description": "CreateFileStructure is a flag whether to create the initial resources file structure: contexts, services, etc. Default: true."
+        },
+        "editor": {
+          "type": "object",
+          "properties": {
+            "theme": {
+              "type": "string",
+              "description": "Theme configuration for the editor."
+            },
+            "fontSize": {
+              "type": "integer",
+              "description": "Font size configuration for the editor."
+            }
+          }
+        }
+      }
+    },
+    "services": {
+      "type": "object",
+      "description": "Services is a map of service name and the corresponding config.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "upstream": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "The upstream URL."
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Headers for the upstream request."
+              },
+              "failOn": {
+                "type": "object",
+                "properties": {
+                  "timeout": {
+                    "type": "string",
+                    "description": "Timeout duration for upstream failure condition."
+                  },
+                  "httpStatus": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "exact": {
+                          "type": "integer",
+                          "description": "Exact HTTP status code."
+                        },
+                        "range": {
+                          "type": "string",
+                          "description": "HTTP status range for failure conditions."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "latency": {
+            "type": "string",
+            "description": "Single latency to add to the response."
+          },
+          "latencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Map of percentiles latencies. Not used in the services API, only when endpoint queried directly."
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Error config with percentiles as keys and HTTP status codes as values."
+          },
+          "contexts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "description": "List of contexts to use for replacements."
+          },
+          "parseConfig": {
+            "type": "object",
+            "properties": {
+              "maxLevels": {
+                "type": "integer",
+                "description": "Maximum level to parse."
+              },
+              "maxRecursionLevels": {
+                "type": "integer",
+                "description": "Maximum level to parse recursively. 0 means no recursion."
+              },
+              "onlyRequired": {
+                "type": "boolean",
+                "description": "Flag whether to include only required fields."
+              }
+            }
+          },
+          "validate": {
+            "type": "object",
+            "properties": {
+              "request": {
+                "type": "boolean",
+                "description": "Flag whether to validate the request. Default: true."
+              },
+              "response": {
+                "type": "boolean",
+                "description": "Flag whether to validate the response. Default: false."
+              }
+            }
+          },
+          "requestTransformer": {
+            "type": "string",
+            "description": "Callback function name for request transformation."
+          },
+          "responseTransformer": {
+            "type": "string",
+            "description": "Callback function name for response transformation."
+          },
+          "cache": {
+            "type": "object",
+            "properties": {
+              "schema": {
+                "type": "boolean",
+                "description": "Flag to avoid multiple schema parsing by caching the parsed schema. Default: true."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
