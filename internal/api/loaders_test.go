@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/internal/context"
 	"github.com/cubahno/connexions/internal/openapi"
 	"github.com/cubahno/connexions/internal/types"
 	"github.com/cubahno/connexions_plugin"
@@ -119,23 +118,7 @@ func TestLoadContexts(t *testing.T) {
 	_ = loadContexts(router)
 
 	res := router.contexts
-	assert.Equal(3, len(res))
-}
-
-func TestLoadContextsWithoutFilesLoadsFakes(t *testing.T) {
-	assert := assert2.New(t)
-
-	router, err := SetupApp(t.TempDir())
-	if err != nil {
-		t.Errorf("Error setting up app: %v", err)
-		t.FailNow()
-	}
-
-	_ = loadContexts(router)
-
-	res := router.contexts
-	assert.Equal(1, len(res))
-	assert.Equal(len(context.Fakes), len(res["fake"]))
+	assert.Equal(2, len(res))
 }
 
 func TestLoadCallbacks(t *testing.T) {

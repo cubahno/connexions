@@ -189,14 +189,6 @@ func loadContexts(router *Router) error {
 		}
 	}
 
-	// Set fake contexts
-	res["fake"] = make(map[string]any)
-	defaultNamespaces = append(defaultNamespaces, map[string]string{"fake": ""})
-	for name, fakeFunc := range context.Fakes {
-		// this allows to use names like {fake:uuid.v4} in response templates
-		res["fake"]["fake:"+name] = fakeFunc
-	}
-
 	router.SetContexts(res, defaultNamespaces)
 
 	return nil
