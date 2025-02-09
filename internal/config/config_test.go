@@ -283,7 +283,7 @@ services:
   foo:
     latency: 1.25s
     errors:
-      chance: 50%
+      p50: 500
 `
 		_ = os.MkdirAll(filepath.Join(paths.Data), os.ModePerm)
 		filePath := paths.ConfigFile
@@ -296,7 +296,7 @@ services:
 		ymlContent, _ := yaml.Marshal(cfg)
 		yamlStr := string(ymlContent)
 		// set invalid type
-		yamlStrBad := strings.Replace(yamlStr, "chance: 50", "chance: x%", 1)
+		yamlStrBad := strings.Replace(yamlStr, "p50: 500", "pxx: x%", 1)
 		_ = os.WriteFile(filePath, []byte(yamlStrBad), 0644)
 
 		cfg.Reload()
@@ -305,7 +305,7 @@ services:
 		assert.Equal(8000, app.Port)
 
 		// invalid yaml written
-		yamlStrBad = strings.Replace(yamlStr, "chance: 50", "1", 1)
+		yamlStrBad = strings.Replace(yamlStr, "p50: 500", "1", 1)
 		_ = os.WriteFile(filePath, []byte(yamlStrBad), 0644)
 
 		// port is still the old one

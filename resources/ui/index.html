@@ -467,13 +467,13 @@ app:
 
 services:
   petstore:
-    latency: 0s
+    latencies:
+      p50: 10ms
+      p99: 20ms
 
     errors:
-      chance: 0%
-      codes:
-        400: 50%
-        500: 50%
+      p25: 400
+      p50: 500
 
     contexts:
       - common:
