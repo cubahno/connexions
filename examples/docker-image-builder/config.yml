@@ -5,13 +5,14 @@ services:
     contexts:
       petstore:
 
-    latency: 50ms
+    latencies:
+      p50: 10ms
+      p99: 50ms
+
     errors:
-      chance: 10%
-      codes:
-        400: 50%
-        401: 25%
-        403: 25%
+      p5: 400
+      p10: 401
+      p25: 403
 
     cache:
       schema: true

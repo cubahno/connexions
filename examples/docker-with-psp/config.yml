@@ -8,16 +8,12 @@ app:
 services:
   adyen:
     errors:
-      chance: 100%
-      codes:
-        500: 100%
+      p100: 500
+
   blik:
     latency: 2s
     errors:
-      chance: 10%
-      codes:
-        400: 50%
-        401: 25%
-        403: 25%
+      p10: 500
+
   stripe:
     latency: 123ms
