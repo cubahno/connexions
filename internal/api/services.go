@@ -12,8 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/replacer"
 	"github.com/cubahno/connexions/internal/types"
 	"github.com/go-chi/chi/v5"
 )
@@ -26,12 +28,12 @@ const (
 // RouteDescription describes a route for the UI Application.
 // Path is relative to the service prefix.
 type RouteDescription struct {
-	Method      string                   `json:"method"`
-	Path        string                   `json:"path"`
-	Type        string                   `json:"type"`
-	ContentType string                   `json:"contentType"`
-	Overwrites  bool                     `json:"overwrites"`
-	File        *internal.FileProperties `json:"-"`
+	Method      string                  `json:"method"`
+	Path        string                  `json:"path"`
+	Type        string                  `json:"type"`
+	ContentType string                  `json:"contentType"`
+	Overwrites  bool                    `json:"overwrites"`
+	File        *openapi.FileProperties `json:"-"`
 }
 
 // RouteDescriptions is a slice of RouteDescription.
@@ -80,19 +82,19 @@ func createServiceRoutes(router *Router) error {
 // ServiceItem represents a service with the route collection.
 // Service can hold multiple OpenAPI specs.
 type ServiceItem struct {
-	Name         string                     `json:"name"`
-	Routes       RouteDescriptions          `json:"routes"`
-	OpenAPIFiles []*internal.FileProperties `json:"-"`
+	Name         string                    `json:"name"`
+	Routes       RouteDescriptions         `json:"routes"`
+	OpenAPIFiles []*openapi.FileProperties `json:"-"`
 	mu           sync.Mutex
 }
 
 // AddOpenAPIFile adds OpenAPI file to the service.
-func (i *ServiceItem) AddOpenAPIFile(file *internal.FileProperties) {
+func (i *ServiceItem) AddOpenAPIFile(file *openapi.FileProperties) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	if len(i.OpenAPIFiles) == 0 {
-		i.OpenAPIFiles = make([]*internal.FileProperties, 0)
+		i.OpenAPIFiles = make([]*openapi.FileProperties, 0)
 	}
 
 	for _, f := range i.OpenAPIFiles {
@@ -198,7 +200,7 @@ func (h *ServiceHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uploadedFile, err := internal.GetRequestFile(r, "file")
+	uploadedFile, err := openapi.GetRequestFile(r, "file")
 	if err != nil {
 		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
@@ -399,23 +401,23 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = h.router.GetDefaultContexts()
 	}
-	cts := internal.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
-	valueReplacer := internal.CreateValueReplacer(cfg, internal.Replacers, cts)
+	cts := context.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
+	valueReplacer := replacer.CreateValueReplacer(cfg, replacer.Replacers, cts)
 
 	if !fileProps.IsOpenAPI {
-		res.Request = internal.NewRequestFromFixedResource(
+		res.Request = openapi.NewRequestFromFixedResource(
 			fileProps.Prefix+fileProps.Resource,
 			fileProps.Method,
 			fileProps.ContentType,
 			valueReplacer)
-		res.Response = internal.NewResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		res.Response = openapi.NewResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 
 		h.JSONResponse(w).Send(res)
 		return
 	}
 
 	spec := fileProps.Spec
-	operation := spec.FindOperation(&internal.OperationDescription{
+	operation := spec.FindOperation(&openapi.OperationDescription{
 		Service:  service.Name,
 		Resource: rd.Path,
 		Method:   strings.ToUpper(rd.Method),
@@ -427,16 +429,16 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	opts := &internal.GenerateRequestOptions{
+	opts := &openapi.GenerateRequestOptions{
 		PathPrefix: fileProps.Prefix,
 		Path:       rd.Path,
 		Method:     rd.Method,
 		Operation:  operation,
 	}
-	req := internal.NewRequestFromOperation(opts, spec.GetSecurity(), valueReplacer)
+	req := openapi.NewRequestFromOperation(opts, spec.GetSecurity(), valueReplacer)
 
 	res.Request = req
-	res.Response = internal.NewResponseFromOperation(r, operation, valueReplacer)
+	res.Response = openapi.NewResponseFromOperation(r, operation, valueReplacer)
 
 	h.JSONResponse(w).Send(res)
 }
@@ -561,7 +563,7 @@ func (h *ServiceHandler) getService(r *http.Request) *ServiceItem {
 	return h.router.GetServices()[name]
 }
 
-func (h *ServiceHandler) getRouteIndex(fileProps *internal.FileProperties) int {
+func (h *ServiceHandler) getRouteIndex(fileProps *openapi.FileProperties) int {
 	service, ok := h.router.GetServices()[fileProps.ServiceName]
 	if !ok {
 		return -1
@@ -584,7 +586,7 @@ func (h *ServiceHandler) getRouteIndex(fileProps *internal.FileProperties) int {
 }
 
 // saveService saves the service resource.
-func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*internal.FileProperties, error) {
+func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*openapi.FileProperties, error) {
 	prefixValidator := appCfg.IsValidPrefix
 	uploadedFile := payload.File
 	content := payload.Response
@@ -619,7 +621,7 @@ func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*internal.F
 			Timeout: 10 * time.Second,
 		}
 
-		content, _, err = internal.GetFileContentsFromURL(client, payload.URL)
+		content, _, err = types.GetFileContentsFromURL(client, payload.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -627,9 +629,9 @@ func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*internal.F
 
 	// ignore supplied extension and check whether its json / yaml type
 	if len(content) > 0 {
-		if internal.IsJsonType(content) {
+		if types.IsJsonType(content) {
 			ext = ".json"
-		} else if internal.IsYamlType(content) {
+		} else if types.IsYamlType(content) {
 			ext = ".yaml"
 		}
 	}
@@ -646,11 +648,11 @@ func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*internal.F
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
-	if err := internal.SaveFile(filePath, content); err != nil {
+	if err := types.SaveFile(filePath, content); err != nil {
 		return nil, err
 	}
 
-	fileProps, err := internal.GetPropertiesFromFilePath(filePath, appCfg)
+	fileProps, err := openapi.GetPropertiesFromFilePath(filePath, appCfg)
 	if err != nil {
 		_ = os.RemoveAll(filePath)
 		return nil, err
@@ -671,13 +673,13 @@ type ServiceItemResponse struct {
 
 // ServicePayload is a struct that represents a new service payload.
 type ServicePayload struct {
-	IsOpenAPI   bool                   `json:"isOpenApi"`
-	Method      string                 `json:"method"`
-	Path        string                 `json:"path"`
-	Response    []byte                 `json:"response"`
-	ContentType string                 `json:"contentType"`
-	File        *internal.UploadedFile `json:"file"`
-	URL         string                 `json:"url"`
+	IsOpenAPI   bool                  `json:"isOpenApi"`
+	Method      string                `json:"method"`
+	Path        string                `json:"path"`
+	Response    []byte                `json:"response"`
+	ContentType string                `json:"contentType"`
+	File        *openapi.UploadedFile `json:"file"`
+	URL         string                `json:"url"`
 }
 
 // ServiceDescription is a struct created from the service payload to facilitate file path composition.
@@ -689,8 +691,8 @@ type ServiceDescription struct {
 }
 
 type GenerateResponse struct {
-	Request  *internal.GeneratedRequest  `json:"request"`
-	Response *internal.GeneratedResponse `json:"response"`
+	Request  *openapi.GeneratedRequest  `json:"request"`
+	Response *openapi.GeneratedResponse `json:"response"`
 }
 
 type ServiceListResponse struct {

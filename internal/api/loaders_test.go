@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/cubahno/connexions_plugin"
 	assert2 "github.com/stretchr/testify/assert"
 )
@@ -24,16 +26,16 @@ func TestLoadServices(t *testing.T) {
 	// prepare files
 	// copy fixed resource
 	fixedFilePath := filepath.Join(router.Config.App.Paths.Services, "ps-fixed", "post", "pets", "index.json")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "fixed-petstore-post-pets.json"), fixedFilePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), fixedFilePath)
 	assert.Nil(err)
-	fixedFileProps, err := internal.GetPropertiesFromFilePath(fixedFilePath, router.Config.App)
+	fixedFileProps, err := openapi.GetPropertiesFromFilePath(fixedFilePath, router.Config.App)
 	assert.Nil(err)
 
 	// copy openapi resource
 	openAPIfilePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "ps-openapi", "index.yml")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "document-pet-single.yml"), openAPIfilePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "document-pet-single.yml"), openAPIfilePath)
 	assert.Nil(err)
-	openAPIFileProps, err := internal.GetPropertiesFromFilePath(openAPIfilePath, router.Config.App)
+	openAPIFileProps, err := openapi.GetPropertiesFromFilePath(openAPIfilePath, router.Config.App)
 	assert.Nil(err)
 
 	err = loadServices(router)
@@ -55,7 +57,7 @@ func TestLoadServices_errorReadingDir(t *testing.T) {
 
 	// prepare files
 	fixedFilePath := filepath.Join(router.Config.App.Paths.Services, "ps-fixed", "post", "pets", "index.json")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "fixed-petstore-post-pets.json"), fixedFilePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), fixedFilePath)
 	assert.Nil(err)
 
 	_ = os.Chmod(router.Config.App.Paths.Services, 0000)
@@ -78,7 +80,7 @@ func TestLoadServices_errorGettingFileProps(t *testing.T) {
 
 	// prepare files
 	openAPIfilePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "ps-openapi", "index.yml")
-	err = internal.CopyFile(filepath.Join(internal.TestDataPath, "document-pet-single.yml"), openAPIfilePath)
+	err = types.CopyFile(filepath.Join(testDataPath, "document-pet-single.yml"), openAPIfilePath)
 	assert.Nil(err)
 
 	_ = os.Chmod(openAPIfilePath, 0000)
@@ -102,14 +104,14 @@ func TestLoadContexts(t *testing.T) {
 	}
 
 	files := []string{
-		filepath.Join(internal.TestDataPath, "context-common.yml"),
-		filepath.Join(internal.TestDataPath, "context-petstore.yml"),
-		filepath.Join(internal.TestDataPath, "context-invalid.yml"),
+		filepath.Join(testDataPath, "context-common.yml"),
+		filepath.Join(testDataPath, "context-petstore.yml"),
+		filepath.Join(testDataPath, "context-invalid.yml"),
 	}
 
 	// copy files
 	for _, file := range files {
-		err = internal.CopyFile(file, filepath.Join(router.Config.App.Paths.Contexts, filepath.Base(file)))
+		err = types.CopyFile(file, filepath.Join(router.Config.App.Paths.Contexts, filepath.Base(file)))
 		assert.Nil(err)
 	}
 
@@ -133,7 +135,7 @@ func TestLoadContextsWithoutFilesLoadsFakes(t *testing.T) {
 
 	res := router.contexts
 	assert.Equal(1, len(res))
-	assert.Equal(len(internal.Fakes), len(res["fake"]))
+	assert.Equal(len(context.Fakes), len(res["fake"]))
 }
 
 func TestLoadCallbacks(t *testing.T) {
@@ -146,7 +148,7 @@ func TestLoadCallbacks(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Callbacks, "foo.go")
-	if err = internal.CopyFile(filepath.Join(internal.TestDataPath, "callbacks", "foo.go"), filePath); err != nil {
+	if err = types.CopyFile(filepath.Join(testDataPath, "callbacks", "foo.go"), filePath); err != nil {
 		t.Errorf("Error copying file: %v", err)
 		t.FailNow()
 	}

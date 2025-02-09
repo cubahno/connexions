@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -177,7 +177,7 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Exclude empty directories
-		if info.IsDir() && internal.IsEmptyDir(path) {
+		if info.IsDir() && types.IsEmptyDir(path) {
 			return nil
 		}
 
@@ -277,7 +277,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		path.Base(h.router.Config.App.Paths.Services),
 	}
 
-	err = internal.ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
+	err = types.ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
 	if err != nil {
 		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
 			Message: err.Error(),

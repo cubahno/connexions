@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/replacer"
 )
 
 // registerFixedRoutes registers fixed routes for a service.
-func registerFixedRoute(fileProps *internal.FileProperties, router *Router) *RouteDescription {
+func registerFixedRoute(fileProps *openapi.FileProperties, router *Router) *RouteDescription {
 	log.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
 
 	baseResource := strings.TrimSuffix(fileProps.Prefix+fileProps.Resource, "/")
@@ -56,7 +58,7 @@ func registerFixedRoute(fileProps *internal.FileProperties, router *Router) *Rou
 }
 
 // createFixedResponseHandler creates a http.HandlerFunc for fixed routes.
-func createFixedResponseHandler(router *Router, fileProps *internal.FileProperties) http.HandlerFunc {
+func createFixedResponseHandler(router *Router, fileProps *openapi.FileProperties) http.HandlerFunc {
 	config := router.Config
 	serviceCfg := config.GetServiceConfig(fileProps.ServiceName)
 
@@ -64,8 +66,8 @@ func createFixedResponseHandler(router *Router, fileProps *internal.FileProperti
 	if len(serviceCtxs) == 0 {
 		serviceCtxs = router.GetDefaultContexts()
 	}
-	cts := internal.CollectContexts(serviceCtxs, router.GetContexts(), nil)
-	valueReplacer := internal.CreateValueReplacer(config, internal.Replacers, cts)
+	cts := context.CollectContexts(serviceCtxs, router.GetContexts(), nil)
+	valueReplacer := replacer.CreateValueReplacer(config, replacer.Replacers, cts)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		router.history.Set(fileProps.Resource, r, nil)
@@ -74,7 +76,7 @@ func createFixedResponseHandler(router *Router, fileProps *internal.FileProperti
 			return
 		}
 
-		content := internal.GenerateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
+		content := openapi.GenerateContentFromFileProperties(fileProps.FilePath, fileProps.ContentType, valueReplacer)
 		NewAPIResponse(w).WithHeader("Content-Type", fileProps.ContentType).Send(content)
 	}
 }

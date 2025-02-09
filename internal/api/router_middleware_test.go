@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/plugins"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func createPlugin(t *testing.T, fn string) *plugin.Plugin {
 	dir := t.TempDir()
 	filePath := filepath.Join(dir, "foo.go")
 	_ = os.WriteFile(filePath, []byte(fn), 0644)
-	p, err := internal.CompilePlugin(dir)
+	p, err := plugins.CompilePlugin(dir)
 	if err != nil {
 		t.Errorf("Error opening plugin: %v", err)
 		t.FailNow()

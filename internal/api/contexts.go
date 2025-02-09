@@ -11,7 +11,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -113,13 +114,13 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 
 	// ignore result as we need to reload them all because of the possible cross-references in aliases
-	_, err := internal.ParseContextFromBytes([]byte(content), internal.Fakes)
+	_, err := context.ParseContextFromBytes([]byte(content), context.Fakes)
 	if err != nil {
 		h.Error(http.StatusBadRequest, "Invalid context: "+err.Error(), w)
 		return
 	}
 
-	if err = internal.SaveFile(filePath, []byte(content)); err != nil {
+	if err = types.SaveFile(filePath, []byte(content)); err != nil {
 		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}

@@ -7,15 +7,19 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
-	"github.com/cubahno/connexions/internal"
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/types"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	_, b, _, _   = runtime.Caller(0)
+	testDataPath = filepath.Join(filepath.Dir(b), "..", "..", "testdata")
 )
 
 // Custom testingLogWriter that discards log output
@@ -42,7 +46,7 @@ func SetupApp(appDir string) (*Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = internal.SaveFile(cfg.App.Paths.ConfigFile, []byte(""))
+	_ = types.SaveFile(cfg.App.Paths.ConfigFile, []byte(""))
 
 	return NewRouter(cfg), nil
 }
@@ -113,21 +117,6 @@ func CreateTestMapFormReader(data map[string]string) (*multipart.Writer, *bytes.
 	writer.Close()
 
 	return writer, &bodyBuffer
-}
-
-func createMockServer(t *testing.T, contentType, responseBody string, responseStatus int) *httptest.Server {
-	t.Helper()
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", contentType)
-		w.WriteHeader(responseStatus)
-		_, err := w.Write([]byte(responseBody))
-		if err != nil {
-			t.Errorf("Error writing response: %v", err)
-			t.FailNow()
-		}
-	})
-	return httptest.NewServer(handler)
 }
 
 func AssertJSONEqual(t *testing.T, expected, actual any) {

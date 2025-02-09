@@ -8,7 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cubahno/connexions/internal"
+	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/plugins"
 	"github.com/cubahno/connexions/internal/types"
 )
 
@@ -17,8 +19,8 @@ func loadServices(router *Router) error {
 	wg := &sync.WaitGroup{}
 	var mu sync.Mutex
 
-	openAPIFiles := make([]*internal.FileProperties, 0)
-	fixedFiles := make([]*internal.FileProperties, 0)
+	openAPIFiles := make([]*openapi.FileProperties, 0)
+	fixedFiles := make([]*openapi.FileProperties, 0)
 	appCfg := router.Config.App
 
 	err := filepath.Walk(appCfg.Paths.Services, func(filePath string, info os.FileInfo, err error) error {
@@ -31,7 +33,7 @@ func loadServices(router *Router) error {
 			return nil
 		}
 
-		fileProps, err := internal.GetPropertiesFromFilePath(filePath, appCfg)
+		fileProps, err := openapi.GetPropertiesFromFilePath(filePath, appCfg)
 		if err != nil {
 			log.Printf("Failed to get file properties from %s: %s\n", filePath, err.Error())
 			// don't return error, as we have more files to process
@@ -53,7 +55,7 @@ func loadServices(router *Router) error {
 	for _, fileProps := range openAPIFiles {
 		wg.Add(1)
 
-		go func(props *internal.FileProperties) {
+		go func(props *openapi.FileProperties) {
 			defer wg.Done()
 
 			mu.Lock()
@@ -80,7 +82,7 @@ func loadServices(router *Router) error {
 	for _, fileProps := range fixedFiles {
 		wg.Add(1)
 
-		go func(props *internal.FileProperties) {
+		go func(props *openapi.FileProperties) {
 			defer wg.Done()
 			mu.Lock()
 			defer mu.Unlock()
@@ -112,7 +114,7 @@ func loadContexts(router *Router) error {
 	wg := &sync.WaitGroup{}
 
 	type parsed struct {
-		ctx      *internal.ParsedContextResult
+		ctx      *context.ParsedContextResult
 		err      error
 		filePath string
 	}
@@ -128,7 +130,7 @@ func loadContexts(router *Router) error {
 
 		go func(filePath string) {
 			defer wg.Done()
-			ctx, err := internal.ParseContextFile(filePath, internal.Fakes)
+			ctx, err := context.ParseContextFile(filePath, context.Fakes)
 			ch <- parsed{
 				ctx:      ctx,
 				err:      err,
@@ -190,7 +192,7 @@ func loadContexts(router *Router) error {
 	// Set fake contexts
 	res["fake"] = make(map[string]any)
 	defaultNamespaces = append(defaultNamespaces, map[string]string{"fake": ""})
-	for name, fakeFunc := range internal.Fakes {
+	for name, fakeFunc := range context.Fakes {
 		// this allows to use names like {fake:uuid.v4} in response templates
 		res["fake"]["fake:"+name] = fakeFunc
 	}
@@ -207,7 +209,7 @@ func loadCallbacks(router *Router) error {
 		return nil
 	}
 
-	p, err := internal.CompilePlugin(dir)
+	p, err := plugins.CompilePlugin(dir)
 	if err != nil {
 		return fmt.Errorf("failed to open callbacks plugin: %v", err)
 	}
