@@ -60,6 +60,42 @@ func ConditionalLoggingMiddleware(cfg *config.Config) func(http.Handler) http.Ha
 	}
 }
 
+// CreateCacheRequestMiddleware returns a middleware that checks if GET request is cached in history.
+// Depends on service settings.
+// Service timeouts still apply.
+func CreateCacheRequestMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
+	cfg := params.ServiceConfig
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			// Check if the service has caching enabled and it is GET request
+			if req.Method != http.MethodGet || cfg == nil || cfg.Cache == nil || !cfg.Cache.GetRequests {
+				next.ServeHTTP(w, req)
+				return
+			}
+
+			res, exists := params.history.Get(req)
+			if !exists {
+				next.ServeHTTP(w, req)
+				return
+			}
+
+			log.Printf("Cache hit for %s", req.URL.Path)
+
+			latency := cfg.GetLatency()
+			if latency > 0 {
+				time.Sleep(latency)
+			}
+
+			response := res.Response
+			w.WriteHeader(response.StatusCode)
+			_, _ = w.Write(response.Data)
+		})
+	}
+}
+
+// CreateRequestTransformerMiddleware returns a middleware that modifies the request.
+// requestTransformer must be defined in the service configuration and refer to compiled plugin.
 func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
 	cfg := params.ServiceConfig
 	p := params.Plugin
@@ -102,6 +138,8 @@ func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Hand
 	}
 }
 
+// CreateUpstreamRequestMiddleware returns a middleware that fetches data from an upstream service.
+// If the upstream service fails, consequent requests will be blocked for a certain time.
 func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
 	timeOut := 30 * time.Second
 	upstreamURL := ""

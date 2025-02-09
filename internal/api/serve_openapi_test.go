@@ -234,6 +234,7 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 
 	t.Run("with-cfg-error", func(t *testing.T) {
 		router.Config.Services[file.ServiceName] = config.NewServiceConfig()
+		router.Config.Services[file.ServiceName].Cache.GetRequests = false
 		router.Config.Services[file.ServiceName].Errors = map[string]int{
 			"p100": 400,
 		}

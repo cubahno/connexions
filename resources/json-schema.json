@@ -181,6 +181,10 @@
               "schema": {
                 "type": "boolean",
                 "description": "Flag to avoid multiple schema parsing by caching the parsed schema. Default: true."
+              },
+              "getRequests": {
+                "type": "boolean",
+                "description": "Flag to cache GET requests. Default: true. Duration is set in the app configuration as historyDuration."
               }
             }
           }

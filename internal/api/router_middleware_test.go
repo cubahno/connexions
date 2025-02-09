@@ -128,8 +128,9 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 		data := history.getData()
 		assert.Equal(1, len(data))
-		assert.Equal(200, data[""].Response.StatusCode)
-		assert.Equal([]byte(`{"message": "Hallo, Motto!"}`), data[""].Response.Data)
+		rec := data["GET:/foo"]
+		assert.Equal(200, rec.Response.StatusCode)
+		assert.Equal([]byte(`{"message": "Hallo, Motto!"}`), rec.Response.Data)
 	})
 }
 
@@ -151,7 +152,7 @@ func Foo(resource *connexions_plugin.RequestedResource) ([]byte, error){
 		})
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
 
 		history := NewCurrentRequestStorage(100 * time.Millisecond)
 		history.Set("foo", req, nil)
@@ -170,6 +171,6 @@ func Foo(resource *connexions_plugin.RequestedResource) ([]byte, error){
 
 		assert.Equal("Hallo, Motto!", string(w.buf))
 		// old response not overwritten
-		assert.Equal("Hallo, Welt!", string(history.data[""].Response.Data))
+		assert.Equal("Hallo, Welt!", string(history.data["GET:/foo"].Response.Data))
 	})
 }

@@ -147,11 +147,13 @@ func NewServiceValidateConfig() *ServiceValidateConfig {
 // Avoid multiple schema parsing by caching the parsed schema.
 // Default: true
 type ServiceCacheConfig struct {
-	Schema bool `koanf:"schema" yaml:"schema"`
+	Schema      bool `koanf:"schema" yaml:"schema"`
+	GetRequests bool `koanf:"getRequests" yaml:"getRequests"`
 }
 
 func NewServiceCacheConfig() *ServiceCacheConfig {
 	return &ServiceCacheConfig{
-		Schema: true,
+		Schema:      true,
+		GetRequests: true,
 	}
 }
