@@ -48,9 +48,9 @@ var Replacers = []Replacer{
 	ReplaceInHeaders,
 	ReplaceInPath,
 	ReplaceFromContext,
+	ReplaceFromSchemaExample,
 	ReplaceFromSchemaFormat,
 	ReplaceFromSchemaPrimitive,
-	ReplaceFromSchemaExample,
 	ReplaceFromSchemaFallback,
 }
 

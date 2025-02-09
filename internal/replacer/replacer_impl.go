@@ -279,7 +279,11 @@ func ReplaceFromSchemaPrimitive(ctx *ReplaceContext) any {
 
 	switch schema.Type {
 	case types.TypeString:
-		return faker.Lorem().Word()
+		ln := schema.MinLength
+		if ln == 0 {
+			ln = 6
+		}
+		return faker.RandomStringWithLength(int(ln))
 	case types.TypeInteger, types.TypeNumber:
 		return faker.UInt32()
 	case types.TypeBoolean:
