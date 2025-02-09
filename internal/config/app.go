@@ -1,6 +1,10 @@
 package config
 
-import "github.com/cubahno/connexions/internal/types"
+import (
+	"time"
+
+	"github.com/cubahno/connexions/internal/types"
+)
 
 // AppConfig is the app configuration.
 // Port is the port number to listen on.
@@ -22,18 +26,22 @@ import "github.com/cubahno/connexions/internal/types"
 // contexts, services, etc.
 // It will also copy sample files from the samples directory into services.
 // Default: true
+// HistoryDuration is the duration to keep the history of requests in memory.
+//
+//	Plugins can access the history.
 type AppConfig struct {
-	Port                int           `json:"port" yaml:"port" koanf:"port"`
-	HomeURL             string        `json:"homeUrl" yaml:"homeURL" koanf:"homeUrl"`
-	ServiceURL          string        `json:"serviceUrl" yaml:"serviceURL" koanf:"serviceUrl"`
-	SettingsURL         string        `json:"settingsUrl" yaml:"settingsURL" koanf:"settingsUrl"`
-	ContextURL          string        `json:"contextUrl" yaml:"contextUrl" koanf:"contextUrl"`
-	ContextAreaPrefix   string        `json:"contextAreaPrefix" yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
-	DisableUI           bool          `json:"disableUI" yaml:"disableUI" koanf:"disableUI"`
-	DisableSwaggerUI    bool          `json:"disableSwaggerUI" yaml:"disableSwaggerUI" koanf:"disableSwaggerUI"`
-	Paths               *Paths        `json:"-" koanf:"-"`
-	CreateFileStructure bool          `koanf:"createFileStructure" json:"createFileStructure" yaml:"createFileStructure"`
-	Editor              *EditorConfig `koanf:"editor" json:"editor" yaml:"editor"`
+	Port                int           `yaml:"port" koanf:"port"`
+	HomeURL             string        `yaml:"homeURL" koanf:"homeUrl"`
+	ServiceURL          string        `yaml:"serviceURL" koanf:"serviceUrl"`
+	SettingsURL         string        `yaml:"settingsURL" koanf:"settingsUrl"`
+	ContextURL          string        `yaml:"contextUrl" koanf:"contextUrl"`
+	ContextAreaPrefix   string        `yaml:"contextAreaPrefix" koanf:"contextAreaPrefix"`
+	DisableUI           bool          `yaml:"disableUI" koanf:"disableUI"`
+	DisableSwaggerUI    bool          `yaml:"disableSwaggerUI" koanf:"disableSwaggerUI"`
+	Paths               *Paths        `koanf:"-"`
+	CreateFileStructure bool          `koanf:"createFileStructure" yaml:"createFileStructure"`
+	Editor              *EditorConfig `koanf:"editor" yaml:"editor"`
+	HistoryDuration     time.Duration `koanf:"historyDuration" yaml:"historyDuration"`
 }
 
 // IsValidPrefix returns true if the prefix is not a reserved URL.
@@ -60,5 +68,6 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 			Theme:    "chrome",
 			FontSize: 16,
 		},
+		HistoryDuration: 5 * time.Minute,
 	}
 }

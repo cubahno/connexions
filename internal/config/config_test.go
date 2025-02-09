@@ -216,6 +216,7 @@ services:
 					Theme:    "dark",
 					FontSize: 12,
 				},
+				HistoryDuration: 5 * time.Minute,
 			},
 			Services: map[string]*ServiceConfig{
 				"foo": {
@@ -382,6 +383,7 @@ app:
 					Theme:    "chrome",
 					FontSize: 16,
 				},
+				HistoryDuration: 5 * time.Minute,
 			},
 			Services: make(map[string]*ServiceConfig),
 			BaseDir:  "",
@@ -435,6 +437,7 @@ func TestNewDefaultConfig(t *testing.T) {
 				Theme:    "chrome",
 				FontSize: 16,
 			},
+			HistoryDuration: 5 * time.Minute,
 		},
 		Services: map[string]*ServiceConfig{},
 		BaseDir:  "/app",
