@@ -26,8 +26,7 @@ You can define single response for any arbitrary path on the fly.<br/>
 - Using upstream services with circuit breaker
 - Randomized response contents, allowing you to redefine the response for any path
 - Modify response contents on the fly by providing custom function callbacks
-- Mimic error responses and status codes
-- Configurable latency in responses
+- Configurable latencies and errors in responses
 
 <div style="text-align: center; width:auto;">
     <img src="./resources/docs/images/schema-generic.png">
@@ -42,6 +41,15 @@ docker run -it --rm \
   cubahno/connexions api
 
 ``` 
+
+We also have a JSON Schema that can be used by IDEs/editors with the Language Server Protocol (LSP) to perform intelligent suggestions, i.e.:
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cubahno/connexions/refs/heads/master/resources/json-schema.json
+app:
+  port: 2200
+  disableUI: true
+# ...
+```
 
 Read full documentation at [cubahno.github.io/connexions](https://cubahno.github.io/connexions//).
 

@@ -1,4 +1,11 @@
-
+Add `yaml-language-server` to the top of the file to enable JSON Schema support for your configuration settings.
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cubahno/connexions/refs/heads/master/resources/json-schema.json
+app:
+  port: 2200
+  disableUI: true
+# ...
+```
 
 ??? note "Complete example"
 
