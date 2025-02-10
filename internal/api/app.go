@@ -51,6 +51,7 @@ func NewApp(config *config.Config) *App {
 		loadContexts,
 		loadServices,
 
+		createHealthRoutes,
 		createHomeRoutes,
 		createServiceRoutes,
 		createContextRoutes,
