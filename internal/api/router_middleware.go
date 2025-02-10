@@ -216,6 +216,7 @@ func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.
 			})
 			modifiedResponse, err := handleResponseCallback(params, req)
 			if err != nil {
+				// TODO: decide if this is an error, maybe return the original response
 				http.Error(w, fmt.Sprintf("error handling callback: %v", err), http.StatusInternalServerError)
 				return
 			}

@@ -10,7 +10,6 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -230,13 +229,14 @@ func validateFile(filePath string, replacer replacer.ValueReplacer, ch chan<- va
 			}
 
 			// compose GeneratedRequest payload
-			if req.Body != "" {
+			bodyStr := req.Body
+			if bodyStr != "" {
 				switch reqContentType {
 				case "application/json":
-					body = io.NopCloser(bytes.NewReader([]byte(req.Body)))
+					body = io.NopCloser(bytes.NewReader([]byte(bodyStr)))
 				case "application/x-www-form-urlencoded":
 					var params map[string]any
-					if err := json.Unmarshal([]byte(req.Body), &params); err != nil {
+					if err := json.Unmarshal([]byte(bodyStr), &params); err != nil {
 						ch <- validationResult{
 							file:   fileName,
 							docErr: fmt.Sprintf("Failed to parse GeneratedRequest body: %v", err),
@@ -246,7 +246,7 @@ func validateFile(filePath string, replacer replacer.ValueReplacer, ch chan<- va
 					body = strings.NewReader(types.MapToURLEncodedForm(params))
 					headers["content-type"] = "application/x-www-form-urlencoded"
 				case "multipart/form-data":
-					params, decodeErr := convertToFormValues(req.Body)
+					params, decodeErr := convertToFormValues(bodyStr)
 					if decodeErr != nil {
 						ch <- validationResult{
 							file:   fileName,
@@ -258,7 +258,7 @@ func validateFile(filePath string, replacer replacer.ValueReplacer, ch chan<- va
 					body = buf
 					headers["content-type"] = writer.FormDataContentType()
 				default:
-					body = io.NopCloser(bytes.NewReader([]byte(req.Body)))
+					body = io.NopCloser(bytes.NewReader([]byte(bodyStr)))
 				}
 			}
 
@@ -281,6 +281,7 @@ func validateFile(filePath string, replacer replacer.ValueReplacer, ch chan<- va
 				ContentSchema: r.Body.Schema,
 				ContentType:   reqContentType,
 				Request:       request,
+				Body:          bodyStr,
 			})
 			reqErrMsg := ""
 			if len(reqErrs) > 0 {
@@ -356,13 +357,4 @@ func createMultipartRequestBody(data map[string]string) (*multipart.Writer, *byt
 	_ = writer.Close()
 
 	return writer, &body
-}
-
-func createURLEncodedFormData(data map[string]string) url.Values {
-	formData := url.Values{}
-	for key, value := range data {
-		formData.Add(key, value)
-	}
-
-	return formData
 }

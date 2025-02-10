@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -119,12 +120,21 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 			hdrs[name] = values
 		}
 
+		body := ""
+		if req.Body != nil {
+			bodyBytes, err := io.ReadAll(req.Body)
+			if err == nil {
+				body = string(bodyBytes)
+			}
+		}
+
 		errs := validator.ValidateRequest(&openapi.GeneratedRequest{
 			Headers:     hdrs,
 			Method:      r.Method,
 			Path:        resourcePath,
 			ContentType: req.Header.Get("Content-Type"),
 			Request:     req,
+			Body:        body,
 		})
 		if len(errs) > 0 {
 			h.JSONResponse(w).WithStatusCode(http.StatusBadRequest).Send(&SimpleResponse{

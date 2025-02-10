@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -35,9 +36,10 @@ func NewValidator(_ Document) *KinValidator {
 func (v *KinValidator) ValidateRequest(req *GeneratedRequest) []error {
 	// our GeneratedRequest might contain service name in the path,
 	// so we need to replace it.
-	newReq := new(http.Request)
-	*newReq = *req.Request
-	newReq.URL = newReq.URL.ResolveReference(&url.URL{Path: req.Path})
+	newReq, err := cloneRequestWithBody(req.Request, &url.URL{Path: req.Path}, req.Body)
+	if err != nil {
+		return []error{err}
+	}
 
 	inp := &openapi3filter.RequestValidationInput{Request: newReq}
 	bodySchema := req.ContentSchema
@@ -58,7 +60,7 @@ func (v *KinValidator) ValidateRequest(req *GeneratedRequest) []error {
 		[]string{req.ContentType},
 	)
 
-	err := openapi3filter.ValidateRequestBody(context.Background(), inp, reqBody)
+	err = openapi3filter.ValidateRequestBody(context.Background(), inp, reqBody)
 	if err != nil {
 		return []error{err}
 	}
@@ -122,4 +124,26 @@ func (v *KinValidator) ValidateResponse(res *GeneratedResponse) []error {
 	}
 
 	return nil
+}
+
+// cloneRequestWithBody creates a new HTTP request using the stored body string.
+// reqBody cannot be taken from req.Body because it might be already read.
+func cloneRequestWithBody(req *http.Request, url *url.URL, reqBody string) (*http.Request, error) {
+	// Convert string body to io.Reader
+	bodyReader := bytes.NewReader([]byte(reqBody))
+
+	// Construct new URL by resolving the new path
+	newURL := req.URL.ResolveReference(url).String()
+
+	// Create new request with the stored body
+	newReq, err := http.NewRequest(req.Method, newURL, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+
+	// Copy headers, host, and metadata
+	newReq.Header = req.Header.Clone()
+	newReq.Host = req.Host
+
+	return newReq, nil
 }
