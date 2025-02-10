@@ -70,7 +70,7 @@ jobs:
       id: test_step
       run: |
         make test-with-check-coverage
-        total=$(go tool cover -func=.testCoverage.txt | awk '/^total:/{printf "%d", $3}' | tr -d '%')
+        total=$(go tool cover -func=coverage.out | awk '/^total:/{printf "%d", $3}' | tr -d '%')
         echo "TOTAL_COVERAGE=$total" >> $GITHUB_ENV
         echo "::set-output name=total_coverage::$total"
 
