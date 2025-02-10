@@ -24,7 +24,8 @@ func TestValidator_ValidateRequest(t *testing.T) {
 	validator := NewValidator(doc)
 
 	t.Run("base case", func(t *testing.T) {
-		requestBody := strings.NewReader(`{"name": "Dawg"}`)
+		body := `{"name": "Dawg"}`
+		requestBody := strings.NewReader(body)
 
 		req, err := http.NewRequest(http.MethodPost, "http://example.com/pets", requestBody)
 		if err != nil {
@@ -42,7 +43,8 @@ func TestValidator_ValidateRequest(t *testing.T) {
 	})
 
 	t.Run("invalid type doc", func(t *testing.T) {
-		requestBody := strings.NewReader(`{"name": 1}`)
+		body := `{"name": 1}`
+		requestBody := strings.NewReader(body)
 
 		req, err := http.NewRequest(http.MethodPost, "http://example.com/pets", requestBody)
 		if err != nil {
@@ -59,6 +61,7 @@ func TestValidator_ValidateRequest(t *testing.T) {
 			ContentType:   req.Header.Get("Content-Type"),
 			Request:       req,
 			ContentSchema: opReq.Body.Schema,
+			Body:          body,
 		})
 		expectedErrors := []string{`value must be a string`}
 
@@ -69,7 +72,8 @@ func TestValidator_ValidateRequest(t *testing.T) {
 	})
 
 	t.Run("missing required", func(t *testing.T) {
-		requestBody := strings.NewReader(`{"foo": "bar"}`)
+		body := `{"foo": "bar"}`
+		requestBody := strings.NewReader(body)
 
 		req, err := http.NewRequest(http.MethodPost, "http://example.com/pets", requestBody)
 		if err != nil {
@@ -86,6 +90,7 @@ func TestValidator_ValidateRequest(t *testing.T) {
 			ContentType:   req.Header.Get("Content-Type"),
 			Request:       req,
 			ContentSchema: opReq.Body.Schema,
+			Body:          body,
 		})
 		expectedErrors := []string{`property "name" is missing`}
 
@@ -118,6 +123,7 @@ func TestValidator_ValidateRequest_NonJSON(t *testing.T) {
 		errs := validator.ValidateRequest(&GeneratedRequest{
 			ContentType: req.Header.Get("Content-Type"),
 			Request:     req,
+			Body:        body.String(),
 		})
 
 		assert.Nil(t, errs)

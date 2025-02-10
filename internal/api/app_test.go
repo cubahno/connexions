@@ -96,8 +96,8 @@ func TestApp_AddBluePrint(t *testing.T) {
 	})
 
 	t.Run("overwrites", func(t *testing.T) {
-		// status-quo: no routes
-		assert.Equal(0, len(router.Routes()))
+		// status-quo: 2 health routes
+		assert.Equal(2, len(router.Routes()))
 
 		err := types.CopyFile(
 			filepath.Join(testDataPath, "document-petstore.yml"),

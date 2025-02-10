@@ -51,7 +51,7 @@ type GeneratedResponse struct {
 	Request   *http.Request `json:"-"`
 }
 
-// EncodeContent encodes content to the given content type.
+// EncodeContent encodes content for transfer over the network.
 // Since it is part of the JSON GeneratedRequest, we need to encode different content types to string before sending it.
 func EncodeContent(content any, contentType string) ([]byte, error) {
 	if content == nil {
@@ -59,8 +59,18 @@ func EncodeContent(content any, contentType string) ([]byte, error) {
 	}
 
 	switch contentType {
-	case "application/x-www-form-urlencoded", "multipart/form-data", "application/json":
+	case "application/json":
 		return json.Marshal(content)
+
+	case "application/x-www-form-urlencoded", "multipart/form-data":
+		res, err := json.Marshal(content)
+		if err != nil {
+			return nil, err
+		}
+		if string(res) == "{}" {
+			res = []byte("")
+		}
+		return res, nil
 
 	case "application/xml":
 		return xml.Marshal(content)
