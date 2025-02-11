@@ -7,7 +7,7 @@ RUN rm -rf /app/resources/ui
 # copy your service definitions, contexts and config
 COPY services /app/resources/data/services
 COPY contexts /app/resources/data/contexts
-COPY callbacks /app/resources/data/callbacks
+COPY middleware /app/resources/data/middleware
 COPY config.yml /app/resources/data/config.yml
 
 # optimize openapi specs for better performance:

@@ -32,12 +32,12 @@ type RouteRegister func(router *Router) error
 type Router struct {
 	*chi.Mux
 
-	Config          *config.Config
-	callbacksPlugin *plugin.Plugin
-	services        map[string]*ServiceItem
-	contexts        map[string]map[string]any
-	defaultContexts []map[string]string
-	history         *CurrentRequestStorage
+	Config           *config.Config
+	middlewarePlugin *plugin.Plugin
+	services         map[string]*ServiceItem
+	contexts         map[string]map[string]any
+	defaultContexts  []map[string]string
+	history          *CurrentRequestStorage
 
 	mu sync.RWMutex
 }

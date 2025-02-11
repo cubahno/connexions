@@ -24,7 +24,7 @@ import (
 // ParseConfig is the config for parsing the OpenAPI spec.
 // Validate is the validation config.
 // It is used to validate the request and/or response outside the Services API.
-// ResponseTransformer is a callback function name which should exist inside callbacks directory and be visible to the plugin.
+// ResponseTransformer is a callback function name which should exist inside middleware directory and be visible to the plugin.
 // Cache is the cache config.
 type ServiceConfig struct {
 	Upstream            *UpstreamConfig          `koanf:"upstream" yaml:"upstream"`

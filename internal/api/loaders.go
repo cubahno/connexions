@@ -194,20 +194,20 @@ func loadContexts(router *Router) error {
 	return nil
 }
 
-// LoadCallbacks compiles user-provided Go code, including dependencies.
-func loadCallbacks(router *Router) error {
-	dir := router.Config.App.Paths.Callbacks
+// loadMiddleware compiles user-provided Go code, including dependencies.
+func loadMiddleware(router *Router) error {
+	dir := router.Config.App.Paths.Middleware
 	if dir == "" {
 		return nil
 	}
 
 	p, err := plugins.CompilePlugin(dir)
 	if err != nil {
-		return fmt.Errorf("failed to open callbacks plugin: %v", err)
+		return fmt.Errorf("failed to open middleware plugin: %v", err)
 	}
 
-	router.callbacksPlugin = p
-	log.Println("Callbacks loaded successfully")
+	router.middlewarePlugin = p
+	log.Println("Middleware loaded successfully")
 
 	return nil
 }

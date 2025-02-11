@@ -4,9 +4,8 @@
 .data
 .build
 .DS_Store
-.testCoverage.txt
 coverage.out
-resources/data/callbacks
+resources/data/middleware
 resources/data/services
 resources/data/config.yml
 resources/data/contexts

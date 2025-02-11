@@ -53,7 +53,7 @@ func registerOpenAPIRoutes(fileProps *openapi.FileProperties, router *Router) Ro
 			Service:        fileProps.ServiceName,
 			Resource:       resName,
 			ResourcePrefix: fileProps.Prefix,
-			Plugin:         router.callbacksPlugin,
+			Plugin:         router.middlewarePlugin,
 			history:        router.history,
 		}
 

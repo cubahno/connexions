@@ -69,7 +69,7 @@ nav:
   - Usage:
       - Settings: 'settings.md'
       - Services: 'services.md'
-      - Callbacks: 'callbacks.md'
+      - Middleware: 'middleware.md'
       - Contexts: 'contexts.md'
   - Fakes:
       - List of aliases: 'fake-list.md'

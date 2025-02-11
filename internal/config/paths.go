@@ -7,7 +7,7 @@ type Paths struct {
 	Base              string
 	Resources         string
 	Data              string
-	Callbacks         string
+	Middleware        string
 	Contexts          string
 	Docs              string
 	Samples           string
@@ -22,14 +22,14 @@ func NewPaths(baseDir string) *Paths {
 	resDir := filepath.Join(baseDir, "resources")
 	dataDir := filepath.Join(resDir, "data")
 	svcDir := filepath.Join(dataDir, "services")
-	cbDir := filepath.Join(dataDir, "callbacks")
+	mwDir := filepath.Join(dataDir, "middleware")
 
 	return &Paths{
 		Base:      baseDir,
 		Resources: resDir,
 
 		Data:              dataDir,
-		Callbacks:         cbDir,
+		Middleware:        mwDir,
 		Contexts:          filepath.Join(dataDir, "contexts"),
 		ConfigFile:        filepath.Join(dataDir, "config.yml"),
 		Services:          svcDir,

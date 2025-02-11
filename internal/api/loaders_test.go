@@ -130,18 +130,18 @@ func TestLoadCallbacks(t *testing.T) {
 		t.FailNow()
 	}
 
-	filePath := filepath.Join(router.Config.App.Paths.Callbacks, "foo.go")
-	if err = types.CopyFile(filepath.Join(testDataPath, "callbacks", "foo.go"), filePath); err != nil {
+	filePath := filepath.Join(router.Config.App.Paths.Middleware, "foo.go")
+	if err = types.CopyFile(filepath.Join(testDataPath, "middleware", "foo.go"), filePath); err != nil {
 		t.Errorf("Error copying file: %v", err)
 		t.FailNow()
 	}
 
-	if err = loadCallbacks(router); err != nil {
-		t.Errorf("Error loading callbacks: %v", err)
+	if err = loadMiddleware(router); err != nil {
+		t.Errorf("Error loading middleware: %v", err)
 		t.FailNow()
 	}
 
-	symbol, err := router.callbacksPlugin.Lookup("Foo")
+	symbol, err := router.middlewarePlugin.Lookup("Foo")
 	if err != nil {
 		t.Errorf("Error looking up symbol: %v", err)
 		t.FailNow()

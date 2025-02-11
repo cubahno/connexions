@@ -17,7 +17,7 @@
 ## Features
 - Using upstream services with circuit breaker
 - Randomized response contents, allowing you to redefine the response for any path
-- Modify response contents on the fly by providing custom function callbacks
+- Modify response contents on the fly by providing custom middleware functions
 - Mimic error responses and status codes
 - Configurable latency in responses
 

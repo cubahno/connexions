@@ -1,17 +1,17 @@
 ### About
 
-Callbacks are Go functions that can be shipped with Docker image, allowing request and response contents to be modified on the fly.
+Middleware are Go functions that can be shipped with Docker image, allowing request and response contents to be modified on the fly.
 
 ### Signature
 
-**Request callback** function signature:
+**Middleware** request function signature:
 ```go
 func PetstoreBefore(resource string, request *http.Request) (*http.Request, error) {
     return request, nil
 }
 ```
 
-**Response callback** function signature:
+**Middleware** response function signature:
 ```go
 func PetstoreAfter(reqResource *connexions_plugin.RequestedResource) ([]byte, error) {
     log.Printf("[PetstoreAfter] req path: %s\n", reqResource.URL.String())
@@ -31,12 +31,12 @@ func PetstoreAfter(reqResource *connexions_plugin.RequestedResource) ([]byte, er
 }
 ```
 
-`connexions_plugin` package is a small package that provides typing support for the callback functions.<br>
+`connexions_plugin` package is a small package that provides typing support for the middleware functions.<br>
 User provided functions are built into go plugin and loaded at runtime.
 
-### Callbacks location
+### Middleware location
 
-**Functions** should be placed in the `callbacks` directory inside the mapped `data` directory.<br>
+**Functions** should be placed in the `middleware` directory inside the mapped `data` directory.<br>
 Filenames are completely arbitrary and can be named as you wish.<br>
 But the names of the functions should be:<br/>
 - unique
@@ -54,4 +54,4 @@ services:
     responseTransformer: PetstoreAfter
 ```
 
-`callbacks` directory can be any `go.mod` package which should compile into a shared go plugin.<br>
+`middleware` directory can be any `go.mod` package which should compile into a shared go plugin.<br>

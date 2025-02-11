@@ -36,7 +36,7 @@ func registerFixedRoute(fileProps *openapi.FileProperties, router *Router) *Rout
 			Service:        fileProps.ServiceName,
 			Resource:       resource,
 			ResourcePrefix: fileProps.Prefix,
-			Plugin:         router.callbacksPlugin,
+			Plugin:         router.middlewarePlugin,
 			history:        router.history,
 		}
 

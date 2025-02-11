@@ -214,7 +214,7 @@ func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.
 				StatusCode:     rw.statusCode,
 				IsFromUpstream: false,
 			})
-			modifiedResponse, err := handleResponseCallback(params, req)
+			modifiedResponse, err := handleResponseMiddleware(params, req)
 			if err != nil {
 				// TODO: decide if this is an error, maybe return the original response
 				http.Error(w, fmt.Sprintf("error handling callback: %v", err), http.StatusInternalServerError)
@@ -290,8 +290,8 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 	return body, nil
 }
 
-// handleResponseCallback uses router's internal data to trigger callbacks
-func handleResponseCallback(params *MiddlewareParams, request *http.Request) ([]byte, error) {
+// handleResponseMiddleware uses router's internal data to trigger middleware
+func handleResponseMiddleware(params *MiddlewareParams, request *http.Request) ([]byte, error) {
 	record, _ := params.history.Get(request)
 	response := record.Response
 

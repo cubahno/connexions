@@ -24,8 +24,8 @@ func CompilePlugin(dir string) (*plugin.Plugin, error) {
 	defer os.RemoveAll(tmpDir)
 	soName := "userlib.so"
 	pluginPath := filepath.Join(tmpDir, soName)
-	// unique module name neded to avoid `plugin already loaded` error
-	moduleName := fmt.Sprintf("callbacks_%d", time.Now().UnixNano())
+	// unique module name needed to avoid `plugin already loaded` error
+	moduleName := fmt.Sprintf("middleware_%d", time.Now().UnixNano())
 
 	// Copy user-provided Go files into the temporary directory
 	numCopied := 0
@@ -99,7 +99,7 @@ func CompilePlugin(dir string) (*plugin.Plugin, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to build callbacks: %s", out.String())
+		return nil, fmt.Errorf("failed to build middleware: %s", out.String())
 	}
 
 	log.Printf("Loading plugin from: %s\n", pluginPath)

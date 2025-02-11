@@ -57,7 +57,7 @@ resources
                 └───patch
                     └───users
                         └───index.json
-        └───callbacks
+        └───middleware
             └───foo.go
             └───bar.go
         └───contexts

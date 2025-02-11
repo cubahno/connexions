@@ -17,7 +17,7 @@ COPY --from=builder /app/version.txt /app/resources/version.txt
 RUN export APP_VERSION=$(cat /app/resources/version.txt) && \
     echo "APP_VERSION=$APP_VERSION" >> /app/.env
 
-# COPY resources/callbacks /app/resources/data/callbacks
+# COPY resources/middleware /app/resources/data/middleware
 COPY resources/contexts /app/resources/data/contexts
 COPY resources/openapi.yml /app/resources/openapi.yml
 COPY resources/samples /app/resources/data/services
