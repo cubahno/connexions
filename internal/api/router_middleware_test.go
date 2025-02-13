@@ -175,9 +175,9 @@ func TestCreateResponseMiddleware(t *testing.T) {
 		t.Skip("TODO")
 		p := createPlugin(t, `package main
 
-import "github.com/cubahno/connexions_plugin"
+import "github.com/cubahno/pkg/plugin"
 
-func Foo(resource *connexions_plugin.RequestedResource) ([]byte, error){
+func Foo(resource *plugin.RequestedResource) ([]byte, error){
 	return []byte("Hallo, Motto!"), nil
 }
 `)
