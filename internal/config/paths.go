@@ -22,14 +22,14 @@ func NewPaths(baseDir string) *Paths {
 	resDir := filepath.Join(baseDir, "resources")
 	dataDir := filepath.Join(resDir, "data")
 	svcDir := filepath.Join(dataDir, "services")
-	mwDir := filepath.Join(dataDir, "middleware")
+	plgDir := filepath.Join(dataDir, "plugins")
 
 	return &Paths{
 		Base:      baseDir,
 		Resources: resDir,
 
 		Data:              dataDir,
-		Plugins:           mwDir,
+		Plugins:           plgDir,
 		Contexts:          filepath.Join(dataDir, "contexts"),
 		ConfigFile:        filepath.Join(dataDir, "config.yml"),
 		Services:          svcDir,
