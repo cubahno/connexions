@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"plugin"
 	"strings"
 	"sync"
 
 	"github.com/cubahno/connexions/internal/context"
 	"github.com/cubahno/connexions/internal/openapi"
-	"github.com/cubahno/connexions/internal/plugins"
 	"github.com/cubahno/connexions/internal/types"
 )
 
@@ -194,20 +194,45 @@ func loadContexts(router *Router) error {
 	return nil
 }
 
-// loadMiddleware compiles user-provided Go code, including dependencies.
-func loadMiddleware(router *Router) error {
-	dir := router.Config.App.Paths.Middleware
+// loadPlugins loads pre-compiled user plugins.
+func loadPlugins(router *Router) error {
+	dir := router.Config.App.Paths.Plugins
 	if dir == "" {
 		return nil
 	}
 
-	p, err := plugins.CompilePlugin(dir)
+	var plugs []*plugin.Plugin
+
+	// Read the directory
+	files, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("failed to open middleware plugin: %v", err)
+		return fmt.Errorf("failed to read plugin directory: %w", err)
 	}
 
-	router.middlewarePlugin = p
-	log.Println("Middleware loaded successfully")
+	// Iterate over files and load .so plugins
+	for _, file := range files {
+		if file.IsDir() || filepath.Ext(file.Name()) != ".so" {
+			continue
+		}
+
+		pluginPath := filepath.Join(dir, file.Name())
+		p, err := plugin.Open(pluginPath)
+		if err != nil {
+			log.Printf("Failed to load plugin %s: %v", pluginPath, err)
+			continue
+		}
+
+		log.Printf("Loaded plugin: %s", pluginPath)
+		plugs = append(plugs, p)
+	}
+
+	if len(plugs) == 0 {
+		return nil
+	}
+
+	// TODO: handle multiple plugins
+	router.middlewarePlugin = plugs[0]
+	log.Println("Plugins loaded successfully")
 
 	return nil
 }

@@ -47,7 +47,7 @@ func NewApp(config *config.Config) *App {
 	res.Router = router
 
 	bluePrints := []RouteRegister{
-		loadMiddleware,
+		loadPlugins,
 		loadContexts,
 		loadServices,
 
@@ -71,7 +71,7 @@ func NewApp(config *config.Config) *App {
 
 // MustFileStructure creates the necessary directories and files
 func MustFileStructure(paths *config.Paths) error {
-	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts, paths.Middleware}
+	dirs := []string{paths.Resources, paths.Samples, paths.Data, paths.Services, paths.Contexts, paths.Plugins}
 
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {

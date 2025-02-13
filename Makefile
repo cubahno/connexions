@@ -59,7 +59,6 @@ build: clean
 	@echo "Go version: $(GO_VERSION)"
 	@go build -ldflags="-s -w" -o ${build_dir}/server/bootstrap ./cmd/server/main.go
 	@go build -ldflags="-s -w" -o ${build_dir}/simplifier/bootstrap ./cmd/simplifier/main.go
-	@go build -ldflags="-s -w -X main.goVersion=$(GO_VERSION)" -o ${build_dir}/plugin_checker/bootstrap ./cmd/plugin_checker/main.go
 
 .PHONY: docker-build
 docker-build:

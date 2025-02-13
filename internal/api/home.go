@@ -272,7 +272,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	only := []string{
-		path.Base(h.router.Config.App.Paths.Middleware),
+		path.Base(h.router.Config.App.Paths.Plugins),
 		path.Base(h.router.Config.App.Paths.Contexts),
 		path.Base(h.router.Config.App.Paths.Services),
 	}
@@ -294,7 +294,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	// there's never an error
 	_ = loadContexts(h.router)
 
-	if err = loadMiddleware(h.router); err != nil {
+	if err = loadPlugins(h.router); err != nil {
 		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
 			Message: err.Error(),
 		})
