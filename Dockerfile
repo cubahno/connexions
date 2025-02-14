@@ -8,6 +8,10 @@ RUN make build
 RUN git describe --tags --abbrev=0 > version.txt
 
 FROM alpine:latest
+
+RUN apk add --no-cache gcc musl-dev libc-dev binutils-gold
+ENV CGO_ENABLED=1
+
 WORKDIR /app
 
 COPY --from=builder /app/.build/server/bootstrap /usr/local/bin/api
