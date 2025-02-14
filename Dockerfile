@@ -1,6 +1,6 @@
 FROM golang:1.23.3-alpine AS builder
 
-RUN apk add --no-cache git make
+RUN apk add --no-cache git make wget nano
 
 WORKDIR /app
 COPY . .

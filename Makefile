@@ -4,8 +4,8 @@ VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 GO_VERSION := $(shell awk '/^go / {print $$2}' go.mod)
 PACKAGE := github.com/cubahno/connexions
-# GO_BUILD_FLAGS ?= -ldflags="-s -w"
-GO_BUILD_FLAGS ?=
+GO_BUILD_FLAGS ?= -mod=vendor
+#-ldflags="-s -w"
 
 MIN_COVERAGE = 90
 
@@ -60,8 +60,8 @@ clean-cache:
 build: clean
 	@echo "Go version: $(GO_VERSION)"
 	@go mod download && go mod vendor
-	@go build -mod=vendor -o ${build_dir}/server/bootstrap ./cmd/server/main.go
-	@go build -mod=vendor -o ${build_dir}/simplifier/bootstrap ./cmd/simplifier/main.go
+	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/server/bootstrap ./cmd/server/main.go
+	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/simplifier/bootstrap ./cmd/simplifier/main.go
 
 .PHONY: docker-build
 docker-build:
