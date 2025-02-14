@@ -5,7 +5,7 @@ import (
     "log"
     "net/http"
 
-    "github.com/cubahno/connexions_plugin"
+    "github.com/cubahno/connexions/pkg/plugin"
 )
 
 // PetstoreBefore is a callback that modifies the request before it is sent to the server.
@@ -22,7 +22,7 @@ func PetstoreBefore(resource string, request *http.Request) (*http.Request, erro
 // ```
 //	responseTransformer: PetstoreAfter
 // ```
-func PetstoreAfter(reqResource *connexions_plugin.RequestedResource) ([]byte, error) {
+func PetstoreAfter(reqResource *plugin.RequestedResource) ([]byte, error) {
     log.Printf("[PetstoreAfter] req path: %s\n", reqResource.URL.String())
     switch reqResource.Method {
     case http.MethodGet:

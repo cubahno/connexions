@@ -9,7 +9,7 @@ import (
 
 	"github.com/cubahno/connexions/internal/openapi"
 	"github.com/cubahno/connexions/internal/types"
-	"github.com/cubahno/connexions_plugin"
+	"github.com/cubahno/connexions/pkg/plugin"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -154,6 +154,6 @@ func TestLoadPlugins(t *testing.T) {
 		t.FailNow()
 	}
 
-	_, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
+	_, ok := symbol.(func(*plugin.RequestedResource) ([]byte, error))
 	assert.True(ok)
 }

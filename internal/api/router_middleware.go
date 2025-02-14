@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal/config"
-	"github.com/cubahno/connexions_plugin"
+	plg "github.com/cubahno/connexions/pkg/plugin"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sony/gobreaker/v2"
 )
@@ -209,7 +209,7 @@ func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.
 
 			next.ServeHTTP(rw, req)
 
-			params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
+			params.history.SetResponse(req, &plg.HistoryResponse{
 				Data:           rw.body.Bytes(),
 				StatusCode:     rw.statusCode,
 				IsFromUpstream: false,
@@ -280,7 +280,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 
 	log.Printf("received successful upstream response: %s", string(body))
 
-	historyResponse := &connexions_plugin.HistoryResponse{
+	historyResponse := &plg.HistoryResponse{
 		Data:           body,
 		StatusCode:     statusCode,
 		IsFromUpstream: true,
@@ -317,7 +317,7 @@ func handleResponseMiddleware(params *MiddlewareParams, request *http.Request) (
 	}
 
 	// Assert the function's type
-	callback, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
+	callback, ok := symbol.(func(*plg.RequestedResource) ([]byte, error))
 	if !ok {
 		return nil, fmt.Errorf("invalid callback function signature for %s", funcName)
 	}
