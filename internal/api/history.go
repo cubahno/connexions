@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cubahno/connexions/pkg/plugin"
+	"github.com/cubahno/connexions_plugin"
 )
 
 // CurrentRequestStorage is a storage for requests.
 type CurrentRequestStorage struct {
-	data       map[string]*plugin.RequestedResource
+	data       map[string]*connexions_plugin.RequestedResource
 	cancelFunc context.CancelFunc
 	mu         sync.RWMutex
 }
@@ -25,7 +25,7 @@ func NewCurrentRequestStorage(clearTimeout time.Duration) *CurrentRequestStorage
 	ctx, cancel := context.WithCancel(context.Background())
 
 	storage := &CurrentRequestStorage{
-		data:       make(map[string]*plugin.RequestedResource),
+		data:       make(map[string]*connexions_plugin.RequestedResource),
 		cancelFunc: cancel,
 	}
 	startResetTicker(ctx, storage, clearTimeout)
@@ -49,7 +49,7 @@ func startResetTicker(ctx context.Context, storage *CurrentRequestStorage, clear
 }
 
 // Get retrieves a value from the storage
-func (s *CurrentRequestStorage) Get(req *http.Request) (*plugin.RequestedResource, bool) {
+func (s *CurrentRequestStorage) Get(req *http.Request) (*connexions_plugin.RequestedResource, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	value, ok := s.data[s.getKey(req)]
@@ -57,7 +57,7 @@ func (s *CurrentRequestStorage) Get(req *http.Request) (*plugin.RequestedResourc
 }
 
 // Set adds or updates a value in the storage
-func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response *plugin.HistoryResponse) {
+func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response *connexions_plugin.HistoryResponse) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,7 +72,7 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response
 		}
 	}
 
-	s.data[s.getKey(req)] = &plugin.RequestedResource{
+	s.data[s.getKey(req)] = &connexions_plugin.RequestedResource{
 		Resource: resource,
 		Method:   req.Method,
 		URL:      req.URL,
@@ -83,7 +83,7 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response
 }
 
 // SetResponse updates response value in the storage
-func (s *CurrentRequestStorage) SetResponse(request *http.Request, response *plugin.HistoryResponse) {
+func (s *CurrentRequestStorage) SetResponse(request *http.Request, response *connexions_plugin.HistoryResponse) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -107,7 +107,7 @@ func (s *CurrentRequestStorage) SetResponse(request *http.Request, response *plu
 func (s *CurrentRequestStorage) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data = make(map[string]*plugin.RequestedResource)
+	s.data = make(map[string]*connexions_plugin.RequestedResource)
 }
 
 // Cancel stops the goroutine that clears the storage
@@ -126,7 +126,7 @@ func (s *CurrentRequestStorage) getKey(req *http.Request) string {
 	return strings.Join(builder, ":")
 }
 
-func (s *CurrentRequestStorage) getData() map[string]*plugin.RequestedResource {
+func (s *CurrentRequestStorage) getData() map[string]*connexions_plugin.RequestedResource {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.data

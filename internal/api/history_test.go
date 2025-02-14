@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/pkg/plugin"
+	"github.com/cubahno/connexions_plugin"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func TestNewCurrentRequestStorage(t *testing.T) {
 func TestStartResetTicker(t *testing.T) {
 	assert := assert2.New(t)
 	storage := &CurrentRequestStorage{
-		data: map[string]*plugin.RequestedResource{
+		data: map[string]*connexions_plugin.RequestedResource{
 			"foo": {},
 			"bar": {},
 		},
@@ -42,7 +42,7 @@ func TestCurrentRequestStorage(t *testing.T) {
 
 	t.Run("Get", func(t *testing.T) {
 		storage := &CurrentRequestStorage{
-			data: map[string]*plugin.RequestedResource{
+			data: map[string]*connexions_plugin.RequestedResource{
 				"foo": {Resource: "Foo"},
 			},
 		}
@@ -57,7 +57,7 @@ func TestCurrentRequestStorage(t *testing.T) {
 		req, _ := http.NewRequest("PATCH", "/foo/1", bytes.NewBuffer(body))
 
 		req.Header.Set("authorization", "Bearer 123")
-		res := &plugin.HistoryResponse{
+		res := &connexions_plugin.HistoryResponse{
 			StatusCode:     204,
 			Data:           body,
 			IsFromUpstream: true,
@@ -89,7 +89,7 @@ func TestCurrentRequestStorage(t *testing.T) {
 
 	t.Run("SetResponse", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/foo/1", nil)
-		res := &plugin.HistoryResponse{
+		res := &connexions_plugin.HistoryResponse{
 			StatusCode: 200,
 			Data:       []byte(`{"message": "Hello, World!"}`),
 		}
