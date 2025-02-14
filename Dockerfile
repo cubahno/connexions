@@ -1,16 +1,13 @@
-FROM golang:1.23.3-alpine AS builder
-
-RUN apk add --no-cache git make wget nano
+FROM golang:1.23.3 AS builder
+ENV CGO_ENABLED=1
+RUN apt-get install -y git make
 
 WORKDIR /app
 COPY . .
 RUN make build
 RUN git describe --tags --abbrev=0 > version.txt
 
-FROM alpine:latest
-
-RUN apk add --no-cache gcc musl-dev libc-dev binutils-gold \
-                       libc6-compat gcompat
+FROM golang:1.23.3
 ENV CGO_ENABLED=1
 
 WORKDIR /app
@@ -22,7 +19,6 @@ COPY --from=builder /app/version.txt /app/resources/version.txt
 RUN export APP_VERSION=$(cat /app/resources/version.txt) && \
     echo "APP_VERSION=$APP_VERSION" >> /app/.env
 
-# COPY resources/middleware /app/resources/data/middleware
 COPY resources/contexts /app/resources/data/contexts
 COPY resources/openapi.yml /app/resources/openapi.yml
 COPY resources/samples /app/resources/data/services
