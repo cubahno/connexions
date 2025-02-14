@@ -1,14 +1,15 @@
-FROM golang:1.23.3 AS builder
+FROM golang:1.23.3-alpine AS builder
 
-RUN apt-get update && apt-get install -y git nano
+RUN apk add --no-cache git make
 
 WORKDIR /app
 COPY . .
 RUN make build
 RUN git describe --tags --abbrev=0 > version.txt
 
-FROM golang:1.23.3
+FROM alpine:latest
 WORKDIR /app
+
 COPY --from=builder /app/.build/server/bootstrap /usr/local/bin/api
 COPY --from=builder /app/.build/simplifier/bootstrap /usr/local/bin/simplify-schemas
 COPY --from=builder /app/version.txt /app/resources/version.txt
@@ -25,7 +26,7 @@ COPY resources/ui /app/resources/ui
 COPY entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/api
-RUN chmod +x entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["api"]

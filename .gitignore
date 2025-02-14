@@ -14,4 +14,4 @@ testdata/specs*/**/*
 site
 .env
 *.so
-
+vendor/
