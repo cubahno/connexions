@@ -9,7 +9,8 @@ RUN git describe --tags --abbrev=0 > version.txt
 
 FROM alpine:latest
 
-RUN apk add --no-cache gcc musl-dev libc-dev binutils-gold
+RUN apk add --no-cache gcc musl-dev libc-dev binutils-gold \
+                       libc6-compat gcompat
 ENV CGO_ENABLED=1
 
 WORKDIR /app
