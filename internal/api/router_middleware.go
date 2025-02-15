@@ -135,9 +135,9 @@ func CreateBeforeHandlerMiddleware(params *MiddlewareParams) func(http.Handler) 
 					next.ServeHTTP(w, req)
 					return
 				}
-				log.Printf("middleware %s applied", fn)
 
 				if response != nil {
+					log.Printf("middleware %s applied", fn)
 					_, _ = w.Write(response)
 					params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
 						Data:       response,
