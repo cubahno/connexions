@@ -109,7 +109,7 @@ func CreateBeforeHandlerMiddleware(params *MiddlewareParams) func(http.Handler) 
 
 			record, ok := params.history.Get(req)
 			if !ok {
-				params.history.Set(params.Resource, req, nil)
+				record = params.history.Set(params.Resource, req, nil)
 			}
 
 			for _, fn := range cfg.Middleware.BeforeHandler {
