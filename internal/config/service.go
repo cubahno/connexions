@@ -24,22 +24,30 @@ import (
 // ParseConfig is the config for parsing the OpenAPI spec.
 // Validate is the validation config.
 // It is used to validate the request and/or response outside the Services API.
-// ResponseTransformer is a callback function name which should exist inside middleware directory and be visible to the plugin.
 // Cache is the cache config.
 type ServiceConfig struct {
-	Upstream            *UpstreamConfig          `koanf:"upstream" yaml:"upstream"`
-	Latency             time.Duration            `koanf:"latency" yaml:"latency"`
-	Latencies           map[string]time.Duration `koanf:"latencies" yaml:"latencies"`
-	Errors              map[string]int           `koanf:"errors" yaml:"errors"`
-	Contexts            []map[string]string      `koanf:"contexts" yaml:"contexts"`
-	ParseConfig         *ParseConfig             `koanf:"parseConfig" yaml:"parseConfig"`
-	Validate            *ServiceValidateConfig   `koanf:"validate" yaml:"validate"`
-	RequestTransformer  string                   `koanf:"requestTransformer" yaml:"requestTransformer"`
-	ResponseTransformer string                   `koanf:"responseTransformer" yaml:"responseTransformer"`
-	Cache               *ServiceCacheConfig      `koanf:"cache" yaml:"cache"`
+	Upstream    *UpstreamConfig          `koanf:"upstream" yaml:"upstream"`
+	Latency     time.Duration            `koanf:"latency" yaml:"latency"`
+	Latencies   map[string]time.Duration `koanf:"latencies" yaml:"latencies"`
+	Errors      map[string]int           `koanf:"errors" yaml:"errors"`
+	Contexts    []map[string]string      `koanf:"contexts" yaml:"contexts"`
+	ParseConfig *ParseConfig             `koanf:"parseConfig" yaml:"parseConfig"`
+	Validate    *ServiceValidateConfig   `koanf:"validate" yaml:"validate"`
+	Middleware  *MiddlewareConfig        `koanf:"middleware" yaml:"middleware"`
+	Cache       *ServiceCacheConfig      `koanf:"cache" yaml:"cache"`
 
 	latencies []*KeyValue[int, time.Duration]
 	errors    []*KeyValue[int, int]
+}
+
+// MiddlewareConfig defines the middleware configuration for a service.
+// BeforeHandler is the list of middleware to run before the handler.
+// AfterHandler is the list of middleware to run after the handler.
+// If any of the middleware returns an error or response,
+// the request will be stopped and the response will be returned.
+type MiddlewareConfig struct {
+	BeforeHandler []string `koanf:"beforeHandler" yaml:"beforeHandler"`
+	AfterHandler  []string `koanf:"afterHandler" yaml:"afterHandler"`
 }
 
 func NewServiceConfig() *ServiceConfig {
@@ -107,6 +115,11 @@ func (s *ServiceConfig) ParseErrors() []*KeyValue[int, int] {
 	return errors
 }
 
+// GetError returns the error based on the percentiles:
+//
+//	random number is generated between 1 and 100 to simulate the percentile.
+//
+// If no errors are defined, it returns 0.
 func (s *ServiceConfig) GetError() int {
 	errors := s.errors
 	// this is just needed for tests.
@@ -144,13 +157,14 @@ func NewServiceValidateConfig() *ServiceValidateConfig {
 }
 
 // ServiceCacheConfig defines the cache configuration for a service.
-// Avoid multiple schema parsing by caching the parsed schema.
+// Avoids multiple schema parsing by caching the parsed schema.
 // Default: true
 type ServiceCacheConfig struct {
 	Schema      bool `koanf:"schema" yaml:"schema"`
 	GetRequests bool `koanf:"getRequests" yaml:"getRequests"`
 }
 
+// NewServiceCacheConfig creates a new ServiceCacheConfig with default values.
 func NewServiceCacheConfig() *ServiceCacheConfig {
 	return &ServiceCacheConfig{
 		Schema:      true,

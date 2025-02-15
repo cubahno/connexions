@@ -73,13 +73,12 @@ func TestCurrentRequestStorage(t *testing.T) {
 			t.Fatal("item not found")
 		}
 		assert.Equal("/foo/{id}", item.Resource)
-		assert.Equal("PATCH", item.Method)
+		assert.Equal("PATCH", item.Request.Method)
 		assert.Equal(&url.URL{
 			Path: "/foo/1",
-		}, item.URL)
-		assert.Equal(map[string][]string{
-			"Authorization": {"Bearer 123"},
-		}, item.Headers)
+		}, item.Request.URL)
+		assert.Equal(
+			http.Header{"Authorization": []string{"Bearer 123"}}, item.Request.Header)
 		assert.Equal(body, item.Body)
 
 		assert.Equal(204, item.Response.StatusCode)

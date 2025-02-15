@@ -42,9 +42,9 @@ func registerFixedRoute(fileProps *openapi.FileProperties, router *Router) *Rout
 
 		router.
 			With(CreateCacheRequestMiddleware(mwParams)).
-			With(CreateRequestTransformerMiddleware(mwParams)).
+			With(CreateBeforeHandlerMiddleware(mwParams)).
 			With(CreateUpstreamRequestMiddleware(mwParams)).
-			With(CreateResponseMiddleware(mwParams)).
+			With(CreateAfterHandlerMiddleware(mwParams)).
 			Method(fileProps.Method, resource, createFixedResponseHandler(router, fileProps))
 	}
 

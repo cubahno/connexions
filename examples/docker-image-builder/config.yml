@@ -17,5 +17,8 @@ services:
     cache:
       schema: true
 
-    requestTransformer: PetstoreBefore
-    responseTransformer: PetstoreAfter
+    middleware:
+      beforeHandler:
+        - PetstoreBefore
+      afterHandler:
+        - PetstoreAfter

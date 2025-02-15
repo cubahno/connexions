@@ -86,7 +86,7 @@ func TestConditionalLoggingMiddleware(t *testing.T) {
 	})
 }
 
-func TestCreateRequestTransformerMiddleware(t *testing.T) {
+func TestCreateBeforeHandlerMiddleware(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("request can be successfully transformed", func(t *testing.T) {
@@ -117,13 +117,15 @@ func Foo(resource string, request *http.Request) (*http.Request, error){
 
 		params := &MiddlewareParams{
 			ServiceConfig: &config.ServiceConfig{
-				RequestTransformer: "Foo",
+				Middleware: &config.MiddlewareConfig{
+					BeforeHandler: []string{"Foo"},
+				},
 			},
 			Service:  "Foo",
 			Resource: "/bar",
 			Plugin:   p,
 		}
-		f := CreateRequestTransformerMiddleware(params)
+		f := CreateBeforeHandlerMiddleware(params)
 		f(handler).ServeHTTP(w, req)
 
 		assert.Equal("Hallo, Welt!", w.Body.String())
@@ -194,14 +196,16 @@ func Foo(resource *plugin.RequestedResource) ([]byte, error){
 
 		params := &MiddlewareParams{
 			ServiceConfig: &config.ServiceConfig{
-				ResponseTransformer: "Foo",
+				Middleware: &config.MiddlewareConfig{
+					AfterHandler: []string{"Foo"},
+				},
 			},
 			Service:  "Foo",
 			Resource: "/foo",
 			Plugin:   p,
 			history:  history,
 		}
-		f := CreateResponseMiddleware(params)
+		f := CreateAfterHandlerMiddleware(params)
 		f(handler).ServeHTTP(w, req)
 
 		assert.Equal("Hallo, Motto!", string(w.buf))

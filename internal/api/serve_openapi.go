@@ -61,9 +61,9 @@ func registerOpenAPIRoutes(fileProps *openapi.FileProperties, router *Router) Ro
 			// register route
 			router.
 				With(CreateCacheRequestMiddleware(mwParams)).
-				With(CreateRequestTransformerMiddleware(mwParams)).
+				With(CreateBeforeHandlerMiddleware(mwParams)).
 				With(CreateUpstreamRequestMiddleware(mwParams)).
-				With(CreateResponseMiddleware(mwParams)).
+				With(CreateAfterHandlerMiddleware(mwParams)).
 				MethodFunc(method, fileProps.Prefix+resName, handler.serve)
 
 			res = append(res, &RouteDescription{

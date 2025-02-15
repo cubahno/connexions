@@ -167,13 +167,26 @@
               }
             }
           },
-          "requestTransformer": {
-            "type": "string",
-            "description": "Callback function name for request transformation."
-          },
-          "responseTransformer": {
-            "type": "string",
-            "description": "Callback function name for response transformation."
+          "middleware": {
+            "description": "Defines the middleware configuration for a service.",
+            "type": "object",
+            "properties": {
+              "beforeHandler": {
+                "type": "array",
+                "description": "List of middleware to run before the handler. If any middleware returns an error or response, the request is stopped.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "afterHandler": {
+                "type": "array",
+                "description": "List of middleware to run after the handler. If any middleware returns an error or response, the request is stopped.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
           },
           "cache": {
             "type": "object",
