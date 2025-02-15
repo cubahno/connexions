@@ -348,6 +348,11 @@ func handleResponseMiddleware(params *MiddlewareParams, request *http.Request) (
 			return nil, fmt.Errorf("error calling middleware: %w", err)
 		}
 
+		// mw not applied
+		if res == nil {
+			continue
+		}
+
 		record = &connexions_plugin.RequestedResource{
 			Resource: record.Resource,
 			Body:     record.Body,
