@@ -92,13 +92,7 @@ func (s *CurrentRequestStorage) SetResponse(request *http.Request, response *con
 	// Check if the request exists
 	res, exists := s.data[s.getKey(request)]
 	if !exists {
-		// Log a message if the request is not found
 		log.Printf("Request for URL %s not found. Cannot set response.\n", request.URL.String())
-		return
-	}
-
-	if res.Response != nil {
-		log.Println("response was already set, will not overwrite")
 		return
 	}
 
