@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -10,11 +12,14 @@ import (
 )
 
 func main() {
-	_, b, _, _ := runtime.Caller(0)
-	baseDir := filepath.Dir(filepath.Dir(filepath.Dir(b)))
-	_ = godotenv.Load()
+	appDir := os.Getenv("APP_DIR")
+	if appDir == "" {
+		_, b, _, _ := runtime.Caller(0)
+		appDir = filepath.Dir(filepath.Dir(filepath.Dir(b)))
+	}
+	_ = godotenv.Load(fmt.Sprintf("%s/.env", appDir))
 
-	cfg := config.MustConfig(baseDir)
+	cfg := config.MustConfig(appDir)
 	app := api.NewApp(cfg)
 	app.Run()
 }

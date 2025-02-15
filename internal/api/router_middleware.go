@@ -94,46 +94,61 @@ func CreateCacheRequestMiddleware(params *MiddlewareParams) func(http.Handler) h
 	}
 }
 
-// CreateRequestTransformerMiddleware returns a middleware that modifies the request.
-// requestTransformer must be defined in the service configuration and refer to compiled plugin.
-func CreateRequestTransformerMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
+// CreateBeforeHandlerMiddleware returns a middleware that modifies the request.
+// Function names must be defined in the service configuration middleware config and refer to compiled plugin.
+func CreateBeforeHandlerMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
 	cfg := params.ServiceConfig
 	p := params.Plugin
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if p == nil || cfg == nil || cfg.RequestTransformer == "" {
+			if p == nil || cfg == nil || cfg.Middleware == nil || len(cfg.Middleware.BeforeHandler) == 0 {
 				next.ServeHTTP(w, req)
 				return
 			}
 
-			fn := cfg.RequestTransformer
-			log.Printf("Service has request transformer %s defined", fn)
-
-			symbol, err := p.Lookup(fn)
-			if err != nil {
-				log.Printf("request transformer function not found for %s\n", fn)
-				next.ServeHTTP(w, req)
-				return
-			}
-
-			transformer, ok := symbol.(func(string, *http.Request) (*http.Request, error))
+			record, ok := params.history.Get(req)
 			if !ok {
-				log.Printf("invalid request transformer function signature for %s\n", fn)
-				next.ServeHTTP(w, req)
-				return
+				params.history.Set(params.Resource, req, nil)
 			}
 
-			newReq, err := transformer(params.Resource, req)
-			if err != nil {
-				log.Printf("Error transforming request: %v", err)
-				next.ServeHTTP(w, req)
-				return
-			}
-			log.Println("Request transformed")
+			for _, fn := range cfg.Middleware.BeforeHandler {
+				log.Printf("Service has before handler middleware %s defined", fn)
 
-			// Proceed to the next handler
-			next.ServeHTTP(w, newReq)
+				symbol, err := p.Lookup(fn)
+				if err != nil {
+					log.Printf("middleware function not found for %s\n", fn)
+					next.ServeHTTP(w, req)
+					return
+				}
+
+				mw, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
+				if !ok {
+					log.Printf("invalid middleware function signature for %s\n", fn)
+					next.ServeHTTP(w, req)
+					return
+				}
+
+				response, err := mw(record)
+				if err != nil {
+					log.Printf("Error calling middleware: %v", err)
+					next.ServeHTTP(w, req)
+					return
+				}
+				log.Printf("middleware %s applied", fn)
+
+				if response != nil {
+					_, _ = w.Write(response)
+					params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
+						Data:       response,
+						StatusCode: http.StatusOK,
+					})
+					return
+				}
+
+			}
+
+			next.ServeHTTP(w, req)
 		})
 	}
 }
@@ -195,8 +210,8 @@ func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler
 	}
 }
 
-// CreateResponseMiddleware is a method on the Router to create a middleware
-func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
+// CreateAfterHandlerMiddleware is a method on the Router to create a middleware
+func CreateAfterHandlerMiddleware(params *MiddlewareParams) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			// Create a responseWriter to capture the response.
@@ -210,16 +225,21 @@ func CreateResponseMiddleware(params *MiddlewareParams) func(http.Handler) http.
 			next.ServeHTTP(rw, req)
 
 			params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
-				Data:           rw.body.Bytes(),
-				StatusCode:     rw.statusCode,
-				IsFromUpstream: false,
+				Data:       rw.body.Bytes(),
+				StatusCode: rw.statusCode,
 			})
+
 			modifiedResponse, err := handleResponseMiddleware(params, req)
 			if err != nil {
 				// TODO: decide if this is an error, maybe return the original response
 				http.Error(w, fmt.Sprintf("error handling callback: %v", err), http.StatusInternalServerError)
 				return
 			}
+
+			params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
+				Data:       modifiedResponse,
+				StatusCode: rw.statusCode,
+			})
 
 			_, _ = w.Write(modifiedResponse)
 		})
@@ -254,7 +274,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 			upReq.Header.Add(name, value)
 		}
 	}
-	upReq.Header.Set("User-Agent", "Connexions/0.1")
+	upReq.Header.Set("User-Agent", "Connexions/1.0")
 
 	log.Printf("Request Method: %s, URL: %s, Headers: %+v", upReq.Method, upReq.URL.String(), upReq.Header)
 	resp, err := http.DefaultClient.Do(upReq)
@@ -294,33 +314,50 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 func handleResponseMiddleware(params *MiddlewareParams, request *http.Request) ([]byte, error) {
 	record, _ := params.history.Get(request)
 	response := record.Response
+	svcCfg := params.ServiceConfig
 
-	funcName := params.ServiceConfig.ResponseTransformer
 	// nothing to transform, return original
-	if params.Plugin == nil || funcName == "" {
+	if params.Plugin == nil || svcCfg.Middleware == nil || len(svcCfg.Middleware.AfterHandler) == 0 {
 		return response.Data, nil
 	}
 
 	service := params.Service
-	log.Println("Response callback", service, request.Method, request.URL.String())
+	log.Println("After handler middleware", service, request.Method, request.URL.String())
 
 	if response.StatusCode >= http.StatusBadRequest {
-		log.Println("Response status code is not 2xx, skipping callback")
+		log.Println("Response status code is not 2xx, skipping middleware")
 		return response.Data, nil
 	}
 
-	// Lookup the user-defined function
-	symbol, err := params.Plugin.Lookup(funcName)
-	if err != nil {
-		log.Printf("service %s does not have any callback function %s", service, funcName)
-		return response.Data, nil
+	for _, funcName := range svcCfg.Middleware.AfterHandler {
+		// Lookup the user-defined function
+		symbol, err := params.Plugin.Lookup(funcName)
+		if err != nil {
+			log.Printf("service %s does not have any callback function %s", service, funcName)
+			return response.Data, nil
+		}
+
+		// Assert the function's type
+		mw, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
+		if !ok {
+			return nil, fmt.Errorf("invalid middleware function signature for %s", funcName)
+		}
+
+		res, err := mw(record)
+		if err != nil {
+			return nil, fmt.Errorf("error calling middleware: %w", err)
+		}
+
+		record = &connexions_plugin.RequestedResource{
+			Resource: record.Resource,
+			Body:     record.Body,
+			Request:  record.Request,
+			Response: &connexions_plugin.HistoryResponse{
+				Data:       res,
+				StatusCode: http.StatusOK,
+			},
+		}
 	}
 
-	// Assert the function's type
-	callback, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
-	if !ok {
-		return nil, fmt.Errorf("invalid callback function signature for %s", funcName)
-	}
-
-	return callback(record)
+	return record.Response.Data, nil
 }

@@ -4,14 +4,17 @@ Middleware are Go functions that can be shipped with Docker image, allowing requ
 
 ### Signature
 
-**Middleware** request function signature:
+Same signature for both request and response middleware functions:
 ```go
-func PetstoreBefore(resource string, request *http.Request) (*http.Request, error) {
-    return request, nil
+func (reqResource *connexions_plugin.RequestedResource) ([]byte, error) {
+    // your code here
 }
 ```
 
-**Middleware** response function signature:
+**before request** middleware:<br/>
+If middleware returns an error or any non-nil response, the request will be aborted and the response will be returned to the client.
+
+**Middleware** response function:
 ```go
 func PetstoreAfter(reqResource *connexions_plugin.RequestedResource) ([]byte, error) {
     log.Printf("[PetstoreAfter] req path: %s\n", reqResource.URL.String())
@@ -32,13 +35,13 @@ func PetstoreAfter(reqResource *connexions_plugin.RequestedResource) ([]byte, er
 ```
 
 `connexions_plugin` package is a small package that provides typing support for the middleware functions.<br>
-User provided functions are built into go plugin and loaded at runtime.
+User provided functions should be built as go plugins using same go version as `connexions`.
 
 ### Middleware location
 
-**Functions** should be placed in the `middleware` directory inside the mapped `data` directory.<br>
+**Functions** should be placed in the `plugins` directory inside the mapped `data` directory.<br>
 Filenames are completely arbitrary and can be named as you wish.<br>
-But the names of the functions should be:<br/>
+But the names of the middleware functions should be:<br/>
 - unique
 - start with UpperCase
 - specified in the service configuration:
@@ -50,8 +53,9 @@ But the names of the functions should be:<br/>
 ```yaml
 services:
   petstore:
-    requestTransformer: PetstoreBefore
-    responseTransformer: PetstoreAfter
+    middleware:
+      beforeHandler:
+        - PetstoreBefore
+      afterHandler:
+        - PetstoreAfter
 ```
-
-`middleware` directory can be any `go.mod` package which should compile into a shared go plugin.<br>

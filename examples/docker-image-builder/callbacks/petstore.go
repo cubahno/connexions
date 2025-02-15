@@ -8,19 +8,23 @@ import (
     "github.com/cubahno/connexions_plugin"
 )
 
-// PetstoreBefore is a callback that modifies the request before it is sent to the server.
+// PetstoreBefore is a middleware that can modify request before it is sent to the server.
 // Set in the service config:
 // ```
-//	requestTransformer: PetstoreBefore
+//  middleware:
+//	  beforeHandler:
+//	    - PetstoreBefore
 // ```
-func PetstoreBefore(resource string, request *http.Request) (*http.Request, error) {
-    return request, nil
+func PetstoreBefore(reqResource *connexions_plugin.RequestedResource) ([]byte, error) {
+    return nil, nil
 }
 
-// PetstoreAfter is a callback that modifies the response before it is sent to the client.
+// PetstoreAfter is a middleware that modifies the response before it is sent to the client.
 // Set in the service config:
 // ```
-//	responseTransformer: PetstoreAfter
+//  middleware:
+//    afterHandler:
+//	    - PetstoreAfter
 // ```
 func PetstoreAfter(reqResource *connexions_plugin.RequestedResource) ([]byte, error) {
     log.Printf("[PetstoreAfter] req path: %s\n", reqResource.URL.String())

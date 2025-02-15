@@ -74,10 +74,8 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response
 
 	s.data[s.getKey(req)] = &connexions_plugin.RequestedResource{
 		Resource: resource,
-		Method:   req.Method,
-		URL:      req.URL,
-		Headers:  req.Header,
 		Body:     body,
+		Request:  req,
 		Response: response,
 	}
 }
