@@ -57,7 +57,8 @@ func (s *CurrentRequestStorage) Get(req *http.Request) (*connexions_plugin.Reque
 }
 
 // Set adds or updates a value in the storage
-func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response *connexions_plugin.HistoryResponse) {
+func (s *CurrentRequestStorage) Set(resource string, req *http.Request,
+	response *connexions_plugin.HistoryResponse) *connexions_plugin.RequestedResource {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,12 +73,15 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request, response
 		}
 	}
 
-	s.data[s.getKey(req)] = &connexions_plugin.RequestedResource{
+	result := &connexions_plugin.RequestedResource{
 		Resource: resource,
 		Body:     body,
 		Request:  req,
 		Response: response,
 	}
+
+	s.data[s.getKey(req)] = result
+	return result
 }
 
 // SetResponse updates response value in the storage
