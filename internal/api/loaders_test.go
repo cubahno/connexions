@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/openapi"
+	"github.com/cubahno/connexions/internal/testhelpers"
 	"github.com/cubahno/connexions/internal/types"
 	"github.com/cubahno/connexions_plugin"
 	assert2 "github.com/stretchr/testify/assert"
@@ -131,8 +132,8 @@ func TestLoadPlugins(t *testing.T) {
 		t.FailNow()
 	}
 
-	filePath := filepath.Join(router.Config.App.Paths.Plugins, "foo.go")
-	if err = types.CopyFile(filepath.Join(testDataPath, "middleware", "foo.go"), filePath); err != nil {
+	pluginPath := testhelpers.CreateTestPlugin()
+	if err = types.CopyFile(pluginPath, router.Config.App.Paths.Plugins); err != nil {
 		t.Errorf("Error copying file: %v", err)
 		t.FailNow()
 	}

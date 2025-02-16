@@ -4,60 +4,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"plugin"
-	"runtime"
 	"testing"
 	"time"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/testhelpers"
 	assert2 "github.com/stretchr/testify/assert"
 )
-
-func createPlugin(t *testing.T, fn string) *plugin.Plugin {
-	dir := t.TempDir()
-	filePath := filepath.Join(dir, "foo.go")
-	_ = os.WriteFile(filePath, []byte(fn), 0644)
-
-	soName := "userlib.so"
-	pluginPath := filepath.Join(dir, soName)
-
-	// Build the user code into a shared library
-	// Change working directory to the temporary directory
-	cmdArgs := []string{"build", "-buildmode=plugin"}
-
-	// Check if the environment variable is set
-	if os.Getenv("DEBUG_BUILD") == "true" {
-		cmdArgs = append(cmdArgs, "-gcflags", "all=-N -l")
-	}
-
-	cmdArgs = append(cmdArgs, "-o", pluginPath, dir)
-
-	cmd := exec.Command("go", cmdArgs...)
-	cmd.Env = append(os.Environ(),
-		"GOROOT="+runtime.GOROOT(),
-		"GOARCH="+runtime.GOARCH,
-		"GOOS="+runtime.GOOS,
-		"CGO_ENABLED=1",
-		"GO111MODULE=on",
-	)
-
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-
-	if err := cmd.Run(); err != nil {
-		t.Errorf("Error building plugin: %v", err)
-		t.FailNow()
-	}
-
-	p, err := plugin.Open(pluginPath)
-	if err != nil {
-		t.Errorf("Error opening plugin: %v", err)
-		t.FailNow()
-	}
-	return p
-}
 
 func TestConditionalLoggingMiddleware(t *testing.T) {
 	assert := assert2.New(t)
@@ -90,21 +44,12 @@ func TestCreateBeforeHandlerMiddleware(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("request can be successfully transformed", func(t *testing.T) {
-		t.Skip("TODO:")
-		p := createPlugin(t, `package main
-
-import "net/http"
-
-func Foo(resource string, request *http.Request) (*http.Request, error){
-	res := request.Clone(request.Context())
-
-	newURL := request.URL
-	newURL.Path = "/bar"
-	res.URL = newURL
-
-	return res, nil
-}
-`)
+		pluginPath := testhelpers.CreateTestPlugin()
+		p, err := plugin.Open(pluginPath)
+		if err != nil {
+			t.Errorf("Error opening plugin: %v", err)
+			t.FailNow()
+		}
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != "/bar" {
 				t.Errorf("Expected request URL to be '/bar', but got '%s'", r.URL.Path)
@@ -118,12 +63,13 @@ func Foo(resource string, request *http.Request) (*http.Request, error){
 		params := &MiddlewareParams{
 			ServiceConfig: &config.ServiceConfig{
 				Middleware: &config.MiddlewareConfig{
-					BeforeHandler: []string{"Foo"},
+					BeforeHandler: []string{"ReplaceRequestURL"},
 				},
 			},
 			Service:  "Foo",
 			Resource: "/bar",
 			Plugin:   p,
+			history:  NewCurrentRequestStorage(100 * time.Millisecond),
 		}
 		f := CreateBeforeHandlerMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -174,15 +120,12 @@ func TestCreateResponseMiddleware(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("request can be successfully transformed", func(t *testing.T) {
-		t.Skip("TODO")
-		p := createPlugin(t, `package main
-
-import "github.com/cubahno/pkg/plugin"
-
-func Foo(resource *plugin.RequestedResource) ([]byte, error){
-	return []byte("Hallo, Motto!"), nil
-}
-`)
+		pluginPath := testhelpers.CreateTestPlugin()
+		p, err := plugin.Open(pluginPath)
+		if err != nil {
+			t.Errorf("Error opening plugin: %v", err)
+			t.FailNow()
+		}
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("Hallo, Welt!"))
@@ -197,7 +140,7 @@ func Foo(resource *plugin.RequestedResource) ([]byte, error){
 		params := &MiddlewareParams{
 			ServiceConfig: &config.ServiceConfig{
 				Middleware: &config.MiddlewareConfig{
-					AfterHandler: []string{"Foo"},
+					AfterHandler: []string{"ReplaceResponse"},
 				},
 			},
 			Service:  "Foo",
@@ -209,7 +152,7 @@ func Foo(resource *plugin.RequestedResource) ([]byte, error){
 		f(handler).ServeHTTP(w, req)
 
 		assert.Equal("Hallo, Motto!", string(w.buf))
-		// old response not overwritten
-		assert.Equal("Hallo, Welt!", string(history.data["GET:/foo"].Response.Data))
+		// old response overwritten
+		assert.Equal("Hallo, Motto!", string(history.data["GET:/foo"].Response.Data))
 	})
 }

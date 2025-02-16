@@ -255,16 +255,17 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 	resource := params.Resource
 	resourcePrefix := params.ResourcePrefix
 
-	var bodyBytes []byte
-	if req.Body != nil {
-		var err error
-		bodyBytes, err = io.ReadAll(req.Body)
-		if err != nil {
-			return nil, err
-		}
+	// TODO: add time out to the upstream config
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	rec := params.history.Set(resource, req, nil)
+
+	bodyBytes := rec.Body
+	if bodyBytes != nil {
 		// Reset the body so it can be read again
-		req.Body.Close()
-		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		req.Body = io.NopCloser(bytes.NewBuffer(rec.Body))
 	}
 
 	upReq, err := http.NewRequest(req.Method, cfg.URL+req.URL.Path[len(resourcePrefix):], bytes.NewBuffer(bodyBytes))
@@ -279,7 +280,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 	upReq.Header.Set("User-Agent", "Connexions/1.0")
 
 	log.Printf("Request Method: %s, URL: %s, Headers: %+v", upReq.Method, upReq.URL.String(), upReq.Header)
-	resp, err := http.DefaultClient.Do(upReq)
+	resp, err := client.Do(upReq)
 	if err != nil {
 		return nil, fmt.Errorf("error calling upstream service %s: %s", upReq.URL.String(), err)
 	}
