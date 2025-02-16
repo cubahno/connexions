@@ -62,14 +62,22 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	key := s.getKey(req)
+	record, recordExists := s.data[key]
+
 	// Extract the body (if necessary)
 	var body []byte
-	if req.Body != nil {
+	if recordExists {
+		body = record.Body
+	}
+
+	if !recordExists && req.Body != nil && req.Body != http.NoBody {
 		defer req.Body.Close()
 		var err error
 		body, err = io.ReadAll(req.Body)
 		if err != nil {
 			log.Printf("Error reading request body: %v\n", err)
+			body = []byte{}
 		}
 	}
 
@@ -80,7 +88,7 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request,
 		Response: response,
 	}
 
-	s.data[s.getKey(req)] = result
+	s.data[key] = result
 	return result
 }
 

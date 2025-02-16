@@ -102,6 +102,7 @@ func CreateBeforeHandlerMiddleware(params *MiddlewareParams) func(http.Handler) 
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
 			if p == nil || cfg == nil || cfg.Middleware == nil || len(cfg.Middleware.BeforeHandler) == 0 {
 				next.ServeHTTP(w, req)
 				return
@@ -221,6 +222,7 @@ func CreateAfterHandlerMiddleware(params *MiddlewareParams) func(http.Handler) h
 				body:           new(bytes.Buffer),
 				statusCode:     http.StatusOK,
 			}
+			rw.Header().Set("Content-Type", "application/json")
 
 			next.ServeHTTP(rw, req)
 
