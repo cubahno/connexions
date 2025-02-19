@@ -168,3 +168,14 @@ func (s *MemoryStorage) Set(key string, value any) {
 	defer s.mu.Unlock()
 	s.data[key] = value
 }
+
+func (s *MemoryStorage) Data() map[string]any {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	cp := make(map[string]any, len(s.data))
+	for k, v := range s.data {
+		cp[k] = v
+	}
+	return cp
+}
