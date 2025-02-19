@@ -64,7 +64,7 @@ func TestCurrentRequestStorage(t *testing.T) {
 		}
 
 		storage := NewCurrentRequestStorage(100 * time.Millisecond)
-		storage.Set("/foo/{id}", req, res)
+		storage.Set("foo", "/foo/{id}", req, res)
 
 		assert.Equal(1, len(storage.getData()))
 
@@ -94,7 +94,7 @@ func TestCurrentRequestStorage(t *testing.T) {
 		}
 
 		storage := NewCurrentRequestStorage(100 * time.Millisecond)
-		storage.Set("/foo/{id}", req, nil)
+		storage.Set("foo", "/foo/{id}", req, nil)
 		storage.SetResponse(req, res)
 
 		item := storage.getData()["GET:/foo/1"]
@@ -110,8 +110,8 @@ func TestCurrentRequestStorage(t *testing.T) {
 		req2, _ := http.NewRequest("GET", "/foo/2", nil)
 
 		storage := NewCurrentRequestStorage(100 * time.Millisecond)
-		storage.Set("/foo/{id}", req1, nil)
-		storage.Set("/bar/{id}", req2, nil)
+		storage.Set("foo", "/foo/{id}", req1, nil)
+		storage.Set("foo", "/bar/{id}", req2, nil)
 
 		assert.Equal(2, len(storage.getData()))
 

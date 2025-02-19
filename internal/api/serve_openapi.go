@@ -90,7 +90,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 	ctx := chi.RouteContext(r.Context())
 
 	resourcePath := strings.Replace(ctx.RoutePatterns[0], prefix, "", 1)
-	h.router.history.Set(resourcePath, r, nil)
+	h.router.history.Set(h.fileProps.ServiceName, resourcePath, r, nil)
 
 	findOptions := &openapi.OperationDescription{
 		Service:  h.fileProps.ServiceName,

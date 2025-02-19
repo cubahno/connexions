@@ -110,7 +110,7 @@ func CreateBeforeHandlerMiddleware(params *MiddlewareParams) func(http.Handler) 
 
 			record, ok := params.history.Get(req)
 			if !ok {
-				record = params.history.Set(params.Resource, req, nil)
+				record = params.history.Set(params.Service, params.Resource, req, nil)
 			}
 
 			for _, fn := range cfg.Middleware.BeforeHandler {
@@ -197,6 +197,7 @@ func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler
 			})
 			// If an upstream service returns a response, write it and return immediately
 			if response != nil {
+				// history was set already
 				_, _ = w.Write(response)
 				return
 			}
@@ -260,7 +261,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 		Timeout: 5 * time.Second,
 	}
 
-	rec := params.history.Set(resource, req, nil)
+	rec := params.history.Set(params.Service, resource, req, nil)
 
 	bodyBytes := rec.Body
 	if bodyBytes != nil {
@@ -308,7 +309,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 		StatusCode:     statusCode,
 		IsFromUpstream: true,
 	}
-	params.history.Set(resource, req, historyResponse)
+	params.history.Set(params.Service, resource, req, historyResponse)
 
 	return body, nil
 }

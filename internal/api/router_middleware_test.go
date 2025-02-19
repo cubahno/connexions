@@ -135,7 +135,7 @@ func TestCreateResponseMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
 
 		history := NewCurrentRequestStorage(100 * time.Millisecond)
-		history.Set("foo", req, nil)
+		history.Set("foo", "foo", req, nil)
 
 		params := &MiddlewareParams{
 			ServiceConfig: &config.ServiceConfig{

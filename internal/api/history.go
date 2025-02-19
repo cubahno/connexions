@@ -14,9 +14,10 @@ import (
 
 // CurrentRequestStorage is a storage for requests.
 type CurrentRequestStorage struct {
-	data       map[string]*connexions_plugin.RequestedResource
-	cancelFunc context.CancelFunc
-	mu         sync.RWMutex
+	data           map[string]*connexions_plugin.RequestedResource
+	serviceStorage map[string]*MemoryStorage
+	cancelFunc     context.CancelFunc
+	mu             sync.RWMutex
 }
 
 // NewCurrentRequestStorage creates a new CurrentRequestStorage instance.
@@ -25,8 +26,9 @@ func NewCurrentRequestStorage(clearTimeout time.Duration) *CurrentRequestStorage
 	ctx, cancel := context.WithCancel(context.Background())
 
 	storage := &CurrentRequestStorage{
-		data:       make(map[string]*connexions_plugin.RequestedResource),
-		cancelFunc: cancel,
+		data:           make(map[string]*connexions_plugin.RequestedResource),
+		serviceStorage: make(map[string]*MemoryStorage),
+		cancelFunc:     cancel,
 	}
 	startResetTicker(ctx, storage, clearTimeout)
 	return storage
@@ -57,7 +59,7 @@ func (s *CurrentRequestStorage) Get(req *http.Request) (*connexions_plugin.Reque
 }
 
 // Set adds or updates a value in the storage
-func (s *CurrentRequestStorage) Set(resource string, req *http.Request,
+func (s *CurrentRequestStorage) Set(service, resource string, req *http.Request,
 	response *connexions_plugin.HistoryResponse) *connexions_plugin.RequestedResource {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -81,11 +83,18 @@ func (s *CurrentRequestStorage) Set(resource string, req *http.Request,
 		}
 	}
 
+	memStorage, ok := s.serviceStorage[service]
+	if !ok {
+		memStorage = NewMemoryStorage()
+		s.serviceStorage[service] = memStorage
+	}
+
 	result := &connexions_plugin.RequestedResource{
-		Resource: resource,
-		Body:     body,
-		Request:  req,
-		Response: response,
+		Resource:       resource,
+		Body:           body,
+		Request:        req,
+		Response:       response,
+		ServiceStorage: memStorage,
 	}
 
 	s.data[key] = result
@@ -134,4 +143,28 @@ func (s *CurrentRequestStorage) getData() map[string]*connexions_plugin.Requeste
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.data
+}
+
+type MemoryStorage struct {
+	data map[string]any
+	mu   sync.Mutex
+}
+
+func NewMemoryStorage() *MemoryStorage {
+	return &MemoryStorage{
+		data: make(map[string]any),
+	}
+}
+
+func (s *MemoryStorage) Get(key string) (any, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, ok := s.data[key]
+	return data, ok
+}
+
+func (s *MemoryStorage) Set(key string, value any) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data[key] = value
 }
