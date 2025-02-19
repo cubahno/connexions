@@ -48,6 +48,8 @@ github.com/cubahno/connexions_plugin v0.1.6 h1:bIY7yDcttGcBRsIoo6sV/SJy0baICcbDs
 github.com/cubahno/connexions_plugin v0.1.6/go.mod h1:fNlfdy8bFsPN0kl1cHhBlMSv2zQLw5uENatF7MTTNIw=
 github.com/cubahno/connexions_plugin v0.1.7 h1:LYMiarP4wQhqGdYU5QDhfyCtgigydmKD61VkZbl+5Wk=
 github.com/cubahno/connexions_plugin v0.1.7/go.mod h1:fNlfdy8bFsPN0kl1cHhBlMSv2zQLw5uENatF7MTTNIw=
+github.com/cubahno/connexions_plugin v0.1.8 h1:xpqVOgihOtJRznC8/FRf9tx9csYO6DlqJ81dha/vqpk=
+github.com/cubahno/connexions_plugin v0.1.8/go.mod h1:fNlfdy8bFsPN0kl1cHhBlMSv2zQLw5uENatF7MTTNIw=
 github.com/cubewise-code/go-mime v0.0.0-20200519001935-8c5762b177d8 h1:Z9lwXumT5ACSmJ7WGnFl+OMLLjpz5uR2fyz7dC255FI=
 github.com/cubewise-code/go-mime v0.0.0-20200519001935-8c5762b177d8/go.mod h1:4abs/jPXcmJzYoYGF91JF9Uq9s/KL5n1jvFDix8KcqY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
