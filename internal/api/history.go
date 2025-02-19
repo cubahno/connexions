@@ -121,6 +121,7 @@ func (s *CurrentRequestStorage) Clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data = make(map[string]*connexions_plugin.RequestedResource)
+	s.serviceStorage = make(map[string]*MemoryStorage)
 }
 
 // Cancel stops the goroutine that clears the storage
