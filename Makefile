@@ -96,9 +96,13 @@ docker-shell:
 	@docker run -it --rm \
 		$(IMAGE_NAME) bash
 
-@PHONY: tag-next
-tag-next:
-	@./cmd/tag-next.sh
+@PHONY: tag-next-patch
+tag-next-patch:
+	@./cmd/tag-next.sh -p
+
+@PHONY: tag-next-minor
+tag-next-minor:
+	@./cmd/tag-next.sh -m
 
 @PHONY: simplify-schemas
 simplify-schemas:
