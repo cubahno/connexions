@@ -69,10 +69,16 @@ jobs:
     - name: Unit tests
       id: test_step
       run: |
-        make test-with-check-coverage
+        make test-with-check-coverage || exit 1
         total=$(go tool cover -func=coverage.out | awk '/^total:/{printf "%d", $3}' | tr -d '%')
         echo "TOTAL_COVERAGE=$total" >> $GITHUB_ENV
-        echo "::set-output name=total_coverage::$total"
+        echo "total_coverage=$total" >> $GITHUB_OUTPUT
+
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: coverage.out
 
     - name: Integration Tests
       run: |
