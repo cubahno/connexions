@@ -89,7 +89,9 @@ func TestConfig(t *testing.T) {
 
 	t.Run("EnsureConfigValues-port-is-set", func(t *testing.T) {
 		cfg := &Config{
-			App:     &AppConfig{},
+			App: &AppConfig{
+				Title: "Connexions",
+			},
 			BaseDir: "/app",
 		}
 		cfg.EnsureConfigValues()
@@ -101,7 +103,8 @@ func TestConfig(t *testing.T) {
 	t.Run("EnsureConfigValues-when-partial-app", func(t *testing.T) {
 		cfg := &Config{
 			App: &AppConfig{
-				Port: 5555,
+				Title: "Connexions",
+				Port:  5555,
 			},
 			BaseDir: "/app",
 		}
@@ -204,6 +207,7 @@ services:
 		expected := &Config{
 			BaseDir: tempDir,
 			App: &AppConfig{
+				Title:             "Connexions",
 				Port:              8000,
 				HomeURL:           "/new-ui",
 				ServiceURL:        "/new-services",
@@ -427,6 +431,7 @@ func TestNewDefaultConfig(t *testing.T) {
 	cfg := NewDefaultConfig("/app")
 	expected := &Config{
 		App: &AppConfig{
+			Title:             "Connexions",
 			Port:              2200,
 			HomeURL:           "/.ui",
 			ServiceURL:        "/.services",
