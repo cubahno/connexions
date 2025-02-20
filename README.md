@@ -8,6 +8,7 @@
 [![Endpoint Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Fcubahno%2F4110782af3ec09dd1ebabc3304756f1f%2Fraw%2Fcovbadge.json&labelColor=%23058FF3&color=%2306C53B)](https://github.com/cubahno/connexions/actions/workflows/ci.yml?query=event%3Apush+branch%3Amaster+workflow%3ACI)
 [![GoReportCard](https://goreportcard.com/badge/github.com/cubahno/connexions)](https://goreportcard.com/report/github.com/cubahno/connexions)
 [![GoDoc](https://godoc.org/github.com/cubahno/connexions?status.svg)](https://godoc.org/github.com/cubahno/connexions)
+[![Go Reference](https://pkg.go.dev/badge/github.com/cubahno/connexions.svg)](https://pkg.go.dev/github.com/cubahno/connexions)
 [![License](https://img.shields.io/github/license/cubahno/connexions)](https://github.com/cubahno/connexions/blob/master/LICENSE)
 
 
