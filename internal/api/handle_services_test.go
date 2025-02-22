@@ -15,9 +15,9 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/cubahno/connexions/internal/openapi"
 	"github.com/cubahno/connexions/internal/testhelpers"
-	"github.com/cubahno/connexions/internal/types"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -542,7 +542,7 @@ func TestServiceHandler_deleteService_errors(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
 
 	err = createServiceRoutes(router)
@@ -669,7 +669,7 @@ func TestServiceHandler_spec_happyPath(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-	err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 	assert.Nil(err)
 
 	router.services = map[string]*ServiceItem{
@@ -788,7 +788,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 
 	t.Run("method-not-allowed", func(t *testing.T) {
 		filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-		err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
+		err = files.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 		assert.Nil(err)
 		file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 		assert.Nil(err)
@@ -812,7 +812,7 @@ func TestServiceHandler_generate_errors(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		resp := UnmarshallResponse[SimpleResponse](t, w.Body)
-		assert.Equal(http.StatusMethodNotAllowed, w.Code)
+		assert.Equal(http.StatusNotFound, w.Code)
 		assert.Equal(ErrResourceMethodNotFound.Error(), resp.Message)
 		assert.Equal(false, resp.Success)
 	})
@@ -828,7 +828,7 @@ func TestServiceHandler_generate_openAPI(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index-pets.yml")
-	err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 	assert.Nil(err)
 	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
@@ -928,7 +928,7 @@ func TestServiceHandler_generate_fixed(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
 	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
@@ -1112,7 +1112,7 @@ func TestServiceHandler_getResource(t *testing.T) {
 	assert.Nil(err)
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	_ = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
+	_ = files.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 	fileContents, _ := os.ReadFile(filePath)
 	fileProps, _ := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 

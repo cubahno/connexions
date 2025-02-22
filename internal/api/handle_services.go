@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/cubahno/connexions/internal/config"
 	"github.com/cubahno/connexions/internal/context"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/cubahno/connexions/internal/openapi"
 	"github.com/cubahno/connexions/internal/replacer"
 	"github.com/cubahno/connexions/internal/types"
@@ -66,6 +68,7 @@ func createServiceRoutes(router *Router) error {
 	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)
 		r.Post("/", handler.save)
+		r.Post("/generate", handler.generateFromRoute)
 		r.Get("/{name}", handler.resources)
 		r.Delete("/{name}", handler.deleteService)
 		if !router.Config.App.DisableSwaggerUI {
@@ -385,16 +388,13 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 
 	rd := service.Routes[ix]
 	fileProps := rd.File
-
-	cfg := h.router.Config
-	serviceCfg := cfg.GetServiceConfig(service.Name)
-
-	res := &GenerateResponse{}
-
 	if fileProps == nil {
 		h.Error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
 		return
 	}
+
+	cfg := h.router.Config
+	serviceCfg := cfg.GetServiceConfig(service.Name)
 
 	// create ValueReplacer
 	serviceCtxs := serviceCfg.Contexts
@@ -404,41 +404,86 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	cts := context.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
 	valueReplacer := replacer.CreateValueReplacer(cfg, replacer.Replacers, cts)
 
-	if !fileProps.IsOpenAPI {
-		res.Request = openapi.NewRequestFromFixedResource(
-			fileProps.Prefix+fileProps.Resource,
-			fileProps.Method,
-			fileProps.ContentType,
-			valueReplacer)
-		res.Response = openapi.NewResponseFromFixedResource(fileProps.FilePath, fileProps.ContentType, valueReplacer)
-
-		h.JSONResponse(w).Send(res)
+	resourceOptions := &generateResourceOptions{
+		config:        cfg.GetServiceConfig(service.Name),
+		valueReplacer: valueReplacer,
+		withRequest:   true,
+		withResponse:  true,
+		req:           r,
+	}
+	res, err := generateResource(service, rd, resourceOptions)
+	if err != nil {
+		if errors.Is(err, ErrResourceMethodNotFound) {
+			h.Error(http.StatusNotFound, err.Error(), w)
+			return
+		}
+		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
 
-	spec := fileProps.Spec
-	operation := spec.FindOperation(&openapi.OperationDescription{
-		Service:  service.Name,
-		Resource: rd.Path,
-		Method:   strings.ToUpper(rd.Method),
-	})
+	h.JSONResponse(w).Send(res)
+}
 
-	if operation == nil {
-		h.Error(http.StatusMethodNotAllowed, ErrResourceMethodNotFound.Error(), w)
+// generate generates a request and response from the OpenAPI spec.
+func (h *ServiceHandler) generateFromRoute(w http.ResponseWriter, r *http.Request) {
+	payload, err := GetJSONPayload[ResourceGeneratePayload](r)
+	if err != nil {
+		h.Error(http.StatusBadRequest, err.Error(), w)
 		return
 	}
-	operation = operation.WithParseConfig(serviceCfg.ParseConfig)
 
-	opts := &openapi.GenerateRequestOptions{
-		PathPrefix: fileProps.Prefix,
-		Path:       rd.Path,
-		Method:     rd.Method,
-		Operation:  operation,
+	serviceName := payload.Service
+	if serviceName == "" {
+		serviceName = config.RootServiceName
 	}
-	req := openapi.NewRequestFromOperation(opts, spec.GetSecurity(), valueReplacer)
 
-	res.Request = req
-	res.Response = openapi.NewResponseFromOperation(r, operation, valueReplacer)
+	service := h.router.GetServices()[serviceName]
+	if service == nil {
+		h.Error(http.StatusNotFound, ErrServiceNotFound.Error(), w)
+		return
+	}
+
+	var rd *RouteDescription
+	for _, route := range service.Routes {
+		if route.Path == payload.Resource && route.Method == strings.ToUpper(payload.Method) {
+			rd = route
+		}
+	}
+
+	if rd == nil {
+		h.Error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
+		return
+	}
+
+	fileProps := rd.File
+	if fileProps == nil {
+		h.Error(http.StatusNotFound, ErrResourceNotFound.Error(), w)
+		return
+	}
+
+	cfg := h.router.Config
+	serviceCfg := cfg.GetServiceConfig(service.Name)
+
+	// create ValueReplacer
+	serviceCtxs := serviceCfg.Contexts
+	if len(serviceCtxs) == 0 {
+		serviceCtxs = h.router.GetDefaultContexts()
+	}
+	cts := context.CollectContexts(serviceCtxs, h.router.GetContexts(), payload.Replacements)
+	valueReplacer := replacer.CreateValueReplacer(cfg, replacer.Replacers, cts)
+
+	resourceOptions := &generateResourceOptions{
+		config:        cfg.GetServiceConfig(service.Name),
+		valueReplacer: valueReplacer,
+		withRequest:   true,
+		withResponse:  true,
+		req:           r,
+	}
+	res, err := generateResource(service, rd, resourceOptions)
+	if err != nil {
+		h.Error(http.StatusInternalServerError, err.Error(), w)
+		return
+	}
 
 	h.JSONResponse(w).Send(res)
 }
@@ -621,7 +666,7 @@ func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*openapi.Fi
 			Timeout: 10 * time.Second,
 		}
 
-		content, _, err = types.GetFileContentsFromURL(client, payload.URL)
+		content, _, err = files.GetFileContentsFromURL(client, payload.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -629,9 +674,9 @@ func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*openapi.Fi
 
 	// ignore supplied extension and check whether its json / yaml type
 	if len(content) > 0 {
-		if types.IsJsonType(content) {
+		if files.IsJsonType(content) {
 			ext = ".json"
-		} else if types.IsYamlType(content) {
+		} else if files.IsYamlType(content) {
 			ext = ".yaml"
 		}
 	}
@@ -648,7 +693,7 @@ func saveService(payload *ServicePayload, appCfg *config.AppConfig) (*openapi.Fi
 		return nil, ErrOpenAPISpecIsEmpty
 	}
 
-	if err := types.SaveFile(filePath, content); err != nil {
+	if err := files.SaveFile(filePath, content); err != nil {
 		return nil, err
 	}
 

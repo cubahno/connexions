@@ -1,4 +1,4 @@
-package types
+package files
 
 import (
 	"archive/zip"

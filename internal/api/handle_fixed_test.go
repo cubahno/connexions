@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/cubahno/connexions/internal/openapi"
-	"github.com/cubahno/connexions/internal/types"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.Services, "petstore", "post", "pets", "index.json")
-	err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 	assert.Nil(err)
 	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
@@ -63,7 +63,7 @@ func TestRegisterFixedRoute(t *testing.T) {
 
 	t.Run("empty-resource", func(t *testing.T) {
 		filePath := filepath.Join(router.Config.App.Paths.Services, "index.json")
-		err = types.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
+		err = files.CopyFile(filepath.Join(testDataPath, "fixed-petstore-post-pets.json"), filePath)
 		assert.Nil(err)
 		file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 		assert.Nil(err)

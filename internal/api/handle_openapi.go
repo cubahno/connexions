@@ -145,7 +145,7 @@ func (h *OpenAPIHandler) serve(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := openapi.NewResponseFromOperation(req, operation, h.valueReplacer)
+	response := openapi.NewResponseFromOperation(operation, h.valueReplacer, req)
 	if serviceCfg.Validate.Response && validator != nil {
 		errs := validator.ValidateResponse(response)
 		if len(errs) > 0 {
@@ -189,5 +189,8 @@ func replaceRequestResource(req *http.Request, resource string) *http.Request {
 // It is used only with generating resources endpoint.
 // It's merged together with contexts but has higher priority.
 type ResourceGeneratePayload struct {
+	Service      string         `json:"service"`
+	Resource     string         `json:"resource"`
+	Method       string         `json:"method"`
 	Replacements map[string]any `json:"replacements"`
 }

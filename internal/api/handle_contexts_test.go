@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -73,7 +73,7 @@ func TestContextHandler_details(t *testing.T) {
 
 	t.Run("details", func(t *testing.T) {
 		router.contexts["bob"] = map[string]any{}
-		err = types.CopyFile(filepath.Join(testDataPath, "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
+		err = files.CopyFile(filepath.Join(testDataPath, "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "bob.yml"))
 		if err != nil {
 			t.Errorf("Error copying file: %v", err)
 			t.FailNow()
@@ -118,7 +118,7 @@ func TestContextHandler_delete(t *testing.T) {
 	t.Run("happy-path", func(t *testing.T) {
 		router.contexts["bob"] = map[string]any{}
 		bobPath := filepath.Join(router.Config.App.Paths.Contexts, "bob.yml")
-		err = types.CopyFile(filepath.Join(testDataPath, "context-petstore.yml"), bobPath)
+		err = files.CopyFile(filepath.Join(testDataPath, "context-petstore.yml"), bobPath)
 		if err != nil {
 			t.Errorf("Error copying file: %v", err)
 			t.FailNow()

@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/cubahno/connexions/internal/context"
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -120,7 +120,7 @@ func (h *ContextHandler) save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = types.SaveFile(filePath, []byte(content)); err != nil {
+	if err = files.SaveFile(filePath, []byte(content)); err != nil {
 		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}

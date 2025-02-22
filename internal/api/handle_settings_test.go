@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	assert2 "github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,7 +68,7 @@ app:
 	t.Run("post", func(t *testing.T) {
 		// save invalid config
 		filePath := router.Config.App.Paths.ConfigFile
-		err = types.SaveFile(filePath, []byte(""))
+		err = files.SaveFile(filePath, []byte(""))
 		assert.Nil(err)
 
 		// now restore it

@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/config"
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +46,7 @@ func SetupApp(appDir string) (*Router, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = types.SaveFile(cfg.App.Paths.ConfigFile, []byte(""))
+	_ = files.SaveFile(cfg.App.Paths.ConfigFile, []byte(""))
 
 	return NewRouter(cfg), nil
 }

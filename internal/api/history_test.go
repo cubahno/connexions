@@ -119,3 +119,31 @@ func TestCurrentRequestStorage(t *testing.T) {
 		assert.Equal(0, len(storage.getData()))
 	})
 }
+
+func TestNewMemoryStorage(t *testing.T) {
+	assert := assert2.New(t)
+	mem := NewMemoryStorage()
+
+	assert.NotNil(mem)
+	assert.Equal(0, len(mem.Data()))
+}
+
+func TestMemoryStorage_Get(t *testing.T) {
+	assert := assert2.New(t)
+	mem := NewMemoryStorage()
+
+	mem.Set("foo", "bar")
+	res, ok := mem.Get("foo")
+	assert.True(ok)
+	assert.Equal("bar", res)
+}
+
+func TestMemoryStorage_Set(t *testing.T) {
+	assert := assert2.New(t)
+	mem := NewMemoryStorage()
+
+	mem.Set("foo", "bar")
+	assert.Equal(map[string]any{
+		"foo": "bar",
+	}, mem.Data())
+}

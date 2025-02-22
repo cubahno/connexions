@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +30,7 @@ func TestCreateHomeRoutes(t *testing.T) {
 
 	err = createHomeRoutes(router)
 	assert.Nil(err)
-	_ = types.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), router.Config.App.Paths.UI)
+	_ = files.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), router.Config.App.Paths.UI)
 
 	t.Run("home", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/.ui/", nil)
@@ -68,8 +68,8 @@ func TestCreateHomeRoutes(t *testing.T) {
 	})
 
 	t.Run("export", func(t *testing.T) {
-		_ = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml"))
-		_ = types.CopyFile(filepath.Join(testDataPath, "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "petstore.yml"))
+		_ = files.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml"))
+		_ = files.CopyFile(filepath.Join(testDataPath, "context-petstore.yml"), filepath.Join(router.Config.App.Paths.Contexts, "petstore.yml"))
 
 		// empty dirs ignored
 		_ = os.MkdirAll(filepath.Join(router.Config.App.Paths.Services, "petstore", "get", "pets"), 0755)
@@ -204,6 +204,29 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 	})
 }
 
+func TestHomeHandler_postman(t *testing.T) {
+	assert := assert2.New(t)
+
+	router, err := SetupApp(t.TempDir())
+	if err != nil {
+		t.Errorf("Error setting up app: %v", err)
+		t.FailNow()
+	}
+
+	err = createHomeRoutes(router)
+	assert.Nil(err)
+
+	req := httptest.NewRequest("GET", "/.ui/postman", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(http.StatusOK, w.Code)
+	assert.Equal("application/zip", w.Header().Get("Content-Type"))
+	assert.Equal(
+		fmt.Sprintf("attachment; filename=connexions-postman-%s.zip", time.Now().Format("2006-01-02")),
+		w.Header().Get("Content-Disposition"))
+}
+
 func TestCreateHomeRoutes_export_errors(t *testing.T) {
 	assert := assert2.New(t)
 
@@ -239,7 +262,7 @@ func TestCreateHomeRoutes_disabled(t *testing.T) {
 	router.Config.App.DisableUI = true
 	err = createHomeRoutes(router)
 	assert.Nil(err)
-	_ = types.CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
+	_ = files.CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
 
 	req := httptest.NewRequest("GET", "/.ui/", nil)
 	w := httptest.NewRecorder()
@@ -270,7 +293,7 @@ func TestCreateHomeRoutes_errors(t *testing.T) {
 	})
 
 	t.Run("template-not-found", func(t *testing.T) {
-		_ = types.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), router.Config.App.Paths.UI)
+		_ = files.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), router.Config.App.Paths.UI)
 		_ = os.Remove(filepath.Join(router.Config.App.Paths.UI, "home.html"))
 
 		req := httptest.NewRequest("GET", "/.ui/", nil)
@@ -282,7 +305,7 @@ func TestCreateHomeRoutes_errors(t *testing.T) {
 	})
 
 	t.Run("invalid-template", func(t *testing.T) {
-		_ = types.CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
+		_ = files.CopyDirectory(filepath.Join("resources", "ui"), router.Config.App.Paths.UI)
 		indexPath := filepath.Join(router.Config.App.Paths.UI, "index.html")
 		tpl, _ := os.ReadFile(indexPath)
 		tplContents := strings.Replace(string(tpl), "{{.AppConfig", "{{.AppConfig2", 1)

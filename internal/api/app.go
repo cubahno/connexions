@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal/config"
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 )
 
 // App is the main application struct
@@ -40,7 +40,7 @@ func NewApp(config *config.Config) *App {
 		if err != nil {
 			panic(err)
 		}
-		_ = types.CleanupServiceFileStructure(paths.Services)
+		_ = files.CleanupServiceFileStructure(paths.Services)
 	}
 
 	router := NewRouter(config)
