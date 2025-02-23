@@ -1,5 +1,4 @@
 import * as commons from './commons.js';
-import * as config from './config.js';
 import * as navi from './navi.js';
 import * as settings from './settings.js';
 import * as services from './services.js';
@@ -40,8 +39,6 @@ async function onLoad() {
 
     document.getElementById('fixed-service-submit').addEventListener('click', () => services.onNewServiceSubmit('fixed-service-form'));
     document.getElementById('openapi-service-submit').addEventListener('click', () => services.onNewServiceSubmit('openapi-service-form'));
-
-    document.getElementById('export-link').href = `${config.homeUrl}/export`;
 }
 
 window.addEventListener('hashchange', _ => {

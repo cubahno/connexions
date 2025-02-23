@@ -2,6 +2,7 @@ package api
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -15,7 +16,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal/config"
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -46,6 +47,7 @@ func createHomeRoutes(router *Router) error {
 	router.Get(url, createHomeHandlerFunc(router))
 	router.Get(url+"export", handler.export)
 	router.Post(url+"import", handler.importHandler)
+	router.Get(url+"postman", handler.postman)
 
 	docsServer(fmt.Sprintf("/%s/docs/*", strings.Trim(url, "/")), router)
 	fileServer(fmt.Sprintf("/%s/*", strings.Trim(url, "/")), router)
@@ -177,7 +179,7 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Exclude empty directories
-		if info.IsDir() && types.IsEmptyDir(path) {
+		if info.IsDir() && files.IsEmptyDir(path) {
 			return nil
 		}
 
@@ -277,7 +279,7 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 		path.Base(h.router.Config.App.Paths.Services),
 	}
 
-	err = types.ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
+	err = files.ExtractZip(zipReader, h.router.Config.App.Paths.Data, only)
 	if err != nil {
 		h.JSONResponse(w).WithStatusCode(http.StatusInternalServerError).Send(&SimpleResponse{
 			Message: err.Error(),
@@ -302,4 +304,43 @@ func (h *HomeHandler) importHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.Success("Imported successfully!", w)
+}
+
+// postman exports the api resources in Postman collection format.
+func (h *HomeHandler) postman(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	asFilename := fmt.Sprintf("connexions-postman-%s.zip", time.Now().Format("2006-01-02"))
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", asFilename))
+
+	services := h.router.GetServices()
+	cfg := h.router.Config
+	opts := &postmanOptions{
+		config:          cfg,
+		contexts:        h.router.GetContexts(),
+		defaultContexts: h.router.GetDefaultContexts(),
+	}
+	coll := createPostman(services, opts)
+	env := createPostmanEnvironment("cxs[local]", []*PostmanKeyValue{
+		{
+			Key:   "url",
+			Value: fmt.Sprintf("http://localhost:%d", h.router.Config.App.Port),
+		},
+	})
+
+	callJs, _ := json.MarshalIndent(coll, "", "  ")
+	envJs, _ := json.MarshalIndent(env, "", "  ")
+
+	// Create a ZIP writer
+	zipWriter := zip.NewWriter(w)
+	defer zipWriter.Close()
+
+	file1, _ := zipWriter.Create("connexions-collection.json")
+	_, _ = file1.Write(callJs)
+
+	file2, _ := zipWriter.Create("connexions-env-loc.json")
+	_, _ = file2.Write(envJs)
 }

@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/cubahno/connexions/internal/openapi"
 	"github.com/cubahno/connexions/internal/types"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -273,7 +274,7 @@ func processFile(src, dest string, cfg *parseConfig) error {
 		return err
 	}
 
-	err = types.SaveFile(dest, contents)
+	err = files.SaveFile(dest, contents)
 	if cfg.replace {
 		_ = os.Remove(src)
 	}

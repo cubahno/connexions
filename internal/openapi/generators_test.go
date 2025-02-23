@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/cubahno/connexions/internal/replacer"
 	"github.com/cubahno/connexions/internal/types"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -114,7 +115,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 		operation := &KinOperation{Operation: openapi3.NewOperation()}
 		CreateOperationFromYAMLFile(t, filepath.Join(testDataPath, "operation-base.yml"), operation)
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
-		res := NewResponseFromOperation(r, operation, valueResolver)
+		res := NewResponseFromOperation(operation, valueResolver, r)
 
 		expectedHeaders := http.Header{
 			"Location":     []string{"https://example.com/users/123"},
@@ -148,7 +149,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 		CreateOperationFromYAMLFile(t, filepath.Join(testDataPath, "operation-without-content-type.yml"), operation)
 
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
-		res := NewResponseFromOperation(r, operation, valueResolver)
+		res := NewResponseFromOperation(operation, valueResolver, r)
 
 		expectedHeaders := http.Header{
 			"Content-Type": []string{"application/json"},
@@ -174,7 +175,7 @@ func TestNewResponseFromOperation(t *testing.T) {
 		CreateOperationFromYAMLFile(t, filepath.Join(testDataPath, "operation-base.yml"), operation)
 
 		r, _ := http.NewRequest(http.MethodGet, "/api/resources/1", nil)
-		res := NewResponseFromOperation(r, operation, valueResolver)
+		res := NewResponseFromOperation(operation, valueResolver, r)
 		assert.Nil(res.Content)
 	})
 }
@@ -187,7 +188,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		filePath := filepath.Join(dir, "users.json")
 		fileContent := []byte(`[{"name":"Jane"},{"name":"John"}]`)
 
-		err := types.SaveFile(filePath, fileContent)
+		err := files.SaveFile(filePath, fileContent)
 		assert.Nil(err)
 
 		res := NewResponseFromFixedResource(filePath, "application/json", nil)
@@ -205,7 +206,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		filePath := filepath.Join(dir, "users.json")
 		fileContent := []byte(`[{"name":"Jane"}`)
 
-		err := types.SaveFile(filePath, fileContent)
+		err := files.SaveFile(filePath, fileContent)
 		assert.Nil(err)
 
 		res := NewResponseFromFixedResource(filePath, "application/json", nil)
@@ -223,7 +224,7 @@ func TestNewResponseFromFixedResponse(t *testing.T) {
 		filePath := filepath.Join(dir, "users.xml")
 		fileContent := []byte(`<name>`)
 
-		err := types.SaveFile(filePath, fileContent)
+		err := files.SaveFile(filePath, fileContent)
 		assert.Nil(err)
 
 		res := NewResponseFromFixedResource(filePath, "application/xml", nil)

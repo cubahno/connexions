@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/cubahno/connexions/internal/config"
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/go-chi/chi/v5"
 	"gopkg.in/yaml.v3"
 )
@@ -81,7 +81,7 @@ func (h *SettingsHandler) put(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = types.SaveFile(h.router.Config.App.Paths.ConfigFile, payload); err != nil {
+	if err = files.SaveFile(h.router.Config.App.Paths.ConfigFile, payload); err != nil {
 		h.Error(http.StatusInternalServerError, err.Error(), w)
 		return
 	}
@@ -99,7 +99,7 @@ func (h *SettingsHandler) post(w http.ResponseWriter, r *http.Request) {
 	defaultCfg := config.NewDefaultConfig(h.router.Config.BaseDir)
 	defaultBts, _ := yaml.Marshal(defaultCfg)
 
-	if err := types.SaveFile(dest, defaultBts); err != nil {
+	if err := files.SaveFile(dest, defaultBts); err != nil {
 		h.Error(http.StatusInternalServerError, "Failed to restore config contents", w)
 		return
 	}

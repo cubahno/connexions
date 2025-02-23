@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/cubahno/connexions/internal/config"
+	"github.com/cubahno/connexions/internal/files"
 	"github.com/cubahno/connexions/internal/openapi"
 	"github.com/cubahno/connexions/internal/replacer"
-	"github.com/cubahno/connexions/internal/types"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestRegisterOpenAPIRoutes(t *testing.T) {
 	}
 
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
-	err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 	assert.Nil(err)
 	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
@@ -72,7 +72,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 		t.FailNow()
 	}
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "document-petstore.yml")
-	err = types.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "document-petstore.yml"), filePath)
 	assert.Nil(err)
 	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)
@@ -123,7 +123,7 @@ func TestOpenAPIHandler_serve_errors(t *testing.T) {
 	t.Run("operation-not-found", func(t *testing.T) {
 		// substitute the file with a different one
 		filePath = filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "alt.yml")
-		err = types.CopyFile(filepath.Join(testDataPath, "document-ab.yml"), filePath)
+		err = files.CopyFile(filepath.Join(testDataPath, "document-ab.yml"), filePath)
 		assert.Nil(err)
 		fileAlt, _ := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 
@@ -179,7 +179,7 @@ func TestOpenAPIHandler_serve(t *testing.T) {
 		t.FailNow()
 	}
 	filePath := filepath.Join(router.Config.App.Paths.ServicesOpenAPI, "petstore", "index.yml")
-	err = types.CopyFile(filepath.Join(testDataPath, "document-pet-single.yml"), filePath)
+	err = files.CopyFile(filepath.Join(testDataPath, "document-pet-single.yml"), filePath)
 	assert.Nil(err)
 	file, err := openapi.GetPropertiesFromFilePath(filePath, router.Config.App)
 	assert.Nil(err)

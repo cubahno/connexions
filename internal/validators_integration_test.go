@@ -292,7 +292,7 @@ func validateFile(filePath string, replacer replacer.ValueReplacer, ch chan<- va
 			}
 
 			respErrMsg := ""
-			response := openapi.NewResponseFromOperation(request, operation, replacer)
+			response := openapi.NewResponseFromOperation(operation, replacer, request)
 			respErrs := validator.ValidateResponse(response)
 
 			if len(respErrs) > 0 {

@@ -66,7 +66,7 @@ func NewRequestFromFixedResource(path, method, contentType string, valueReplacer
 
 // NewResponseFromOperation creates generated response.
 // It used to pre-generate payloads from the UI or provide service to generate such.
-func NewResponseFromOperation(req *http.Request, operation Operation, valueReplacer replacer.ValueReplacer) *GeneratedResponse {
+func NewResponseFromOperation(operation Operation, valueReplacer replacer.ValueReplacer, req *http.Request) *GeneratedResponse {
 	response := operation.GetResponse()
 	statusCode := response.StatusCode
 

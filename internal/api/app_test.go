@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/internal/config"
-	"github.com/cubahno/connexions/internal/types"
+	"github.com/cubahno/connexions/internal/files"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +99,7 @@ func TestApp_AddBluePrint(t *testing.T) {
 		// status-quo: health routes
 		assert.Equal(1, len(router.Routes()))
 
-		err := types.CopyFile(
+		err := files.CopyFile(
 			filepath.Join(testDataPath, "document-petstore.yml"),
 			filepath.Join(cfg.App.Paths.ServicesOpenAPI, "pets", "index.yml"))
 		assert.Nil(err)
