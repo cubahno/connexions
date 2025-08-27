@@ -2,8 +2,9 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -74,11 +75,11 @@ func (s *CurrentRequestStorage) Set(service, resource string, req *http.Request,
 	}
 
 	if !recordExists && req.Body != nil && req.Body != http.NoBody {
-		defer req.Body.Close()
+		defer func() { _ = req.Body.Close() }()
 		var err error
 		body, err = io.ReadAll(req.Body)
 		if err != nil {
-			log.Printf("Error reading request body: %v\n", err)
+			slog.Error("Error reading request body", "error", err)
 			body = []byte{}
 		}
 	}
@@ -109,7 +110,7 @@ func (s *CurrentRequestStorage) SetResponse(request *http.Request, response *con
 	// Check if the request exists
 	res, exists := s.data[s.getKey(request)]
 	if !exists {
-		log.Printf("Request for URL %s not found. Cannot set response.\n", request.URL.String())
+		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", request.URL.String()))
 		return
 	}
 

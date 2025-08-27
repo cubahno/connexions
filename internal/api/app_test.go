@@ -207,7 +207,7 @@ func TestApp_Run(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error making HTTP request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)

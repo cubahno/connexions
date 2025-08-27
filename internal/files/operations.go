@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -43,7 +43,7 @@ func CopyFile(srcPath, destPath string) error {
 	if err != nil {
 		return err
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	// Ensure the destination directory exists
 	destDir := filepath.Dir(destPath)
@@ -55,7 +55,7 @@ func CopyFile(srcPath, destPath string) error {
 	if err != nil {
 		return err
 	}
-	defer destFile.Close()
+	defer func() { _ = destFile.Close() }()
 
 	_, err = io.Copy(destFile, srcFile)
 	return err
@@ -124,7 +124,7 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 			}
 
 			if !takeIt {
-				log.Printf("Skipping extracted file %s because it doesn't have allowed prefix\n", filePath)
+				slog.Info(fmt.Sprintf("Skipping extracted file %s because it doesn't have allowed prefix", filePath))
 				return
 			}
 
@@ -150,14 +150,14 @@ func ExtractZip(zipReader *zip.Reader, targetDir string, onlyPrefixes []string) 
 				errCh <- err
 				return
 			}
-			defer source.Close()
+			defer func() { _ = source.Close() }()
 
 			target, err := os.Create(targetPath)
 			if err != nil {
 				errCh <- err
 				return
 			}
-			defer target.Close()
+			defer func() { _ = target.Close() }()
 
 			_, err = io.Copy(target, source)
 			if err != nil {
@@ -202,7 +202,7 @@ func GetFileContentsFromURL(client *http.Client, url string) ([]byte, string, er
 		return nil, "", err
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		// TODO: use concrete error and move function to api package
@@ -224,7 +224,7 @@ func GetFileContentsFromURL(client *http.Client, url string) ([]byte, string, er
 
 // CleanupServiceFileStructure removes empty directories from the service directory.
 func CleanupServiceFileStructure(servicePath string) error {
-	log.Printf("Cleaning up service file structure %s...\n", servicePath)
+	slog.Info(fmt.Sprintf("Cleaning up service file structure %s...", servicePath))
 	return filepath.WalkDir(servicePath, func(path string, info os.DirEntry, err error) error {
 		if !info.IsDir() {
 			return nil
@@ -232,7 +232,7 @@ func CleanupServiceFileStructure(servicePath string) error {
 
 		if IsEmptyDir(path) {
 			_ = os.Remove(path)
-			log.Printf("Removed empty directory: %s\n", path)
+			slog.Info(fmt.Sprintf("Removed empty directory: %s", path))
 			return nil
 		}
 

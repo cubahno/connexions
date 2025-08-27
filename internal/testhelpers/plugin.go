@@ -49,7 +49,6 @@ func createPlugin() (string, error) {
 
 	cmd := exec.Command("go", cmdArgs...)
 	cmd.Env = append(os.Environ(),
-		"GOROOT="+runtime.GOROOT(),
 		"GOARCH="+runtime.GOARCH,
 		"GOOS="+runtime.GOOS,
 		"CGO_ENABLED=1",

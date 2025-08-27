@@ -1,6 +1,6 @@
 module github.com/cubahno/connexions
 
-go 1.23.3
+go 1.24.2
 
 require (
 	github.com/cubahno/connexions_plugin v0.1.8
@@ -38,5 +38,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/redis/go-redis/v9 v9.7.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 )

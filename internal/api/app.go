@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"os"
@@ -30,7 +31,7 @@ func NewApp(config *config.Config) *App {
 		Paths: paths,
 	}
 	resourcePath := paths.Resources
-	log.Printf("Initing Application. ResourcePath is: %v\n", resourcePath)
+	slog.Info(fmt.Sprintf("initing Application. ResourcePath is: %v", resourcePath))
 
 	// Seed the random number generator
 	rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -62,7 +63,7 @@ func NewApp(config *config.Config) *App {
 	for _, bluePrint := range bluePrints {
 		err := bluePrint(router)
 		if err != nil {
-			log.Printf("Failed to load blueprint: %s\n", err.Error())
+			slog.Error("Failed to load blueprint", "error", err)
 		}
 	}
 
@@ -108,8 +109,8 @@ func (a *App) Run() {
 	port := cfg.App.Port
 	homeURL := strings.TrimPrefix(cfg.App.HomeURL, "/")
 
-	log.Printf("\n\nServer started on port %d. Press Ctrl+C to quit", port)
-	log.Printf("Visit http://localhost:%d/%s to view the home page", port, homeURL)
+	fmt.Printf("Server started on port %d. Press Ctrl+C to quit", port)
+	fmt.Printf("Visit http://localhost:%d/%s to view the home page", port, homeURL)
 
 	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), a.Router)
 	if err != nil {

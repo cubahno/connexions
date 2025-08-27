@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"sync"
@@ -168,18 +169,18 @@ func (c *Config) Reload() {
 	log.Println("reloading config ...")
 	k := koanf.New(".")
 	if err := k.Load(provider, yaml.Parser()); err != nil {
-		log.Printf("error loading config: %v\n", err)
+		slog.Error("error loading config", "error", err)
 		return
 	}
 
 	transformed := c.transformConfig(k)
 	if err := transformed.Unmarshal("", c); err != nil {
-		log.Printf("error unmarshalling config: %v\n", err)
+		slog.Error("error unmarshalling config", "error", err)
 		return
 	}
 
-	log.Println("Configuration reloaded!")
-	log.Println(k.Sprint())
+	slog.Info("Configuration reloaded!")
+	slog.Info(k.Sprint())
 }
 
 // MustConfig creates a new config from a YAML file path.
@@ -196,14 +197,14 @@ func MustConfig(baseDir string) *Config {
 	k := koanf.New(".")
 	provider := file.Provider(filePath)
 	if err := k.Load(provider, yaml.Parser()); err != nil {
-		log.Printf("error loading config. using fallback: %v\n", err)
+		slog.Error("error loading config. using fallback", "error", err)
 		return res
 	}
 
 	cfg := res
 	transformed := cfg.transformConfig(k)
 	if err := transformed.Unmarshal("", cfg); err != nil {
-		log.Printf("error loading config. using fallback: %v\n", err)
+		slog.Error("error loading config. using fallback", "error", err)
 		return res
 	}
 	cfg.EnsureConfigValues()

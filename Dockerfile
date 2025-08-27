@@ -1,4 +1,4 @@
-FROM golang:1.23.3 AS builder
+FROM golang:1.24.2 AS builder
 ENV CGO_ENABLED=1
 RUN apt-get install -y git make
 
@@ -7,7 +7,7 @@ COPY . .
 RUN make build
 RUN git describe --tags --abbrev=0 > version.txt
 
-FROM golang:1.23.3
+FROM golang:1.24.2
 ENV CGO_ENABLED=1
 
 WORKDIR /app

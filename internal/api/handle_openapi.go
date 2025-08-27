@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,7 +26,7 @@ type OpenAPIHandler struct {
 // registerOpenAPIRoutes adds spec routes to the router and
 // creates necessary closure to serve routes.
 func registerOpenAPIRoutes(fileProps *openapi.FileProperties, router *Router) RouteDescriptions {
-	log.Printf("Registering OpenAPI service %s\n", fileProps.ServiceName)
+	slog.Info(fmt.Sprintf("Registering OpenAPI service %s", fileProps.ServiceName))
 
 	res := make(RouteDescriptions, 0)
 

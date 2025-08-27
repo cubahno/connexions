@@ -1,7 +1,7 @@
 package openapi
 
 import (
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/cubahno/connexions/internal/config"
@@ -96,7 +96,7 @@ func (a *CacheOperationAdapter) GetRequest(securityComponents SecurityComponents
 
 	value := a.operation.GetRequest(securityComponents)
 	if err := a.cacheStorage.Set(key, value); err != nil {
-		log.Printf("Failed to set cache request for %s: %s\n", key, err.Error())
+		slog.Error("Failed to set cache request", "key", key, "error", err)
 	}
 
 	return value
@@ -114,7 +114,7 @@ func (a *CacheOperationAdapter) GetResponse() *Response {
 
 	value := a.operation.GetResponse()
 	if err := a.cacheStorage.Set(key, value); err != nil {
-		log.Printf("Failed to set cache response for %s: %s\n", key, err.Error())
+		slog.Info("Failed to set cache response", "key", key, "error", err)
 	}
 
 	return value

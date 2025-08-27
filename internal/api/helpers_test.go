@@ -114,7 +114,7 @@ func CreateTestMapFormReader(data map[string]string) (*multipart.Writer, *bytes.
 		}
 	}
 
-	writer.Close()
+	defer func() { _ = writer.Close() }()
 
 	return writer, &bodyBuffer
 }

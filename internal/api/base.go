@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -48,7 +48,7 @@ func (h *BaseHandler) Error(code int, message string, w http.ResponseWriter) {
 func HandleErrorAndLatency(svcConfig *config.ServiceConfig, w http.ResponseWriter) bool {
 	latency := svcConfig.GetLatency()
 	if latency > 0 {
-		log.Printf("Encountered latency of %s\n", latency)
+		slog.Info(fmt.Sprintf("Encountered latency of %s", latency))
 		time.Sleep(latency)
 	}
 
