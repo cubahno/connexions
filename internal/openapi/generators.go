@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,12 +32,12 @@ func NewRequestFromOperation(
 	content := GenerateContentFromSchema(reqBody, valueReplacer, state)
 	body, err := EncodeContent(content, contentType)
 	if err != nil {
-		log.Printf("Error encoding GeneratedRequest: %v", err.Error())
+		slog.Error("Error encoding GeneratedRequest", "error", err)
 	}
 
 	curlExample, err := CreateCURLBody(content, contentType)
 	if err != nil {
-		log.Printf("Error creating cURL example body: %v", err.Error())
+		slog.Error("Error creating cURL example body", "error", err)
 	}
 
 	params := request.Parameters
@@ -84,7 +85,7 @@ func NewResponseFromOperation(operation Operation, valueReplacer replacer.ValueR
 
 	contentB, err := EncodeContent(content, contentType)
 	if err != nil {
-		log.Printf("Error encoding response: %v", err.Error())
+		slog.Error("Error encoding response", "error", err)
 	}
 
 	return &GeneratedResponse{
@@ -126,7 +127,7 @@ func generateURLFromSchemaParameters(path string, valueResolver replacer.ValueRe
 		replaced := valueResolver(schema, state)
 		replaced = fmt.Sprintf("%v", replaced)
 		if replaced == "" {
-			log.Printf("Warning: parameter '%s' not replaced in URL path", name)
+			slog.Warn(fmt.Sprintf("Warning: parameter '%s' not replaced in URL path", name))
 			continue
 		}
 		path = strings.Replace(path, "{"+name+"}", fmt.Sprintf("%v", replaced), -1)
@@ -152,7 +153,7 @@ func generateURLFromFixedResourcePath(path string, valueReplacer replacer.ValueR
 			if len(replaceWith) > 0 {
 				path = strings.Replace(path, placeholder, replaceWith, -1)
 			} else {
-				log.Printf("parameter '%s' not replaced in URL path", name)
+				slog.Warn(fmt.Sprintf("parameter '%s' not replaced in URL path", name))
 			}
 		}
 	}
@@ -367,14 +368,14 @@ func GenerateContentFromFileProperties(filePath, contentType string, valueReplac
 
 	payload, err := os.ReadFile(filePath)
 	if err != nil {
-		log.Printf("Error reading file: %v", err.Error())
+		slog.Error("Error reading file", "error", err)
 		return nil
 	}
 
 	if contentType == "application/json" {
 		var data any
 		if err := json.Unmarshal(payload, &data); err != nil {
-			log.Printf("Error unmarshalling JSON: %v", err.Error())
+			slog.Error("Error unmarshalling JSON", "error", err)
 			return nil
 		}
 		generated := generateContentFromJSON(data, valueReplacer, nil)

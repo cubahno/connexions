@@ -66,11 +66,7 @@ func main() {
 		dst = flag.Args()[1]
 	}
 
-	replace := false
-	if strings.ToLower(rpl) == "true" {
-		replace = true
-	}
-
+	replace := strings.ToLower(rpl) == "true"
 	takeMap := make(map[string]bool)
 	for _, v := range takes {
 		v = strings.Trim(v, " \n")

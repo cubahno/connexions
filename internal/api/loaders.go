@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"plugin"
@@ -35,7 +36,7 @@ func loadServices(router *Router) error {
 
 		fileProps, err := openapi.GetPropertiesFromFilePath(filePath, appCfg)
 		if err != nil {
-			log.Printf("Failed to get file properties from %s: %s\n", filePath, err.Error())
+			slog.Error("Failed to get file properties", "path", filePath, "error", err)
 			// don't return error, as we have more files to process
 			return nil
 		}
@@ -78,7 +79,7 @@ func loadServices(router *Router) error {
 
 	wg.Wait()
 
-	log.Printf("Registering fixed services...\n")
+	slog.Info("Registering fixed services...")
 	for _, fileProps := range fixedFiles {
 		wg.Add(1)
 
@@ -151,13 +152,13 @@ func loadContexts(router *Router) error {
 
 	for p := range ch {
 		if p.err != nil {
-			log.Printf("Failed to parse context file %s: %s\n", p.filePath, p.err.Error())
+			slog.Error("Failed to parse context file", "path", p.filePath, "error", p.err)
 			continue
 		}
 		base := filepath.Base(p.filePath)
 		ext := filepath.Ext(base)
 		name := base[0 : len(base)-len(ext)]
-		log.Printf("Adding context: %s from %s", name, filepath.Base(p.filePath))
+		slog.Info(fmt.Sprintf("Adding context: %s from %s", name, filepath.Base(p.filePath)))
 
 		cts[name] = p.ctx.Result
 		aliases[name] = p.ctx.Aliases
@@ -171,7 +172,7 @@ func loadContexts(router *Router) error {
 			if res := types.GetValueByDottedPath(cts[ns], nsPath); res != nil {
 				types.SetValueByDottedPath(cts[ctxName], ctxSourceKey, res)
 			} else {
-				log.Printf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey)
+				slog.Error(fmt.Sprintf("context %s requires alias %s, but it's not defined", ctxName, ctxSourceKey))
 			}
 		}
 	}
@@ -218,11 +219,11 @@ func loadPlugins(router *Router) error {
 		pluginPath := filepath.Join(dir, file.Name())
 		p, err := plugin.Open(pluginPath)
 		if err != nil {
-			log.Printf("Failed to load plugin %s: %v", pluginPath, err)
+			slog.Error("Failed to load plugin", "path", pluginPath, "error", err)
 			continue
 		}
 
-		log.Printf("Loaded plugin: %s", pluginPath)
+		slog.Info(fmt.Sprintf("Loaded plugin: %s", pluginPath))
 		plugs = append(plugs, p)
 	}
 

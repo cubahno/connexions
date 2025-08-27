@@ -74,7 +74,7 @@ func GetRequestFile(r *http.Request, fieldName string) (*UploadedFile, error) {
 	// Get the uploaded file
 	file, header, _ := r.FormFile(fieldName)
 	if file != nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 	} else {
 		return nil, nil
 	}

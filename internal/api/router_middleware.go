@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"plugin"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/cubahno/connexions/internal/config"
 	"github.com/cubahno/connexions_plugin"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sony/gobreaker/v2"
 )
 
@@ -47,7 +47,6 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 // For example, in tests or when fetching static files.
 func ConditionalLoggingMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		logger := middleware.DefaultLogger(next)
 		disableLogger := os.Getenv("DISABLE_LOGGER") == "true"
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +54,26 @@ func ConditionalLoggingMiddleware(cfg *config.Config) func(http.Handler) http.Ha
 				next.ServeHTTP(w, r)
 				return
 			}
-			logger.ServeHTTP(w, r)
+
+			// Read request body
+			var requestBody []byte
+			if r.Body != nil {
+				requestBody, _ = io.ReadAll(r.Body)
+				r.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+			}
+
+			start := time.Now()
+			next.ServeHTTP(w, r)
+			duration := time.Since(start)
+
+			slog.Info("incoming HTTP request",
+				slog.String("method", r.Method),
+				slog.String("path", r.URL.Path),
+				slog.Int("status", 0), // omit or set manually
+				slog.Duration("duration", duration),
+				slog.Any("headers", r.Header),
+				slog.String("request_body", string(requestBody)),
+			)
 		})
 	}
 }
@@ -80,7 +98,7 @@ func CreateCacheRequestMiddleware(params *MiddlewareParams) func(http.Handler) h
 				return
 			}
 
-			log.Printf("Cache hit for %s", req.URL.Path)
+			slog.Info(fmt.Sprintf("Cache hit for %s", req.URL.Path))
 
 			latency := cfg.GetLatency()
 			if latency > 0 {
@@ -114,31 +132,31 @@ func CreateBeforeHandlerMiddleware(params *MiddlewareParams) func(http.Handler) 
 			}
 
 			for _, fn := range cfg.Middleware.BeforeHandler {
-				log.Printf("Service has before handler middleware %s defined", fn)
+				slog.Info(fmt.Sprintf("Service has before handler middleware %s defined", fn))
 
 				symbol, err := p.Lookup(fn)
 				if err != nil {
-					log.Printf("middleware function not found for %s\n", fn)
+					slog.Error(fmt.Sprintf("middleware function not found for %s\n", fn))
 					next.ServeHTTP(w, req)
 					return
 				}
 
 				mw, ok := symbol.(func(*connexions_plugin.RequestedResource) ([]byte, error))
 				if !ok {
-					log.Printf("invalid middleware function signature for %s\n", fn)
+					slog.Error(fmt.Sprintf("invalid middleware function signature for %s", fn))
 					next.ServeHTTP(w, req)
 					return
 				}
 
 				response, err := mw(record)
 				if err != nil {
-					log.Printf("Error calling middleware: %v", err)
+					slog.Error("Error calling middleware", "error", err)
 					next.ServeHTTP(w, req)
 					return
 				}
 
 				if response != nil {
-					log.Printf("middleware %s applied", fn)
+					slog.Info(fmt.Sprintf("middleware %s applied", fn))
 					_, _ = w.Write(response)
 					params.history.SetResponse(req, &connexions_plugin.HistoryResponse{
 						Data:       response,
@@ -176,7 +194,7 @@ func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 			isOpen := counts.Requests >= 3 && failureRatio >= 0.6
 			if isOpen {
-				log.Printf("Circuit breaker is open for %s, failure ratio: %v", cfg.URL, failureRatio)
+				slog.Info(fmt.Sprintf("Circuit breaker is open for %s, failure ratio: %v", cfg.URL, failureRatio))
 			}
 			return isOpen
 		},
@@ -203,7 +221,7 @@ func CreateUpstreamRequestMiddleware(params *MiddlewareParams) func(http.Handler
 			}
 
 			if err != nil {
-				log.Printf("Error fetching upstream service %s: %s", cfg.URL, err)
+				slog.Error("Error fetching upstream service", "url", cfg.URL, "error", err)
 			}
 
 			// Proceed to the next handler if no upstream service matched
@@ -280,7 +298,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 	}
 	upReq.Header.Set("User-Agent", "Connexions/1.0")
 
-	log.Printf("Request Method: %s, URL: %s, Headers: %+v", upReq.Method, upReq.URL.String(), upReq.Header)
+	slog.Info("Upstream request", "method", upReq.Method, "url", upReq.URL.String(), "headers", upReq.Header)
 	resp, err := client.Do(upReq)
 	if err != nil {
 		return nil, fmt.Errorf("error calling upstream service %s: %s", upReq.URL.String(), err)
@@ -288,7 +306,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 
 	statusCode := resp.StatusCode
 
-	defer resp.Body.Close()
+	defer func() { _ = req.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response from upstream service %s: %s", upReq.URL, err)
@@ -302,7 +320,7 @@ func getUpstreamResponse(params *MiddlewareParams, req *http.Request) ([]byte, e
 		return nil, fmt.Errorf("upstream response failed with status code %d, body: %s", statusCode, string(body))
 	}
 
-	log.Printf("received successful upstream response: %s", string(body))
+	slog.Info("received successful upstream response", "body", string(body))
 
 	historyResponse := &connexions_plugin.HistoryResponse{
 		Data:           body,
@@ -337,7 +355,7 @@ func handleResponseMiddleware(params *MiddlewareParams, request *http.Request) (
 		// Lookup the user-defined function
 		symbol, err := params.Plugin.Lookup(funcName)
 		if err != nil {
-			log.Printf("service %s does not have any callback function %s", service, funcName)
+			slog.Error(fmt.Sprintf("service %s does not have any callback function %s", service, funcName))
 			return response.Data, nil
 		}
 

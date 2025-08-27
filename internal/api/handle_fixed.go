@@ -1,7 +1,8 @@
 package api
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 
 // registerFixedRoutes registers fixed routes for a service.
 func registerFixedRoute(fileProps *openapi.FileProperties, router *Router) *RouteDescription {
-	log.Printf("Registering fixed %s route for %s at %s\n", fileProps.Method, fileProps.ServiceName, fileProps.Resource)
+	slog.Info(fmt.Sprintf("Registering fixed %s route for %s at %s", fileProps.Method, fileProps.ServiceName, fileProps.Resource))
 
 	baseResource := strings.TrimSuffix(fileProps.Prefix+fileProps.Resource, "/")
 	if baseResource == "" {

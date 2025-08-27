@@ -5,7 +5,7 @@ package api
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -109,7 +109,7 @@ func TestCreateHomeRoutes_import(t *testing.T) {
 
 		file, err := writer.CreateFormFile(fieldName, fileName)
 		if err != nil {
-			log.Printf("Error creating form file: %s\n", err)
+			slog.Error("Error creating form file", "error", err)
 			return nil, nil
 		}
 

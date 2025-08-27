@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,7 +36,7 @@ func createContextRoutes(router *Router) error {
 
 	url := router.Config.App.ContextURL
 	url = "/" + strings.Trim(url, "/")
-	log.Printf("Mounting context URLs at %s\n", url)
+	slog.Info(fmt.Sprintf("Mounting context URLs at %s", url))
 
 	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)

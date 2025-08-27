@@ -1,7 +1,8 @@
 package openapi
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
@@ -103,7 +104,7 @@ func (d *KinDocument) GetSecurity() SecurityComponents {
 				Name:   v.Name,
 			}
 		} else if ref := schemeRef.Ref; ref != "" {
-			log.Printf("Security scheme reference %s resolve is not supported yet", ref)
+			slog.Error(fmt.Sprintf("Security scheme reference %s resolve is not supported yet", ref))
 			continue
 		}
 	}
@@ -268,7 +269,7 @@ func (op *KinOperation) getSecurity() []string {
 	}
 
 	for _, securityReq := range *securityReqs {
-		for secName, _ := range securityReq {
+		for secName := range securityReq {
 			res = append(res, secName)
 		}
 	}

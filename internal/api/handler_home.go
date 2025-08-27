@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -166,7 +167,7 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", asFilename))
 
 	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	only := []string{
 		path.Base(h.router.Config.App.Paths.Services),
@@ -223,7 +224,7 @@ func (h *HomeHandler) export(w http.ResponseWriter, r *http.Request) {
 		if !info.IsDir() {
 			file, err := os.Open(path)
 			if err != nil {
-				log.Printf("Failed to open file %s: %s\n", path, err.Error())
+				slog.Error("Failed to open file", "path", path, "error", err)
 				return nil
 			}
 			defer file.Close()
@@ -336,7 +337,7 @@ func (h *HomeHandler) postman(w http.ResponseWriter, r *http.Request) {
 
 	// Create a ZIP writer
 	zipWriter := zip.NewWriter(w)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	file1, _ := zipWriter.Create("connexions-collection.json")
 	_, _ = file1.Write(callJs)

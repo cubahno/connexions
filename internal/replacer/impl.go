@@ -2,7 +2,7 @@ package replacer
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 	"strconv"
 	"strings"
@@ -323,14 +323,14 @@ func ApplySchemaConstraints(openAPISchema any, res any) any {
 	case types.TypeInteger:
 		floatValue, err := types.ToFloat64(res)
 		if err != nil {
-			log.Printf("Failed to convert %v to float64: %v", res, err)
+			slog.Error("Failed to convert value to float64", "value", res, "error", err)
 			return nil
 		}
 		return int64(applySchemaNumberConstraints(schema, floatValue))
 	case types.TypeNumber:
 		floatValue, err := types.ToFloat64(res)
 		if err != nil {
-			log.Printf("Failed to convert %v to float64: %v", res, err)
+			slog.Error("Failed to convert value to float64", "value", res, "error", err)
 			return nil
 		}
 		return applySchemaNumberConstraints(schema, floatValue)

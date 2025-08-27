@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -63,7 +63,7 @@ func createServiceRoutes(router *Router) error {
 
 	url := router.Config.App.ServiceURL
 	url = "/" + strings.Trim(url, "/")
-	log.Printf("Mounting service URLs at %s\n", url)
+	slog.Info(fmt.Sprintf("Mounting service URLs at %s", url))
 
 	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)

@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -80,7 +80,7 @@ func createPostmanCollection(service *ServiceItem, opts *generateResourceOptions
 	for _, route := range service.Routes {
 		res, err := generateResource(service, route, opts)
 		if err != nil {
-			log.Printf("Error generating resource: %v", err)
+			slog.Error("Error generating resource", "error", err)
 			return nil
 		}
 
@@ -91,7 +91,7 @@ func createPostmanCollection(service *ServiceItem, opts *generateResourceOptions
 
 		genReq := res.Request
 		if genReq == nil {
-			log.Printf("Failed to generate request for %s", route.Path)
+			slog.Error(fmt.Sprintf("Failed to generate request for %s", route.Path))
 			continue
 		}
 
@@ -227,7 +227,7 @@ func getPostmanBody(contentType string, body string) *PostmanBody {
 		urlencoded := make([]*PostmanKeyValue, 0)
 		mapped := make(map[string]string)
 		if err := json.Unmarshal([]byte(body), &mapped); err != nil {
-			log.Printf("Error unmarshalling form-urlencoded body: %v\n", err)
+			slog.Error("Error unmarshalling form-urlencoded body", "error", err)
 			return nil
 		}
 
@@ -247,7 +247,7 @@ func getPostmanBody(contentType string, body string) *PostmanBody {
 		formData := make([]*PostmanKeyValue, 0)
 		mapped := make(map[string]string)
 		if err := json.Unmarshal([]byte(body), &mapped); err != nil {
-			log.Printf("Error unmarshalling form-data body: %v\n", err)
+			slog.Error("Error unmarshalling form-data body", "error", err)
 			return nil
 		}
 
@@ -273,14 +273,14 @@ func prettyPrintPostmanJSON(jsonStr string) string {
 	var jsonData map[string]any
 	err := json.Unmarshal([]byte(jsonStr), &jsonData)
 	if err != nil {
-		log.Printf("Error unmarshalling JSON: %v\n", err)
+		slog.Error("Error unmarshalling JSON", "error", err)
 		return jsonStr
 	}
 
 	// Pretty-print JSON with indentation
 	prettyJSON, err := json.MarshalIndent(jsonData, "", "    ")
 	if err != nil {
-		log.Printf("Error marshalling JSON: %v\n", err)
+		slog.Error("Error marshalling JSON", "error", err)
 		return jsonStr
 	}
 
