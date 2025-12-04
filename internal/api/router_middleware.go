@@ -63,16 +63,22 @@ func ConditionalLoggingMiddleware(cfg *config.Config) func(http.Handler) http.Ha
 			}
 
 			start := time.Now()
-			next.ServeHTTP(w, r)
-			duration := time.Since(start)
 
-			slog.Info("incoming HTTP request",
-				slog.String("method", r.Method),
-				slog.String("path", r.URL.Path),
-				slog.Int("status", 0), // omit or set manually
-				slog.Duration("duration", duration),
-				slog.Any("headers", r.Header),
-				slog.String("request_body", string(requestBody)),
+			next.ServeHTTP(w, r)
+
+			duration := time.Since(start).Milliseconds()
+			headers := make(map[string]string)
+			for name, values := range w.Header() {
+				headers[name] = strings.Join(values, ",")
+			}
+
+			slog.Info(fmt.Sprintf("incoming HTTP request: %s", r.URL.String()),
+				slog.String("req.method", r.Method),
+				slog.String("req.path", r.URL.Path),
+				slog.Int("req.status", 0), // omit or set manually
+				slog.Int64("req.duration", duration),
+				slog.Any("req.headers", headers),
+				slog.String("req.body", string(requestBody)),
 			)
 		})
 	}
