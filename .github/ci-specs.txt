@@ -29,11 +29,9 @@
 3.0/fungenerators.com/barcode.1.5.yml
 3.0/parliament.uk/bills.v1.yml
 3.0/amadeus.com/amadeus-travel-recommendations.1.0.3.yml
-3.0/microsoft.com/graph.1.0.1.yml
 3.0/ote-godaddy.com/domains.1.0.0.yml
 3.1/misc/posthog.yml
 3.1/misc/attio.com.yml
 3.1/adyen/CheckoutService-v69.yml
 3.1/adyen/PaymentService-v30.yml
-3.1/codat.io/-accounting.2.1.0.yml
 3.1/xero.com/xero_accounting.2.9.4.yml
