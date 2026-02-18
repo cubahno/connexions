@@ -57,6 +57,9 @@ jobs:
       with:
         go-version: "1.25.5"
 
+    - name: Fetch specs for embed
+      run: make fetch-specs
+
     - name: Build
       run: go build -v ./...
 
@@ -101,6 +104,9 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: "1.25.5"
+
+    - name: Fetch specs for embed
+      run: make fetch-specs
 
     - name: Run tests and get coverage
       run: |
