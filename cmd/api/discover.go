@@ -12,14 +12,21 @@ import (
 
 // DiscoverOptions contains options for discovering services.
 type DiscoverOptions struct {
+	// Optional: services directory to scan
+	ServicesDir string
+
 	// Optional: output file path (default: cmd/server/services_gen.go)
 	OutputFile string
 }
 
 // Discover scans the services directory and generates an imports file.
 func Discover(opts DiscoverOptions) error {
-	paths := config.NewPaths("")
-	serviceDir := paths.Services
+	serviceDir := opts.ServicesDir
+	if serviceDir == "" {
+		paths := config.NewPaths("")
+		serviceDir = paths.Services
+	}
+
 	serviceDirAbs, err := filepath.Abs(serviceDir)
 	if err != nil {
 		return fmt.Errorf("getting absolute path: %w", err)
