@@ -11,7 +11,15 @@ import (
 func main() {
 	flag.Parse()
 
-	err := cmdapi.Discover(cmdapi.DiscoverOptions{})
+	// Get services directory from positional argument (default: resources/data/services)
+	servicesDir := ""
+	if flag.NArg() > 0 {
+		servicesDir = flag.Arg(0)
+	}
+
+	err := cmdapi.Discover(cmdapi.DiscoverOptions{
+		ServicesDir: servicesDir,
+	})
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
