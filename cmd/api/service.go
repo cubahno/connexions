@@ -98,8 +98,25 @@ func GenerateService(opts ServiceOptions) error {
 	configFile := filepath.Join(setupDir, "codegen.yml")
 	serviceConfigFile := filepath.Join(setupDir, "config.yml")
 
+	// For static services, regenerate openapi.yml from the data directory
+	// This ensures changes to static files are reflected in the spec
+	if isStaticService(opts.SpecPath, opts.ServiceType) && opts.SpecPath != "" {
+		specContents, err := generateSpecFromStaticDir(opts.SpecPath, opts.Name)
+		if err != nil {
+			return fmt.Errorf("generating spec from static directory %s: %w", opts.SpecPath, err)
+		}
+
+		specPath := filepath.Join(setupDir, "openapi.yml")
+		if err := os.WriteFile(specPath, specContents, 0644); err != nil {
+			return fmt.Errorf("writing generated spec to %s: %w", specPath, err)
+		}
+		if !opts.Quiet {
+			fmt.Printf("Regenerated OpenAPI spec from static files: %s\n", specPath)
+		}
+	}
+
 	// Find OpenAPI spec file
-	// For static services, the spec is generated in the setup directory by ensureSetupDir()
+	// For static services, the spec was just regenerated above
 	// For OpenAPI services with a URL or file path, use that directly
 	var specFile string
 	if opts.SpecPath != "" && !isStaticService(opts.SpecPath, opts.ServiceType) {
@@ -531,9 +548,12 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 
 	// Prepare template data
 	// For URLs, we keep the URL as SpecPath so it's embedded in generate.go
-	// For local files, we leave SpecPath empty (will fallback to local openapi.yml/json)
+	// For static services, we keep the directory path so regeneration works
+	// For local OpenAPI files, we leave SpecPath empty (will fallback to local openapi.yml/json)
 	specPath := ""
 	if files.IsURL(opts.SpecPath) {
+		specPath = opts.SpecPath
+	} else if serviceType == "static" && opts.SpecPath != "" {
 		specPath = opts.SpecPath
 	}
 	data := setupTemplateData{
