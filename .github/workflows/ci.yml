@@ -13,12 +13,39 @@ on:
 permissions: read-all
 
 jobs:
-  linter:
-    if: github.event_name == 'pull_request'
+  fetch-specs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Cache specs
+        id: cache-specs
+        uses: actions/cache@v4
+        with:
+          path: testdata/specs
+          key: specs-${{ hashFiles('Makefile') }}
+      - name: Fetch specs
+        if: steps.cache-specs.outputs.cache-hit != 'true'
+        run: make fetch-specs
+      - name: Upload specs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: specs
+          path: testdata/specs
+          retention-days: 1
+
+  linter:
+    if: github.event_name == 'pull_request'
+    needs: fetch-specs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download specs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: specs
+          path: testdata/specs
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -26,7 +53,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v1.64.5
+          version: v2.10.1
           args: --timeout 10m
 
   linter-openapi:
@@ -37,6 +64,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch PR head
+        run: git fetch origin ${{ github.event.pull_request.head.sha }}
       - name: Lint OpenAPI spec
         uses: github/super-linter@v7
         env:
@@ -46,19 +77,23 @@ jobs:
 
   test:
     if: github.event_name == 'pull_request'
+    needs: fetch-specs
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Download specs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: specs
+        path: testdata/specs
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: "1.25.5"
-
-    - name: Fetch specs for embed
-      run: make fetch-specs
 
     - name: Build
       run: go build -v ./...
@@ -86,6 +121,26 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.out
 
+  integration-test:
+    if: github.event_name == 'pull_request'
+    needs: fetch-specs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download specs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: specs
+        path: testdata/specs
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.25.5"
+
     - name: Integration Tests
       run: |
         # Random sample of 250 specs on PRs
@@ -94,19 +149,23 @@ jobs:
   # Only runs on push to master to update the coverage badge
   generate_badge:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: fetch-specs
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Download specs artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: specs
+        path: testdata/specs
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version: "1.25.5"
-
-    - name: Fetch specs for embed
-      run: make fetch-specs
 
     - name: Run tests and get coverage
       run: |

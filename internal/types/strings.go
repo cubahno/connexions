@@ -94,7 +94,7 @@ func DeduplicatePathParams(path string) string {
 			seen[name] = count + 1
 
 			if count > 0 {
-				result.WriteString(fmt.Sprintf("{%s_%d}", name, count+1))
+				fmt.Fprintf(&result, "{%s_%d}", name, count+1)
 			} else {
 				result.WriteString(path[i:end])
 			}

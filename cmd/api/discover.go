@@ -101,7 +101,7 @@ func generateImportsFile(moduleName, servicesDir string, services []string) stri
 	if len(services) > 0 {
 		sb.WriteString("import (\n")
 		for _, service := range services {
-			sb.WriteString(fmt.Sprintf("\t_ \"%s/%s/%s\"\n", moduleName, servicesDir, service))
+			fmt.Fprintf(&sb, "\t_ \"%s/%s/%s\"\n", moduleName, servicesDir, service)
 		}
 		sb.WriteString(")\n")
 	}
