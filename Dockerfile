@@ -5,18 +5,18 @@ RUN apt-get install -y git make
 WORKDIR /app
 
 COPY go.mod go.sum ./
-COPY vendor/ ./vendor/
+RUN go mod download
 COPY . .
 
 # Build tools (will be included in final image for user projects)
-RUN go build -mod=vendor -o /app/.build/gen-discover ./cmd/gen/discover
-RUN go build -mod=vendor -o /app/.build/gen-service ./cmd/gen/service
+RUN go build -o /app/.build/gen-discover ./cmd/gen/discover
+RUN go build -o /app/.build/gen-service ./cmd/gen/service
 
 # Generate service imports for connexions itself
 RUN /app/.build/gen-discover
 
-# Build server using vendor (no need to download modules)
-RUN go build -mod=vendor -o /app/.build/server/bootstrap ./cmd/server
+# Build server
+RUN go build -o /app/.build/server/bootstrap ./cmd/server
 
 # Get version
 RUN git describe --tags --abbrev=0 > version.txt || echo "dev" > version.txt
@@ -31,7 +31,7 @@ COPY --from=builder /app/.build/gen-discover /usr/local/bin/gen-discover
 COPY --from=builder /app/.build/gen-service /usr/local/bin/gen-service
 COPY --from=builder /app/go.mod /app/go.mod
 COPY --from=builder /app/go.sum /app/go.sum
-COPY --from=builder /app/vendor /app/vendor
+COPY --from=builder /go/pkg/mod /go/pkg/mod
 COPY --from=builder /app/cmd /app/cmd
 COPY --from=builder /app/pkg /app/pkg
 COPY --from=builder /app/internal /app/internal
