@@ -40,8 +40,8 @@ func SetupSandbox(sandboxDir string) error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	// Directories to copy (vendor included for faster builds - avoids module resolution)
-	dirsToCopy := []string{"cmd", "pkg", "internal", "resources", "vendor"}
+	// Directories to copy
+	dirsToCopy := []string{"cmd", "pkg", "internal", "resources"}
 	for _, dir := range dirsToCopy {
 		src := filepath.Join(cwd, dir)
 		dst := filepath.Join(sandboxDir, dir)

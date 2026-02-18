@@ -52,7 +52,7 @@ fetch-specs:
 
 .PHONY: test-integration
 test-integration:
-	@SPEC="$(SPEC)" SPECS="$(or $(SPECS),$(filter-out $@,$(MAKECMDGOALS)))" go test -v -run=TestIntegration -timeout=$(or $(TEST_TIMEOUT),60m) -count=1 . 2>&1 | grep -v "^=== RUN"
+	@bash -c 'set -o pipefail && SPEC="$(SPEC)" SPECS="$(or $(SPECS),$(filter-out $@,$(MAKECMDGOALS)))" go test -v -run=TestIntegration -timeout=$(or $(TEST_TIMEOUT),60m) -count=1 . 2>&1 | grep -v "^=== RUN"'
 # Usage: SPECS=3.0/misc make test-integration
 # Usage: SPECS="spec1.yml spec2.yml" make test-integration
 # Usage: MAX_CONCURRENCY=8 make test-integration
