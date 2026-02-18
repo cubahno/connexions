@@ -27,19 +27,22 @@ var openapiSpec []byte
 //go:embed setup/codegen.yml
 var codegenConfigSrc []byte
 
-const serviceName = "petstore"
+var cfg *config.ServiceConfig
 
-// Register registers the Petstore service with the central router.
-// This function is called automatically during service discovery.
-func Register(router *api.Router) {
-	cfg, err := config.NewServiceConfigFromBytes(configSrc)
+func init() {
+	var err error
+	cfg, err = config.NewServiceConfigFromBytes(configSrc)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Failed to parse config for %s", serviceName),
-			"error", err,
-			"service", serviceName,
-		)
+		slog.Error("Failed to parse service config", "error", err)
 		return
 	}
+	loader.Register(cfg.Name, Register)
+}
+
+// Register registers the service with the central router.
+// This function is called automatically during service discovery.
+func Register(router *api.Router) {
+	serviceName := cfg.Name
 
 	// Load codegen config to apply the same filtering at runtime
 	var codegenCfg codegen.Configuration
@@ -78,9 +81,4 @@ func Register(router *api.Router) {
 		"routes", len(routes),
 		"service", serviceName,
 	)
-}
-
-func init() {
-	// Auto-register this service with the loader registry
-	loader.Register(serviceName, Register)
 }
