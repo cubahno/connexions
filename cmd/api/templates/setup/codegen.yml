@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doordash-oss/oapi-codegen-dd/main/configuration-schema.json
 package: types
 output:
   use-single-file: false

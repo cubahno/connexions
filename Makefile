@@ -4,7 +4,7 @@ VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 GO_VERSION := $(shell awk '/^go / {print $$2}' go.mod)
 PACKAGE := github.com/cubahno/connexions/v2
-GO_BUILD_FLAGS ?= -mod=vendor
+GO_BUILD_FLAGS ?=
 
 MIN_COVERAGE = 90
 
@@ -31,7 +31,7 @@ lint:
 .PHONY: build
 build: clean
 	@echo "Go version: $(GO_VERSION)"
-	@go mod download && go mod vendor
+	@go mod download
 	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/server/bootstrap ./cmd/server
 
 .PHONY: test

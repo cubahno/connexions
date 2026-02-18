@@ -1,5 +1,10 @@
 .PHONY: generate tidy test lint lint-ci tidy-ci check-fmt
 
+GOBIN ?= $(shell go env GOBIN)
+ifeq ($(GOBIN),)
+GOBIN := $(shell go env GOPATH)/bin
+endif
+
 generate:
 	go generate ./...
 
