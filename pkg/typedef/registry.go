@@ -28,8 +28,9 @@ func (td *TypeDefinitionRegistry) GetTypeDefinitionLookup() map[string]*codegen.
 }
 
 // FindOperation finds an operation by path and method.
+// Method is case-insensitive (normalized to uppercase).
 func (td *TypeDefinitionRegistry) FindOperation(path, method string) *schema.Operation {
-	return td.operationsLookUp[fmt.Sprintf("%s:%s", path, method)]
+	return td.operationsLookUp[fmt.Sprintf("%s:%s", path, strings.ToUpper(method))]
 }
 
 // GetRouteInfo returns minimal route info for all operations.
