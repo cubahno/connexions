@@ -27,11 +27,11 @@ See the [documentation](https://cubahno.github.io/connexions/) for detailed usag
 Scans a directory for `register.go` files and generates an imports file for service auto-registration.
 
 ```bash
-# Scan default directory (resources/data/services)
-go run ./cmd/gen/discover
+# Scan default directory
+go run github.com/cubahno/connexions/v2/cmd/gen/discover@latest
 
 # Scan custom directory
-go run ./cmd/gen/discover pkg/services
+go run github.com/cubahno/connexions/v2/cmd/gen/discover@latest pkg/services
 ```
 
 This generates `cmd/server/services_gen.go` with imports for all discovered services.

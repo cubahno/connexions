@@ -12,7 +12,7 @@ import (
 
 // DiscoverOptions contains options for discovering services.
 type DiscoverOptions struct {
-	// Optional: services directory to scan (default: resources/data/services)
+	// Optional: services directory to scan
 	ServicesDir string
 
 	// Optional: output file path (default: cmd/server/services_gen.go)
