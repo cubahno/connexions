@@ -191,7 +191,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 	t.Run("upstream service times out", func(t *testing.T) {
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(2 * time.Millisecond)
+			time.Sleep(200 * time.Millisecond)
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"message": "OK"}`))
 		}))
@@ -205,7 +205,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 				Upstream: &config.UpstreamConfig{
 					URL: upstreamServer.URL,
 					FailOn: &config.UpstreamFailOnConfig{
-						TimeOut: 1 * time.Millisecond,
+						TimeOut: 50 * time.Millisecond,
 					},
 				},
 			},
