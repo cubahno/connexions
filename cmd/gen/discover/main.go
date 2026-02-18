@@ -11,7 +11,7 @@ import (
 func main() {
 	flag.Parse()
 
-	// Get services directory from positional argument (default: resources/data/services)
+	// Get services directory from positional argument
 	servicesDir := ""
 	if flag.NArg() > 0 {
 		servicesDir = flag.Arg(0)
