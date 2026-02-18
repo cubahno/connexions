@@ -121,10 +121,46 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: coverage.out
 
+  prepare-integration-matrix:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up matrix
+      id: set-matrix
+      run: |
+        # Read specs from file, skip comments and empty lines, split into 4 batches
+        specs=$(grep -v '^#' .github/ci-specs.txt | grep -v '^$' | tr '\n' ' ')
+        specs_array=($specs)
+        total=${#specs_array[@]}
+        batch_size=$(( (total + 3) / 4 ))
+
+        matrix='{"include":['
+        for i in 0 1 2 3; do
+          start=$((i * batch_size))
+          batch_specs=""
+          for j in $(seq $start $((start + batch_size - 1))); do
+            if [ $j -lt $total ]; then
+              batch_specs="$batch_specs ${specs_array[$j]}"
+            fi
+          done
+          if [ -n "$batch_specs" ]; then
+            matrix="$matrix{\"batch\":$((i+1)),\"specs\":\"$batch_specs\"},"
+          fi
+        done
+        matrix="${matrix%,}]}"
+        echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
   integration-test:
     if: github.event_name == 'pull_request'
-    needs: fetch-specs
+    needs: [fetch-specs, prepare-integration-matrix]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-integration-matrix.outputs.matrix) }}
 
     steps:
     - name: Checkout code
@@ -141,10 +177,9 @@ jobs:
       with:
         go-version: "1.25.5"
 
-    - name: Integration Tests
+    - name: Integration Tests (Batch ${{ matrix.batch }})
       run: |
-        # Random sample of 250 specs on PRs
-        NO_CACHE=1 RANDOM_SPECS=250 MAX_CONCURRENCY=10 make test-integration
+        NO_CACHE=1 SPECS="${{ matrix.specs }}" make test-integration
 
   # Only runs on push to master to update the coverage badge
   generate_badge:
