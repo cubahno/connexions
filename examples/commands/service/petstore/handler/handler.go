@@ -129,6 +129,7 @@ func (h *Handler) Generate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	req.Method = strings.ToUpper(req.Method)
 
 	res := h.service.generateRequest(&req, nil)
 	slog.Debug("Generated request", "request", string(res))

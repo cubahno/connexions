@@ -85,7 +85,9 @@ func NewLazyTypeDefinitionRegistry(specBytes []byte, codegenCfg codegen.Configur
 
 // FindOperation finds an operation by path and method.
 // If not cached, it parses the operation on-demand and caches it.
+// Method is case-insensitive (normalized to uppercase).
 func (r *LazyTypeDefinitionRegistry) FindOperation(path, method string) *schema.Operation {
+	method = strings.ToUpper(method)
 	key := fmt.Sprintf("%s:%s", path, method)
 
 	// Check cache first
