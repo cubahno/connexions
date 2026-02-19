@@ -3,6 +3,7 @@ package integrationtest
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -136,8 +137,9 @@ func SetupService(specFile, sandboxDir string, opts *RuntimeOptions) (string, er
 	return serviceName, nil
 }
 
-// GenerateServiceWithTimeout runs go generate with a custom timeout
-func GenerateServiceWithTimeout(sandboxDir, serviceName string, timeout time.Duration) error {
+// RunGoGenerate runs go generate for a service with a timeout.
+// This regenerates the service code including server/main.go.
+func RunGoGenerate(sandboxDir, serviceName string, timeout time.Duration) error {
 	paths := config.NewPaths(sandboxDir)
 	generateFile := filepath.Join(paths.Services, serviceName, ServiceGenerateFile)
 
@@ -159,7 +161,7 @@ func GenerateServiceWithTimeout(sandboxDir, serviceName string, timeout time.Dur
 	}
 
 	if err := cmd.Run(); err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return fmt.Errorf("go generate timed out after %s", timeout)
 		}
 		if !isDebugEnabled() {

@@ -3,7 +3,6 @@ package integrationtest
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -156,8 +155,8 @@ func RunPipeline(batches [][]string, cfg *PipelineConfig) ([]IntegrationResult, 
 			if cfg.OnBatchStart != nil {
 				var batchSize int64
 				for _, spec := range specs {
-					if info, err := os.Stat(spec); err == nil {
-						batchSize += info.Size()
+					if size, err := getSpecFileSize(spec); err == nil {
+						batchSize += size
 					}
 				}
 				cfg.OnBatchStart(batchID+1, cfg.TotalBatches, len(specs), batchSize)
@@ -522,7 +521,7 @@ func prepareBatch(batchID int, specs []string, cfg *PipelineConfig, isInterrupte
 			if isInterrupted() {
 				return
 			}
-			if err := GenerateServiceWithTimeout(cfg.SandboxDir, serviceName, cfg.RuntimeOpts.ServiceGenerateTimeout); err != nil {
+			if err := RunGoGenerate(cfg.SandboxDir, serviceName, cfg.RuntimeOpts.ServiceGenerateTimeout); err != nil {
 				mu.Lock()
 				failedSpecs = append(failedSpecs, FailedSpec{Spec: spec, Error: fmt.Errorf("generate %s: %w", serviceName, err)})
 				mu.Unlock()

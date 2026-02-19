@@ -8,14 +8,11 @@ import (
 	"os"
 	"os/signal"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/cubahno/connexions/v2/internal/integrationtest"
-	"github.com/cubahno/connexions/v2/pkg/api"
 )
 
 //go:embed testdata/specs
@@ -113,12 +110,7 @@ func TestIntegration(t *testing.T) {
 
 	maxFails = runtimeOpts.MaxFails
 
-	// Use batched pipeline for multiple specs, individual mode for single spec or when disabled
-	if runtimeOpts.BatchSizeBytes > 0 && len(specs) > 1 {
-		runBatchedPipeline(t, specs, sandboxDir, runtimeOpts)
-	} else {
-		runIndividualPipeline(t, specs, sandboxDir, runtimeOpts)
-	}
+	runBatchedPipeline(t, specs, sandboxDir, runtimeOpts)
 }
 
 // runBatchedPipeline runs tests using batched builds with pipelining
@@ -211,168 +203,4 @@ func runBatchedPipeline(t *testing.T, specs []string, sandboxDir string, runtime
 	}
 
 	integrationtest.ReportResults(t, allResults, serviceStatsMap, totalBuildTime, batchStats)
-}
-
-// runIndividualPipeline runs tests with individual builds per service (original behavior)
-func runIndividualPipeline(t *testing.T, specs []string, sandboxDir string, runtimeOpts *integrationtest.RuntimeOptions) {
-	log.Printf("Testing %d services (max %d failures before abort)...\n", len(specs), maxFails)
-
-	// Set up interrupt handling
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(sigCh)
-
-	semaphore := make(chan struct{}, runtimeOpts.MaxConcurrency)
-	var wg sync.WaitGroup
-	var portCounter atomic.Int32
-	var failCount atomic.Int32
-	var aborted atomic.Bool
-	var completed atomic.Int32
-
-	var resultsMu sync.Mutex
-	var allResults []integrationtest.IntegrationResult
-	serviceStatsMap := make(map[string]*integrationtest.ServiceStats)
-
-	// Monitor for interrupt signal
-	go func() {
-		<-sigCh
-		log.Printf("\n⚠️  Interrupted! Waiting for in-progress tests to finish...\n")
-		aborted.Store(true)
-	}()
-
-	for _, specFile := range specs {
-		if aborted.Load() {
-			log.Printf("⚠️  Aborting remaining services\n")
-			break
-		}
-
-		semaphore <- struct{}{}
-		wg.Add(1)
-
-		go func(spec string) {
-			defer wg.Done()
-			defer func() { <-semaphore }()
-
-			if aborted.Load() {
-				return
-			}
-
-			serviceName := api.NormalizeServiceName(spec)
-			port := basePort + int(portCounter.Add(1))
-
-			log.Printf("  ⏳ %s\n", serviceName)
-			results, stats := runServicePipeline(spec, serviceName, sandboxDir, port, runtimeOpts)
-
-			resultsMu.Lock()
-			allResults = append(allResults, results...)
-			serviceStatsMap[serviceName] = stats
-			resultsMu.Unlock()
-
-			done := int(completed.Add(1))
-
-			for _, r := range results {
-				if !r.Ok {
-					currentFails := int(failCount.Add(1))
-					if currentFails >= maxFails {
-						if aborted.CompareAndSwap(false, true) {
-							log.Printf("⚠️  Max failures (%d) reached!\n", maxFails)
-						}
-					}
-				}
-			}
-
-			status := "✅"
-			if stats.Fails > 0 {
-				status = "❌"
-			}
-			log.Printf("  [%d/%d] %s %s (%d/%d ok, %.1fs)\n",
-				done, len(specs), status, serviceName, stats.Success, stats.Tested, stats.TTE.Seconds())
-		}(specFile)
-	}
-
-	wg.Wait()
-	integrationtest.ReportResults(t, allResults, serviceStatsMap, 0) // 0 = use TTG+TTC from stats
-}
-
-// runServicePipeline runs the full pipeline for a single service: setup → generate → build → start → test → stop
-func runServicePipeline(specFile, serviceName, sandboxDir string, port int, runtimeOpts *integrationtest.RuntimeOptions) ([]integrationtest.IntegrationResult, *integrationtest.ServiceStats) {
-	emptyStats := &integrationtest.ServiceStats{Name: serviceName}
-
-	// Step 1: Setup
-	if !integrationtest.IsServiceSetup(serviceName, sandboxDir) {
-		if _, err := integrationtest.SetupService(specFile, sandboxDir, runtimeOpts); err != nil {
-			return []integrationtest.IntegrationResult{{
-				Spec:        specFile,
-				Ok:          false,
-				GenerateErr: fmt.Sprintf("Setup failed: %v", err),
-			}}, emptyStats
-		}
-	}
-
-	// Step 2: Generate
-	if err := integrationtest.GenerateServiceWithTimeout(sandboxDir, serviceName, runtimeOpts.ServiceGenerateTimeout); err != nil {
-		return []integrationtest.IntegrationResult{{
-			Spec:        specFile,
-			Ok:          false,
-			GenerateErr: fmt.Sprintf("Generate failed: %v", err),
-		}}, emptyStats
-	}
-
-	// Step 3: Build
-	serverBin, err := integrationtest.BuildServiceServer(sandboxDir, serviceName)
-	if err != nil {
-		return []integrationtest.IntegrationResult{{
-			Spec:        specFile,
-			Ok:          false,
-			GenerateErr: fmt.Sprintf("Build failed: %v", err),
-		}}, emptyStats
-	}
-
-	// Step 4: Start server
-	serverCmd, err := integrationtest.StartServiceServer(serverBin, sandboxDir, port)
-	if err != nil {
-		return []integrationtest.IntegrationResult{{
-			Spec:        specFile,
-			Ok:          false,
-			GenerateErr: fmt.Sprintf("Start failed: %v", err),
-		}}, emptyStats
-	}
-	defer integrationtest.StopServiceServer(serverCmd)
-
-	// Wait for server to be ready
-	serverURL := fmt.Sprintf("http://localhost:%d", port)
-	if err := integrationtest.WaitForServer(serverURL, integrationtest.ServerReadyTimeout, serverCmd); err != nil {
-		return []integrationtest.IntegrationResult{{
-			Spec:        specFile,
-			Ok:          false,
-			GenerateErr: fmt.Sprintf("Server not ready: %v\nstderr: %s", err, serverCmd.GetStderr()),
-		}}, emptyStats
-	}
-
-	// Step 5: Test
-	testStart := time.Now()
-	results, totalEndpoints, testedEndpoints := integrationtest.TestService(specFile, serverURL)
-	testTime := time.Since(testStart)
-
-	// Count successes and failures
-	var success, fails int
-	for _, res := range results {
-		if res.Ok {
-			success++
-		} else {
-			fails++
-		}
-	}
-
-	stats := &integrationtest.ServiceStats{
-		Name:      serviceName,
-		Endpoints: totalEndpoints,
-		Tested:    testedEndpoints,
-		Success:   success,
-		Fails:     fails,
-		LOC:       integrationtest.CountServiceLOC(serviceName, sandboxDir),
-		TTE:       testTime,
-	}
-
-	return results, stats
 }
