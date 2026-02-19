@@ -148,6 +148,19 @@ func TestServiceConfig_GetLatency(t *testing.T) {
 			}, latency)
 		}
 	})
+
+	t.Run("Returns 0 when random exceeds all percentiles", func(t *testing.T) {
+		// Use a percentile that can never match (Key: 0 means 0% chance)
+		cfg := &ServiceConfig{
+			latencies: []*KeyValue[int, time.Duration]{
+				{Key: 0, Value: 50 * time.Millisecond},
+			},
+		}
+
+		// rnd is always 1-100, so it will always exceed Key: 0
+		latency := cfg.GetLatency()
+		assert.Equal(t, time.Duration(0), latency)
+	})
 }
 
 func TestServiceConfig_GetError(t *testing.T) {

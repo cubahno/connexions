@@ -1,0 +1,170 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Connexions Service Config Schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Service name."
+    },
+    "latency": {
+      "type": "string",
+      "description": "Fixed latency (e.g., '100ms')."
+    },
+    "latencies": {
+      "type": "object",
+      "description": "Percentile-based latencies (e.g., p50: 10ms, p99: 100ms).",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "object",
+      "description": "Percentile-based error injection (e.g., p10: 500).",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "validate": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "boolean",
+          "description": "Validate requests.",
+          "default": true
+        },
+        "response": {
+          "type": "boolean",
+          "description": "Validate responses.",
+          "default": false
+        }
+      }
+    },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "boolean",
+          "description": "Cache GET requests.",
+          "default": true
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "description": "OpenAPI spec simplification options.",
+      "properties": {
+        "simplify": {
+          "type": "boolean",
+          "description": "Enable spec simplification.",
+          "default": false
+        },
+        "optional-properties": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "type": "integer",
+              "description": "Max number of optional properties to keep."
+            },
+            "range": {
+              "type": "string",
+              "description": "Random range for optional properties (e.g., '1-6')."
+            }
+          }
+        }
+      }
+    },
+    "resources-prefix": {
+      "type": "string",
+      "description": "Prefix for helper routes outside OpenAPI spec."
+    },
+    "generate": {
+      "type": "object",
+      "description": "Code generation options.",
+      "properties": {
+        "server": {
+          "type": "object",
+          "description": "Enable server/main.go generation when present."
+        }
+      }
+    },
+    "upstream": {
+      "type": "object",
+      "description": "Upstream proxy configuration.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Upstream URL."
+        },
+        "headers": {
+          "type": "object",
+          "description": "Headers to add to upstream requests.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "fail-on": {
+          "type": "object",
+          "description": "Conditions to treat upstream response as failure.",
+          "properties": {
+            "timeout": {
+              "type": "string",
+              "description": "Timeout duration (e.g., '5s')."
+            },
+            "http-status": {
+              "type": "array",
+              "description": "HTTP status codes to treat as failure.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "exact": {
+                    "type": "integer",
+                    "description": "Exact HTTP status code."
+                  },
+                  "range": {
+                    "type": "string",
+                    "description": "HTTP status range (e.g., '500-599')."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "circuit-breaker": {
+          "type": "object",
+          "description": "Circuit breaker configuration.",
+          "properties": {
+            "timeout": {
+              "type": "string",
+              "description": "Time in open state before half-open.",
+              "default": "60s"
+            },
+            "max-requests": {
+              "type": "integer",
+              "description": "Max requests allowed in half-open state.",
+              "default": 1
+            },
+            "interval": {
+              "type": "string",
+              "description": "Interval to clear counts in closed state (0 = never).",
+              "default": "0s"
+            },
+            "min-requests": {
+              "type": "integer",
+              "description": "Min requests before evaluating failure ratio.",
+              "default": 3
+            },
+            "failure-ratio": {
+              "type": "number",
+              "description": "Failure ratio threshold to trip (0.0-1.0).",
+              "default": 0.6,
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

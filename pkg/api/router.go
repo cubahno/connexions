@@ -99,6 +99,7 @@ func (r *Router) RegisterService(
 ) {
 	mwParams := &middleware.Params{
 		ServiceConfig: cfg,
+		StorageConfig: r.config.Storage,
 		History:       r.history,
 	}
 
