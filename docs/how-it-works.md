@@ -7,21 +7,64 @@ This page explains the request flow through Connexions and how different feature
 When a request arrives at Connexions, it passes through a middleware chain:
 
 ```
-Request → Latency/Error → Cache Read → Upstream ─────────────────────────────→ Response
-                              ↓            ↓ (if failed)
-                          (if hit)    Custom Middleware → Handler → Cache Write
-                              ↓                                          ↓
-                           Response ←────────────────────────────────────┘
+Request → Config Override → Latency/Error → Cache Read → Upstream ──────────→ Response
+                                                ↓            ↓ (if failed)
+                                            (if hit)    Custom MW → Handler → Cache Write
+                                                ↓                                  ↓
+                                             Response ←────────────────────────────┘
 ```
 
 ### Middleware Chain
 
-1. **Latency & Error Middleware** - Simulates network latency and injects errors
-2. **Cache Read Middleware** - Returns cached response if available (short-circuits)
-3. **Upstream Middleware** - Forwards to real backend; returns response if successful (short-circuits)
-4. **Custom Middleware** - Your service-specific middleware (compiled services only)
-5. **Handler** - Generates mock response from OpenAPI spec
-6. **Cache Write Middleware** - Stores response in cache for future requests
+1. **Config Override Middleware** - Applies per-request config overrides from `X-Cxs-*` headers
+2. **Latency & Error Middleware** - Simulates network latency and injects errors
+3. **Cache Read Middleware** - Returns cached response if available (short-circuits)
+4. **Upstream Middleware** - Forwards to real backend; returns response if successful (short-circuits)
+5. **Custom Middleware** - Your service-specific middleware (compiled services only)
+6. **Handler** - Generates mock response from OpenAPI spec
+7. **Cache Write Middleware** - Stores response in cache for future requests
+
+## Per-Request Config Overrides
+
+Override service configuration for individual requests using HTTP headers. 
+This is useful for testing, debugging, or handling special cases without modifying the config file.
+
+### Supported Headers
+
+| Header | Values | Description |
+|--------|--------|-------------|
+| `X-Cxs-Cache-Requests` | `true` / `false` | Enable/disable request caching |
+| `X-Cxs-Validate-Request` | `true` / `false` | Enable/disable request validation |
+| `X-Cxs-Validate-Response` | `true` / `false` | Enable/disable response validation |
+| `X-Cxs-Latency` | Duration (e.g., `100ms`, `1s`) | Override latency |
+| `X-Cxs-Upstream-Url` | URL or empty string | Override upstream URL (empty disables upstream) |
+
+### Examples
+
+```bash
+# Disable caching for this request
+curl -H "X-Cxs-Cache-Requests: false" http://localhost:8080/petstore/pets
+
+# Add 500ms latency
+curl -H "X-Cxs-Latency: 500ms" http://localhost:8080/petstore/pets
+
+# Disable upstream proxy (force mock response)
+curl -H "X-Cxs-Upstream-Url: " http://localhost:8080/petstore/pets
+
+# Enable response validation for debugging
+curl -H "X-Cxs-Validate-Response: true" http://localhost:8080/petstore/pets
+
+# Combine multiple overrides
+curl -H "X-Cxs-Latency: 200ms" -H "X-Cxs-Cache-Requests: false" http://localhost:8080/petstore/pets
+```
+
+### Case Insensitivity
+
+Headers are case-insensitive. These are all equivalent:
+
+- `x-cxs-cache-requests: false`
+- `X-Cxs-Cache-Requests: false`
+- `X-CXS-CACHE-REQUESTS: false`
 
 ## Latency Simulation
 

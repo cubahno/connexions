@@ -106,6 +106,9 @@ func (r *Router) RegisterService(
 	// Use cfg.Name as the route prefix (ensure it starts with /)
 	prefix := "/" + cfg.Name
 	r.Route(prefix, func(subRouter chi.Router) {
+		// Config override middleware (must be first to override config before other middlewares)
+		subRouter.Use(middleware.CreateConfigOverrideMiddleware(mwParams))
+
 		// Standard middleware (always applied)
 		subRouter.Use(middleware.CreateLatencyAndErrorMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheReadMiddleware(mwParams))
