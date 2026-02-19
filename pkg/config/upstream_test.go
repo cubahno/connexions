@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	assert2 "github.com/stretchr/testify/assert"
 )
@@ -130,5 +131,80 @@ func TestHttpStatusFailOnConfig_Is(t *testing.T) {
 		assert.True(cfg.Is(500))
 		assert.False(cfg.Is(350))
 		assert.False(cfg.Is(550))
+	})
+}
+
+func TestCircuitBreakerConfig(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("zero values are valid", func(t *testing.T) {
+		cfg := &CircuitBreakerConfig{}
+		assert.Zero(cfg.Timeout)
+		assert.Zero(cfg.MaxRequests)
+		assert.Zero(cfg.Interval)
+		assert.Zero(cfg.MinRequests)
+		assert.Zero(cfg.FailureRatio)
+	})
+
+	t.Run("all fields can be set", func(t *testing.T) {
+		cfg := &CircuitBreakerConfig{
+			Timeout:      60,
+			MaxRequests:  5,
+			Interval:     30,
+			MinRequests:  3,
+			FailureRatio: 0.5,
+		}
+		assert.Equal(60, int(cfg.Timeout))
+		assert.Equal(uint32(5), cfg.MaxRequests)
+		assert.Equal(30, int(cfg.Interval))
+		assert.Equal(uint32(3), cfg.MinRequests)
+		assert.Equal(0.5, cfg.FailureRatio)
+	})
+
+	t.Run("getters return defaults when zero", func(t *testing.T) {
+		cfg := &CircuitBreakerConfig{}
+		assert.Equal(DefaultCBTimeout, cfg.GetTimeout())
+		assert.Equal(uint32(DefaultCBMaxRequests), cfg.GetMaxRequests())
+		assert.Equal(uint32(DefaultCBMinRequests), cfg.GetMinRequests())
+		assert.Equal(DefaultCBFailureRatio, cfg.GetFailureRatio())
+	})
+
+	t.Run("getters return set values", func(t *testing.T) {
+		cfg := &CircuitBreakerConfig{
+			Timeout:      30 * time.Second,
+			MaxRequests:  5,
+			MinRequests:  10,
+			FailureRatio: 0.8,
+		}
+		assert.Equal(30*time.Second, cfg.GetTimeout())
+		assert.Equal(uint32(5), cfg.GetMaxRequests())
+		assert.Equal(uint32(10), cfg.GetMinRequests())
+		assert.Equal(0.8, cfg.GetFailureRatio())
+	})
+}
+
+func TestUpstreamConfig_WithCircuitBreaker(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("upstream config without circuit breaker", func(t *testing.T) {
+		cfg := &UpstreamConfig{
+			URL: "https://api.example.com",
+		}
+		assert.Nil(cfg.CircuitBreaker)
+	})
+
+	t.Run("upstream config with circuit breaker", func(t *testing.T) {
+		cfg := &UpstreamConfig{
+			URL: "https://api.example.com",
+			CircuitBreaker: &CircuitBreakerConfig{
+				Timeout:      60,
+				MinRequests:  3,
+				FailureRatio: 0.6,
+			},
+		}
+		assert.NotNil(cfg.CircuitBreaker)
+		assert.Equal(60, int(cfg.CircuitBreaker.Timeout))
+		assert.Equal(uint32(3), cfg.CircuitBreaker.MinRequests)
+		assert.Equal(0.6, cfg.CircuitBreaker.FailureRatio)
 	})
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/cubahno/connexions/v2/internal/history"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	assert2 "github.com/stretchr/testify/assert"
@@ -294,6 +295,10 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 				Name: "test",
 				Upstream: &config.UpstreamConfig{
 					URL: upstreamServer.URL,
+					CircuitBreaker: &config.CircuitBreakerConfig{
+						MinRequests:  3,
+						FailureRatio: 0.6,
+					},
 				},
 			},
 			History: hst,
@@ -326,5 +331,201 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 		// Verify upstream was NOT called on 4th request (still 3 calls)
 		assert.Equal(3, callCount, "upstream should not be called when circuit breaker is open")
+	})
+
+	t.Run("no circuit breaker when not configured", func(t *testing.T) {
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"message": "Internal Server Error!"}`))
+		}))
+		defer upstreamServer.Close()
+
+		hst := history.NewCurrentRequestStorage(100 * time.Second)
+
+		params := &Params{
+			ServiceConfig: &config.ServiceConfig{
+				Name: "test",
+				Upstream: &config.UpstreamConfig{
+					URL: upstreamServer.URL,
+					// No CircuitBreaker config - should not use circuit breaker
+				},
+			},
+			History: hst,
+		}
+
+		middleware := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := middleware(handler)
+
+		// Make 5 requests - all should hit upstream since no circuit breaker
+		for i := 1; i <= 5; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+			assert.Equal("Hello, from local!", string(w.buf))
+		}
+
+		// All 5 requests should have hit upstream
+		assert.Equal(5, callCount, "all requests should hit upstream when circuit breaker is not configured")
+	})
+
+	t.Run("distributed circuit breaker falls back to local when redis config is nil", func(t *testing.T) {
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"message": "Internal Server Error!"}`))
+		}))
+		defer upstreamServer.Close()
+
+		hst := history.NewCurrentRequestStorage(100 * time.Second)
+
+		params := &Params{
+			ServiceConfig: &config.ServiceConfig{
+				Name: "test",
+				Upstream: &config.UpstreamConfig{
+					URL: upstreamServer.URL,
+					CircuitBreaker: &config.CircuitBreakerConfig{
+						MinRequests:  3,
+						FailureRatio: 0.6,
+					},
+				},
+			},
+			StorageConfig: &config.StorageConfig{
+				Type:  config.StorageTypeRedis,
+				Redis: nil, // Redis type but no config - should fall back to local CB
+			},
+			History: hst,
+		}
+
+		middleware := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := middleware(handler)
+
+		// Make 3 requests to open the circuit breaker (local fallback)
+		for i := 1; i <= 3; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+			assert.Equal("Hello, from local!", string(w.buf))
+		}
+
+		assert.Equal(3, callCount)
+
+		// 4th request should be blocked by open circuit breaker
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+		wrappedHandler.ServeHTTP(w, req)
+
+		assert.Equal("Hello, from local!", string(w.buf))
+		assert.Equal(3, callCount, "circuit breaker should work even with fallback to local")
+	})
+
+	t.Run("distributed circuit breaker with valid redis config", func(t *testing.T) {
+		mr := miniredis.RunT(t)
+
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"message": "Internal Server Error!"}`))
+		}))
+		defer upstreamServer.Close()
+
+		hst := history.NewCurrentRequestStorage(100 * time.Second)
+
+		params := &Params{
+			ServiceConfig: &config.ServiceConfig{
+				Name: "test",
+				Upstream: &config.UpstreamConfig{
+					URL: upstreamServer.URL,
+					CircuitBreaker: &config.CircuitBreakerConfig{
+						MinRequests:  3,
+						FailureRatio: 0.6,
+					},
+				},
+			},
+			StorageConfig: &config.StorageConfig{
+				Type: config.StorageTypeRedis,
+				Redis: &config.RedisConfig{
+					Address: mr.Addr(),
+				},
+			},
+			History: hst,
+		}
+
+		middleware := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := middleware(handler)
+
+		// Make 3 requests to open the distributed circuit breaker
+		for i := 1; i <= 3; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+			assert.Equal("Hello, from local!", string(w.buf))
+		}
+
+		assert.Equal(3, callCount)
+
+		// 4th request should be blocked by open circuit breaker
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+		wrappedHandler.ServeHTTP(w, req)
+
+		assert.Equal("Hello, from local!", string(w.buf))
+		assert.Equal(3, callCount, "distributed circuit breaker should block requests")
+	})
+
+	t.Run("distributed circuit breaker falls back when redis connection fails", func(t *testing.T) {
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"message": "Internal Server Error!"}`))
+		}))
+		defer upstreamServer.Close()
+
+		hst := history.NewCurrentRequestStorage(100 * time.Second)
+
+		params := &Params{
+			ServiceConfig: &config.ServiceConfig{
+				Name: "test",
+				Upstream: &config.UpstreamConfig{
+					URL: upstreamServer.URL,
+					CircuitBreaker: &config.CircuitBreakerConfig{
+						MinRequests:  3,
+						FailureRatio: 0.6,
+					},
+				},
+			},
+			StorageConfig: &config.StorageConfig{
+				Type: config.StorageTypeRedis,
+				Redis: &config.RedisConfig{
+					Address: "invalid:99999", // Invalid address
+				},
+			},
+			History: hst,
+		}
+
+		middleware := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := middleware(handler)
+
+		// Make 3 requests - should fall back to local CB
+		for i := 1; i <= 3; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+			assert.Equal("Hello, from local!", string(w.buf))
+		}
+
+		assert.Equal(3, callCount)
+
+		// 4th request should be blocked by local circuit breaker fallback
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+		wrappedHandler.ServeHTTP(w, req)
+
+		assert.Equal("Hello, from local!", string(w.buf))
+		assert.Equal(3, callCount, "fallback local circuit breaker should work")
 	})
 }

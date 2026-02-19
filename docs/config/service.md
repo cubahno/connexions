@@ -154,25 +154,41 @@ Forward requests to a real backend:
 ```yaml
 upstream:
   url: https://api.example.com
-  timeout: 30s
-  circuit-breaker:
-    threshold: 5
-    timeout: 60s
+  headers:
+    Authorization: Bearer ${API_TOKEN}
+  fail-on:
+    http-status:
+      - exact: 301
+      - range: "500-599"
+    timeout: 5s
 ```
 
-When configured, requests are proxied to the upstream server with circuit breaker protection.
+When configured, requests are proxied to the upstream server. If the upstream fails, Connexions falls back to generating mock responses.
 
-## Contexts
+### Circuit Breaker
 
-Wire context files for realistic data generation:
+Protect against cascading failures with circuit breaker:
 
 ```yaml
-contexts:
-  - common:           # Use entire common.yml
-  - fake: pet         # Use 'pet' section from fake.yml
-  - fake: person      # Use 'person' section from fake.yml
-  - petstore:         # Use entire petstore.yml
+upstream:
+  url: https://api.example.com
+  circuit-breaker:
+    timeout: 60s        # Time in open state before half-open (default: 60s)
+    max-requests: 1     # Max requests in half-open state (default: 1)
+    interval: 30s       # Interval to clear counts in closed state (default: 0)
+    min-requests: 3     # Min requests before tripping (default: 3)
+    failure-ratio: 0.6  # Failure ratio to trip (default: 0.6)
 ```
+
+**Circuit breaker states:**
+
+- **Closed**: Normal operation, requests pass through
+- **Open**: After failure threshold, requests are blocked
+- **Half-Open**: After timeout, limited requests test if service recovered
+
+When app-level storage is configured with `type: redis`, circuit breaker state is automatically shared across instances.
+
+## Contexts
 
 See [Contexts](../contexts.md) for details on context files.
 

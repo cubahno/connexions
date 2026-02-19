@@ -10,6 +10,7 @@ import (
 
 type Params struct {
 	ServiceConfig *config.ServiceConfig
+	StorageConfig *config.StorageConfig
 	History       *history.CurrentRequestStorage
 }
 

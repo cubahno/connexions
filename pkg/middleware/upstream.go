@@ -11,54 +11,48 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/v2/internal/history"
+	"github.com/cubahno/connexions/v2/internal/storage"
+	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/sony/gobreaker/v2"
 )
 
+// circuitBreakerExecutor defines the interface for circuit breaker execution.
+type circuitBreakerExecutor interface {
+	Execute(req func() ([]byte, error)) ([]byte, error)
+}
+
 // CreateUpstreamRequestMiddleware returns a middleware that fetches data from an upstream service.
-// If the upstream service fails, consequent requests will be blocked for a certain time.
+// If circuit breaker is configured and the upstream service fails, consequent requests will be blocked.
 func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Handler {
-	upstreamURL := ""
 	cfg := params.ServiceConfig.Upstream
-
-	if cfg != nil {
-		upstreamURL = cfg.URL
+	if cfg == nil {
+		return func(next http.Handler) http.Handler {
+			return next
+		}
 	}
 
-	cbSettings := gobreaker.Settings{
-		Name: upstreamURL,
-		// TODO: make it configurable
-		Timeout: 10 * time.Minute,
-		ReadyToTrip: func(counts gobreaker.Counts) bool {
-			slog.Debug("Circuit breaker check",
-				"url", upstreamURL,
-				"requests", counts.Requests,
-				"totalSuccesses", counts.TotalSuccesses,
-				"totalFailures", counts.TotalFailures,
-				"consecutiveSuccesses", counts.ConsecutiveSuccesses,
-				"consecutiveFailures", counts.ConsecutiveFailures,
-			)
-			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-			isOpen := counts.Requests >= 3 && failureRatio >= 0.6
-			if isOpen {
-				slog.Info(fmt.Sprintf("Circuit breaker is open for %s, failure ratio: %v", cfg.URL, failureRatio))
-			}
-			return isOpen
-		},
-	}
-	cb := gobreaker.NewCircuitBreaker[[]byte](cbSettings)
+	upstreamURL := cfg.URL
+	cb := createCircuitBreaker(upstreamURL, cfg.CircuitBreaker, params.StorageConfig)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if cfg == nil || upstreamURL == "" {
+			if upstreamURL == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
 
 			log.Println("Service has upstream service defined")
 
-			response, err := cb.Execute(func() ([]byte, error) {
-				return getUpstreamResponse(params, req)
-			})
+			var response []byte
+			var err error
+
+			if cb != nil {
+				response, err = cb.Execute(func() ([]byte, error) {
+					return getUpstreamResponse(params, req)
+				})
+			} else {
+				response, err = getUpstreamResponse(params, req)
+			}
 
 			// If an upstream service returns a successful response, write it and return immediately
 			if err == nil && response != nil {
@@ -75,6 +69,99 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 			next.ServeHTTP(w, req)
 		})
 	}
+}
+
+// createCircuitBreaker creates a circuit breaker based on the configuration.
+// Returns nil if circuit breaker is not configured.
+func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig, storageCfg *config.StorageConfig) circuitBreakerExecutor {
+	if cbCfg == nil {
+		return nil
+	}
+
+	settings := buildCircuitBreakerSettings(upstreamURL, cbCfg)
+
+	// Create distributed circuit breaker if Redis storage is configured
+	if storageCfg != nil && storageCfg.Type == config.StorageTypeRedis {
+		return createDistributedCircuitBreaker(settings, storageCfg)
+	}
+
+	return gobreaker.NewCircuitBreaker[[]byte](settings)
+}
+
+// buildCircuitBreakerSettings creates gobreaker.Settings from config.
+func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreakerConfig) gobreaker.Settings {
+	minRequests := cbCfg.GetMinRequests()
+	failureRatio := cbCfg.GetFailureRatio()
+
+	return gobreaker.Settings{
+		Name:        upstreamURL,
+		Timeout:     cbCfg.GetTimeout(),
+		MaxRequests: cbCfg.GetMaxRequests(),
+		Interval:    cbCfg.Interval,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			slog.Debug("Circuit breaker check",
+				"url", upstreamURL,
+				"requests", counts.Requests,
+				"totalSuccesses", counts.TotalSuccesses,
+				"totalFailures", counts.TotalFailures,
+				"consecutiveSuccesses", counts.ConsecutiveSuccesses,
+				"consecutiveFailures", counts.ConsecutiveFailures,
+			)
+			if counts.Requests < minRequests {
+				return false
+			}
+			ratio := float64(counts.TotalFailures) / float64(counts.Requests)
+			isOpen := ratio >= failureRatio
+			if isOpen {
+				slog.Info("Circuit breaker is open",
+					"url", upstreamURL,
+					"failureRatio", ratio,
+				)
+			}
+			return isOpen
+		},
+		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+			slog.Info("Circuit breaker state changed",
+				"name", name,
+				"from", from.String(),
+				"to", to.String(),
+			)
+		},
+	}
+}
+
+// createDistributedCircuitBreaker creates a distributed circuit breaker using Redis.
+// Caller must ensure storageCfg is valid Redis config.
+func createDistributedCircuitBreaker(settings gobreaker.Settings, storageCfg *config.StorageConfig) circuitBreakerExecutor {
+	if storageCfg.Redis == nil {
+		slog.Error("Redis config is nil, falling back to local circuit breaker",
+			"name", settings.Name,
+		)
+		return gobreaker.NewCircuitBreaker[[]byte](settings)
+	}
+
+	store, err := storage.NewRedisStore(storageCfg.Redis)
+	if err != nil {
+		slog.Error("Failed to create Redis store for circuit breaker, falling back to local",
+			"name", settings.Name,
+			"error", err,
+		)
+		return gobreaker.NewCircuitBreaker[[]byte](settings)
+	}
+
+	dcb, err := gobreaker.NewDistributedCircuitBreaker[[]byte](store, settings)
+	if err != nil {
+		slog.Error("Failed to create distributed circuit breaker, falling back to local",
+			"name", settings.Name,
+			"error", err,
+		)
+		return gobreaker.NewCircuitBreaker[[]byte](settings)
+	}
+
+	slog.Info("Created distributed circuit breaker",
+		"name", settings.Name,
+	)
+	return dcb
 }
 
 func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
@@ -115,7 +202,11 @@ func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
 	}
 	upReq.Header.Set("User-Agent", "Connexions/2.0")
 
-	slog.Info("Upstream request", "method", upReq.Method, "url", upReq.URL.String(), "headers", upReq.Header)
+	slog.Info("Upstream request",
+		"method", upReq.Method,
+		"url", upReq.URL.String(),
+		"headers", upReq.Header,
+	)
 
 	resp, err := client.Do(upReq)
 	if err != nil {

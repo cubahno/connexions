@@ -38,7 +38,29 @@ app:
   editor:
     theme: chrome         # Editor theme
     fontSize: 12          # Editor font size
+  storage:                # Shared storage for distributed features
+    type: memory          # "memory" (default) or "redis"
+    redis:                # Required when type is "redis"
+      address: localhost:6379
+      password: ""
+      db: 0
 ```
+
+### Storage Configuration
+
+For distributed deployments (multiple Connexions instances), configure shared storage:
+
+```yaml
+app:
+  storage:
+    type: redis
+    redis:
+      address: redis.example.com:6379
+      password: secret
+      db: 0
+```
+
+This enables features like distributed circuit breakers to share state across instances.
 
 ## Per-Service Settings
 
@@ -80,6 +102,12 @@ See [Service Configuration](config/service.md) for detailed options.
       editor:
         theme: chrome
         fontSize: 12
+      storage:
+        type: redis
+        redis:
+          address: localhost:6379
+          password: ""
+          db: 0
 
     services:
       petstore:
@@ -99,5 +127,11 @@ See [Service Configuration](config/service.md) for detailed options.
           response: false
         cache:
           requests: true
+        upstream:
+          url: https://api.petstore.com
+          circuit-breaker:
+            timeout: 60s
+            min-requests: 3
+            failure-ratio: 0.6
     ```
 
