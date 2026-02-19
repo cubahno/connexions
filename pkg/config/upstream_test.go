@@ -161,25 +161,34 @@ func TestCircuitBreakerConfig(t *testing.T) {
 		assert.Equal(0.5, cfg.FailureRatio)
 	})
 
-	t.Run("getters return defaults when zero", func(t *testing.T) {
-		cfg := &CircuitBreakerConfig{}
-		assert.Equal(DefaultCBTimeout, cfg.GetTimeout())
-		assert.Equal(uint32(DefaultCBMaxRequests), cfg.GetMaxRequests())
-		assert.Equal(uint32(DefaultCBMinRequests), cfg.GetMinRequests())
-		assert.Equal(DefaultCBFailureRatio, cfg.GetFailureRatio())
+	t.Run("WithDefaults returns defaults when zero", func(t *testing.T) {
+		cfg := (&CircuitBreakerConfig{}).WithDefaults()
+		assert.Equal(DefaultCBTimeout, cfg.Timeout)
+		assert.Equal(uint32(DefaultCBMaxRequests), cfg.MaxRequests)
+		assert.Equal(uint32(DefaultCBMinRequests), cfg.MinRequests)
+		assert.Equal(DefaultCBFailureRatio, cfg.FailureRatio)
 	})
 
-	t.Run("getters return set values", func(t *testing.T) {
-		cfg := &CircuitBreakerConfig{
+	t.Run("WithDefaults preserves set values", func(t *testing.T) {
+		cfg := (&CircuitBreakerConfig{
 			Timeout:      30 * time.Second,
 			MaxRequests:  5,
 			MinRequests:  10,
 			FailureRatio: 0.8,
-		}
-		assert.Equal(30*time.Second, cfg.GetTimeout())
-		assert.Equal(uint32(5), cfg.GetMaxRequests())
-		assert.Equal(uint32(10), cfg.GetMinRequests())
-		assert.Equal(0.8, cfg.GetFailureRatio())
+		}).WithDefaults()
+		assert.Equal(30*time.Second, cfg.Timeout)
+		assert.Equal(uint32(5), cfg.MaxRequests)
+		assert.Equal(uint32(10), cfg.MinRequests)
+		assert.Equal(0.8, cfg.FailureRatio)
+	})
+
+	t.Run("WithDefaults on nil returns defaults", func(t *testing.T) {
+		var cfg *CircuitBreakerConfig
+		result := cfg.WithDefaults()
+		assert.Equal(DefaultCBTimeout, result.Timeout)
+		assert.Equal(uint32(DefaultCBMaxRequests), result.MaxRequests)
+		assert.Equal(uint32(DefaultCBMinRequests), result.MinRequests)
+		assert.Equal(DefaultCBFailureRatio, result.FailureRatio)
 	})
 }
 

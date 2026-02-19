@@ -90,14 +90,13 @@ func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig
 
 // buildCircuitBreakerSettings creates gobreaker.Settings from config.
 func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreakerConfig) gobreaker.Settings {
-	minRequests := cbCfg.GetMinRequests()
-	failureRatio := cbCfg.GetFailureRatio()
+	cfg := cbCfg.WithDefaults()
 
 	return gobreaker.Settings{
 		Name:        upstreamURL,
-		Timeout:     cbCfg.GetTimeout(),
-		MaxRequests: cbCfg.GetMaxRequests(),
-		Interval:    cbCfg.Interval,
+		Timeout:     cfg.Timeout,
+		MaxRequests: cfg.MaxRequests,
+		Interval:    cfg.Interval,
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			slog.Debug("Circuit breaker check",
 				"url", upstreamURL,
@@ -107,11 +106,11 @@ func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreake
 				"consecutiveSuccesses", counts.ConsecutiveSuccesses,
 				"consecutiveFailures", counts.ConsecutiveFailures,
 			)
-			if counts.Requests < minRequests {
+			if counts.Requests < cfg.MinRequests {
 				return false
 			}
 			ratio := float64(counts.TotalFailures) / float64(counts.Requests)
-			isOpen := ratio >= failureRatio
+			isOpen := ratio >= cfg.FailureRatio
 			if isOpen {
 				slog.Info("Circuit breaker is open",
 					"url", upstreamURL,

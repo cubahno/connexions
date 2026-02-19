@@ -155,7 +155,7 @@ Forward requests to a real backend:
 upstream:
   url: https://api.example.com
   headers:
-    Authorization: Bearer ${API_TOKEN}
+    X-Custom-Header: value
   fail-on:
     http-status:
       - exact: 301
