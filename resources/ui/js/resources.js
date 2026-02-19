@@ -192,7 +192,10 @@ export const generateResult = (service, ix, path, method) => {
 
             const curlBlock = document.getElementById('example-curl');
             const baseUrl = `${window.location.protocol}//${window.location.host}`;
-            curlBlock.textContent = `curl --request ${method} \\\n'${baseUrl}${reqPath}'`;
+
+            // Use service name for the URL prefix, converting .root back to empty string
+            const servicePrefix = service === '.root' ? '' : `/${service}`;
+            curlBlock.textContent = `curl --request ${method} \\\n'${baseUrl}${servicePrefix}${reqPath}'`;
             if (reqContentType) {
                 curlBlock.textContent += ` \\\n--header 'Content-Type: ${reqContentType}'`
             }
