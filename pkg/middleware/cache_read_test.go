@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/v2/internal/history"
+	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
@@ -20,9 +20,9 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 	})
 
 	t.Run("nil config passes through", func(t *testing.T) {
-		mw := CreateCacheReadMiddleware(&Params{
-			ServiceConfig: nil,
-		})
+		params := newTestParams(nil, nil)
+		params.ServiceConfig = nil
+		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
 
 		w := NewBufferedResponseWriter()
@@ -34,11 +34,11 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 	})
 
 	t.Run("nil cache config passes through", func(t *testing.T) {
-		mw := CreateCacheReadMiddleware(&Params{
-			ServiceConfig: &config.ServiceConfig{
-				Cache: nil,
-			},
-		})
+		params := newTestParams(&config.ServiceConfig{
+			Name:  "test",
+			Cache: nil,
+		}, nil)
+		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
 
 		w := NewBufferedResponseWriter()
@@ -50,8 +50,14 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 	})
 
 	t.Run("on", func(t *testing.T) {
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-		resp := &history.HistoryResponse{
+		params := newTestParams(&config.ServiceConfig{
+			Name: "foo",
+			Cache: &config.CacheConfig{
+				Requests: true,
+			},
+		}, nil)
+
+		resp := &db.Response{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -60,16 +66,9 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/foo/bar"},
 			Method: http.MethodGet,
 		}
-		hst.Set("foo", "/foo/bar", histReq, resp)
+		params.DB().History().Set("/foo/bar", histReq, resp)
 
-		mw := CreateCacheReadMiddleware(&Params{
-			ServiceConfig: &config.ServiceConfig{
-				Cache: &config.CacheConfig{
-					Requests: true,
-				},
-			},
-			History: hst,
-		})
+		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
 
 		t.Run("not-get", func(t *testing.T) {
@@ -101,8 +100,14 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 	})
 
 	t.Run("off", func(t *testing.T) {
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-		resp := &history.HistoryResponse{
+		params := newTestParams(&config.ServiceConfig{
+			Name: "foo",
+			Cache: &config.CacheConfig{
+				Requests: false,
+			},
+		}, nil)
+
+		resp := &db.Response{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -111,16 +116,9 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/foo/bar"},
 			Method: http.MethodGet,
 		}
-		hst.Set("foo", "/foo/bar", histReq, resp)
+		params.DB().History().Set("/foo/bar", histReq, resp)
 
-		mw := CreateCacheReadMiddleware(&Params{
-			ServiceConfig: &config.ServiceConfig{
-				Cache: &config.CacheConfig{
-					Requests: false,
-				},
-			},
-			History: hst,
-		})
+		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
 
 		w := NewBufferedResponseWriter()
@@ -132,8 +130,14 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 	})
 
 	t.Run("restores content-type from cache", func(t *testing.T) {
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-		resp := &history.HistoryResponse{
+		params := newTestParams(&config.ServiceConfig{
+			Name: "service",
+			Cache: &config.CacheConfig{
+				Requests: true,
+			},
+		}, nil)
+
+		resp := &db.Response{
 			Data:        []byte(`{"cached": true}`),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -142,16 +146,9 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/api/data"},
 			Method: http.MethodGet,
 		}
-		hst.Set("service", "/api/data", histReq, resp)
+		params.DB().History().Set("/api/data", histReq, resp)
 
-		mw := CreateCacheReadMiddleware(&Params{
-			ServiceConfig: &config.ServiceConfig{
-				Cache: &config.CacheConfig{
-					Requests: true,
-				},
-			},
-			History: hst,
-		})
+		mw := CreateCacheReadMiddleware(params)
 
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/api/data", nil)
@@ -163,8 +160,15 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 	})
 
 	t.Run("applies latency when configured", func(t *testing.T) {
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-		resp := &history.HistoryResponse{
+		params := newTestParams(&config.ServiceConfig{
+			Name:    "service",
+			Latency: 10 * time.Millisecond,
+			Cache: &config.CacheConfig{
+				Requests: true,
+			},
+		}, nil)
+
+		resp := &db.Response{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -173,17 +177,9 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/api/latency"},
 			Method: http.MethodGet,
 		}
-		hst.Set("service", "/api/latency", histReq, resp)
+		params.DB().History().Set("/api/latency", histReq, resp)
 
-		mw := CreateCacheReadMiddleware(&Params{
-			ServiceConfig: &config.ServiceConfig{
-				Latency: 10 * time.Millisecond,
-				Cache: &config.CacheConfig{
-					Requests: true,
-				},
-			},
-			History: hst,
-		})
+		mw := CreateCacheReadMiddleware(params)
 
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/api/latency", nil)

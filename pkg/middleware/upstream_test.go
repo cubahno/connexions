@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/cubahno/connexions/v2/internal/history"
+	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
@@ -32,20 +32,16 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		defer upstreamServer.Close()
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 		req.Header.Set("Authorization", "Bearer 123")
 		req.Header.Set("X-Test", "test")
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-				},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
 			},
-			History: hst,
-		}
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -58,9 +54,9 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal("Connexions/2.0", receivedHeaders.Get("User-Agent"))
 
 		// Check history
-		data := hst.Data()
+		data := params.DB().History().Data()
 		assert.Equal(1, len(data))
-		rec := data["GET:/foo"]
+		rec := data["GET:/test/foo"]
 		assert.Equal(200, rec.Response.StatusCode)
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
 	})
@@ -77,30 +73,27 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 		w := NewBufferedResponseWriter()
 		body := io.NopCloser(strings.NewReader(`{"foo": "bar"}`))
-		req := httptest.NewRequest(http.MethodPost, "/foo", body)
+		req := httptest.NewRequest(http.MethodPost, "/foo/resource", body)
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-		resp := &history.HistoryResponse{
+		params := newTestParams(&config.ServiceConfig{
+			Name: "foo",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		resp := &db.Response{
 			Data:           []byte("cached"),
 			StatusCode:     http.StatusOK,
 			ContentType:    "application/json",
 			IsFromUpstream: true,
 		}
 		histReq := &http.Request{
-			URL:    &url.URL{Path: "/foo"},
+			URL:    &url.URL{Path: "/foo/resource"},
 			Method: http.MethodPost,
 			Body:   io.NopCloser(strings.NewReader(`{"bar": "car"}`)),
 		}
-		hst.Set("foo", "/foo", histReq, resp)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-				},
-			},
-			History: hst,
-		}
+		params.DB().History().Set("/foo/resource", histReq, resp)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -109,9 +102,9 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(`{"foo": "bar"}`, rcvdBody)
 
 		// Check history
-		data := hst.Data()
+		data := params.DB().History().Data()
 		assert.Equal(1, len(data))
-		rec := data["POST:/foo"]
+		rec := data["POST:/foo/resource"]
 		assert.Equal(200, rec.Response.StatusCode)
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
 	})
@@ -128,15 +121,10 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Name:     "test",
-				Upstream: &config.UpstreamConfig{},
-			},
-			History: hst,
-		}
+		params := newTestParams(&config.ServiceConfig{
+			Name:     "test",
+			Upstream: &config.UpstreamConfig{},
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -152,17 +140,14 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-				},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
 			},
-			History: hst,
-		}
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -172,17 +157,14 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 	t.Run("request create fails", func(t *testing.T) {
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: "ht tps://example.com",
-				},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: "ht tps://example.com",
 			},
-			History: hst,
-		}
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -198,20 +180,17 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					FailOn: &config.UpstreamFailOnConfig{
-						TimeOut: 50 * time.Millisecond,
-					},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				FailOn: &config.UpstreamFailOnConfig{
+					TimeOut: 50 * time.Millisecond,
 				},
 			},
-			History: hst,
-		}
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -226,22 +205,19 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					FailOn: &config.UpstreamFailOnConfig{
-						HTTPStatus: config.HttpStatusFailOnConfig{
-							{Exact: http.StatusMovedPermanently},
-						},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				FailOn: &config.UpstreamFailOnConfig{
+					HTTPStatus: config.HttpStatusFailOnConfig{
+						{Exact: http.StatusMovedPermanently},
 					},
 				},
 			},
-			History: hst,
-		}
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -256,22 +232,19 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/foo", nil)
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					FailOn: &config.UpstreamFailOnConfig{
-						HTTPStatus: config.HttpStatusFailOnConfig{
-							{Range: "200-201"},
-						},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				FailOn: &config.UpstreamFailOnConfig{
+					HTTPStatus: config.HttpStatusFailOnConfig{
+						{Range: "200-201"},
 					},
 				},
 			},
-			History: hst,
-		}
+		}, nil)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -288,21 +261,16 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 		defer upstreamServer.Close()
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Name: "test",
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					CircuitBreaker: &config.CircuitBreakerConfig{
-						MinRequests:  3,
-						FailureRatio: 0.6,
-					},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
 				},
 			},
-			History: hst,
-		}
+		}, nil)
 
 		// Create middleware ONCE
 		middleware := CreateUpstreamRequestMiddleware(params)
@@ -342,18 +310,13 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 		defer upstreamServer.Close()
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Name: "test",
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					// No CircuitBreaker config - should not use circuit breaker
-				},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				// No CircuitBreaker config - should not use circuit breaker
 			},
-			History: hst,
-		}
+		}, nil)
 
 		middleware := CreateUpstreamRequestMiddleware(params)
 		wrappedHandler := middleware(handler)
@@ -379,25 +342,19 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 		defer upstreamServer.Close()
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Name: "test",
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					CircuitBreaker: &config.CircuitBreakerConfig{
-						MinRequests:  3,
-						FailureRatio: 0.6,
-					},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
 				},
 			},
-			StorageConfig: &config.StorageConfig{
-				Type:  config.StorageTypeRedis,
-				Redis: nil, // Redis type but no config - should fall back to local CB
-			},
-			History: hst,
-		}
+		}, &config.StorageConfig{
+			Type:  config.StorageTypeRedis,
+			Redis: nil, // Redis type but no config - should fall back to local CB
+		})
 
 		middleware := CreateUpstreamRequestMiddleware(params)
 		wrappedHandler := middleware(handler)
@@ -432,27 +389,21 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 		defer upstreamServer.Close()
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Name: "test",
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					CircuitBreaker: &config.CircuitBreakerConfig{
-						MinRequests:  3,
-						FailureRatio: 0.6,
-					},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
 				},
 			},
-			StorageConfig: &config.StorageConfig{
-				Type: config.StorageTypeRedis,
-				Redis: &config.RedisConfig{
-					Address: mr.Addr(),
-				},
+		}, &config.StorageConfig{
+			Type: config.StorageTypeRedis,
+			Redis: &config.RedisConfig{
+				Address: mr.Addr(),
 			},
-			History: hst,
-		}
+		})
 
 		middleware := CreateUpstreamRequestMiddleware(params)
 		wrappedHandler := middleware(handler)
@@ -485,27 +436,21 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}))
 		defer upstreamServer.Close()
 
-		hst := history.NewCurrentRequestStorage(100 * time.Second)
-
-		params := &Params{
-			ServiceConfig: &config.ServiceConfig{
-				Name: "test",
-				Upstream: &config.UpstreamConfig{
-					URL: upstreamServer.URL,
-					CircuitBreaker: &config.CircuitBreakerConfig{
-						MinRequests:  3,
-						FailureRatio: 0.6,
-					},
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
 				},
 			},
-			StorageConfig: &config.StorageConfig{
-				Type: config.StorageTypeRedis,
-				Redis: &config.RedisConfig{
-					Address: "invalid:99999", // Invalid address
-				},
+		}, &config.StorageConfig{
+			Type: config.StorageTypeRedis,
+			Redis: &config.RedisConfig{
+				Address: "invalid:99999", // Invalid address
 			},
-			History: hst,
-		}
+		})
 
 		middleware := CreateUpstreamRequestMiddleware(params)
 		wrappedHandler := middleware(handler)

@@ -1,6 +1,12 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"time"
+
+	"github.com/cubahno/connexions/v2/internal/db"
+	"github.com/cubahno/connexions/v2/pkg/config"
+)
 
 // BufferedWriter is a writer that captures the response.
 // Used to capture the template execution result.
@@ -32,4 +38,13 @@ func (bw *BufferedWriter) Header() http.Header {
 // WriteHeader writes the status code.
 func (bw *BufferedWriter) WriteHeader(statusCode int) {
 	bw.statusCode = statusCode
+}
+
+// newTestParams creates a new Params with a memory DB for testing.
+func newTestParams(serviceCfg *config.ServiceConfig, storageCfg *config.StorageConfig) *Params {
+	if serviceCfg == nil {
+		serviceCfg = &config.ServiceConfig{Name: "test"}
+	}
+	database := db.NewMemoryDB(serviceCfg.Name, 100*time.Second)
+	return NewParams(serviceCfg, storageCfg, database)
 }
