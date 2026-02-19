@@ -17,7 +17,7 @@ type RuntimeOptions struct {
 	SpecsBaseDir           string        `env:"SPECS_BASE_DIR"`
 	MaxConcurrency         int           `env:"MAX_CONCURRENCY" envDefault:"8"`
 	BatchSizeMB            int           `env:"BATCH_SIZE_MB" envDefault:"6"`
-	BatchConcurrency       int           `env:"BATCH_CONCURRENCY" envDefault:"3"`
+	BatchConcurrency       int           `env:"BATCH_CONCURRENCY" envDefault:"2"`
 	MaxSpecSizeMB          int           `env:"MAX_SPEC_SIZE_MB" envDefault:"10"`
 	SimplifyThresholdMB    int           `env:"SIMPLIFY_THRESHOLD_MB" envDefault:"3"`
 	ServiceGenerateTimeout time.Duration `env:"SERVICE_GENERATE_TIMEOUT" envDefault:"5m"`
@@ -34,14 +34,15 @@ type RuntimeOptions struct {
 
 // NewRuntimeOptionsFromEnv creates RuntimeOptions populated from:
 // 1. .env.dist (defaults)
-// 2. .env (overrides, if exists)
-// 3. Environment variables (final overrides)
+// 2. .env (overrides .env.dist, if exists)
+// 3. Environment variables (final overrides - command line takes precedence)
 func NewRuntimeOptionsFromEnv() *RuntimeOptions {
-	// Load .env.dist first (defaults)
+	// Load .env.dist first (defaults) - only sets vars not already in env
 	_ = godotenv.Load(".env.dist")
 
-	// Load .env to override (ignore if not exists)
-	_ = godotenv.Overload(".env")
+	// Load .env to override .env.dist - only sets vars not already in env
+	// This means command-line env vars take precedence over .env
+	_ = godotenv.Load(".env")
 
 	opts := &RuntimeOptions{}
 	if err := env.Parse(opts); err != nil {
