@@ -9,7 +9,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/cubahno/connexions/v2/internal/contexts"
-	"github.com/cubahno/connexions/v2/internal/history"
+	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/middleware"
 	"github.com/cubahno/connexions/v2/resources"
@@ -23,10 +23,10 @@ type Router struct {
 
 	config   *config.AppConfig
 	contexts []map[string]map[string]any
-	history  *history.CurrentRequestStorage
 
-	mu       sync.RWMutex
-	services map[string]*ServiceItem
+	mu        sync.RWMutex
+	services  map[string]*ServiceItem
+	databases map[string]db.DB
 }
 
 // Handler defines a minimal interface for request handlers.
@@ -66,20 +66,16 @@ func NewRouter(options ...RouterOption) *Router {
 	}
 
 	res := &Router{
-		Router:   r,
-		config:   cfg,
-		contexts: defaultContexts,
-		services: make(map[string]*ServiceItem),
+		Router:    r,
+		config:    cfg,
+		contexts:  defaultContexts,
+		services:  make(map[string]*ServiceItem),
+		databases: make(map[string]db.DB),
 	}
 
 	for _, opt := range options {
 		opt(res)
 	}
-
-	cfg = res.config
-
-	historyDuration := cfg.HistoryDuration
-	res.history = history.NewCurrentRequestStorage(historyDuration)
 
 	if err := createUIFileStructure(res.config); err != nil {
 		slog.Error("Failed to create ui file structure", "error", err)
@@ -97,11 +93,9 @@ func (r *Router) RegisterService(
 	handler Handler,
 	serviceMiddleware []func(*middleware.Params) func(http.Handler) http.Handler,
 ) {
-	mwParams := &middleware.Params{
-		ServiceConfig: cfg,
-		StorageConfig: r.config.Storage,
-		History:       r.history,
-	}
+	// Create per-service database based on storage config
+	serviceDB := db.NewDB(cfg.Name, r.config.HistoryDuration, r.config.Storage)
+	mwParams := middleware.NewParams(cfg, r.config.Storage, serviceDB)
 
 	// Use cfg.Name as the route prefix (ensure it starts with /)
 	prefix := "/" + cfg.Name
@@ -130,6 +124,7 @@ func (r *Router) RegisterService(
 		Name:    cfg.Name,
 		Handler: handler,
 	}
+	r.databases[cfg.Name] = serviceDB
 }
 
 // Config returns the app configuration
@@ -149,9 +144,12 @@ func (r *Router) GetServices() map[string]*ServiceItem {
 	return res
 }
 
-// GetHistory returns the history storage
-func (r *Router) GetHistory() *history.CurrentRequestStorage {
-	return r.history
+// GetDB returns the database for a specific service.
+// Returns nil if the service is not registered.
+func (r *Router) GetDB(serviceName string) db.DB {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.databases[serviceName]
 }
 
 // GetContexts returns the list of contexts

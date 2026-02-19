@@ -1,4 +1,4 @@
-package storage
+package db
 
 import (
 	"context"
@@ -6,48 +6,29 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/redis/go-redis/v9"
 	"github.com/sony/gobreaker/v2"
 )
 
-// Ensure RedisStore implements gobreaker.SharedDataStore
-var _ gobreaker.SharedDataStore = (*RedisStore)(nil)
+// Ensure redisCircuitBreakerStore implements gobreaker.SharedDataStore
+var _ gobreaker.SharedDataStore = (*redisCircuitBreakerStore)(nil)
 
-// RedisStore implements gobreaker.SharedDataStore using Redis.
-type RedisStore struct {
+// redisCircuitBreakerStore is a Redis-backed implementation of gobreaker.SharedDataStore.
+type redisCircuitBreakerStore struct {
 	client     *redis.Client
 	lockExpiry time.Duration
 }
 
-// NewRedisStore creates a new Redis-backed SharedDataStore.
-func NewRedisStore(cfg *config.RedisConfig) (*RedisStore, error) {
-	if cfg == nil {
-		return nil, fmt.Errorf("redis config is nil")
-	}
-
-	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.Address,
-		Password: cfg.Password,
-		DB:       cfg.DB,
-	})
-
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := client.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to connect to redis: %w", err)
-	}
-
-	return &RedisStore{
+// newRedisCircuitBreakerStore creates a new Redis-backed circuit breaker store.
+func newRedisCircuitBreakerStore(client *redis.Client) *redisCircuitBreakerStore {
+	return &redisCircuitBreakerStore{
 		client:     client,
 		lockExpiry: 10 * time.Second,
-	}, nil
+	}
 }
 
 // Lock acquires a distributed lock for the given name.
-func (s *RedisStore) Lock(name string) error {
+func (s *redisCircuitBreakerStore) Lock(name string) error {
 	ctx := context.Background()
 	lockKey := s.lockKey(name)
 
@@ -66,7 +47,7 @@ func (s *RedisStore) Lock(name string) error {
 }
 
 // Unlock releases the distributed lock for the given name.
-func (s *RedisStore) Unlock(name string) error {
+func (s *redisCircuitBreakerStore) Unlock(name string) error {
 	ctx := context.Background()
 	lockKey := s.lockKey(name)
 
@@ -77,7 +58,7 @@ func (s *RedisStore) Unlock(name string) error {
 }
 
 // GetData retrieves circuit breaker state data.
-func (s *RedisStore) GetData(name string) ([]byte, error) {
+func (s *redisCircuitBreakerStore) GetData(name string) ([]byte, error) {
 	ctx := context.Background()
 	dataKey := s.dataKey(name)
 
@@ -93,7 +74,7 @@ func (s *RedisStore) GetData(name string) ([]byte, error) {
 }
 
 // SetData stores circuit breaker state data.
-func (s *RedisStore) SetData(name string, data []byte) error {
+func (s *redisCircuitBreakerStore) SetData(name string, data []byte) error {
 	ctx := context.Background()
 	dataKey := s.dataKey(name)
 
@@ -103,15 +84,10 @@ func (s *RedisStore) SetData(name string, data []byte) error {
 	return nil
 }
 
-// Close closes the Redis connection.
-func (s *RedisStore) Close() error {
-	return s.client.Close()
-}
-
-func (s *RedisStore) lockKey(name string) string {
+func (s *redisCircuitBreakerStore) lockKey(name string) string {
 	return fmt.Sprintf("cb:lock:%s", name)
 }
 
-func (s *RedisStore) dataKey(name string) string {
+func (s *redisCircuitBreakerStore) dataKey(name string) string {
 	return fmt.Sprintf("cb:data:%s", name)
 }

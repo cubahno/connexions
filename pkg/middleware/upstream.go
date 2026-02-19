@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cubahno/connexions/v2/internal/history"
-	"github.com/cubahno/connexions/v2/internal/storage"
+	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/sony/gobreaker/v2"
 )
@@ -28,7 +27,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 	// It's tied to the upstream URL and shared across requests.
 	var cb circuitBreakerExecutor
 	if cfg := params.ServiceConfig.Upstream; cfg != nil && cfg.URL != "" {
-		cb = createCircuitBreaker(cfg.URL, cfg.CircuitBreaker, params.StorageConfig)
+		cb = createCircuitBreaker(cfg.URL, cfg.CircuitBreaker, params.DB().CircuitBreakerStore(), params.StorageConfig)
 	}
 
 	return func(next http.Handler) http.Handler {
@@ -71,7 +70,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 // createCircuitBreaker creates a circuit breaker based on the configuration.
 // Returns nil if circuit breaker is not configured.
-func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig, storageCfg *config.StorageConfig) circuitBreakerExecutor {
+func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig, cbStore gobreaker.SharedDataStore, storageCfg *config.StorageConfig) circuitBreakerExecutor {
 	if cbCfg == nil {
 		return nil
 	}
@@ -80,7 +79,7 @@ func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig
 
 	// Create distributed circuit breaker if Redis storage is configured
 	if storageCfg != nil && storageCfg.Type == config.StorageTypeRedis {
-		return createDistributedCircuitBreaker(settings, storageCfg)
+		return createDistributedCircuitBreaker(settings, cbStore)
 	}
 
 	return gobreaker.NewCircuitBreaker[[]byte](settings)
@@ -127,25 +126,8 @@ func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreake
 	}
 }
 
-// createDistributedCircuitBreaker creates a distributed circuit breaker using Redis.
-// Caller must ensure storageCfg is valid Redis config.
-func createDistributedCircuitBreaker(settings gobreaker.Settings, storageCfg *config.StorageConfig) circuitBreakerExecutor {
-	if storageCfg.Redis == nil {
-		slog.Error("Redis config is nil, falling back to local circuit breaker",
-			"name", settings.Name,
-		)
-		return gobreaker.NewCircuitBreaker[[]byte](settings)
-	}
-
-	store, err := storage.NewRedisStore(storageCfg.Redis)
-	if err != nil {
-		slog.Error("Failed to create Redis store for circuit breaker, falling back to local",
-			"name", settings.Name,
-			"error", err,
-		)
-		return gobreaker.NewCircuitBreaker[[]byte](settings)
-	}
-
+// createDistributedCircuitBreaker creates a distributed circuit breaker using the provided store.
+func createDistributedCircuitBreaker(settings gobreaker.Settings, store gobreaker.SharedDataStore) circuitBreakerExecutor {
 	dcb, err := gobreaker.NewDistributedCircuitBreaker[[]byte](store, settings)
 	if err != nil {
 		slog.Error("Failed to create distributed circuit breaker, falling back to local",
@@ -176,8 +158,9 @@ func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
 		Timeout: timeOut,
 	}
 
+	history := params.DB().History()
 	resourcePrefix := "/" + params.ServiceConfig.Name
-	rec := params.History.Set(params.ServiceConfig.Name, req.URL.Path, req, nil)
+	rec := history.Set(req.URL.Path, req, nil)
 
 	bodyBytes := rec.Body
 
@@ -228,12 +211,12 @@ func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
 
 	slog.Info("received successful upstream response", "body", string(body))
 
-	historyResponse := &history.HistoryResponse{
+	historyResponse := &db.Response{
 		Data:           body,
 		StatusCode:     statusCode,
 		IsFromUpstream: true,
 	}
-	params.History.Set(params.ServiceConfig.Name, req.URL.Path, req, historyResponse)
+	history.Set(req.URL.Path, req, historyResponse)
 
 	return body, nil
 }

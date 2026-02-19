@@ -56,7 +56,7 @@ func TestNewRouter(t *testing.T) {
 
 		assert.NotNil(t, router)
 		assert.NotNil(t, router.Router)
-		assert.NotNil(t, router.history)
+		assert.NotNil(t, router.databases)
 		assert.NotNil(t, router.contexts)
 		assert.Len(t, router.contexts, 3) // common, fake, words
 	})
@@ -66,7 +66,7 @@ func TestNewRouter(t *testing.T) {
 		defer func() { _ = os.Unsetenv("ROUTER_HISTORY_DURATION") }()
 
 		router := newTestRouter(t)
-		assert.NotNil(t, router.history)
+		assert.NotNil(t, router.databases)
 	})
 
 	t.Run("Uses default duration on invalid env var", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestNewRouter(t *testing.T) {
 		defer func() { _ = os.Unsetenv("ROUTER_HISTORY_DURATION") }()
 
 		router := newTestRouter(t)
-		assert.NotNil(t, router.history)
+		assert.NotNil(t, router.databases)
 	})
 
 	t.Run("Loads default contexts", func(t *testing.T) {
@@ -104,11 +104,24 @@ func TestNewRouter(t *testing.T) {
 	})
 }
 
-func TestRouter_GetHistory(t *testing.T) {
+func TestRouter_GetDB(t *testing.T) {
 	router := newTestRouter(t)
-	historyStorage := router.GetHistory()
 
-	assert.NotNil(t, historyStorage)
+	// Register a service first
+	service := &mockService{
+		name:   "test-service",
+		config: &config.ServiceConfig{Name: "test-service"},
+	}
+	registerTestService(router, service)
+
+	// Now GetDB should return the DB for this service
+	database := router.GetDB("test-service")
+	assert.NotNil(t, database)
+	assert.NotNil(t, database.History())
+
+	// GetDB for non-existent service should return nil
+	nilDB := router.GetDB("non-existent")
+	assert.Nil(t, nilDB)
 }
 
 func TestRouter_GetContexts(t *testing.T) {
@@ -352,8 +365,10 @@ cache:
 		router.ServeHTTP(w, req)
 
 		// Check that response was stored in history
-		historyStorage := router.GetHistory()
-		data := historyStorage.Data()
+		database := router.GetDB("test-service")
+		assert.NotNil(t, database, "Database should exist for test-service")
+
+		data := database.History().Data()
 		assert.NotEmpty(t, data, "History should contain the request")
 
 		// Verify the stored response (key format is METHOD:URL)
@@ -396,9 +411,12 @@ cache:
 		assert.Equal(t, expectedBody, receivedBody, "Handler should receive the full request body")
 
 		// verify it was stored in history
-		historyStorage := router.GetHistory()
-		data := historyStorage.Data()
+		database := router.GetDB("test-service")
+		assert.NotNil(t, database, "Database should exist for test-service")
+
+		data := database.History().Data()
 		rec, exists := data["POST:/test-service/test"]
+
 		assert.True(t, exists)
 		assert.Equal(t, []byte(expectedBody), rec.Body, "History should contain the request body")
 	})
@@ -432,6 +450,7 @@ cache:
 
 		// Should have latency applied
 		assert.GreaterOrEqual(t, duration, 30*time.Millisecond)
+
 		// Should reach handler (no error)
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "Success", w.Body.String())
@@ -473,8 +492,10 @@ cache:
 		assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 
 		// Response should NOT be cached (error occurred before cache write)
-		historyStorage := router.GetHistory()
-		data := historyStorage.Data()
+		database := router.GetDB("test-service")
+		assert.NotNil(t, database, "Database should exist for test-service")
+
+		data := database.History().Data()
 		// History might have the request but not a successful response
 		if rec, exists := data["GET:/test-service/test"]; exists {
 			// If it exists, it should not have a successful status
@@ -508,9 +529,12 @@ cache:
 		assert.Equal(t, http.StatusCreated, w.Code)
 
 		// Verify history contains the request
-		historyStorage := router.GetHistory()
-		data := historyStorage.Data()
+		database := router.GetDB("test-service")
+		assert.NotNil(t, database, "Database should exist for test-service")
+
+		data := database.History().Data()
 		rec, exists := data["POST:/test-service/create"]
+
 		assert.True(t, exists)
 		assert.Equal(t, []byte(reqBody), rec.Body)
 	})
@@ -828,8 +852,9 @@ cache:
 		assert.Equal(t, http.StatusCreated, w.Code)
 
 		// Verify cache write middleware stored the response
-		historyStorage := router.GetHistory()
-		data := historyStorage.Data()
+		database := router.GetDB("test-service")
+		assert.NotNil(t, database, "Database should exist for test-service")
+		data := database.History().Data()
 		rec, exists := data["POST:/test-service/test"]
 		assert.True(t, exists, "Response should be stored in history")
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)

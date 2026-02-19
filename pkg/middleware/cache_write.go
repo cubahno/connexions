@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"net/http"
 
-	"github.com/cubahno/connexions/v2/internal/history"
+	"github.com/cubahno/connexions/v2/internal/db"
 )
 
 // CreateCacheWriteMiddleware is a method on the Router to create a middleware
 func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			_, ok := params.History.Get(req)
+			history := params.DB().History()
+
+			_, ok := history.Get(req)
 			if !ok {
-				_ = params.History.Set(params.ServiceConfig.Name, req.URL.Path, req, nil)
+				_ = history.Set(req.URL.Path, req, nil)
 			}
 
 			// Create a responseWriter to capture the response.
@@ -30,7 +32,7 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 			respStatusCode := rw.statusCode
 			respContentType := rw.Header().Get("Content-Type")
 
-			params.History.SetResponse(req, &history.HistoryResponse{
+			history.SetResponse(req, &db.Response{
 				Data:        respContent,
 				StatusCode:  respStatusCode,
 				ContentType: respContentType,

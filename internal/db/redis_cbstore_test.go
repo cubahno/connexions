@@ -1,51 +1,21 @@
-package storage
+package db
 
 import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/redis/go-redis/v9"
+	"github.com/sony/gobreaker/v2"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
-func TestNewRedisStore(t *testing.T) {
-	assert := assert2.New(t)
-
-	t.Run("nil config returns error", func(t *testing.T) {
-		store, err := NewRedisStore(nil)
-		assert.Nil(store)
-		assert.Error(err)
-		assert.Contains(err.Error(), "redis config is nil")
-	})
-
-	t.Run("invalid address returns error", func(t *testing.T) {
-		cfg := &config.RedisConfig{
-			Address:  "invalid:99999",
-			Password: "",
-			DB:       0,
-		}
-		store, err := NewRedisStore(cfg)
-		assert.Nil(store)
-		assert.Error(err)
-		assert.Contains(err.Error(), "failed to connect to redis")
-	})
-
-	t.Run("successful connection", func(t *testing.T) {
-		mr := miniredis.RunT(t)
-		cfg := &config.RedisConfig{
-			Address: mr.Addr(),
-		}
-		store, err := NewRedisStore(cfg)
-		assert.NoError(err)
-		assert.NotNil(store)
-		_ = store.Close()
-	})
+func TestRedisCircuitBreakerStore_ImplementsInterface(t *testing.T) {
+	var _ gobreaker.SharedDataStore = (*redisCircuitBreakerStore)(nil)
 }
 
-func TestRedisStore_KeyFormats(t *testing.T) {
+func TestRedisCircuitBreakerStore_KeyFormats(t *testing.T) {
 	assert := assert2.New(t)
-
-	store := &RedisStore{}
+	store := &redisCircuitBreakerStore{}
 
 	t.Run("lock key format", func(t *testing.T) {
 		key := store.lockKey("test-breaker")
@@ -58,13 +28,13 @@ func TestRedisStore_KeyFormats(t *testing.T) {
 	})
 }
 
-func TestRedisStore_Lock(t *testing.T) {
+func TestRedisCircuitBreakerStore_Lock(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer func() { _ = client.Close() }()
 
-	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
-	assert.NoError(err)
-	defer func() { _ = store.Close() }()
+	store := newRedisCircuitBreakerStore(client)
 
 	t.Run("acquire lock", func(t *testing.T) {
 		err := store.Lock("test-lock")
@@ -94,13 +64,13 @@ func TestRedisStore_Lock(t *testing.T) {
 	})
 }
 
-func TestRedisStore_Unlock(t *testing.T) {
+func TestRedisCircuitBreakerStore_Unlock(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer func() { _ = client.Close() }()
 
-	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
-	assert.NoError(err)
-	defer func() { _ = store.Close() }()
+	store := newRedisCircuitBreakerStore(client)
 
 	t.Run("unlock existing lock", func(t *testing.T) {
 		name := "test-unlock"
@@ -112,17 +82,17 @@ func TestRedisStore_Unlock(t *testing.T) {
 
 	t.Run("unlock non-existent lock", func(t *testing.T) {
 		err := store.Unlock("non-existent")
-		assert.NoError(err) // DEL returns 0 but no error
+		assert.NoError(err)
 	})
 }
 
-func TestRedisStore_GetData(t *testing.T) {
+func TestRedisCircuitBreakerStore_GetData(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer func() { _ = client.Close() }()
 
-	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
-	assert.NoError(err)
-	defer func() { _ = store.Close() }()
+	store := newRedisCircuitBreakerStore(client)
 
 	t.Run("get non-existent data returns nil", func(t *testing.T) {
 		data, err := store.GetData("non-existent")
@@ -141,13 +111,13 @@ func TestRedisStore_GetData(t *testing.T) {
 	})
 }
 
-func TestRedisStore_SetData(t *testing.T) {
+func TestRedisCircuitBreakerStore_SetData(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	defer func() { _ = client.Close() }()
 
-	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
-	assert.NoError(err)
-	defer func() { _ = store.Close() }()
+	store := newRedisCircuitBreakerStore(client)
 
 	t.Run("set data", func(t *testing.T) {
 		testData := []byte(`{"state":"open","counts":{"requests":5}}`)
@@ -169,15 +139,4 @@ func TestRedisStore_SetData(t *testing.T) {
 		data, _ := store.GetData(name)
 		assert.Equal(newData, data)
 	})
-}
-
-func TestRedisStore_Close(t *testing.T) {
-	assert := assert2.New(t)
-	mr := miniredis.RunT(t)
-
-	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
-	assert.NoError(err)
-
-	err = store.Close()
-	assert.NoError(err)
 }

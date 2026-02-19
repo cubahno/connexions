@@ -11,8 +11,7 @@ coverage.out
 coverage_*
 !coverage_exclude.sh
 *.patch
-resources/data/plugins
-resources/data/auto
+cmd/server/services_gen.go
 resources/data/services
 resources/data/config.yml
 resources/data/contexts
