@@ -91,4 +91,3 @@ func (s *redisCircuitBreakerStore) lockKey(name string) string {
 func (s *redisCircuitBreakerStore) dataKey(name string) string {
 	return fmt.Sprintf("cb:data:%s", name)
 }
-

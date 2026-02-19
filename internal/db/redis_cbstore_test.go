@@ -32,7 +32,7 @@ func TestRedisCircuitBreakerStore_Lock(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	store := newRedisCircuitBreakerStore(client)
 
@@ -68,7 +68,7 @@ func TestRedisCircuitBreakerStore_Unlock(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	store := newRedisCircuitBreakerStore(client)
 
@@ -90,7 +90,7 @@ func TestRedisCircuitBreakerStore_GetData(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	store := newRedisCircuitBreakerStore(client)
 
@@ -115,7 +115,7 @@ func TestRedisCircuitBreakerStore_SetData(t *testing.T) {
 	assert := assert2.New(t)
 	mr := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	store := newRedisCircuitBreakerStore(client)
 
@@ -140,4 +140,3 @@ func TestRedisCircuitBreakerStore_SetData(t *testing.T) {
 		assert.Equal(newData, data)
 	})
 }
-

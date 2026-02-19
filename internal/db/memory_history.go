@@ -144,4 +144,3 @@ func startResetTicker(ctx context.Context, h *memoryHistoryTable, clearTimeout t
 		}
 	}()
 }
-

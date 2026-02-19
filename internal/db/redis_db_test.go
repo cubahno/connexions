@@ -151,7 +151,7 @@ func TestRedisTable(t *testing.T) {
 
 	t.Run("get with corrupted json returns false", func(t *testing.T) {
 		// Manually set corrupted data
-		mr.Set("test-service:test-table:corrupted", "not-valid-json")
+		_ = mr.Set("test-service:test-table:corrupted", "not-valid-json")
 		_, ok := table.Get("corrupted")
 		assert.False(ok)
 	})
@@ -159,7 +159,7 @@ func TestRedisTable(t *testing.T) {
 	t.Run("data skips corrupted entries", func(t *testing.T) {
 		table.Clear()
 		table.Set("valid", "value")
-		mr.Set("test-service:test-table:corrupted2", "not-valid-json")
+		_ = mr.Set("test-service:test-table:corrupted2", "not-valid-json")
 
 		data := table.Data()
 		assert.Len(data, 1)
@@ -270,7 +270,7 @@ func TestRedisHistoryTable(t *testing.T) {
 
 	t.Run("get with corrupted data returns false", func(t *testing.T) {
 		// Manually set corrupted data in Redis
-		mr.Set("test-service:history:GET:/corrupted", "not-valid-json")
+		_ = mr.Set("test-service:history:GET:/corrupted", "not-valid-json")
 
 		req := &http.Request{Method: http.MethodGet, URL: &url.URL{Path: "/corrupted"}}
 		_, ok := history.Get(req)
@@ -279,7 +279,7 @@ func TestRedisHistoryTable(t *testing.T) {
 
 	t.Run("set response with corrupted existing data", func(t *testing.T) {
 		// Manually set corrupted data in Redis
-		mr.Set("test-service:history:GET:/corrupted2", "not-valid-json")
+		_ = mr.Set("test-service:history:GET:/corrupted2", "not-valid-json")
 
 		req := &http.Request{Method: http.MethodGet, URL: &url.URL{Path: "/corrupted2"}}
 		// Should not panic
@@ -304,7 +304,7 @@ func TestRedisHistoryTable(t *testing.T) {
 		history.Set("/valid-entry", req, nil)
 
 		// Manually set corrupted data
-		mr.Set("test-service:history:GET:/corrupted-data", "not-valid-json")
+		_ = mr.Set("test-service:history:GET:/corrupted-data", "not-valid-json")
 
 		data := history.Data()
 		assert.Len(data, 1)
