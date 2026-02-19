@@ -64,7 +64,7 @@ func TestRedisStore_Lock(t *testing.T) {
 
 	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
 	assert.NoError(err)
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	t.Run("acquire lock", func(t *testing.T) {
 		err := store.Lock("test-lock")
@@ -100,7 +100,7 @@ func TestRedisStore_Unlock(t *testing.T) {
 
 	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
 	assert.NoError(err)
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	t.Run("unlock existing lock", func(t *testing.T) {
 		name := "test-unlock"
@@ -122,7 +122,7 @@ func TestRedisStore_GetData(t *testing.T) {
 
 	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
 	assert.NoError(err)
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	t.Run("get non-existent data returns nil", func(t *testing.T) {
 		data, err := store.GetData("non-existent")
@@ -147,7 +147,7 @@ func TestRedisStore_SetData(t *testing.T) {
 
 	store, err := NewRedisStore(&config.RedisConfig{Address: mr.Addr()})
 	assert.NoError(err)
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	t.Run("set data", func(t *testing.T) {
 		testData := []byte(`{"state":"open","counts":{"requests":5}}`)
@@ -181,4 +181,3 @@ func TestRedisStore_Close(t *testing.T) {
 	err = store.Close()
 	assert.NoError(err)
 }
-
