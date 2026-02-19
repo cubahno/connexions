@@ -24,19 +24,17 @@ type circuitBreakerExecutor interface {
 // CreateUpstreamRequestMiddleware returns a middleware that fetches data from an upstream service.
 // If circuit breaker is configured and the upstream service fails, consequent requests will be blocked.
 func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Handler {
-	cfg := params.ServiceConfig.Upstream
-	if cfg == nil {
-		return func(next http.Handler) http.Handler {
-			return next
-		}
+	// Circuit breaker is created at startup with the original config.
+	// It's tied to the upstream URL and shared across requests.
+	var cb circuitBreakerExecutor
+	if cfg := params.ServiceConfig.Upstream; cfg != nil && cfg.URL != "" {
+		cb = createCircuitBreaker(cfg.URL, cfg.CircuitBreaker, params.StorageConfig)
 	}
-
-	upstreamURL := cfg.URL
-	cb := createCircuitBreaker(upstreamURL, cfg.CircuitBreaker, params.StorageConfig)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if upstreamURL == "" {
+			cfg := params.ServiceConfig.Upstream
+			if cfg == nil || cfg.URL == "" {
 				next.ServeHTTP(w, req)
 				return
 			}

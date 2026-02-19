@@ -9,10 +9,9 @@ import (
 
 // CreateCacheReadMiddleware returns a middleware that checks if GET request is cached in History.
 func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
-	cfg := params.ServiceConfig
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			cfg := params.ServiceConfig
 			if cfg == nil || cfg.Cache == nil {
 				next.ServeHTTP(w, req)
 				return
