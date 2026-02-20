@@ -10,28 +10,22 @@ func TestNewHandlerConfig(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("creates handler config from service config", func(t *testing.T) {
-		validateCfg := &ValidateConfig{
-			Request:  true,
-			Response: true,
-		}
 		serviceCfg := &ServiceConfig{
-			Validate: validateCfg,
+			ResourcesPrefix: "/api",
 		}
 
 		handlerCfg := NewHandlerConfig(serviceCfg)
 
 		assert.NotNil(handlerCfg)
-		assert.Equal(validateCfg, handlerCfg.Validate)
+		assert.Equal("/api", handlerCfg.SelfPrefix)
 	})
 
-	t.Run("handles nil validate config", func(t *testing.T) {
-		serviceCfg := &ServiceConfig{
-			Validate: nil,
-		}
+	t.Run("handles empty resources prefix", func(t *testing.T) {
+		serviceCfg := &ServiceConfig{}
 
 		handlerCfg := NewHandlerConfig(serviceCfg)
 
 		assert.NotNil(handlerCfg)
-		assert.Nil(handlerCfg.Validate)
+		assert.Empty(handlerCfg.SelfPrefix)
 	})
 }

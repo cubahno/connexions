@@ -5,46 +5,9 @@ import (
 	"strings"
 
 	"github.com/cubahno/connexions/v2/pkg/schema"
-	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 )
 
 const schemaInit = "schema.Schema"
-
-// renderParameterEncoding renders a ParameterEncoding struct as Go code
-func renderParameterEncoding(enc *codegen.ParameterEncoding) string {
-	if enc == nil || isEmptyEncoding(enc) {
-		return "nil"
-	}
-
-	var parts []string
-
-	if enc.Style != "" {
-		parts = append(parts, fmt.Sprintf("Style: %q", enc.Style))
-	}
-
-	if enc.Explode != nil {
-		explodeVal := "false"
-		if *enc.Explode {
-			explodeVal = "true"
-		}
-		parts = append(parts, fmt.Sprintf("Explode: &[]bool{%s}[0]", explodeVal))
-	}
-
-	if enc.Required {
-		parts = append(parts, "Required: true")
-	}
-
-	if enc.AllowReserved {
-		parts = append(parts, "AllowReserved: true")
-	}
-
-	return fmt.Sprintf("&codegen.ParameterEncoding{%s}", strings.Join(parts, ", "))
-}
-
-// isEmptyEncoding checks if a ParameterEncoding has any non-default values
-func isEmptyEncoding(enc *codegen.ParameterEncoding) bool {
-	return enc.Style == "" && enc.Explode == nil && !enc.Required && !enc.AllowReserved
-}
 
 // renderSchema renders a schema.Schema as Go code
 func renderSchema(s *schema.Schema) string {
@@ -155,38 +118,4 @@ func renderSchema(s *schema.Schema) string {
 
 	sb.WriteString("\t\t}")
 	return sb.String()
-}
-
-// createResolveTypeName returns a function that resolves a type name to its final non-ref type
-// by following the RefType chain until it finds a concrete type.
-func createResolveTypeName(tdsLookUp map[string]*codegen.TypeDefinition) func(typeName string) string {
-	return func(typeName string) string {
-		visited := make(map[string]bool)
-		current := typeName
-
-		// Follow the RefType chain until we find a non-ref type
-		for {
-			// Prevent infinite loops
-			if visited[current] {
-				return current
-			}
-			visited[current] = true
-
-			// Look up the type definition
-			td, ok := tdsLookUp[current]
-			if !ok {
-				// Type not found in registry, return current name
-				return current
-			}
-
-			// If this type has a RefType, follow it
-			if td.Schema.RefType != "" {
-				current = td.Schema.RefType
-				continue
-			}
-
-			// No RefType, this is the final concrete type
-			return current
-		}
-	}
 }

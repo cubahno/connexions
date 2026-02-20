@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"embed"
+	_ "embed"
 	"fmt"
 	"io/fs"
 	"os"
@@ -13,6 +14,12 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+//go:embed templates/service-config.yml
+var serviceConfigTemplate []byte
+
+//go:embed templates/codegen.yml
+var codegenConfigTemplate []byte
+
 // Note: specsFS will be initialized from the root integration_test.go
 // We can't embed from internal/ package due to Go embed restrictions
 var specsFS embed.FS
@@ -20,6 +27,20 @@ var specsFS embed.FS
 // SetSpecsFS sets the embedded filesystem (called from root test)
 func SetSpecsFS(fs embed.FS) {
 	specsFS = fs
+}
+
+// writeCodegenConfigTemplate writes the embedded codegen template to a temp file
+// and returns the path. Returns empty string on error.
+func writeCodegenConfigTemplate() string {
+	f, err := os.CreateTemp("", "codegen-*.yml")
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = f.Close() }()
+	if _, err := f.Write(codegenConfigTemplate); err != nil {
+		return ""
+	}
+	return f.Name()
 }
 
 // readSpecFile reads a spec file with default base directory (for internal use)
@@ -247,9 +268,16 @@ func collectSpecsFromPath(t *testing.T, specPath string) []string {
 }
 
 // updateServiceConfig updates the service config for integration tests.
-// It enables response validation, disables lazy loading, and enables simplification for large specs.
+// It merges the embedded template config with the service's generated config,
+// and enables simplification for large specs.
 func updateServiceConfig(configPath string, specSize, simplifyThreshold int64) error {
-	// Read existing config
+	// Parse embedded template
+	templateCfg, err := config.NewServiceConfigFromBytes(serviceConfigTemplate)
+	if err != nil {
+		return fmt.Errorf("parsing template config: %w", err)
+	}
+
+	// Read existing service config
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("reading config: %w", err)
@@ -260,28 +288,15 @@ func updateServiceConfig(configPath string, specSize, simplifyThreshold int64) e
 		return fmt.Errorf("parsing config: %w", err)
 	}
 
-	// Enable response validation
-	if cfg.Validate != nil {
-		cfg.Validate.Response = true
-	}
+	// Merge template onto existing config (template values take precedence)
+	cfg.OverwriteWith(templateCfg)
 
-	// Disable lazy loading for integration tests (we test all endpoints, so eager is more efficient)
-	if cfg.SpecOptions != nil {
-		cfg.SpecOptions.LazyLoad = false
-	}
-
-	// Enable simplification for large specs
+	// Enable simplification for large specs (dynamic, not in template)
 	if simplifyThreshold > 0 && specSize >= simplifyThreshold {
 		if cfg.SpecOptions != nil {
 			cfg.SpecOptions.Simplify = true
 		}
 	}
-
-	// Enable server generation for integration tests
-	if cfg.Generate == nil {
-		cfg.Generate = &config.GenerateConfig{}
-	}
-	cfg.Generate.Server = &struct{}{}
 
 	// Write updated config
 	updatedData, err := yaml.Marshal(cfg)

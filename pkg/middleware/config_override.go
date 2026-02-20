@@ -17,11 +17,9 @@ const (
 	headerPrefix = "X-Cxs-"
 
 	// Supported header names (without prefix, canonicalized form)
-	headerCacheRequests    = "Cache-Requests"
-	headerValidateRequest  = "Validate-Request"
-	headerValidateResponse = "Validate-Response"
-	headerLatency          = "Latency"
-	headerUpstreamURL      = "Upstream-Url"
+	headerCacheRequests = "Cache-Requests"
+	headerLatency       = "Latency"
+	headerUpstreamURL   = "Upstream-Url"
 )
 
 // CreateConfigOverrideMiddleware creates a middleware that reads X-Cxs-* headers
@@ -93,11 +91,6 @@ func applyOverrides(original *config.ServiceConfig, overrides []configOverride) 
 		cfg.Cache = &cacheCopy
 	}
 
-	if original.Validate != nil {
-		validateCopy := *original.Validate
-		cfg.Validate = &validateCopy
-	}
-
 	if original.Upstream != nil {
 		upstreamCopy := *original.Upstream
 		cfg.Upstream = &upstreamCopy
@@ -119,22 +112,6 @@ func applyOverride(cfg *config.ServiceConfig, o configOverride) {
 		}
 		if b, err := strconv.ParseBool(o.value); err == nil {
 			cfg.Cache.Requests = b
-		}
-
-	case headerValidateRequest:
-		if cfg.Validate == nil {
-			cfg.Validate = config.NewValidateConfig()
-		}
-		if b, err := strconv.ParseBool(o.value); err == nil {
-			cfg.Validate.Request = b
-		}
-
-	case headerValidateResponse:
-		if cfg.Validate == nil {
-			cfg.Validate = config.NewValidateConfig()
-		}
-		if b, err := strconv.ParseBool(o.value); err == nil {
-			cfg.Validate.Response = b
 		}
 
 	case headerLatency:

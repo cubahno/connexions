@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cubahno/connexions/refs/heads/master/resources/json-schema-service.json
+name: zero
+latency: 0ms
+errors:
+#  p10: 500
+#  p20: 400
+#generate:
+#  server: {}
+cache:
+  requests: true
+validate:
+  request: true
+  response: false
+spec:
+  simplify: false
+  optional-properties:
+    number: 5
+    # range: "1-6"

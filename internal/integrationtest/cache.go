@@ -11,6 +11,7 @@ import (
 const (
 	// CacheFileName is the name of the cache file
 	CacheFileName = ".integration-cache.json"
+
 	// specBaseDir is the base directory for spec files
 	specBaseDir = "testdata/specs"
 )

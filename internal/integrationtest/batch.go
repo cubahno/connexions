@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,9 @@ const (
 	defaultBatchSizeBytes = 6 * 1024 * 1024 // 6MB
 	defaultBatchMaxFiles  = 20
 )
+
+//go:embed templates/server.tmpl
+var batchServerTemplate []byte
 
 // SplitIntoBatches splits specs into batches based on target size in bytes.
 // Each batch will contain specs until either target size or max files is reached.
@@ -90,73 +94,6 @@ type BatchServerInfo struct {
 	ServerDir    string
 }
 
-const batchServerTemplate = `// Code generated for integration tests. DO NOT EDIT.
-package main
-
-import (
-	"errors"
-	"fmt"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
-	"time"
-
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/loader"
-
-	// Imports to ensure dependencies are available
-	_ "github.com/go-playground/validator/v10"
-	_ "github.com/google/uuid"
-
-	// Service imports
-{{range .ServiceImports}}	_ "{{.}}"
-{{end}})
-
-func main() {
-	logLevel := slog.LevelInfo
-	switch os.Getenv("LOG_LEVEL") {
-	case "debug":
-		logLevel = slog.LevelDebug
-	case "warn":
-		logLevel = slog.LevelWarn
-	case "error":
-		logLevel = slog.LevelError
-	}
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-
-	// NewRouter includes all middleware (RequestID, RealIP, Logger, Duration, Recoverer, Timeout)
-	router := api.NewRouter()
-
-	_ = api.CreateHealthRoutes(router)
-	_ = api.CreateHomeRoutes(router)
-	_ = api.CreateServiceRoutes(router)
-
-	loader.LoadAll(router)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "2200"
-	}
-	addr := fmt.Sprintf(":%s", port)
-
-	server := &http.Server{
-		Addr:         addr,
-		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
-	}
-
-	log.Printf("Starting batch server on %s with %d services", addr, {{.ServiceCount}})
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatalf("Server failed to start: %v", err)
-	}
-}
-`
-
 // GenerateBatchServer generates a main.go that imports all services in the batch
 func GenerateBatchServer(sandboxDir string, batchID int, serviceNames []string) (*BatchServerInfo, error) {
 	// Get module name for imports
@@ -171,7 +108,7 @@ func GenerateBatchServer(sandboxDir string, batchID int, serviceNames []string) 
 	}
 
 	// Generate main.go content
-	tmpl, err := template.New("batch").Parse(batchServerTemplate)
+	tmpl, err := template.New("batch").Parse(string(batchServerTemplate))
 	if err != nil {
 		return nil, fmt.Errorf("parsing template: %w", err)
 	}

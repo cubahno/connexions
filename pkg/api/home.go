@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/resources"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -60,16 +62,31 @@ func (bw *BufferedWriter) WriteHeader(statusCode int) {
 }
 
 // createUIHandler creates a handler function for home.
+// Uses filesystem UI if available, otherwise falls back to embedded.
 func createUIHandler(router *Router) http.HandlerFunc {
 	uiPath := router.Config().Paths.UI
+	useFilesystem := hasUIFiles(uiPath)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		tpl, err := template.ParseFiles(fmt.Sprintf("%s/index.html", uiPath))
+		var indexHTML []byte
+		var err error
+
+		if useFilesystem {
+			indexHTML, err = os.ReadFile(filepath.Join(uiPath, "index.html"))
+		} else {
+			indexHTML, err = resources.UIFS.ReadFile("ui/index.html")
+		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		tmpl := template.Must(tpl, nil)
+
+		tpl, err := template.New("index.html").Parse(string(indexHTML))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		cfg := router.Config()
 
 		type TemplateData struct {
@@ -78,7 +95,12 @@ func createUIHandler(router *Router) http.HandlerFunc {
 			Version   string
 		}
 
-		homeContents, err := os.ReadFile(filepath.Join(uiPath, "home.html"))
+		var homeContents []byte
+		if useFilesystem {
+			homeContents, err = os.ReadFile(filepath.Join(uiPath, "home.html"))
+		} else {
+			homeContents, err = resources.UIFS.ReadFile("ui/home.html")
+		}
 		if err != nil {
 			log.Println("Failed to get home contents", err)
 		}
@@ -94,7 +116,7 @@ func createUIHandler(router *Router) http.HandlerFunc {
 		// Create a buffered writer to capture the template execution result.
 		buf := NewBufferedResponseWriter()
 
-		err = tmpl.Execute(buf, data)
+		err = tpl.Execute(buf, data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -105,25 +127,43 @@ func createUIHandler(router *Router) http.HandlerFunc {
 }
 
 // fileServer conveniently sets up a http.FileServer handler to serve
-// static files from a http.FileSystem.
+// static files. Uses filesystem UI if available, otherwise embedded.
 func fileServer(url string, router *Router) {
-	resDir := router.Config().Paths.Resources
-	uiPath := filepath.Join(resDir, "ui")
+	uiPath := router.Config().Paths.UI
+
+	var fileSystem http.FileSystem
+	if hasUIFiles(uiPath) {
+		fileSystem = http.Dir(uiPath)
+	} else {
+		uiSubFS, err := fs.Sub(resources.UIFS, "ui")
+		if err != nil {
+			log.Printf("Failed to create UI sub-filesystem: %v", err)
+			return
+		}
+		fileSystem = http.FS(uiSubFS)
+	}
 
 	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
 		rctx := chi.RouteContext(r.Context())
 		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
-		fs := http.StripPrefix(pathPrefix, http.FileServer(http.Dir(uiPath)))
-		fs.ServeHTTP(w, r)
+		server := http.StripPrefix(pathPrefix, http.FileServer(fileSystem))
+		server.ServeHTTP(w, r)
 	})
+}
+
+// hasUIFiles checks if a UI directory exists with required files.
+func hasUIFiles(uiPath string) bool {
+	indexPath := filepath.Join(uiPath, "index.html")
+	_, err := os.Stat(indexPath)
+	return err == nil
 }
 
 // docsServer serves the docs assets.
 func docsServer(url string, router *Router) {
 	router.Get(url, func(w http.ResponseWriter, r *http.Request) {
-		fs := http.StripPrefix(
+		ufs := http.StripPrefix(
 			strings.TrimSuffix(url, "/*"),
 			http.FileServer(http.Dir(filepath.Join(router.Config().Paths.Base, "site"))))
-		fs.ServeHTTP(w, r)
+		ufs.ServeHTTP(w, r)
 	})
 }

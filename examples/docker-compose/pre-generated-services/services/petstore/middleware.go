@@ -1,3 +1,6 @@
+// Package petstore This file is generated ONCE as a starting point and will NOT be overwritten.
+// Modify it freely to add your middleware logic.
+// To regenerate, delete this file or set generate.handler.output.overwrite: true in config.
 package petstore
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/cubahno/connexions/v2/pkg/middleware"
 )
 
-// getMiddleware returns custom middleware for the petstore service.
+// getMiddleware returns custom middleware for this service.
 //
 // This function is called during service registration.
 // Middleware returned here will be applied AFTER the standard middleware chain.

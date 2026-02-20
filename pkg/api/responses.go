@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 // JSONResponse is a response builder for JSON responses.
@@ -86,4 +87,44 @@ func SendHTML(w http.ResponseWriter, statusCode int, data []byte) {
 type StaticResponse struct {
 	ContentType string
 	Content     string
+}
+
+// UnmarshalResponseInto unmarshals response data into the provided destination.
+// Content type handling:
+//   - JSON types (application/json, +json variants) → JSON unmarshal
+//   - Everything else → assigns directly ([]byte or string)
+func UnmarshalResponseInto[T any](data []byte, contentType string, dest *T) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	// JSON types - unmarshal
+	if isJSONContentType(contentType) {
+		return json.Unmarshal(data, dest)
+	}
+
+	// Non-JSON: try []byte first, then string
+	if bytesPtr, ok := any(dest).(*[]byte); ok {
+		*bytesPtr = data
+		return nil
+	}
+
+	if strPtr, ok := any(dest).(*string); ok {
+		*strPtr = string(data)
+		return nil
+	}
+
+	// Fallback: try JSON unmarshal anyway
+	return json.Unmarshal(data, dest)
+}
+
+// isJSONContentType returns true for JSON content types.
+func isJSONContentType(contentType string) bool {
+	ct := contentType
+	if idx := strings.Index(ct, ";"); idx != -1 {
+		ct = strings.TrimSpace(ct[:idx])
+	}
+
+	return ct == "application/json" ||
+		strings.HasSuffix(ct, "+json")
 }

@@ -41,14 +41,14 @@ filter:
 
 ## Investigating validation errors in integration tests
 - Get the request and response payloads the connexions generate bypassing validation:
-  Create custom service config somewhere in the sandbox with:
+  Create custom codegen config somewhere in the sandbox with validation disabled:
 ```yaml
-cache:
-  requests: false
-validate:
-  request: false 
-  response: false
-``` 
+generate:
+  handler:
+    validation:
+      request: false
+      response: false
+```
 - Log the generated request in integration test after `http.Post to generateURL`
 - Log the generated response received from the server after `respBody, _ := io.ReadAll(endpointResp.Body)`
 - Locate needed resource and all components in the OpenAPI schema located in `setup/openapi.yml`

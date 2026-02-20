@@ -47,10 +47,6 @@ name: myapi                # Service name (optional, inferred from directory)
 cache:
   requests: false          # Disable GET request caching
 
-validate:
-  request: true            # Validate incoming requests
-  response: false          # Validate outgoing responses
-
 latency: 50ms              # Add artificial latency
 
 errors:                    # Simulate errors at percentiles

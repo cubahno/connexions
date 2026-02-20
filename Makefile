@@ -12,6 +12,10 @@ define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
 endef
 
+# Catch-all rule to prevent "No rule to make target" errors for positional arguments
+%:
+	@:
+
 .PHONY: clean
 clean:
 	rm -rf ${build_dir}
@@ -138,8 +142,8 @@ generate:
 
 .PHONY: tidy
 tidy:
-	go mod tidy
-	@git ls-files '**/*go.mod' -z | xargs -0 -I{} bash -c 'cd $$(dirname {}) && if [ -f Makefile ] && go list ./... >/dev/null 2>&1; then make tidy; fi'
+	@go mod tidy
+	@git ls-files '**/*go.mod' -z | xargs -0 -I{} bash -c 'cd $$(dirname {}) && if [ -f Makefile ]; then make tidy; fi'
 
 .PHONY: check-fmt
 check-fmt:

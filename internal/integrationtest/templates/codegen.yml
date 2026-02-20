@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doordash-oss/oapi-codegen-dd/main/configuration-schema.json
+# Integration test codegen overrides - merged with default template
+generate:
+  handler:
+    kind: chi
+    validation:
+      request: true
+      response: true

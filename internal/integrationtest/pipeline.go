@@ -16,19 +16,6 @@ const (
 	MaxErrorMessageLength = 2000
 )
 
-// truncateError truncates an error message to MaxErrorMessageLength
-func truncateError(err string) string {
-	if len(err) <= MaxErrorMessageLength {
-		return err
-	}
-	// Try to find a good break point (newline or space)
-	truncated := err[:MaxErrorMessageLength]
-	if idx := strings.LastIndex(truncated, "\n"); idx > MaxErrorMessageLength/2 {
-		truncated = truncated[:idx]
-	}
-	return truncated + "... (truncated)"
-}
-
 // PreparedBatch represents a batch that's ready to test
 type PreparedBatch struct {
 	Info        *BatchServerInfo
@@ -445,6 +432,19 @@ func RunPipeline(batches [][]string, cfg *PipelineConfig) ([]IntegrationResult, 
 	processBatches()
 
 	return allResults, serviceStatsMap, time.Since(buildPhaseStart), batchStats
+}
+
+// truncateError truncates an error message to MaxErrorMessageLength
+func truncateError(err string) string {
+	if len(err) <= MaxErrorMessageLength {
+		return err
+	}
+	// Try to find a good break point (newline or space)
+	truncated := err[:MaxErrorMessageLength]
+	if idx := strings.LastIndex(truncated, "\n"); idx > MaxErrorMessageLength/2 {
+		truncated = truncated[:idx]
+	}
+	return truncated + "... (truncated)"
 }
 
 // prepareBatch prepares a single batch: setup, generate, build, start

@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

@@ -15,7 +15,6 @@ func TestNewServiceConfig(t *testing.T) {
 		assert.NotNil(t, cfg)
 		assert.NotNil(t, cfg.Errors)
 		assert.NotNil(t, cfg.Latencies)
-		assert.NotNil(t, cfg.Validate)
 		assert.NotNil(t, cfg.Cache)
 		assert.Empty(t, cfg.Errors)
 		assert.Empty(t, cfg.Latencies)
@@ -33,9 +32,6 @@ latencies:
 errors:
   p10: 400
   p20: 500
-validate:
-  request: true
-  response: false
 cache:
   requests: true
 `)
@@ -46,8 +42,6 @@ cache:
 		assert.Equal(t, 100*time.Millisecond, cfg.Latency)
 		assert.Len(t, cfg.Latencies, 3)
 		assert.Len(t, cfg.Errors, 2)
-		assert.True(t, cfg.Validate.Request)
-		assert.False(t, cfg.Validate.Response)
 		assert.True(t, cfg.Cache.Requests)
 	})
 
@@ -80,10 +74,6 @@ latency: 100ms
 		assert.Equal(t, 100*time.Millisecond, cfg.Latency)
 
 		// These should be filled with defaults even though not in YAML
-		assert.NotNil(t, cfg.Validate)
-		assert.True(t, cfg.Validate.Request)
-		assert.False(t, cfg.Validate.Response)
-
 		assert.NotNil(t, cfg.Cache)
 		assert.True(t, cfg.Cache.Requests)
 
@@ -351,16 +341,6 @@ func TestServiceConfig_parseErrors(t *testing.T) {
 	})
 }
 
-func TestNewValidateConfig(t *testing.T) {
-	t.Run("Creates validate config with default values", func(t *testing.T) {
-		cfg := NewValidateConfig()
-
-		assert.NotNil(t, cfg)
-		assert.True(t, cfg.Request)
-		assert.False(t, cfg.Response)
-	})
-}
-
 func TestNewCacheConfig(t *testing.T) {
 	t.Run("Creates cache config with default values", func(t *testing.T) {
 		cfg := NewCacheConfig()
@@ -371,18 +351,6 @@ func TestNewCacheConfig(t *testing.T) {
 }
 
 func TestServiceConfig_WithDefaults(t *testing.T) {
-	t.Run("Fills nil Validate with defaults", func(t *testing.T) {
-		cfg := &ServiceConfig{
-			Validate: nil,
-		}
-
-		result := cfg.WithDefaults()
-
-		assert.NotNil(t, result.Validate)
-		assert.True(t, result.Validate.Request)
-		assert.False(t, result.Validate.Response)
-	})
-
 	t.Run("Fills nil Cache with defaults", func(t *testing.T) {
 		cfg := &ServiceConfig{
 			Cache: nil,
@@ -414,22 +382,6 @@ func TestServiceConfig_WithDefaults(t *testing.T) {
 
 		assert.NotNil(t, result.Latencies)
 		assert.Empty(t, result.Latencies)
-	})
-
-	t.Run("Does not override existing Validate", func(t *testing.T) {
-		customValidate := &ValidateConfig{
-			Request:  false,
-			Response: true,
-		}
-		cfg := &ServiceConfig{
-			Validate: customValidate,
-		}
-
-		result := cfg.WithDefaults()
-
-		assert.Equal(t, customValidate, result.Validate)
-		assert.False(t, result.Validate.Request)
-		assert.True(t, result.Validate.Response)
 	})
 
 	t.Run("Does not override existing Cache", func(t *testing.T) {
@@ -518,7 +470,6 @@ func TestServiceConfig_WithDefaults(t *testing.T) {
 	t.Run("Fills all nil fields at once", func(t *testing.T) {
 		cfg := &ServiceConfig{
 			Name:            "test-service",
-			Validate:        nil,
 			Cache:           nil,
 			Errors:          nil,
 			Latencies:       nil,
@@ -528,7 +479,6 @@ func TestServiceConfig_WithDefaults(t *testing.T) {
 		result := cfg.WithDefaults()
 
 		assert.Equal(t, "test-service", result.Name)
-		assert.NotNil(t, result.Validate)
 		assert.NotNil(t, result.Cache)
 		assert.NotNil(t, result.Errors)
 		assert.NotNil(t, result.Latencies)
@@ -536,13 +486,13 @@ func TestServiceConfig_WithDefaults(t *testing.T) {
 
 	t.Run("Returns same instance (modifies in place)", func(t *testing.T) {
 		cfg := &ServiceConfig{
-			Validate: nil,
+			Cache: nil,
 		}
 
 		result := cfg.WithDefaults()
 
 		assert.Equal(t, cfg, result)
-		assert.NotNil(t, cfg.Validate)
+		assert.NotNil(t, cfg.Cache)
 	})
 
 	t.Run("Does not override Upstream (not set in defaults)", func(t *testing.T) {
@@ -640,26 +590,6 @@ func TestServiceConfig_OverwriteWith(t *testing.T) {
 		result := cfg.OverwriteWith(other)
 
 		assert.Equal(t, originalUpstream, result.Upstream)
-	})
-
-	t.Run("Overwrites Validate when other has non-nil Validate", func(t *testing.T) {
-		cfg := &ServiceConfig{
-			Validate: &ValidateConfig{
-				Request:  true,
-				Response: false,
-			},
-		}
-		other := &ServiceConfig{
-			Validate: &ValidateConfig{
-				Request:  false,
-				Response: true,
-			},
-		}
-
-		result := cfg.OverwriteWith(other)
-
-		assert.False(t, result.Validate.Request)
-		assert.True(t, result.Validate.Response)
 	})
 
 	t.Run("Overwrites Cache when other has non-nil Cache", func(t *testing.T) {
@@ -855,19 +785,11 @@ func TestServiceConfig_OverwriteWith(t *testing.T) {
 			Name:            "original",
 			Latency:         100 * time.Millisecond,
 			ResourcesPrefix: "/original",
-			Validate: &ValidateConfig{
-				Request:  true,
-				Response: false,
-			},
 		}
 		other := &ServiceConfig{
 			Name:            "overwritten",
 			Latency:         200 * time.Millisecond,
 			ResourcesPrefix: "/overwritten",
-			Validate: &ValidateConfig{
-				Request:  false,
-				Response: true,
-			},
 			Cache: &CacheConfig{
 				Requests: false,
 			},
@@ -878,26 +800,8 @@ func TestServiceConfig_OverwriteWith(t *testing.T) {
 		assert.Equal(t, "overwritten", result.Name)
 		assert.Equal(t, 200*time.Millisecond, result.Latency)
 		assert.Equal(t, "/overwritten", result.ResourcesPrefix)
-		assert.False(t, result.Validate.Request)
-		assert.True(t, result.Validate.Response)
 		assert.NotNil(t, result.Cache)
 		assert.False(t, result.Cache.Requests)
-	})
-
-	t.Run("Overwrites Generate when other has non-nil Generate", func(t *testing.T) {
-		cfg := &ServiceConfig{
-			Generate: nil,
-		}
-		other := &ServiceConfig{
-			Generate: &GenerateConfig{
-				Server: &struct{}{},
-			},
-		}
-
-		result := cfg.OverwriteWith(other)
-
-		assert.NotNil(t, result.Generate)
-		assert.NotNil(t, result.Generate.Server)
 	})
 
 	t.Run("Overwrites SpecOptions when other has non-nil SpecOptions", func(t *testing.T) {

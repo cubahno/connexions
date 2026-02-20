@@ -176,16 +176,9 @@ Cached responses are keyed by `METHOD:URL` and cleared periodically (configurabl
 
 ## Request Validation
 
-Validate incoming requests against the OpenAPI specification.
+Requests can be validated against the OpenAPI specification at run time.
 
-```yaml
-# config.yml
-validate:
-  request: true
-  response: false
-```
-
-When enabled, requests are validated for:
+Validation checks:
 - Required parameters
 - Parameter types and formats
 - Request body schema
@@ -252,9 +245,6 @@ upstream:
 
 cache:
   requests: true
-
-validate:
-  request: true
 ```
 
 This configuration:
@@ -262,5 +252,4 @@ This configuration:
 2. Injects 5% server errors
 3. Tries upstream first, falls back to mock
 4. Caches successful GET responses
-5. Validates all incoming requests
 

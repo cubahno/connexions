@@ -1,0 +1,200 @@
+openapi: "3.0.3"
+info:
+  title: Users API
+  version: "1.0.0"
+  description: Example API with different response content types
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      summary: List all users (JSON)
+      responses:
+        "200":
+          description: JSON list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+  /users/{id}:
+    get:
+      operationId: getUser
+      summary: Get user by ID (JSON with charset)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json; charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{id}/avatar:
+    get:
+      operationId: getUserAvatar
+      summary: Get user avatar (image)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User avatar image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /users/{id}/profile:
+    get:
+      operationId: getUserProfile
+      summary: Get user profile (HTML with charset)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HTML profile page
+          content:
+            text/html; charset=utf-8:
+              schema:
+                type: string
+  /users/export:
+    get:
+      operationId: exportUsers
+      summary: Export users (CSV)
+      responses:
+        "200":
+          description: CSV export of users
+          content:
+            text/csv:
+              schema:
+                type: string
+  /users/{id}/config:
+    get:
+      operationId: getUserConfig
+      summary: Get user config (XML)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: XML config
+          content:
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/UserConfig"
+  /users/{id}/api-data:
+    get:
+      operationId: getUserApiData
+      summary: Get user data (JSON API format)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: JSON API format response
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{id}/hal:
+    get:
+      operationId: getUserHal
+      summary: Get user HAL format
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HAL JSON response
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{id}/problem:
+    get:
+      operationId: getUserProblem
+      summary: Get user with RFC 7807 problem
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Problem JSON response
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/stream:
+    get:
+      operationId: streamUsers
+      summary: Stream users (NDJSON)
+      responses:
+        "200":
+          description: Newline-delimited JSON stream
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+  /users/{id}/pdf:
+    get:
+      operationId: getUserPdf
+      summary: Get user PDF report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF document
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+    UserConfig:
+      type: object
+      properties:
+        theme:
+          type: string
+        language:
+          type: string
+        notifications:
+          type: boolean

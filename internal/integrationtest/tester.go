@@ -90,6 +90,11 @@ func TestService(specFile, serverURL string) ([]IntegrationResult, int, int) {
 
 	numRoutes := len(routesResponse.Endpoints)
 
+	// No endpoints = nothing to test (not a failure)
+	if numRoutes == 0 {
+		return results, 0, 0
+	}
+
 	// Test actual endpoints concurrently.
 	// Test all routes (or limit via env var).
 	maxRoutesToTest := numRoutes

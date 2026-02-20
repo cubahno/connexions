@@ -1,16 +1,12 @@
 package integrationtest
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/cubahno/connexions/v2/pkg/api"
 )
 
 // ServiceStats holds statistics for a single service
@@ -110,9 +106,6 @@ func ReportResults(t *testing.T, results []IntegrationResult, serviceStatsMap ma
 				bs.TotalBatches, bs.AvgBuildTime().Round(time.Millisecond), bs.AvgTestTime().Round(time.Millisecond))
 		}
 		fmt.Fprintf(os.Stderr, "========================================\n\n")
-
-		// Print validation statistics from server
-		PrintValidationStats()
 	}
 
 	// If there are failures, print them
@@ -201,31 +194,5 @@ func ReportResults(t *testing.T, results []IntegrationResult, serviceStatsMap ma
 			fmt.Fprintf(os.Stderr, "  %s\n", spec)
 		}
 		fmt.Fprintf(os.Stderr, "========================================\n\n")
-	}
-}
-
-// PrintValidationStats prints validation statistics from the server
-func PrintValidationStats() {
-	statsURL := fmt.Sprintf("http://localhost:%d/.services/stats", ServerPort)
-	statsResp, err := http.Get(statsURL)
-	if err == nil && statsResp.StatusCode == http.StatusOK {
-		var stats api.ValidationStats
-		if err := json.NewDecoder(statsResp.Body).Decode(&stats); err == nil {
-			_ = statsResp.Body.Close()
-			total := stats.WithValidator + stats.WithoutValidator + stats.Skipped
-			if total > 0 {
-				withPct := float64(stats.WithValidator) / float64(total) * 100
-				withoutPct := float64(stats.WithoutValidator) / float64(total) * 100
-				skippedPct := float64(stats.Skipped) / float64(total) * 100
-				fmt.Fprintf(os.Stderr, "=== Validation Statistics ===\n")
-				fmt.Fprintf(os.Stderr, "  Performed:                 %d (%.1f%%)\n", stats.WithValidator, withPct)
-				fmt.Fprintf(os.Stderr, "  Validation method missing: %d (%.1f%%)\n", stats.WithoutValidator, withoutPct)
-				fmt.Fprintf(os.Stderr, "  Skipped (no body/etc):     %d (%.1f%%)\n", stats.Skipped, skippedPct)
-				fmt.Fprintf(os.Stderr, "  Total:                     %d\n", total)
-				fmt.Fprintf(os.Stderr, "========================================\n\n")
-			}
-		} else {
-			_ = statsResp.Body.Close()
-		}
 	}
 }

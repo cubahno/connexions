@@ -40,8 +40,6 @@ func CreateServiceRoutes(router *Router) error {
 
 	router.Route(url, func(r chi.Router) {
 		r.Get("/", handler.list)
-		r.Get("/stats", handler.stats)
-		r.Post("/stats/reset", handler.resetStats)
 		r.Get("/*", handler.routes)
 		r.Post("/*", handler.generate)
 	})
@@ -66,10 +64,13 @@ func (h *ServiceHandler) list(w http.ResponseWriter, r *http.Request) {
 	items := make([]*ServiceItemResponse, 0)
 	for _, key := range keys {
 		svcItem := services[key]
-		routes := svcItem.Handler.Routes()
+		var resourceCount int
+		if svcItem.Handler != nil {
+			resourceCount = len(svcItem.Handler.Routes())
+		}
 		items = append(items, &ServiceItemResponse{
 			Name:           key,
-			ResourceNumber: len(routes),
+			ResourceNumber: resourceCount,
 		})
 	}
 	res := &ServiceListResponse{
@@ -103,20 +104,6 @@ func (h *ServiceHandler) generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	svc.Handler.Generate(w, r)
-}
-
-// stats returns validation statistics as JSON.
-func (h *ServiceHandler) stats(w http.ResponseWriter, r *http.Request) {
-	stats := GetValidationStats()
-	NewJSONResponse(w).Send(stats)
-}
-
-// resetStats resets validation statistics.
-func (h *ServiceHandler) resetStats(w http.ResponseWriter, r *http.Request) {
-	ResetValidationStats()
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte("OK"))
 }
 
 // getService returns the service by name from the path.
