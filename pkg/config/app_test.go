@@ -181,6 +181,35 @@ storage:
 		assert.Equal(1, cfg.Storage.Redis.DB)
 	})
 
+	t.Run("parses baseURL and internalURL", func(t *testing.T) {
+		yaml := []byte(`
+baseURL: https://api.example.com
+internalURL: http://localhost:2200
+`)
+		cfg, err := NewAppConfigFromBytes(yaml, "/test")
+		assert.NoError(err)
+		assert.Equal("https://api.example.com", cfg.BaseURL)
+		assert.Equal("http://localhost:2200", cfg.InternalURL)
+	})
+
+	t.Run("parses extra config map", func(t *testing.T) {
+		yaml := []byte(`
+extra:
+  apiKey: secret123
+  maxRetries: 3
+  nested:
+    foo: bar
+`)
+		cfg, err := NewAppConfigFromBytes(yaml, "/test")
+		assert.NoError(err)
+		assert.NotNil(cfg.Extra)
+		assert.Equal("secret123", cfg.Extra["apiKey"])
+		assert.Equal(3, cfg.Extra["maxRetries"])
+		nested, ok := cfg.Extra["nested"].(map[string]any)
+		assert.True(ok)
+		assert.Equal("bar", nested["foo"])
+	})
+
 	t.Run("returns error for invalid yaml", func(t *testing.T) {
 		yaml := []byte(`
 invalid: [yaml

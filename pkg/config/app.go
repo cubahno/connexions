@@ -10,6 +10,8 @@ import (
 // AppConfig is the app configuration.
 // Title is the title of the app displayed in the UI.
 // Port is the port number to listen on.
+// BaseURL is the public base URL for the application (e.g., "https://api.example.com").
+// InternalURL is the internal base URL for service-to-service communication (e.g., "http://localhost:2200").
 // HomeURL is the URL for the UI home page.
 // ServiceURL is the URL for the service and resources endpoints in the UI.
 // ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place.
@@ -18,9 +20,12 @@ import (
 // Editor is the editor configuration for the UI.
 // HistoryDuration is the duration to keep the history of requests in memory.
 // Storage configures shared storage for distributed features (e.g., circuit breaker state).
+// Extra is a map for user-defined configuration values.
 type AppConfig struct {
 	Title             string         `yaml:"title"`
 	Port              int            `yaml:"port"`
+	BaseURL           string         `yaml:"baseURL" env:"APP_BASE_URL"`
+	InternalURL       string         `yaml:"internalURL" env:"APP_INTERNAL_URL"`
 	HomeURL           string         `yaml:"homeURL"`
 	ServiceURL        string         `yaml:"serviceURL"`
 	ContextAreaPrefix string         `yaml:"contextAreaPrefix"`
@@ -29,6 +34,7 @@ type AppConfig struct {
 	Editor            *EditorConfig  `yaml:"editor"`
 	HistoryDuration   time.Duration  `yaml:"historyDuration" env:"ROUTER_HISTORY_DURATION"`
 	Storage           *StorageConfig `yaml:"storage"`
+	Extra             map[string]any `yaml:"extra"`
 }
 
 // NewDefaultAppConfig creates a new default app config in case the config file is missing, not found or any other error.
@@ -45,6 +51,7 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 			FontSize: 16,
 		},
 		HistoryDuration: 5 * time.Minute,
+		Extra:           make(map[string]any),
 	}
 }
 

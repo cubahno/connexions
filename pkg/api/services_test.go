@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -552,4 +554,74 @@ func registerTestServiceWithGenerate(router *Router, service *mockServiceWithGen
 		service.config.Name = service.name
 	}
 	router.RegisterService(service.config, service, nil)
+}
+
+func TestServiceParams(t *testing.T) {
+	t.Run("struct fields are accessible", func(t *testing.T) {
+		appCfg := &config.AppConfig{
+			Title:       "Test App",
+			BaseURL:     "https://api.example.com",
+			InternalURL: "http://localhost:2200",
+			Extra: map[string]any{
+				"customKey": "customValue",
+			},
+		}
+		serviceCfg := &config.ServiceConfig{
+			Name: "test-service",
+		}
+		serviceDB := db.NewMemoryDB("test-service", 5*time.Minute)
+		defer serviceDB.Close()
+
+		params := &ServiceParams{
+			AppConfig:     appCfg,
+			ServiceConfig: serviceCfg,
+			DB:            serviceDB,
+		}
+
+		assert.Equal(t, appCfg, params.AppConfig)
+		assert.Equal(t, serviceCfg, params.ServiceConfig)
+		assert.Equal(t, serviceDB, params.DB)
+	})
+
+	t.Run("provides access to app config fields", func(t *testing.T) {
+		params := &ServiceParams{
+			AppConfig: &config.AppConfig{
+				BaseURL:     "https://public.example.com",
+				InternalURL: "http://internal:8080",
+				Extra: map[string]any{
+					"apiKey":     "secret123",
+					"maxRetries": 5,
+				},
+			},
+			ServiceConfig: config.NewServiceConfig(),
+		}
+
+		assert.Equal(t, "https://public.example.com", params.AppConfig.BaseURL)
+		assert.Equal(t, "http://internal:8080", params.AppConfig.InternalURL)
+		assert.Equal(t, "secret123", params.AppConfig.Extra["apiKey"])
+		assert.Equal(t, 5, params.AppConfig.Extra["maxRetries"])
+	})
+
+	t.Run("provides access to service config fields", func(t *testing.T) {
+		params := &ServiceParams{
+			AppConfig: config.NewDefaultAppConfig("/test"),
+			ServiceConfig: &config.ServiceConfig{
+				Name:            "my-service",
+				ResourcesPrefix: "/resources",
+			},
+		}
+
+		assert.Equal(t, "my-service", params.ServiceConfig.Name)
+		assert.Equal(t, "/resources", params.ServiceConfig.ResourcesPrefix)
+	})
+
+	t.Run("handles nil db", func(t *testing.T) {
+		params := &ServiceParams{
+			AppConfig:     config.NewDefaultAppConfig("/test"),
+			ServiceConfig: config.NewServiceConfig(),
+			DB:            nil,
+		}
+
+		assert.Nil(t, params.DB)
+	})
 }
