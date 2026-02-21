@@ -159,6 +159,35 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 		assert.Equal("application/json", w.header.Get("Content-Type"))
 	})
 
+	t.Run("sets custom response headers on cache hit", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "service",
+			Cache: &config.CacheConfig{
+				Requests: true,
+			},
+		}, nil)
+
+		resp := &db.Response{
+			Data:        []byte(`{"cached": true}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+		}
+		histReq := &http.Request{
+			URL:    &url.URL{Path: "/api/cached"},
+			Method: http.MethodGet,
+		}
+		params.DB().History().Set("/api/cached", histReq, resp)
+
+		mw := CreateCacheReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/api/cached", nil)
+
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal(ResponseHeaderSourceCache, w.header.Get(ResponseHeaderSource))
+	})
+
 	t.Run("applies latency when configured", func(t *testing.T) {
 		params := newTestParams(&config.ServiceConfig{
 			Name:    "service",

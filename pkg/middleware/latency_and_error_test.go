@@ -111,6 +111,9 @@ errors:
 		logOutput := buf.String()
 		assert.True(strings.Contains(logOutput, "Simulated error"), "Expected log to contain 'Simulated error'")
 		assert.True(strings.Contains(logOutput, "code"), "Expected log to contain 'code'")
+
+		// Verify custom response header is set
+		assert.Equal(ResponseHeaderSourceGenerated, w.header.Get(ResponseHeaderSource))
 	})
 
 	t.Run("with latency and error", func(t *testing.T) {

@@ -37,7 +37,7 @@ func encodeContent(content any, contentType string) ([]byte, error) {
 		return xml.Marshal(content)
 
 	case "application/x-yaml":
-		return yaml.Marshal(content)
+		return yaml.Dump(content, yaml.WithIndent(2))
 
 	default:
 		switch v := content.(type) {

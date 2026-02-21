@@ -91,6 +91,29 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal("application/json; charset=utf-8", rec.Response.ContentType)
 	})
 
+	t.Run("sets X-Cxs-Source header to upstream", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"from":"upstream"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/source", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal(ResponseHeaderSourceUpstream, w.header.Get(ResponseHeaderSource))
+	})
+
 	t.Run("history is present", func(t *testing.T) {
 		rcvdBody := ""
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

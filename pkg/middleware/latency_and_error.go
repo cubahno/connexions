@@ -20,6 +20,7 @@ func CreateLatencyAndErrorMiddleware(params *Params) func(http.Handler) http.Han
 			if errorCode > 0 {
 				slog.Info("Simulated error", slog.Int("code", errorCode))
 				SetDurationHeader(w, req)
+				w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
 				http.Error(w, "Simulated error", errorCode)
 				return
 			}

@@ -181,8 +181,8 @@ func generateOpenAPIFromStatic(routes []Route, serviceName string) ([]byte, erro
 		pathItem[method] = operation
 	}
 
-	// Marshal to YAML
-	yamlBytes, err := yaml.Marshal(spec)
+	// Marshal to YAML with 2-space indent
+	yamlBytes, err := yaml.Dump(spec, yaml.WithIndent(2))
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal OpenAPI spec: %w", err)
 	}
