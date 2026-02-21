@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"path"
@@ -221,7 +222,7 @@ func (a *HTTPAdapter) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	defer r.Body.Close()
 	var body UpdatePetBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "UpdatePet",
@@ -269,7 +270,7 @@ func (a *HTTPAdapter) AddPet(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	defer r.Body.Close()
 	var body AddPetBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "AddPet",
@@ -678,7 +679,7 @@ func (a *HTTPAdapter) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	defer r.Body.Close()
 	var body PlaceOrderBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "PlaceOrder",
@@ -828,7 +829,7 @@ func (a *HTTPAdapter) CreateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	defer r.Body.Close()
 	var body CreateUserBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "CreateUser",
@@ -876,7 +877,7 @@ func (a *HTTPAdapter) CreateUsersWithListInput(w http.ResponseWriter, r *http.Re
 	// Parse request body
 	defer r.Body.Close()
 	var body CreateUsersWithListInputBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "CreateUsersWithListInput",
@@ -1047,7 +1048,7 @@ func (a *HTTPAdapter) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	// Parse request body
 	defer r.Body.Close()
 	var body UpdateUserBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "UpdateUser",
@@ -1313,8 +1314,12 @@ func (h *serviceHandler) RegisterRoutes(router chi.Router) {
 func (h *serviceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	var req api.GenerateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		message := err.Error()
+		if errors.Is(err, io.EOF) {
+			message = "request body is empty or incomplete"
+		}
 		slog.Error("Failed to decode request", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, message, http.StatusBadRequest)
 		return
 	}
 
