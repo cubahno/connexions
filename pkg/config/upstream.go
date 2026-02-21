@@ -13,6 +13,11 @@ type UpstreamConfig struct {
 	CircuitBreaker *CircuitBreakerConfig `yaml:"circuit-breaker"`
 }
 
+// DefaultUpstreamTimeout defaults.
+const (
+	DefaultUpstreamTimeout = 5 * time.Second
+)
+
 // Circuit breaker defaults.
 const (
 	DefaultCBTimeout      = 60 * time.Second

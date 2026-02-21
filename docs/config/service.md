@@ -140,13 +140,13 @@ upstream:
   headers:
     X-Custom-Header: value
   fail-on:
+    timeout: 5s           # Request timeout (default: 5s)
     http-status:
       - exact: 301
       - range: "500-599"
-    timeout: 5s
 ```
 
-When configured, requests are proxied to the upstream server. If the upstream fails, Connexions falls back to generating mock responses.
+When configured, requests are proxied to the upstream server. If the upstream fails (timeout or matching status code), Connexions falls back to generating mock responses.
 
 ### Circuit Breaker
 
@@ -170,6 +170,15 @@ upstream:
 - **Half-Open**: After timeout, limited requests test if service recovered
 
 When app-level storage is configured with `type: redis`, circuit breaker state is automatically shared across instances.
+
+## Response Headers
+
+Connexions adds the following headers to responses:
+
+| Header | Values | Description |
+|--------|--------|-------------|
+| `X-Cxs-Source` | `upstream`, `cache`, `generated` | Indicates where the response came from |
+| `X-Cxs-Duration` | e.g. `1.234ms` | Request processing time |
 
 ## Contexts
 

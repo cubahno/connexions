@@ -38,6 +38,8 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 				ContentType: respContentType,
 			})
 
+			SetDurationHeader(w, req)
+			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
 			_, _ = w.Write(respContent)
 		})
 	}

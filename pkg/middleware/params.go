@@ -8,6 +8,16 @@ import (
 	"github.com/cubahno/connexions/v2/pkg/db"
 )
 
+// ResponseHeaderSource is the response header indicating where the response came from.
+const ResponseHeaderSource = "X-Cxs-Source"
+
+// ResponseHeaderSource values.
+const (
+	ResponseHeaderSourceUpstream  = "upstream"
+	ResponseHeaderSourceCache     = "cache"
+	ResponseHeaderSourceGenerated = "generated"
+)
+
 // Params provides access to service configuration and database for middleware.
 type Params struct {
 	ServiceConfig *config.ServiceConfig

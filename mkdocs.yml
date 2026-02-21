@@ -69,9 +69,9 @@ nav:
       - Docker Compose: 'usage/docker-compose.md'
   - Services: 'services.md'
   - Configuration:
+      - App Config: 'config/app.md'
       - Service Config: 'config/service.md'
       - Codegen Config: 'config/codegen.md'
-      - Global Settings: 'settings.md'
   - Middleware: 'middleware.md'
   - Contexts:
       - Overview: 'contexts.md'

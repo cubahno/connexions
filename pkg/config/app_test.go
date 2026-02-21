@@ -120,3 +120,81 @@ func TestAppConfig_WithStorage(t *testing.T) {
 		assert.NotNil(cfg.Storage.Redis)
 	})
 }
+
+func TestNewAppConfigFromBytes(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("parses valid yaml", func(t *testing.T) {
+		yaml := []byte(`
+title: My App
+port: 3000
+homeURL: /home
+serviceURL: /api
+contextAreaPrefix: ctx-
+disableUI: true
+historyDuration: 10m
+editor:
+  theme: monokai
+  fontSize: 14
+`)
+		cfg, err := NewAppConfigFromBytes(yaml, "/base")
+		assert.NoError(err)
+		assert.Equal("My App", cfg.Title)
+		assert.Equal(3000, cfg.Port)
+		assert.Equal("/home", cfg.HomeURL)
+		assert.Equal("/api", cfg.ServiceURL)
+		assert.Equal("ctx-", cfg.ContextAreaPrefix)
+		assert.True(cfg.DisableUI)
+		assert.Equal(10*time.Minute, cfg.HistoryDuration)
+		assert.Equal("monokai", cfg.Editor.Theme)
+		assert.Equal(14, cfg.Editor.FontSize)
+		assert.Equal("/base", cfg.Paths.Base)
+	})
+
+	t.Run("uses defaults for missing fields", func(t *testing.T) {
+		yaml := []byte(`
+title: Custom Title
+`)
+		cfg, err := NewAppConfigFromBytes(yaml, "/test")
+		assert.NoError(err)
+		assert.Equal("Custom Title", cfg.Title)
+		assert.Equal(2200, cfg.Port)                     // default
+		assert.Equal("/.ui", cfg.HomeURL)                // default
+		assert.Equal(5*time.Minute, cfg.HistoryDuration) // default
+	})
+
+	t.Run("parses storage config", func(t *testing.T) {
+		yaml := []byte(`
+storage:
+  type: redis
+  redis:
+    address: localhost:6379
+    password: secret
+    db: 1
+`)
+		cfg, err := NewAppConfigFromBytes(yaml, "/test")
+		assert.NoError(err)
+		assert.NotNil(cfg.Storage)
+		assert.Equal(StorageTypeRedis, cfg.Storage.Type)
+		assert.Equal("localhost:6379", cfg.Storage.Redis.Address)
+		assert.Equal("secret", cfg.Storage.Redis.Password)
+		assert.Equal(1, cfg.Storage.Redis.DB)
+	})
+
+	t.Run("returns error for invalid yaml", func(t *testing.T) {
+		yaml := []byte(`
+invalid: [yaml
+`)
+		_, err := NewAppConfigFromBytes(yaml, "/test")
+		assert.Error(err)
+		assert.Contains(err.Error(), "unmarshalling app config")
+	})
+
+	t.Run("sets paths from baseDir", func(t *testing.T) {
+		yaml := []byte(`title: Test`)
+		cfg, err := NewAppConfigFromBytes(yaml, "/my/base")
+		assert.NoError(err)
+		assert.Equal("/my/base", cfg.Paths.Base)
+		assert.Equal("/my/base/resources/data", cfg.Paths.Data)
+	})
+}

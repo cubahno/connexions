@@ -37,6 +37,8 @@ func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
 			}
 
 			response := res.Response
+			SetDurationHeader(w, req)
+			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceCache)
 			if response.ContentType != "" {
 				w.Header().Set("Content-Type", response.ContentType)
 			}
