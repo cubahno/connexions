@@ -20,8 +20,7 @@ package {{ $packageName }}
 import (
 	"context"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/api"
 )
 
 // {{ $serviceName }} implements the ServiceInterface with your business logic.
@@ -29,22 +28,15 @@ import (
 // Return a response to override the generated response.
 // Return an error to return an error response.
 type {{ $serviceName }} struct {
-	appCfg     *config.AppConfig
-	serviceCfg *config.ServiceConfig
-	db         db.DB
+	params *api.ServiceParams
 }
 
 // Ensure service implements ServiceInterface.
 var _ {{ $modelsPrefix }}ServiceInterface = (*{{ $serviceName }})(nil)
 
 // newService creates a new service instance.
-// Add your custom initialization logic here.
-func newService(appCfg *config.AppConfig, serviceCfg *config.ServiceConfig, serviceDB db.DB) *{{ $serviceName }} {
-	return &{{ $serviceName }}{
-		appCfg:     appCfg,
-		serviceCfg: serviceCfg,
-		db:         serviceDB,
-	}
+func newService(params *api.ServiceParams) *{{ $serviceName }} {
+	return &{{ $serviceName }}{params: params}
 }
 
 {{- range $operations }}{{ $op := . }}

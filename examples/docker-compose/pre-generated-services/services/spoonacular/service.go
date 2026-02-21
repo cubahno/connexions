@@ -6,8 +6,7 @@ package spoonacular
 import (
 	"context"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/api"
 )
 
 // service implements the ServiceInterface with your business logic.
@@ -15,22 +14,15 @@ import (
 // Return a response to override the generated response.
 // Return an error to return an error response.
 type service struct {
-	appCfg     *config.AppConfig
-	serviceCfg *config.ServiceConfig
-	db         db.DB
+	params *api.ServiceParams
 }
 
 // Ensure service implements ServiceInterface.
 var _ ServiceInterface = (*service)(nil)
 
 // newService creates a new service instance.
-// Add your custom initialization logic here.
-func newService(appCfg *config.AppConfig, serviceCfg *config.ServiceConfig, serviceDB db.DB) *service {
-	return &service{
-		appCfg:     appCfg,
-		serviceCfg: serviceCfg,
-		db:         serviceDB,
-	}
+func newService(params *api.ServiceParams) *service {
+	return &service{params: params}
 }
 
 // SearchRecipes handles GET /recipes/complexSearch

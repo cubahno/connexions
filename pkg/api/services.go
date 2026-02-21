@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/cubahno/connexions/v2/internal/types"
+	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -259,4 +261,38 @@ func ComparePathMethod(path1, method1, path2, method2 string) bool {
 	}
 
 	return m1 < m2
+}
+
+// ServiceParams provides access to application and service configuration
+// along with the database connection. This struct is passed to user services
+// to allow access to configuration without coupling to framework internals.
+//
+// Example usage in service.go:
+//
+//	func newService(params *api.ServiceParams) *service {
+//	    baseURL := params.AppConfig.BaseURL
+//	    extra := params.AppConfig.Extra["myKey"]
+//	    return &service{params: params}
+//	}
+//
+// For custom configuration, you can:
+//  1. Use Extra map in app.yml for simple key-value config
+//  2. Embed and load your own config files in newService
+//
+// Example app.yml with Extra:
+//
+//	baseURL: https://api.example.com
+//	extra:
+//	  myApiKey: "secret"
+//	  maxRetries: 3
+type ServiceParams struct {
+	// AppConfig is the application-wide configuration.
+	// Contains BaseURL, InternalURL, and Extra map for custom values.
+	AppConfig *config.AppConfig
+
+	// ServiceConfig is the service-specific configuration.
+	ServiceConfig *config.ServiceConfig
+
+	// DB is the database connection for this service.
+	DB db.DB
 }
