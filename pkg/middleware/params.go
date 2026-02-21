@@ -48,7 +48,7 @@ type responseWriter struct {
 
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
+	// Don't call underlying WriteHeader - we'll do it after setting our headers
 }
 
 // Write intercepts the response and writes to a buffer

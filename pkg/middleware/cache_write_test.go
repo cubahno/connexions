@@ -1,15 +1,68 @@
 package middleware
 
 import (
+	"bytes"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
 	assert2 "github.com/stretchr/testify/assert"
 )
+
+func TestResponseWriter(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("buffers body without writing to underlying", func(t *testing.T) {
+		underlying := httptest.NewRecorder()
+		rw := &responseWriter{
+			ResponseWriter: underlying,
+			body:           new(bytes.Buffer),
+			statusCode:     http.StatusOK,
+		}
+
+		_, _ = rw.Write([]byte("test body"))
+
+		// Body should be in buffer, not in underlying
+		assert.Equal("test body", rw.body.String())
+		assert.Empty(underlying.Body.String())
+	})
+
+	t.Run("captures status code without sending to underlying", func(t *testing.T) {
+		underlying := httptest.NewRecorder()
+		rw := &responseWriter{
+			ResponseWriter: underlying,
+			body:           new(bytes.Buffer),
+			statusCode:     http.StatusOK,
+		}
+
+		rw.WriteHeader(http.StatusCreated)
+
+		// Status captured but not sent
+		assert.Equal(http.StatusCreated, rw.statusCode)
+		assert.Equal(http.StatusOK, underlying.Code) // httptest.Recorder defaults to 200
+	})
+
+	t.Run("delegates Header to underlying", func(t *testing.T) {
+		underlying := httptest.NewRecorder()
+		rw := &responseWriter{
+			ResponseWriter: underlying,
+			body:           new(bytes.Buffer),
+			statusCode:     http.StatusOK,
+		}
+
+		rw.Header().Set("Content-Type", "application/json")
+		rw.Header().Set("X-Custom", "value")
+
+		// Headers should be on underlying
+		assert.Equal("application/json", underlying.Header().Get("Content-Type"))
+		assert.Equal("value", underlying.Header().Get("X-Custom"))
+	})
+}
 
 func TestCreateCacheWriteMiddleware(t *testing.T) {
 	assert := assert2.New(t)
@@ -152,5 +205,64 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 
 		assert.False(handlerCalled, "Handler should not be called when serving from cache")
 		assert.Equal(`{"generated": true}`, string(w2.buf))
+	})
+
+	t.Run("sets custom response headers", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+		}, nil)
+
+		mw := CreateCacheWriteMiddleware(params)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id": 1}`))
+		})
+
+		// Add start time to context for duration header
+		req := httptest.NewRequest(http.MethodPost, "/api/items", nil)
+		ctx := context.WithValue(req.Context(), startTimeKey, time.Now().Add(-50*time.Millisecond))
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+		mw(handler).ServeHTTP(w, req)
+
+		// Verify custom headers are set
+		assert.Equal(ResponseHeaderSourceGenerated, w.Header().Get(ResponseHeaderSource))
+		assert.NotEmpty(w.Header().Get("X-Cxs-Duration"), "Duration header should be set")
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal(http.StatusCreated, w.Code)
+		assert.Equal(`{"id": 1}`, w.Body.String())
+	})
+
+	t.Run("handler WriteHeader does not send headers immediately", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+		}, nil)
+
+		mw := CreateCacheWriteMiddleware(params)
+
+		// Handler sets headers and writes - simulating generated service handler
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			w.Header().Set("X-Custom", "value")
+			w.WriteHeader(http.StatusAccepted)
+			_, _ = w.Write([]byte("accepted"))
+		})
+
+		req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
+		ctx := context.WithValue(req.Context(), startTimeKey, time.Now())
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+		mw(handler).ServeHTTP(w, req)
+
+		// Our headers should be present alongside handler's headers
+		assert.Equal(ResponseHeaderSourceGenerated, w.Header().Get(ResponseHeaderSource))
+		assert.Equal("text/plain", w.Header().Get("Content-Type"))
+		assert.Equal("value", w.Header().Get("X-Custom"))
+		assert.Equal(http.StatusAccepted, w.Code)
+		assert.Equal("accepted", w.Body.String())
 	})
 }

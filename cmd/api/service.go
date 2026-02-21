@@ -467,7 +467,7 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 			}
 
 			mergedCfg := templateCfg.WithDefaults().OverwriteWith(customCfg)
-			return yaml.Marshal(mergedCfg)
+			return yaml.Dump(mergedCfg, yaml.WithIndent(2))
 		})
 		if err != nil {
 			return err
@@ -488,7 +488,7 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 			}
 
 			mergedCfg := templateCfg.OverwriteWith(customCfg)
-			return yaml.Marshal(mergedCfg)
+			return yaml.Dump(mergedCfg, yaml.WithIndent(2))
 		})
 		if err != nil {
 			return err
