@@ -6,7 +6,7 @@ replace github.com/cubahno/connexions/v2 => ../
 
 require (
 	github.com/cubahno/connexions/v2 v2.0.0
-	github.com/doordash-oss/oapi-codegen-dd/v3 v3.72.5
+	github.com/doordash-oss/oapi-codegen-dd/v3 v3.72.6
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-playground/validator/v10 v10.30.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.4

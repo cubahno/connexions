@@ -6169,7 +6169,7 @@ func (a *HTTPAdapter) ComputeGlycemicLoad(w http.ResponseWriter, r *http.Request
 	// Parse request body
 	defer r.Body.Close()
 	var body ComputeGlycemicLoadBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "ComputeGlycemicLoad",
@@ -7515,7 +7515,7 @@ func (a *HTTPAdapter) ClassifyGroceryProduct(w http.ResponseWriter, r *http.Requ
 	// Parse request body
 	defer r.Body.Close()
 	var body ClassifyGroceryProductBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "ClassifyGroceryProduct",
@@ -7571,7 +7571,7 @@ func (a *HTTPAdapter) ClassifyGroceryProductBulk(w http.ResponseWriter, r *http.
 	// Parse request body
 	defer r.Body.Close()
 	var body ClassifyGroceryProductBulkBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "ClassifyGroceryProductBulk",
@@ -7619,7 +7619,7 @@ func (a *HTTPAdapter) MapIngredientsToGroceryProducts(w http.ResponseWriter, r *
 	// Parse request body
 	defer r.Body.Close()
 	var body MapIngredientsToGroceryProductsBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := runtime.DecodeJSONBody(r.Body, &body); err != nil {
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "MapIngredientsToGroceryProducts",
@@ -10496,8 +10496,12 @@ func (h *serviceHandler) RegisterRoutes(router chi.Router) {
 func (h *serviceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	var req api.GenerateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		message := err.Error()
+		if errors.Is(err, io.EOF) {
+			message = "request body is empty or incomplete"
+		}
 		slog.Error("Failed to decode request", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, message, http.StatusBadRequest)
 		return
 	}
 

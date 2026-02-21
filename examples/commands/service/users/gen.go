@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"path"
@@ -759,8 +760,12 @@ func (h *serviceHandler) RegisterRoutes(router chi.Router) {
 func (h *serviceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	var req api.GenerateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		message := err.Error()
+		if errors.Is(err, io.EOF) {
+			message = "request body is empty or incomplete"
+		}
 		slog.Error("Failed to decode request", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, message, http.StatusBadRequest)
 		return
 	}
 
