@@ -34,6 +34,12 @@ type {{ $serviceName }} struct {
 // Ensure service implements ServiceInterface.
 var _ {{ $modelsPrefix }}ServiceInterface = (*{{ $serviceName }})(nil)
 
+// newService creates a new service instance.
+// Add your custom initialization logic here.
+func newService(serviceDB db.DB) *{{ $serviceName }} {
+	return &{{ $serviceName }}{db: serviceDB}
+}
+
 {{- range $operations }}{{ $op := . }}
 
 // {{ $op.ID }} handles {{ $op.Method }} {{ $op.Path }}

@@ -693,7 +693,7 @@ func RegisterAPIRouter(router *api.Router) {
 
 	// Register with connexions using handler factory
 	router.RegisterHTTPHandler(cfg, func(serviceDB db.DB) api.Handler {
-		userSvc := &service{db: serviceDB}
+		userSvc := newService(serviceDB)
 		genSvc := &generatorService{service: userSvc, generator: gen, registry: registry}
 		return newServiceHandler(genSvc, gen, registry)
 	}, api.WithMiddleware(getMiddleware()))
