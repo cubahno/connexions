@@ -4,6 +4,7 @@
 package zero
 
 import (
+	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
 )
 
@@ -12,7 +13,9 @@ import (
 // Return a response to override the generated response.
 // Return an error to return an error response.
 type service struct {
-	db db.DB
+	appCfg     *config.AppConfig
+	serviceCfg *config.ServiceConfig
+	db         db.DB
 }
 
 // Ensure service implements ServiceInterface.
@@ -20,6 +23,10 @@ var _ ServiceInterface = (*service)(nil)
 
 // newService creates a new service instance.
 // Add your custom initialization logic here.
-func newService(serviceDB db.DB) *service {
-	return &service{db: serviceDB}
+func newService(appCfg *config.AppConfig, serviceCfg *config.ServiceConfig, serviceDB db.DB) *service {
+	return &service{
+		appCfg:     appCfg,
+		serviceCfg: serviceCfg,
+		db:         serviceDB,
+	}
 }
