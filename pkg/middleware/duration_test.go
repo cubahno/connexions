@@ -1,31 +1,61 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	assert2 "github.com/stretchr/testify/assert"
 )
 
-func TestDurationMiddleware(t *testing.T) {
+func TestStartTimeMiddleware(t *testing.T) {
 	assert := assert2.New(t)
 
+	var capturedCtx context.Context
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedCtx = r.Context()
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
 	})
 
-	mw := DurationMiddleware(handler)
+	mw := StartTimeMiddleware(handler)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
 	mw.ServeHTTP(w, req)
 
-	// Check that X-Cxs-Duration header is set
-	duration := w.Header().Get("X-Cxs-Duration")
-	assert.NotEmpty(duration)
-	assert.True(strings.HasSuffix(duration, "ms"), "duration should end with 'ms'")
+	// Check that start time is stored in context
+	startTime := capturedCtx.Value(startTimeKey)
+	assert.NotNil(startTime)
+	assert.IsType(time.Time{}, startTime)
+}
+
+func TestSetDurationHeader(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("sets header when start time exists", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		ctx := context.WithValue(req.Context(), startTimeKey, time.Now().Add(-10*time.Millisecond))
+		req = req.WithContext(ctx)
+
+		SetDurationHeader(w, req)
+
+		duration := w.Header().Get("X-Cxs-Duration")
+		assert.NotEmpty(duration)
+		assert.True(strings.HasSuffix(duration, "ms"), "duration should end with 'ms'")
+	})
+
+	t.Run("does nothing when start time missing", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+
+		SetDurationHeader(w, req)
+
+		duration := w.Header().Get("X-Cxs-Duration")
+		assert.Empty(duration)
+	})
 }

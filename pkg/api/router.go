@@ -56,7 +56,7 @@ func NewRouter(options ...RouterOption) *Router {
 	r.Use(chiMw.RequestID)
 	r.Use(chiMw.RealIP)
 	r.Use(middleware.LoggerMiddleware)
-	r.Use(middleware.DurationMiddleware)
+	r.Use(middleware.StartTimeMiddleware)
 	r.Use(chiMw.Recoverer)
 	r.Use(chiMw.Timeout(60 * time.Second))
 

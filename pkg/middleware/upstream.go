@@ -58,6 +58,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 			// If an upstream service returns a successful response, write it and return immediately
 			if err == nil && resp != nil {
+				SetDurationHeader(w, req)
 				w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceUpstream)
 				if resp.ContentType != "" {
 					w.Header().Set("Content-Type", resp.ContentType)

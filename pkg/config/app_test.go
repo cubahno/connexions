@@ -158,8 +158,8 @@ title: Custom Title
 		cfg, err := NewAppConfigFromBytes(yaml, "/test")
 		assert.NoError(err)
 		assert.Equal("Custom Title", cfg.Title)
-		assert.Equal(2200, cfg.Port) // default
-		assert.Equal("/.ui", cfg.HomeURL) // default
+		assert.Equal(2200, cfg.Port)                     // default
+		assert.Equal("/.ui", cfg.HomeURL)                // default
 		assert.Equal(5*time.Minute, cfg.HistoryDuration) // default
 	})
 
