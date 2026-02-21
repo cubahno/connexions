@@ -1,13 +1,20 @@
-package: types
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doordash-oss/oapi-codegen-dd/main/configuration-schema.json
+package: petstore
 output:
-  use-single-file: false
+  use-single-file: true
+  skip-fmt: true
   directory: ../
+  filename: gen.go
 generate:
   omit-description: true
   default-int-type: int64
   always-prefix-enum-values: true
   validation:
     response: true
-additional-imports:
-  - package: github.com/go-playground/validator/v10
+  handler:
+    kind: chi
+    output:
+      overwrite: true
+    service: {}
+    middleware: {}
 error-mapping:

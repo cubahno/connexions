@@ -234,6 +234,113 @@ func TestSimpleResponse(t *testing.T) {
 	})
 }
 
+func TestUnmarshalResponseInto(t *testing.T) {
+	type User struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+
+	t.Run("JSON content type unmarshals object", func(t *testing.T) {
+		data := []byte(`{"id":"123","name":"John"}`)
+		var result User
+		err := UnmarshalResponseInto(data, "application/json", &result)
+		assert.NoError(t, err)
+		assert.Equal(t, "123", result.ID)
+		assert.Equal(t, "John", result.Name)
+	})
+
+	t.Run("JSON with charset unmarshals object", func(t *testing.T) {
+		data := []byte(`{"id":"456","name":"Jane"}`)
+		var result User
+		err := UnmarshalResponseInto(data, "application/json; charset=utf-8", &result)
+		assert.NoError(t, err)
+		assert.Equal(t, "456", result.ID)
+	})
+
+	t.Run("text/html assigns to string", func(t *testing.T) {
+		data := []byte(`<html><body>Hello World</body></html>`)
+		var result string
+		err := UnmarshalResponseInto(data, "text/html", &result)
+		assert.NoError(t, err)
+		assert.Equal(t, "<html><body>Hello World</body></html>", result)
+	})
+
+	t.Run("text/plain assigns to string", func(t *testing.T) {
+		data := []byte("plain text content")
+		var result string
+		err := UnmarshalResponseInto(data, "text/plain", &result)
+		assert.NoError(t, err)
+		assert.Equal(t, "plain text content", result)
+	})
+
+	t.Run("application/octet-stream assigns to []byte", func(t *testing.T) {
+		data := []byte{0x01, 0x02, 0x03, 0x04}
+		var result []byte
+		err := UnmarshalResponseInto(data, "application/octet-stream", &result)
+		assert.NoError(t, err)
+		assert.Equal(t, data, result)
+	})
+
+	t.Run("empty data leaves dest unchanged", func(t *testing.T) {
+		var result User
+		err := UnmarshalResponseInto([]byte{}, "application/json", &result)
+		assert.NoError(t, err)
+		assert.Equal(t, User{}, result)
+	})
+
+	t.Run("invalid JSON returns error", func(t *testing.T) {
+		data := []byte(`{invalid json}`)
+		var result User
+		err := UnmarshalResponseInto(data, "application/json", &result)
+		assert.Error(t, err)
+	})
+
+	t.Run("JSON family content types unmarshal correctly", func(t *testing.T) {
+		data := []byte(`{"id":"789","name":"Test"}`)
+
+		contentTypes := []string{
+			"application/vnd.api+json",
+			"application/hal+json",
+			"application/problem+json",
+		}
+
+		for _, ct := range contentTypes {
+			t.Run(ct, func(t *testing.T) {
+				var result User
+				err := UnmarshalResponseInto(data, ct, &result)
+				assert.NoError(t, err)
+				assert.Equal(t, "789", result.ID)
+			})
+		}
+	})
+}
+
+func TestIsJSONContentType(t *testing.T) {
+	tests := []struct {
+		contentType string
+		expected    bool
+	}{
+		{"application/json", true},
+		{"application/json; charset=utf-8", true},
+		{"application/vnd.api+json", true},
+		{"application/hal+json", true},
+		{"application/problem+json", true},
+		{"text/html", false},
+		{"text/plain", false},
+		{"text/csv", false},
+		{"application/xml", false},
+		{"image/png", false},
+		{"application/octet-stream", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.contentType, func(t *testing.T) {
+			result := isJSONContentType(tt.contentType)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestJSONResponse_Integration(t *testing.T) {
 	t.Run("Complete request-response cycle", func(t *testing.T) {
 		w := httptest.NewRecorder()

@@ -20,8 +20,6 @@ app:
 services:
   petstore:
     latency: 100ms
-    validate:
-      request: true
 ```
 
 ## App Settings
@@ -77,9 +75,6 @@ services:
     contexts:
       - common:
       - fake: pet
-    validate:
-      request: true
-      response: false
     cache:
       requests: true
 ```
@@ -122,9 +117,6 @@ See [Service Configuration](config/service.md) for detailed options.
           - common:
           - fake: pet
           - fake: gamer
-        validate:
-          request: true
-          response: false
         cache:
           requests: true
         upstream:

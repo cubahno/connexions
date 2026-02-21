@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/stretchr/testify/assert"
 )
@@ -64,6 +65,50 @@ func TestTypeDefinitionRegistry_FindOperation(t *testing.T) {
 
 		op := registry.FindOperation("/users/{id}", "POST")
 		assert.Nil(t, op)
+	})
+}
+
+func TestTypeDefinitionRegistry_GetResponseSchema(t *testing.T) {
+	t.Run("Returns response schema for valid operation", func(t *testing.T) {
+		parseCtx := loadSpecForRegistry(t, "with-refs.yml")
+		registry := NewTypeDefinitionRegistry(parseCtx, 0, nil)
+
+		respSchema := registry.GetResponseSchema("/users", "POST")
+		assert.NotNil(t, respSchema)
+		assert.Equal(t, "application/json", respSchema.ContentType)
+		assert.NotNil(t, respSchema.Body)
+	})
+
+	t.Run("Returns nil for non-existent operation", func(t *testing.T) {
+		parseCtx := loadSpecForRegistry(t, "simple.yml")
+		registry := NewTypeDefinitionRegistry(parseCtx, 0, nil)
+
+		respSchema := registry.GetResponseSchema("/nonexistent", "GET")
+		assert.Nil(t, respSchema)
+	})
+
+	t.Run("Returns schema for 204 No Content response", func(t *testing.T) {
+		cfg := codegen.NewDefaultConfiguration()
+		specContents := []byte(`
+openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+paths:
+  /test:
+    delete:
+      operationId: deleteTest
+      responses:
+        '204':
+          description: No Content
+`)
+		parseCtx, errs := codegen.CreateParseContext(specContents, cfg)
+		assert.Empty(t, errs)
+
+		registry := NewTypeDefinitionRegistry(parseCtx, 0, nil)
+		respSchema := registry.GetResponseSchema("/test", "DELETE")
+		assert.NotNil(t, respSchema)
+		// 204 is still a success response, body may be empty or placeholder
 	})
 }
 
@@ -854,5 +899,103 @@ func TestNewLazyTypeDefinitionRegistry_Errors(t *testing.T) {
 		registry, err := NewLazyTypeDefinitionRegistry(specBytes, cfg, nil)
 		assert.Error(t, err)
 		assert.Nil(t, registry)
+	})
+}
+
+func TestNewRegistryFromSpec(t *testing.T) {
+	specBytes := []byte(`
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /users:
+    get:
+      operationId: getUsers
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+`)
+
+	t.Run("Creates eager registry by default", func(t *testing.T) {
+		cfg := codegen.NewDefaultConfiguration()
+		registry := NewRegistryFromSpec(specBytes, cfg, nil)
+		assert.NotNil(t, registry)
+
+		// Should be TypeDefinitionRegistry (eager)
+		_, ok := registry.(*TypeDefinitionRegistry)
+		assert.True(t, ok, "Should return TypeDefinitionRegistry when LazyLoad is false")
+
+		// Should have operations
+		ops := registry.Operations()
+		assert.NotEmpty(t, ops)
+	})
+
+	t.Run("Creates lazy registry when LazyLoad is true", func(t *testing.T) {
+		cfg := codegen.NewDefaultConfiguration()
+		specOptions := &config.SpecOptions{LazyLoad: true}
+		registry := NewRegistryFromSpec(specBytes, cfg, specOptions)
+		assert.NotNil(t, registry)
+
+		// Should be LazyTypeDefinitionRegistry
+		_, ok := registry.(*LazyTypeDefinitionRegistry)
+		assert.True(t, ok, "Should return LazyTypeDefinitionRegistry when LazyLoad is true")
+
+		// Operations should be empty initially (lazy)
+		ops := registry.Operations()
+		assert.Empty(t, ops)
+
+		// But FindOperation should work
+		op := registry.FindOperation("/users", "GET")
+		assert.NotNil(t, op)
+	})
+
+	t.Run("GetResponseSchema works on both registry types", func(t *testing.T) {
+		cfg := codegen.NewDefaultConfiguration()
+
+		// Eager registry
+		eagerRegistry := NewRegistryFromSpec(specBytes, cfg, nil)
+		respSchema := eagerRegistry.GetResponseSchema("/users", "GET")
+		assert.NotNil(t, respSchema)
+		assert.Equal(t, "application/json", respSchema.ContentType)
+
+		// Lazy registry
+		lazyRegistry := NewRegistryFromSpec(specBytes, cfg, &config.SpecOptions{LazyLoad: true})
+		respSchema = lazyRegistry.GetResponseSchema("/users", "GET")
+		assert.NotNil(t, respSchema)
+		assert.Equal(t, "application/json", respSchema.ContentType)
+
+		// Non-existent operation returns nil on lazy registry
+		respSchema = lazyRegistry.GetResponseSchema("/nonexistent", "GET")
+		assert.Nil(t, respSchema)
+	})
+
+	t.Run("Panics on invalid spec", func(t *testing.T) {
+		cfg := codegen.NewDefaultConfiguration()
+		invalidSpec := []byte(`invalid yaml: [`)
+
+		assert.Panics(t, func() {
+			NewRegistryFromSpec(invalidSpec, cfg, nil)
+		})
+	})
+
+	t.Run("Panics on invalid spec with LazyLoad", func(t *testing.T) {
+		cfg := codegen.NewDefaultConfiguration()
+		invalidSpec := []byte(`invalid yaml: [`)
+
+		assert.Panics(t, func() {
+			NewRegistryFromSpec(invalidSpec, cfg, &config.SpecOptions{LazyLoad: true})
+		})
 	})
 }

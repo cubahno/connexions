@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
 )
 
 // BufferedWriter is a writer that captures the response.

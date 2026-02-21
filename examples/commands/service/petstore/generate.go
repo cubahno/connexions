@@ -7,4 +7,4 @@ package petstore
 // Run after any OpenAPI spec changes: go generate
 //
 // The command automatically uses setup/codegen.yml and setup/openapi.yml from the current directory.
-//go:generate go run github.com/cubahno/connexions/v2/cmd/gen/service https://petstore3.swagger.io/api/v3/openapi.json
+//go:generate go run github.com/cubahno/connexions/v2/cmd/gen/service

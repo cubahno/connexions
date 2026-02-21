@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/sony/gobreaker/v2"
 )
 

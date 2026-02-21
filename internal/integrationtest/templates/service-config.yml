@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cubahno/connexions/refs/heads/master/resources/json-schema-service.json
+# Integration test service configuration template.
+# This config is merged with each service's generated config.yml
+# These values override the defaults for integration testing.
+
+# Enable response validation (default is false)
+validate:
+  request: true
+  response: true
+
+# Disable caching for integration tests
+cache:
+  requests: false
+
+# Spec options for integration tests
+spec:
+  # Disable lazy loading - we test all endpoints, so eager parsing is more efficient
+  lazyLoad: false
+  # Simplify is set dynamically based on spec size (see simplify-threshold-mb)

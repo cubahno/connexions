@@ -1,0 +1,323 @@
+{{/* Chi-specific template blocks */}}
+
+{{define "router-import"}}"github.com/go-chi/chi/v5"{{end}}
+
+{{define "get-path-param"}}chi.URLParam(r, "{{ . }}"){{end}}
+
+{{define "router-config"}}
+type routerConfig struct {
+    middlewares []func(http.Handler) http.Handler
+    errHandler  OapiErrorHandler
+}
+
+// WithMiddleware adds middleware to the router.
+func WithMiddleware(mw func(http.Handler) http.Handler) RouterOption {
+    return func(cfg *routerConfig) {
+        cfg.middlewares = append(cfg.middlewares, mw)
+    }
+}
+
+// WithErrorHandler sets a custom error handler for the router.
+// If not set, OapiOapiDefaultErrorHandler is used.
+func WithErrorHandler(h OapiErrorHandler) RouterOption {
+    return func(cfg *routerConfig) {
+        cfg.errHandler = h
+    }
+}
+{{end}}
+
+{{define "new-router"}}
+{{- $config := .Config -}}
+{{- $operations := .Operations -}}
+{{- $serviceName := $config.Generate.Handler.Name -}}
+// NewRouter creates a new chi.Router with the given service implementation.
+func NewRouter(svc {{ $serviceName }}Interface, opts ...RouterOption) chi.Router {
+    cfg := &routerConfig{}
+    for _, opt := range opts {
+        opt(cfg)
+    }
+
+    r := chi.NewRouter()
+    for _, mw := range cfg.middlewares {
+        r.Use(mw)
+    }
+
+    {{- if $operations }}
+    adapter := NewHTTPAdapter(svc, cfg.errHandler)
+    {{- range $operations }}{{ $op := . }}
+        r.Method("{{ $op.Method }}", "{{template "router-path" $op.Path}}", http.HandlerFunc(adapter.{{ $op.ID | ucFirst }}))
+    {{- end }}
+    {{- end }}
+
+    return r
+}
+{{end}}
+
+{{template "handler/errors.tmpl" .}}
+{{template "handler/adapter.tmpl" .}}
+{{template "handler/router.tmpl" .}}
+
+{{/* Connexions generator code below */}}
+{{- $config := .Config -}}
+{{- $operations := .Operations -}}
+{{- $packageName := .PackageName -}}
+{{- $modelsAlias := "" -}}
+{{- if and $config.Generate $config.Generate.Handler -}}
+{{- $modelsAlias = $config.Generate.Handler.ModelsPackageAlias -}}
+{{- end -}}
+{{- $modelsPrefix := "" -}}
+{{- if $modelsAlias -}}
+{{- $modelsPrefix = printf "%s." $modelsAlias -}}
+{{- end -}}
+
+// ============================================================================
+// Connexions Service Registration
+// ============================================================================
+
+//go:embed setup/config.yml
+var configSrc []byte
+
+//go:embed setup/openapi.*
+var openapiSpecFS embed.FS
+
+//go:embed setup/codegen.yml
+var codegenConfigSrc []byte
+
+//go:embed setup/context.yml
+var contextSrc []byte
+
+var cfg *config.ServiceConfig
+
+func init() {
+	var err error
+	cfg, err = config.NewServiceConfigFromBytes(configSrc)
+	if err != nil {
+		slog.Error("Failed to parse service config", "error", err)
+		return
+	}
+	loader.Register(cfg.Name, RegisterAPIRouter)
+}
+
+// Register registers the service with the central router.
+func RegisterAPIRouter(router *api.Router) {
+	serviceName := cfg.Name
+
+	// Read OpenAPI spec from embedded FS
+	openapiSpec, err := readFirstEmbeddedFile(openapiSpecFS)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Failed to read OpenAPI spec for %s", serviceName),
+			"error", err,
+			"service", serviceName,
+		)
+		return
+	}
+
+	// Load codegen config
+	var codegenCfg oapicodegen.Configuration
+	if err := yamlv4.Unmarshal(codegenConfigSrc, &codegenCfg); err != nil {
+		slog.Error(fmt.Sprintf("Failed to parse codegen config for %s", serviceName),
+			"error", err,
+			"service", serviceName,
+		)
+		return
+	}
+	codegenCfg = codegenCfg.Merge(oapicodegen.NewDefaultConfiguration())
+
+	// Create the typedef registry from the OpenAPI spec
+	registry := typedef.NewRegistryFromSpec(openapiSpec, codegenCfg, cfg.SpecOptions)
+
+	// Create the generator with service contexts
+	orderedCtx := generator.LoadServiceContext(contextSrc, router.GetContexts())
+	gen, err := generator.NewGenerator(orderedCtx)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Failed to create generator for %s", serviceName),
+			"error", err,
+			"service", serviceName,
+		)
+		return
+	}
+
+	// Register with connexions using handler factory
+	router.RegisterHTTPHandler(cfg, func(serviceDB db.DB) api.Handler {
+		userSvc := &service{db: serviceDB}
+		genSvc := &generatorService{service: userSvc, generator: gen, registry: registry}
+		return newServiceHandler(genSvc, gen, registry)
+	}{{- if $config.Generate.Handler.Middleware }}, api.WithMiddleware(getMiddleware()){{ end }})
+
+	slog.Info(fmt.Sprintf("Registered %s service", serviceName),
+		"service", serviceName,
+	)
+}
+
+// readFirstEmbeddedFile reads the first file from an embedded filesystem.
+func readFirstEmbeddedFile(fsys embed.FS) ([]byte, error) {
+	entries, err := fsys.ReadDir("setup")
+	if err != nil {
+		return nil, fmt.Errorf("reading embedded directory: %w", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasPrefix(entry.Name(), "openapi.") {
+			return fsys.ReadFile(path.Join("setup", entry.Name()))
+		}
+	}
+	return nil, errors.New("no openapi spec file found in embedded filesystem")
+}
+
+// ============================================================================
+// Service Handler
+// ============================================================================
+
+// serviceHandler wraps the chi router and service to implement api.Handler.
+type serviceHandler struct {
+	router   chi.Router
+	service  {{ $modelsPrefix }}ServiceInterface
+	gen      generator.Generate
+	registry typedef.OperationRegistry
+}
+
+// newServiceHandler creates a new serviceHandler.
+func newServiceHandler(svc {{ $modelsPrefix }}ServiceInterface, gen generator.Generate, registry typedef.OperationRegistry) api.Handler {
+	return &serviceHandler{
+		router:   {{ $modelsPrefix }}NewRouter(svc),
+		service:  svc,
+		gen:      gen,
+		registry: registry,
+	}
+}
+
+func (h *serviceHandler) Routes() api.RouteDescriptions {
+	routes := h.router.Routes()
+	descriptions := make(api.RouteDescriptions, 0, len(routes))
+	for _, route := range routes {
+		for method := range route.Handlers {
+			descriptions = append(descriptions, &api.RouteDescription{
+				Method: method,
+				Path:   route.Pattern,
+			})
+		}
+	}
+	return descriptions
+}
+
+func (h *serviceHandler) RegisterRoutes(router chi.Router) {
+	router.Mount("/", h.router)
+}
+
+func (h *serviceHandler) Generate(w http.ResponseWriter, r *http.Request) {
+	var req api.GenerateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("Failed to decode request", "error", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	op := h.registry.FindOperation(req.Path, req.Method)
+	res := h.gen.Request(&req, op)
+	api.NewJSONResponse(w).Send(res)
+}
+
+// ============================================================================
+// Generator Service (fallback to mock responses)
+// ============================================================================
+
+// generatorService implements ServiceInterface with generator fallback.
+// It delegates to the user's service first; if that returns nil, it generates a mock response.
+type generatorService struct {
+	service   *service
+	generator generator.Generate
+	registry  typedef.OperationRegistry
+}
+
+// Ensure generatorService implements ServiceInterface.
+var _ {{ $modelsPrefix }}ServiceInterface = (*generatorService)(nil)
+
+{{- range $operations }}{{ $op := . }}
+
+// {{ $op.ID }} handles {{ $op.Method }} {{ $op.Path }}
+{{- if and (not $config.Generate.OmitDescription) $op.Summary }}
+{{ toGoComment $op.Summary "" }}
+{{- end }}
+{{- if $op.HasRequestOptions }}
+func (s *generatorService) {{ $op.ID }}(ctx context.Context, opts *{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ServiceRequestOptions) ({{ if $op.Response.Success }}*{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ResponseData, error{{ else }}error{{ end }}) {
+	// Call user's service first
+	if resp, err := s.service.{{ $op.ID }}(ctx, opts); resp != nil || err != nil {
+		return resp, err
+	}
+
+	// Fallback to generator
+	respSchema := s.registry.GetResponseSchema("{{ $op.Path }}", "{{ $op.Method }}")
+	if respSchema == nil {
+		{{- if $op.Response.Success }}
+		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil), nil
+		{{- else }}
+		return nil
+		{{- end }}
+	}
+
+	res := s.generator.Response(respSchema)
+	{{- if $op.Response.Success }}
+	{{- $bodyType := $op.Response.Success.ResponseName -}}
+	{{- if eq $bodyType "struct{}" }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil).WithHeaders(res.Headers), nil
+	{{- else if $op.Response.Success.IsRaw }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(res.Body).WithHeaders(res.Headers), nil
+	{{- else }}
+	{{- if $modelsPrefix }}{{ $bodyType = printf "%s%s" $modelsPrefix $bodyType }}{{ end }}
+	var body {{ $bodyType }}
+	if err := api.UnmarshalResponseInto(res.Body, "{{ $op.Response.Success.ContentType | escapeGoString }}", &body); err != nil {
+		return nil, err
+	}
+	{{- if eq $op.Response.Success.Schema.GoType "[]byte" }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(body).WithHeaders(res.Headers), nil
+	{{- else }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(&body).WithHeaders(res.Headers), nil
+	{{- end }}
+	{{- end }}
+	{{- else }}
+	_ = res
+	return nil
+	{{- end }}
+}
+{{- else }}
+func (s *generatorService) {{ $op.ID }}(ctx context.Context) ({{ if $op.Response.Success }}*{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ResponseData, error{{ else }}error{{ end }}) {
+	// Call user's service first
+	if resp, err := s.service.{{ $op.ID }}(ctx); resp != nil || err != nil {
+		return resp, err
+	}
+
+	// Fallback to generator
+	respSchema := s.registry.GetResponseSchema("{{ $op.Path }}", "{{ $op.Method }}")
+	if respSchema == nil {
+		{{- if $op.Response.Success }}
+		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil), nil
+		{{- else }}
+		return nil
+		{{- end }}
+	}
+
+	res := s.generator.Response(respSchema)
+	{{- if $op.Response.Success }}
+	{{- $bodyType := $op.Response.Success.ResponseName -}}
+	{{- if eq $bodyType "struct{}" }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil).WithHeaders(res.Headers), nil
+	{{- else if $op.Response.Success.IsRaw }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(res.Body).WithHeaders(res.Headers), nil
+	{{- else }}
+	{{- if $modelsPrefix }}{{ $bodyType = printf "%s%s" $modelsPrefix $bodyType }}{{ end }}
+	var body {{ $bodyType }}
+	if err := api.UnmarshalResponseInto(res.Body, "{{ $op.Response.Success.ContentType | escapeGoString }}", &body); err != nil {
+		return nil, err
+	}
+	{{- if eq $op.Response.Success.Schema.GoType "[]byte" }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(body).WithHeaders(res.Headers), nil
+	{{- else }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(&body).WithHeaders(res.Headers), nil
+	{{- end }}
+	{{- end }}
+	{{- else }}
+	_ = res
+	return nil
+	{{- end }}
+}
+{{- end }}
+{{- end }}

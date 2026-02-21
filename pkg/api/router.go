@@ -9,8 +9,8 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/cubahno/connexions/v2/internal/contexts"
-	"github.com/cubahno/connexions/v2/internal/db"
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/cubahno/connexions/v2/pkg/middleware"
 	"github.com/cubahno/connexions/v2/resources"
 	"github.com/go-chi/chi/v5"
@@ -114,6 +114,72 @@ func (r *Router) RegisterService(
 			subRouter.Use(createMw(mwParams))
 		}
 
+		handler.RegisterRoutes(subRouter)
+	})
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.services[cfg.Name] = &ServiceItem{
+		Name:    cfg.Name,
+		Handler: handler,
+	}
+	r.databases[cfg.Name] = serviceDB
+}
+
+// HandlerOption configures RegisterHTTPHandler behavior.
+type HandlerOption func(*handlerOptions)
+
+type handlerOptions struct {
+	middleware []func(*middleware.Params) func(http.Handler) http.Handler
+}
+
+// WithMiddleware adds service-specific middleware applied AFTER the standard middleware chain.
+func WithMiddleware(mw []func(*middleware.Params) func(http.Handler) http.Handler) HandlerOption {
+	return func(o *handlerOptions) {
+		o.middleware = mw
+	}
+}
+
+// RegisterHTTPHandler registers a Handler as a service.
+// The handlerFactory receives the service DB and returns the handler.
+// The service will be registered at the route "/{cfg.Name}".
+func (r *Router) RegisterHTTPHandler(
+	cfg *config.ServiceConfig,
+	handlerFactory func(db.DB) Handler,
+	opts ...HandlerOption,
+) {
+	options := &handlerOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	// Create per-service database based on storage config
+	serviceDB := db.NewDB(cfg.Name, r.config.HistoryDuration, r.config.Storage)
+
+	// Create the handler with access to the DB
+	handler := handlerFactory(serviceDB)
+
+	mwParams := middleware.NewParams(cfg, r.config.Storage, serviceDB)
+
+	// Use cfg.Name as the route prefix (ensure it starts with /)
+	prefix := "/" + cfg.Name
+	r.Route(prefix, func(subRouter chi.Router) {
+		// Config override middleware (must be first to override config before other middlewares)
+		subRouter.Use(middleware.CreateConfigOverrideMiddleware(mwParams))
+
+		// Standard middleware (always applied)
+		subRouter.Use(middleware.CreateLatencyAndErrorMiddleware(mwParams))
+		subRouter.Use(middleware.CreateCacheReadMiddleware(mwParams))
+		subRouter.Use(middleware.CreateUpstreamRequestMiddleware(mwParams))
+		subRouter.Use(middleware.CreateCacheWriteMiddleware(mwParams))
+
+		// Service-specific middleware (applied after standard middleware)
+		for _, createMw := range options.middleware {
+			subRouter.Use(createMw(mwParams))
+		}
+
+		// Register the handler's routes
 		handler.RegisterRoutes(subRouter)
 	})
 

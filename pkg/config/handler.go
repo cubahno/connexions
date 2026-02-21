@@ -5,17 +5,13 @@ package config
 // SelfPrefix is the prefix for helper routes outside OpenAPI spec:
 //
 //	for example, payload generation.
-//
-// Validate is the validation config.
 type HandlerConfig struct {
-	SelfPrefix string          `yaml:"self-prefix"`
-	Validate   *ValidateConfig `yaml:"validate"`
+	SelfPrefix string `yaml:"self-prefix"`
 }
 
 // NewHandlerConfig creates a new handler config from the service config.
 func NewHandlerConfig(service *ServiceConfig) *HandlerConfig {
 	return &HandlerConfig{
 		SelfPrefix: service.ResourcesPrefix,
-		Validate:   service.Validate,
 	}
 }

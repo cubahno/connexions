@@ -64,11 +64,6 @@ errors:
   p5: 500   # 5% of requests return 500
   p10: 400  # 5% return 400 (p10 - p5)
 
-# Request/response validation
-validate:
-  request: true   # Validate incoming requests
-  response: false # Validate generated responses
-
 # Caching behavior
 cache:
   requests: true  # Cache GET request responses
@@ -109,18 +104,6 @@ errors:
 ```
 
 Percentiles are cumulative - `p10: 400` means requests between p5 and p10 (5%) return 400.
-
-## Validation
-
-Control request and response validation:
-
-```yaml
-validate:
-  request: true   # Validate requests against OpenAPI spec
-  response: false # Validate responses (useful for debugging)
-```
-
-When validation fails, the server returns a 400 error with details.
 
 ## Caching
 

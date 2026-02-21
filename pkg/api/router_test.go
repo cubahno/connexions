@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
@@ -859,5 +861,67 @@ cache:
 		assert.True(t, exists, "Response should be stored in history")
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)
 		assert.Equal(t, []byte("Created"), rec.Response.Data)
+	})
+}
+
+func TestRegisterHTTPHandler(t *testing.T) {
+	t.Run("registers handler at correct route", func(t *testing.T) {
+		router := newTestRouter(t)
+		cfg := &config.ServiceConfig{Name: "myservice"}
+
+		router.RegisterHTTPHandler(cfg, func(d db.DB) Handler {
+			return &mockService{
+				name:   "myservice",
+				config: cfg,
+				routes: func(r chi.Router) {
+					r.Get("/hello", func(w http.ResponseWriter, r *http.Request) {
+						_, _ = w.Write([]byte("world"))
+					})
+				},
+			}
+		})
+
+		req := httptest.NewRequest("GET", "/myservice/hello", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "world", w.Body.String())
+	})
+
+	t.Run("applies custom middleware via WithMiddleware", func(t *testing.T) {
+		router := newTestRouter(t)
+		cfg := &config.ServiceConfig{Name: "mwtest"}
+
+		middlewareCalled := false
+		customMw := func(params *middleware.Params) func(http.Handler) http.Handler {
+			return func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					middlewareCalled = true
+					w.Header().Set("X-Custom", "applied")
+					next.ServeHTTP(w, r)
+				})
+			}
+		}
+
+		router.RegisterHTTPHandler(cfg, func(d db.DB) Handler {
+			return &mockService{
+				name:   "mwtest",
+				config: cfg,
+				routes: func(r chi.Router) {
+					r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+						_, _ = w.Write([]byte("ok"))
+					})
+				},
+			}
+		}, WithMiddleware([]func(*middleware.Params) func(http.Handler) http.Handler{customMw}))
+
+		req := httptest.NewRequest("GET", "/mwtest/test", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.True(t, middlewareCalled, "Custom middleware should be called")
+		assert.Equal(t, "applied", w.Header().Get("X-Custom"))
+		assert.Equal(t, http.StatusOK, w.Code)
 	})
 }

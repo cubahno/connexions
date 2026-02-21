@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"sync/atomic"
 	"testing"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
@@ -425,107 +424,6 @@ func TestNormalizeServiceName(t *testing.T) {
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
-}
-
-func TestServiceHandler_stats(t *testing.T) {
-	t.Run("Returns validation statistics", func(t *testing.T) {
-		router := newTestRouter(t)
-		router.config.ServiceURL = "/.services"
-		_ = CreateServiceRoutes(router)
-
-		// Reset stats first
-		ResetValidationStats()
-
-		// Simulate some validation calls using atomic operations
-		atomic.StoreInt64(&validationStats.WithValidator, 10)
-		atomic.StoreInt64(&validationStats.WithoutValidator, 5)
-		atomic.StoreInt64(&validationStats.Skipped, 2)
-
-		req := httptest.NewRequest(http.MethodGet, "/.services/stats", nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
-
-		var stats ValidationStats
-		err := json.Unmarshal(w.Body.Bytes(), &stats)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(10), stats.WithValidator)
-		assert.Equal(t, int64(5), stats.WithoutValidator)
-		assert.Equal(t, int64(2), stats.Skipped)
-	})
-
-	t.Run("Returns zero stats when no validations performed", func(t *testing.T) {
-		router := newTestRouter(t)
-		router.config.ServiceURL = "/.services"
-		_ = CreateServiceRoutes(router)
-
-		// Reset stats
-		ResetValidationStats()
-
-		req := httptest.NewRequest(http.MethodGet, "/.services/stats", nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var stats ValidationStats
-		err := json.Unmarshal(w.Body.Bytes(), &stats)
-		assert.NoError(t, err)
-		assert.Equal(t, int64(0), stats.WithValidator)
-		assert.Equal(t, int64(0), stats.WithoutValidator)
-		assert.Equal(t, int64(0), stats.Skipped)
-	})
-}
-
-func TestServiceHandler_resetStats(t *testing.T) {
-	t.Run("Resets validation statistics", func(t *testing.T) {
-		router := newTestRouter(t)
-		router.config.ServiceURL = "/.services"
-		_ = CreateServiceRoutes(router)
-
-		// Set some stats using atomic operations
-		atomic.StoreInt64(&validationStats.WithValidator, 100)
-		atomic.StoreInt64(&validationStats.WithoutValidator, 50)
-		atomic.StoreInt64(&validationStats.Skipped, 25)
-
-		// Reset via endpoint
-		req := httptest.NewRequest(http.MethodPost, "/.services/stats/reset", nil)
-		w := httptest.NewRecorder()
-		router.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Equal(t, "text/plain; charset=utf-8", w.Header().Get("Content-Type"))
-		assert.Equal(t, "OK", w.Body.String())
-
-		// Verify stats are reset
-		stats := GetValidationStats()
-		assert.Equal(t, int64(0), stats.WithValidator)
-		assert.Equal(t, int64(0), stats.WithoutValidator)
-		assert.Equal(t, int64(0), stats.Skipped)
-	})
-
-	t.Run("Reset is idempotent", func(t *testing.T) {
-		router := newTestRouter(t)
-		router.config.ServiceURL = "/.services"
-		_ = CreateServiceRoutes(router)
-
-		// Reset multiple times
-		for i := 0; i < 3; i++ {
-			req := httptest.NewRequest(http.MethodPost, "/.services/stats/reset", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
-
-			assert.Equal(t, http.StatusOK, w.Code)
-		}
-
-		// Stats should still be zero
-		stats := GetValidationStats()
-		assert.Equal(t, int64(0), stats.WithValidator)
-		assert.Equal(t, int64(0), stats.WithoutValidator)
-		assert.Equal(t, int64(0), stats.Skipped)
-	})
 }
 
 func TestServiceHandler_routes(t *testing.T) {

@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cubahno/connexions/refs/heads/master/resources/json-schema-service.json
+name: {{.ServiceName}}
+latency: 0ms
+errors:
+#  p10: 500
+#  p20: 400
+cache:
+  requests: true
+spec:
+  simplify: false
+  optional-properties:
+    number: 5
+    # range: "1-6"
+#upstream:
+#  url: https://api.example.com
+#  headers:
+#    X-Custom-Header: value
+#  fail-on:
+#    timeout: 5s
+#    http-status:
+#      - range: "500-599"
+#  circuit-breaker:
+#    timeout: 60s        # Time in open state before half-open
+#    max-requests: 1     # Max requests allowed in half-open state
+#    interval: 0s        # Interval to clear counts in closed state (0 = never)
+#    min-requests: 3     # Min requests before evaluating failure ratio
+#    failure-ratio: 0.6  # Failure ratio threshold to trip (0.0-1.0)

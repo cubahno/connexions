@@ -202,273 +202,125 @@ func GenerateService(opts ServiceOptions) error {
 		if err = os.MkdirAll(destDir, generatedDirPerm); err != nil {
 			return fmt.Errorf("creating directory: %w", err)
 		}
-		if !cfg.Output.UseSingleFile {
-			destDir = filepath.Join(destDir, cfg.PackageName)
-			if err = os.MkdirAll(destDir, generatedDirPerm); err != nil {
-				return fmt.Errorf("creating directory: %w", err)
-			}
-		}
 	}
 
 	if destDir == "" {
 		return fmt.Errorf("no output directory specified")
 	}
 
-	// Get absolute path of service directory
-	serviceDirAbs, err := filepath.Abs(serviceDir)
-	if err != nil {
-		return fmt.Errorf("getting absolute path: %w", err)
+	// Override oapi-codegen templates with connexions versions
+	if cfg.UserTemplates == nil {
+		cfg.UserTemplates = make(map[string]string)
 	}
 
-	packageName := api.NormalizeServiceName(filepath.Base(serviceDirAbs))
-	serviceName := packageName
-	if opts.Name != "" {
-		serviceName = opts.Name
-	}
-
-	// Step 1: Generate types
-	slog.Info("Generating types...")
-	if err := generateTypes(parseCtx, cfg, destDir, specContents); err != nil {
-		return fmt.Errorf("generating types: %w", err)
-	}
-	slog.Info("Types generated")
-
-	// Step 2: Generate handlers
-	slog.Info("Generating handlers...")
-
-	// Get module name and root directory from go.mod
-	moduleName, moduleRoot, err := files.GetModuleInfo(serviceDirAbs)
-	if err != nil {
-		return fmt.Errorf("getting module info: %w", err)
-	}
-
-	// Get relative path from module root to service directory
-	relPath, err := filepath.Rel(moduleRoot, serviceDirAbs)
-	if err != nil {
-		return fmt.Errorf("getting relative path: %w", err)
-	}
-
-	// Convert relative path to forward slashes for Go import paths
-	relPath = filepath.ToSlash(relPath)
-
-	// Construct the import path: moduleName/relPath/types
-	typesImport := moduleName + "/" + relPath + "/types"
-	serviceImport := moduleName + "/" + relPath
-
-	// Fix operations with missing or invalid responses
-	fixMissingResponses(parseCtx.Operations)
-
-	// Fix duplicate path parameters (Chi router panics on duplicate param names)
-	fixDuplicatePathParams(parseCtx.Operations)
-
-	// Fix wildcard paths (Chi only allows * at the end of a route)
-	fixWildcardPaths(parseCtx.Operations)
-
-	// Limit endpoints for debugging if requested
-	if opts.MaxEndpoints > 0 && len(parseCtx.Operations) > opts.MaxEndpoints {
-		fmt.Fprintf(os.Stderr, "DEBUG: Limiting to first %d endpoints (out of %d total)\n", opts.MaxEndpoints, len(parseCtx.Operations))
-		parseCtx.Operations = parseCtx.Operations[:opts.MaxEndpoints]
-	}
-
-	slog.Info("Generating TypeDefinitionRegistry", "service", serviceName, "endpoints", len(parseCtx.Operations))
-	tdRegistry := typedef.NewTypeDefinitionRegistry(parseCtx, opts.MaxRecursionDepth, specContents)
-	slog.Info("TypeDefinitionRegistry generated")
-
-	opsCtx := &codegen.TplOperationsContext{
-		Operations: parseCtx.Operations,
-		Imports:    parseCtx.Imports,
-		Config:     cfg,
-		WithHeader: true,
-	}
-
-	codes, err := ParseHandlerTemplates(opsCtx, tdRegistry, serviceName, typesImport)
-	if err != nil {
-		return fmt.Errorf("generating handler code: %w", err)
-	}
-
-	// Create handler directory in service root
-	handlerDir := filepath.Join(serviceDirAbs, "handler")
-	if err = os.MkdirAll(handlerDir, generatedDirPerm); err != nil {
-		return fmt.Errorf("creating handler directory: %w", err)
-	}
-
-	// Write handler files
-	for fileName, code := range codes {
-		formatted, err := codegen.FormatCode(code)
+	// Override handler templates (scaffold templates)
+	for _, tmplName := range []string{"service.tmpl", "server.tmpl", "middleware.tmpl"} {
+		tmplContent, err := templatesFS.ReadFile("templates/handler/" + tmplName)
 		if err != nil {
-			return fmt.Errorf("formatting %s: %w", fileName, err)
+			return fmt.Errorf("reading %s template: %w", tmplName, err)
 		}
-
-		savePath := filepath.Join(handlerDir, fileName)
-		if err := os.WriteFile(savePath, []byte(formatted), generatedFilePerm); err != nil {
-			return fmt.Errorf("writing file %s: %w", fileName, err)
-		}
-		fmt.Printf("Generated: %s\n", savePath)
+		cfg.UserTemplates["handler/"+tmplName] = string(tmplContent)
 	}
 
-	slog.Info("Handlers generated")
-
-	// Step 3: Generate register.go
-	slog.Info("Generating register.go...")
-	registerCode, err := generateRegisterCode(serviceName, packageName, serviceImport)
+	// Override chi handler template to include connexions generator code
+	chiHandlerContent, err := templatesFS.ReadFile("templates/handler/chi/handler.tmpl")
 	if err != nil {
-		return fmt.Errorf("generating register.go: %w", err)
+		return fmt.Errorf("reading chi/handler.tmpl: %w", err)
 	}
+	cfg.UserTemplates["handler/chi/handler.tmpl"] = string(chiHandlerContent)
 
-	formatted, err := codegen.FormatCode(registerCode)
+	// Add imports required by connexions generator code
+	cfg.AdditionalImports = append(cfg.AdditionalImports,
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/api"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/config"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/db"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/generator"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/loader"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/typedef"},
+		codegen.AdditionalImport{Alias: "oapicodegen", Package: "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"},
+		codegen.AdditionalImport{Alias: "yamlv4", Package: "go.yaml.in/yaml/v4"},
+	)
+
+	// Step 1: Generate code with oapi-codegen
+	generatedCode, err := codegen.Generate(specContents, cfg)
 	if err != nil {
-		return fmt.Errorf("formatting register.go: %w", err)
+		return fmt.Errorf("oapi-codegen generate: %w", err)
 	}
 
-	registerPath := filepath.Join(serviceDirAbs, ServiceRegistrationFile)
-	if err := os.WriteFile(registerPath, []byte(formatted), generatedFilePerm); err != nil {
-		return fmt.Errorf("writing %s: %w", ServiceRegistrationFile, err)
-	}
-	fmt.Printf("Generated: %s\n", registerPath)
-
-	// Step 4: Generate middleware.go (only if it doesn't exist)
-	middlewarePath := filepath.Join(serviceDirAbs, "middleware.go")
-	if _, err := os.Stat(middlewarePath); os.IsNotExist(err) {
-		slog.Info("Generating middleware.go...")
-		middlewareCode, err := generateMiddlewareCode(serviceName, packageName)
-		if err != nil {
-			return fmt.Errorf("generating middleware.go: %w", err)
+	// Determine handler directory for connexions templates
+	handlerDir := destDir
+	if cfg.Generate != nil && cfg.Generate.Handler != nil {
+		if cfg.Generate.Handler.Output != nil && cfg.Generate.Handler.Output.Directory != "" {
+			handlerDir = filepath.Join(destDir, cfg.Generate.Handler.Output.Directory)
+			if err := os.MkdirAll(handlerDir, generatedDirPerm); err != nil {
+				return fmt.Errorf("creating handler directory %s: %w", handlerDir, err)
+			}
 		}
-
-		formatted, err := codegen.FormatCode(middlewareCode)
-		if err != nil {
-			return fmt.Errorf("formatting middleware.go: %w", err)
-		}
-
-		if err := os.WriteFile(middlewarePath, []byte(formatted), generatedFilePerm); err != nil {
-			return fmt.Errorf("writing middleware.go: %w", err)
-		}
-		fmt.Printf("Generated: %s\n", middlewarePath)
-	} else {
-		slog.Info("Skipping middleware.go (already exists, preserving user edits)")
 	}
 
-	// Step 5: Generate server/main.go (only if enabled in config)
-	if serviceCfg.Generate != nil && serviceCfg.Generate.Server != nil {
-		slog.Info("Generating server/main.go...")
-		serverDir := filepath.Join(serviceDirAbs, "server")
-		if err = os.MkdirAll(serverDir, generatedDirPerm); err != nil {
-			return fmt.Errorf("creating server directory: %w", err)
+	// Write combined file to handler directory
+	// With use-single-file: true and skip-fmt: true, GetCombined() returns unformatted code
+	// Generator code is now included via the chi/handler.tmpl override
+	outputFilename := "gen.go"
+	if cfg.Output != nil && cfg.Output.Filename != "" {
+		outputFilename = cfg.Output.Filename
+	}
+	outputPath := filepath.Join(handlerDir, outputFilename)
+	formatted, err := codegen.FormatCode(generatedCode.GetCombined())
+	if err != nil {
+		return fmt.Errorf("formatting combined code: %w", err)
+	}
+	if err := os.WriteFile(outputPath, []byte(formatted), generatedFilePerm); err != nil {
+		return fmt.Errorf("writing %s: %w", outputFilename, err)
+	}
+	if !opts.Quiet {
+		fmt.Printf("Generated: %s\n", outputPath)
+	}
+
+	// Write scaffold files (service.go, middleware.go) - these are user-editable
+	for key, content := range generatedCode {
+		if !codegen.IsScaffoldFile(key) {
+			continue
 		}
 
-		serverCode, err := generateServerCode(serviceName, packageName, serviceImport)
+		scaffoldPath := codegen.ScaffoldFileName(key) + ".go"
+		actualFilename := filepath.Base(scaffoldPath)
+		scaffoldDir := filepath.Dir(scaffoldPath)
+		outputDir := destDir
+		if scaffoldDir != "." {
+			outputDir = filepath.Join(destDir, scaffoldDir)
+		}
+
+		if err := os.MkdirAll(outputDir, generatedDirPerm); err != nil {
+			return fmt.Errorf("creating scaffold directory %s: %w", outputDir, err)
+		}
+
+		filePath := filepath.Join(outputDir, actualFilename)
+
+		// Check overwrite setting
+		scaffoldOutput := cfg.Generate.Handler.ResolveScaffoldOutput(cfg.Output)
+		if !scaffoldOutput.Overwrite {
+			if _, err := os.Stat(filePath); err == nil {
+				slog.Info("Skipping scaffold file (already exists)", "file", filePath)
+				continue
+			}
+		}
+
+		formattedCode, err := codegen.FormatCode(content)
 		if err != nil {
-			return fmt.Errorf("generating server/main.go: %w", err)
+			return fmt.Errorf("formatting %s: %w", actualFilename, err)
 		}
 
-		formatted, err = codegen.FormatCode(serverCode)
-		if err != nil {
-			return fmt.Errorf("formatting server/main.go: %w", err)
+		if err := os.WriteFile(filePath, []byte(formattedCode), generatedFilePerm); err != nil {
+			return fmt.Errorf("writing %s: %w", actualFilename, err)
 		}
-
-		serverPath := filepath.Join(serverDir, "main.go")
-		if err := os.WriteFile(serverPath, []byte(formatted), generatedFilePerm); err != nil {
-			return fmt.Errorf("writing server/main.go: %w", err)
+		if !opts.Quiet {
+			fmt.Printf("Generated: %s\n", filePath)
 		}
-		fmt.Printf("Generated: %s\n", serverPath)
 	}
 
 	slog.Info("Service generation complete")
 	return nil
-}
-
-// generateServerCode generates the server/main.go file content for standalone service server
-func generateServerCode(serviceName, packageName, serviceImport string) (string, error) {
-	tmplContent, err := templatesFS.ReadFile("templates/handler/server.tmpl")
-	if err != nil {
-		return "", fmt.Errorf("reading template: %w", err)
-	}
-
-	funcMap := templatehelpers.GetFuncMap()
-
-	tmpl, err := template.New("server").Funcs(funcMap).Parse(string(tmplContent))
-	if err != nil {
-		return "", fmt.Errorf("parsing template: %w", err)
-	}
-
-	data := struct {
-		PackageName   string
-		ServiceName   string
-		ServiceImport string
-	}{
-		PackageName:   packageName,
-		ServiceName:   serviceName,
-		ServiceImport: serviceImport,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("executing template: %w", err)
-	}
-
-	return buf.String(), nil
-}
-
-// generateRegisterCode generates the register.go file content
-func generateRegisterCode(serviceName, packageName, serviceImport string) (string, error) {
-	tmplContent, err := templatesFS.ReadFile("templates/handler/register.tmpl")
-	if err != nil {
-		return "", fmt.Errorf("reading template: %w", err)
-	}
-
-	funcMap := templatehelpers.GetFuncMap()
-
-	tmpl, err := template.New("register").Funcs(funcMap).Parse(string(tmplContent))
-	if err != nil {
-		return "", fmt.Errorf("parsing template: %w", err)
-	}
-
-	data := struct {
-		PackageName   string
-		ServiceName   string
-		ServiceImport string
-	}{
-		PackageName:   packageName,
-		ServiceName:   serviceName,
-		ServiceImport: serviceImport,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("executing template: %w", err)
-	}
-
-	return buf.String(), nil
-}
-
-// generateMiddlewareCode generates the middleware.go file content
-func generateMiddlewareCode(serviceName, packageName string) (string, error) {
-	tmplContent, err := templatesFS.ReadFile("templates/handler/middleware.tmpl")
-	if err != nil {
-		return "", fmt.Errorf("reading template: %w", err)
-	}
-
-	funcMap := templatehelpers.GetFuncMap()
-
-	tmpl, err := template.New("middleware").Funcs(funcMap).Parse(string(tmplContent))
-	if err != nil {
-		return "", fmt.Errorf("parsing template: %w", err)
-	}
-
-	data := struct {
-		PackageName string
-		ServiceName string
-	}{
-		PackageName: packageName,
-		ServiceName: serviceName,
-	}
-
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("executing template: %w", err)
-	}
-
-	return buf.String(), nil
 }
 
 // ensureSetupDir creates the setup directory with all necessary files if it doesn't exist.
@@ -548,13 +400,20 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 
 	// Prepare template data
 	// For URLs, we keep the URL as SpecPath so it's embedded in generate.go
-	// For static services, we keep the directory path so regeneration works
+	// For static services, use relative path from service directory (e.g., "data" or "./data")
 	// For local OpenAPI files, we leave SpecPath empty (will fallback to local openapi.yml/json)
 	specPath := ""
 	if files.IsURL(opts.SpecPath) {
 		specPath = opts.SpecPath
 	} else if serviceType == "static" && opts.SpecPath != "" {
-		specPath = opts.SpecPath
+		// For static services, make path relative to service directory
+		// Since go generate runs from the package directory, we need a relative path
+		relPath, err := filepath.Rel(serviceDir, opts.SpecPath)
+		if err != nil {
+			// Fallback to just the base name if relative path fails
+			relPath = filepath.Base(opts.SpecPath)
+		}
+		specPath = relPath
 	}
 	data := setupTemplateData{
 		ServiceName: serviceName,
@@ -568,24 +427,12 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 			continue
 		}
 
-		var content []byte
-		var renderErr error
-
-		// Check if it's a template file (.tmpl) or a static file
-		if filepath.Ext(templatePath) == ".tmpl" {
-			// Render template
-			rendered, err := renderSetupTemplate(templatePath, data)
-			if err != nil {
-				return fmt.Errorf("rendering template %s: %w", templatePath, err)
-			}
-			content = []byte(rendered)
-		} else {
-			// Copy static file as-is
-			content, renderErr = templatesFS.ReadFile(templatePath)
-			if renderErr != nil {
-				return fmt.Errorf("reading file %s: %w", templatePath, renderErr)
-			}
+		// Render all files as templates (files without directives pass through unchanged)
+		rendered, err := renderSetupTemplate(templatePath, data)
+		if err != nil {
+			return fmt.Errorf("rendering template %s: %w", templatePath, err)
 		}
+		content := []byte(rendered)
 
 		// generate.go goes in service root, other files go in setup dir
 		var path string
@@ -746,7 +593,7 @@ func getSetupTemplateFiles(serviceType string) (map[string]string, error) {
 	templates := map[string]string{
 		"generate.go": "templates/setup/generate.go.tmpl",
 		"codegen.yml": "templates/setup/codegen.yml",
-		"config.yml":  "templates/setup/config.yml.tmpl",
+		"config.yml":  "templates/setup/config.yml",
 		"context.yml": "templates/setup/context.yml",
 		"openapi.yml": openapiTemplate,
 	}

@@ -109,44 +109,6 @@ func TestApplyOverrides(t *testing.T) {
 		assert.False(result.Cache.Requests)
 	})
 
-	t.Run("overrides Validate-Request", func(t *testing.T) {
-		original := &config.ServiceConfig{
-			Validate: &config.ValidateConfig{Request: true},
-		}
-		result := applyOverrides(original, []configOverride{
-			{key: headerValidateRequest, value: "false"},
-		})
-		assert.False(result.Validate.Request)
-	})
-
-	t.Run("creates Validate if nil for Validate-Request", func(t *testing.T) {
-		original := &config.ServiceConfig{}
-		result := applyOverrides(original, []configOverride{
-			{key: headerValidateRequest, value: "true"},
-		})
-		assert.NotNil(result.Validate)
-		assert.True(result.Validate.Request)
-	})
-
-	t.Run("overrides Validate-Response", func(t *testing.T) {
-		original := &config.ServiceConfig{
-			Validate: &config.ValidateConfig{Response: false},
-		}
-		result := applyOverrides(original, []configOverride{
-			{key: headerValidateResponse, value: "true"},
-		})
-		assert.True(result.Validate.Response)
-	})
-
-	t.Run("creates Validate if nil for Validate-Response", func(t *testing.T) {
-		original := &config.ServiceConfig{}
-		result := applyOverrides(original, []configOverride{
-			{key: headerValidateResponse, value: "true"},
-		})
-		assert.NotNil(result.Validate)
-		assert.True(result.Validate.Response)
-	})
-
 	t.Run("overrides Latency", func(t *testing.T) {
 		original := &config.ServiceConfig{Latency: 50 * time.Millisecond}
 		result := applyOverrides(original, []configOverride{
@@ -274,32 +236,25 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 
 	t.Run("multiple overrides applied", func(t *testing.T) {
 		original := &config.ServiceConfig{
-			Name:     "test",
-			Latency:  100 * time.Millisecond,
-			Cache:    &config.CacheConfig{Requests: true},
-			Validate: &config.ValidateConfig{Request: true, Response: false},
+			Name:    "test",
+			Latency: 100 * time.Millisecond,
+			Cache:   &config.CacheConfig{Requests: true},
 		}
 		params := &Params{ServiceConfig: original}
 
 		var captured struct {
-			latency          time.Duration
-			cacheRequests    bool
-			validateRequest  bool
-			validateResponse bool
+			latency       time.Duration
+			cacheRequests bool
 		}
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			captured.latency = params.ServiceConfig.Latency
 			captured.cacheRequests = params.ServiceConfig.Cache.Requests
-			captured.validateRequest = params.ServiceConfig.Validate.Request
-			captured.validateResponse = params.ServiceConfig.Validate.Response
 			w.WriteHeader(http.StatusOK)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Set("X-Cxs-Latency", "200ms")
 		req.Header.Set("X-Cxs-Cache-Requests", "false")
-		req.Header.Set("X-Cxs-Validate-Request", "false")
-		req.Header.Set("X-Cxs-Validate-Response", "true")
 		w := NewBufferedResponseWriter()
 
 		mw := CreateConfigOverrideMiddleware(params)
@@ -307,7 +262,5 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 
 		assert.Equal(200*time.Millisecond, captured.latency)
 		assert.False(captured.cacheRequests)
-		assert.False(captured.validateRequest)
-		assert.True(captured.validateResponse)
 	})
 }

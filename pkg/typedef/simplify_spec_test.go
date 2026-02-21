@@ -745,6 +745,65 @@ func TestBuildModel_Error(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestBuildModel_ComponentResponses(t *testing.T) {
+	spec := `
+openapi: 3.0.0
+info:
+  title: Test
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          $ref: '#/components/responses/TestResponse'
+components:
+  responses:
+    TestResponse:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            anyOf:
+              - type: object
+                properties:
+                  name:
+                    type: string
+              - type: object
+                properties:
+                  age:
+                    type: integer
+`
+	doc, err := libopenapi.NewDocument([]byte(spec))
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Build with simplify enabled
+	model, err := BuildModel(doc, true, nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	// Check that component response schema was simplified
+	resp := model.Components.Responses.GetOrZero("TestResponse")
+	if !assert.NotNil(t, resp) {
+		return
+	}
+	mediaType := resp.Content.GetOrZero("application/json")
+	if !assert.NotNil(t, mediaType) {
+		return
+	}
+	schema := mediaType.Schema.Schema()
+	if !assert.NotNil(t, schema) {
+		return
+	}
+
+	// Union should be simplified - anyOf should be empty
+	assert.Empty(t, schema.AnyOf)
+}
+
 func TestBuildModel_WithoutSimplify(t *testing.T) {
 	spec := `
 openapi: 3.0.0

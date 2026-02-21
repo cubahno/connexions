@@ -272,13 +272,17 @@ func (dw *dataWatcher) handleServiceEvent(event fileEvent) {
 func (dw *dataWatcher) onServiceCreate(event fileEvent) {
 	slog.Info("Service created", "path", event.Path, "isDir", event.IsDir)
 
-	// Only process service registration files
-	if event.IsDir || event.Name != cmdapi.ServiceRegistrationFile {
+	// Only process service config files (setup/config.yml)
+	if event.IsDir || event.Name != cmdapi.ServiceConfigFile {
 		return
 	}
 
-	// Extract service name from path
-	serviceDir := filepath.Dir(event.Path)
+	// Extract service name from path (config.yml is in setup/, service is parent of setup/)
+	setupDir := filepath.Dir(event.Path)
+	if filepath.Base(setupDir) != "setup" {
+		return
+	}
+	serviceDir := filepath.Dir(setupDir)
 	serviceName := filepath.Base(serviceDir)
 
 	// Check if we've already registered this service
@@ -560,9 +564,10 @@ func findSpecFile(dir string) string {
 // triggerServiceCreate triggers the service registration flow for a service.
 func (dw *dataWatcher) triggerServiceCreate(serviceName string) {
 	serviceDir := filepath.Join(dw.paths.Services, serviceName)
+	configPath := filepath.Join(serviceDir, "setup", cmdapi.ServiceConfigFile)
 	dw.onServiceCreate(fileEvent{
-		Path:      filepath.Join(serviceDir, cmdapi.ServiceRegistrationFile),
-		Name:      cmdapi.ServiceRegistrationFile,
+		Path:      configPath,
+		Name:      cmdapi.ServiceConfigFile,
 		IsDir:     false,
 		Operation: fsnotify.Create,
 	})
@@ -612,10 +617,10 @@ func (dw *dataWatcher) scanExistingServices() {
 		}
 
 		serviceName := entry.Name()
-		serviceFile := filepath.Join(dw.paths.Services, serviceName, cmdapi.ServiceRegistrationFile)
+		configFile := filepath.Join(dw.paths.Services, serviceName, "setup", cmdapi.ServiceConfigFile)
 
-		// Check if service registration file exists
-		if _, err := os.Stat(serviceFile); err == nil {
+		// Check if service config file exists
+		if _, err := os.Stat(configFile); err == nil {
 			dw.registeredServices[serviceName] = true
 			slog.Debug("Marked existing service as registered", "service", serviceName)
 		}

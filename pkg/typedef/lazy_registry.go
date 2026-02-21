@@ -23,6 +23,10 @@ type OperationRegistry interface {
 
 	// GetRouteInfo returns minimal route info for all operations.
 	GetRouteInfo() []RouteInfo
+
+	// GetResponseSchema returns the success response schema for an operation.
+	// Returns nil if the operation is not found or has no success response.
+	GetResponseSchema(path, method string) *schema.ResponseSchema
 }
 
 // RouteInfo holds minimal route information extracted at startup.
@@ -131,6 +135,22 @@ func (r *LazyTypeDefinitionRegistry) Operations() []*schema.Operation {
 // GetRouteInfo returns the list of all routes (for registering handlers).
 func (r *LazyTypeDefinitionRegistry) GetRouteInfo() []RouteInfo {
 	return r.routeInfo
+}
+
+// GetResponseSchema returns the success response schema for an operation.
+func (r *LazyTypeDefinitionRegistry) GetResponseSchema(path, method string) *schema.ResponseSchema {
+	op := r.FindOperation(path, method)
+	if op == nil {
+		return nil
+	}
+
+	respSchema := &schema.ResponseSchema{}
+	if successResp := op.Response.GetSuccess(); successResp != nil {
+		respSchema.ContentType = successResp.ContentType
+		respSchema.Body = successResp.Content
+		respSchema.Headers = successResp.Headers
+	}
+	return respSchema
 }
 
 // parseOperation parses a single operation by filtering to just that operation ID.

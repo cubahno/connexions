@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/cubahno/connexions/v2/internal/types"
+	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
@@ -45,6 +46,22 @@ func (td *TypeDefinitionRegistry) GetRouteInfo() []RouteInfo {
 		})
 	}
 	return routes
+}
+
+// GetResponseSchema returns the success response schema for an operation.
+func (td *TypeDefinitionRegistry) GetResponseSchema(path, method string) *schema.ResponseSchema {
+	op := td.FindOperation(path, method)
+	if op == nil {
+		return nil
+	}
+
+	respSchema := &schema.ResponseSchema{}
+	if successResp := op.Response.GetSuccess(); successResp != nil {
+		respSchema.ContentType = successResp.ContentType
+		respSchema.Body = successResp.Content
+		respSchema.Headers = successResp.Headers
+	}
+	return respSchema
 }
 
 // NewTypeDefinitionRegistry creates a new TypeDefinitionRegistry instance.
@@ -192,6 +209,26 @@ func NewTypeDefinitionRegistry(parseCtx *codegen.ParseContext, maxRecursionDepth
 		operationsLookUp:     operationsLookUp,
 		typeDefinitionLookUp: tdsLookUp,
 	}
+}
+
+// NewRegistryFromSpec creates an OperationRegistry from raw OpenAPI spec bytes.
+// This is a convenience function that handles parsing and registry creation.
+// If specOptions.LazyLoad is true, operations are parsed on-demand for faster startup.
+func NewRegistryFromSpec(specBytes []byte, codegenCfg codegen.Configuration, specOptions *config.SpecOptions) OperationRegistry {
+	if specOptions != nil && specOptions.LazyLoad {
+		registry, err := NewLazyTypeDefinitionRegistry(specBytes, codegenCfg, specOptions)
+		if err != nil {
+			panic("failed to create lazy registry: " + err.Error())
+		}
+		return registry
+	}
+
+	parseCtx, errs := CreateParseContext(specBytes, codegenCfg, specOptions)
+	if len(errs) > 0 {
+		panic("failed to parse OpenAPI spec: " + errs[0].Error())
+	}
+
+	return NewTypeDefinitionRegistry(parseCtx, 0, specBytes)
 }
 
 func resolveCodegenSchema(schema *codegen.GoSchema, tdLookIp map[string]*codegen.TypeDefinition, state map[string]*codegen.GoSchema) *codegen.GoSchema {

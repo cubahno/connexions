@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"net/http"
 
-	"github.com/cubahno/connexions/v2/internal/db"
+	"github.com/cubahno/connexions/v2/pkg/db"
 )
 
 // CreateCacheWriteMiddleware is a method on the Router to create a middleware

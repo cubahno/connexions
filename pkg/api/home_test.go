@@ -57,14 +57,16 @@ func TestCreateHomeRoutes(t *testing.T) {
 	assert := assert2.New(t)
 
 	cfg := config.NewDefaultAppConfig(t.TempDir())
-	router := NewRouter(WithConfigOption(cfg))
 
-	err := CreateHomeRoutes(router)
+	// Copy UI files before creating routes so filesystem check passes
+	err := files.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), cfg.Paths.UI)
+	assert.Nil(err)
+
+	router := NewRouter(WithConfigOption(cfg))
+	err = CreateHomeRoutes(router)
 	assert.Nil(err)
 
 	t.Run("home", func(t *testing.T) {
-		err = files.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), router.Config().Paths.UI)
-		assert.Nil(err)
 		req := httptest.NewRequest("GET", "/.ui/", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -98,5 +100,37 @@ func TestCreateHomeRoutes(t *testing.T) {
 
 		assert.Equal(http.StatusOK, w.Code)
 		assert.Equal("Hallo!", w.Body.String())
+	})
+}
+
+func TestCreateHomeRoutes_EmbeddedFallback(t *testing.T) {
+	assert := assert2.New(t)
+
+	// Use empty temp dir - no UI files, should fall back to embedded
+	cfg := config.NewDefaultAppConfig(t.TempDir())
+	router := NewRouter(WithConfigOption(cfg))
+
+	err := CreateHomeRoutes(router)
+	assert.Nil(err)
+
+	t.Run("home uses embedded", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.ui/", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Equal("text/html; charset=utf-8", w.Header().Get("Content-Type"))
+
+		// template parsed from embedded resources
+		assert.Contains(w.Body.String(), `serviceUrl: "\/.services"`)
+	})
+
+	t.Run("static files from embedded", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.ui/css/global.css", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Contains(w.Body.String(), "font-family")
 	})
 }

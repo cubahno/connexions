@@ -54,5 +54,10 @@ func NewRuntimeOptionsFromEnv() *RuntimeOptions {
 	opts.MaxSpecSizeBytes = int64(opts.MaxSpecSizeMB) * 1024 * 1024
 	opts.SimplifyThresholdBytes = int64(opts.SimplifyThresholdMB) * 1024 * 1024
 
+	// Use embedded codegen config template if not provided
+	if opts.CodegenConfigPath == "" {
+		opts.CodegenConfigPath = writeCodegenConfigTemplate()
+	}
+
 	return opts
 }
