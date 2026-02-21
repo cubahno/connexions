@@ -864,6 +864,71 @@ cache:
 	})
 }
 
+func TestLoadAppConfig(t *testing.T) {
+	t.Run("loads config from file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		dataDir := tmpDir + "/resources/data"
+		_ = os.MkdirAll(dataDir, 0755)
+
+		configContent := []byte(`
+title: Test App
+port: 3000
+historyDuration: 10m
+`)
+		_ = os.WriteFile(dataDir+"/app.yml", configContent, 0644)
+
+		cfg := loadAppConfig(tmpDir)
+
+		assert.Equal(t, "Test App", cfg.Title)
+		assert.Equal(t, 3000, cfg.Port)
+		assert.Equal(t, 10*time.Minute, cfg.HistoryDuration)
+	})
+
+	t.Run("uses defaults when file missing", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		cfg := loadAppConfig(tmpDir)
+
+		assert.Equal(t, "Connexions", cfg.Title)
+		assert.Equal(t, 2200, cfg.Port)
+		assert.Equal(t, 5*time.Minute, cfg.HistoryDuration)
+	})
+
+	t.Run("uses defaults on invalid yaml", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		dataDir := tmpDir + "/resources/data"
+		_ = os.MkdirAll(dataDir, 0755)
+
+		configContent := []byte(`invalid: [yaml`)
+		_ = os.WriteFile(dataDir+"/app.yml", configContent, 0644)
+
+		cfg := loadAppConfig(tmpDir)
+
+		assert.Equal(t, "Connexions", cfg.Title)
+		assert.Equal(t, 2200, cfg.Port)
+	})
+
+	t.Run("env vars override file values", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		dataDir := tmpDir + "/resources/data"
+		_ = os.MkdirAll(dataDir, 0755)
+
+		configContent := []byte(`
+title: File Title
+historyDuration: 10m
+`)
+		_ = os.WriteFile(dataDir+"/app.yml", configContent, 0644)
+
+		_ = os.Setenv("ROUTER_HISTORY_DURATION", "20m")
+		defer func() { _ = os.Unsetenv("ROUTER_HISTORY_DURATION") }()
+
+		cfg := loadAppConfig(tmpDir)
+
+		assert.Equal(t, "File Title", cfg.Title)
+		assert.Equal(t, 20*time.Minute, cfg.HistoryDuration)
+	})
+}
+
 func TestRegisterHTTPHandler(t *testing.T) {
 	t.Run("registers handler at correct route", func(t *testing.T) {
 		router := newTestRouter(t)

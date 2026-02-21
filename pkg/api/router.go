@@ -60,10 +60,7 @@ func NewRouter(options ...RouterOption) *Router {
 	r.Use(chiMw.Recoverer)
 	r.Use(chiMw.Timeout(60 * time.Second))
 
-	cfg := config.NewDefaultAppConfig(".")
-	if err := env.Parse(cfg); err != nil {
-		slog.Error("Failed to parse env", "error", err)
-	}
+	cfg := loadAppConfig(".")
 
 	res := &Router{
 		Router:    r,
@@ -249,4 +246,34 @@ func createUIFileStructure(config *config.AppConfig) error {
 	}
 
 	return nil
+}
+
+// loadAppConfig loads app config from resources/data/app.yml if it exists,
+// falling back to defaults. Environment variables override file values.
+func loadAppConfig(baseDir string) *config.AppConfig {
+	paths := config.NewPaths(baseDir)
+	appConfigPath := paths.Data + "/app.yml"
+
+	data, err := os.ReadFile(appConfigPath)
+	if err != nil {
+		// File doesn't exist or can't be read - use defaults
+		cfg := config.NewDefaultAppConfig(baseDir)
+		if err := env.Parse(cfg); err != nil {
+			slog.Error("Failed to parse env", "error", err)
+		}
+		return cfg
+	}
+
+	cfg, err := config.NewAppConfigFromBytes(data, baseDir)
+	if err != nil {
+		slog.Error("Failed to parse app config, using defaults", "error", err, "path", appConfigPath)
+		cfg = config.NewDefaultAppConfig(baseDir)
+	}
+
+	// Environment variables override file values
+	if err := env.Parse(cfg); err != nil {
+		slog.Error("Failed to parse env", "error", err)
+	}
+
+	return cfg
 }

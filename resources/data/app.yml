@@ -1,0 +1,22 @@
+# Connexions App Configuration
+# Override these values by mounting your own app.yml in Docker
+
+title: Connexions
+port: 2200
+homeURL: /.ui
+serviceURL: /.services
+contextAreaPrefix: in-
+disableUI: false
+historyDuration: 5m
+
+editor:
+  theme: chrome
+  fontSize: 16
+
+# Uncomment to enable Redis storage for distributed features
+# storage:
+#   type: redis
+#   redis:
+#     address: localhost:6379
+#     password: ""
+#     db: 0

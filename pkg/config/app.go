@@ -1,7 +1,10 @@
 package config
 
 import (
+	"fmt"
 	"time"
+
+	"go.yaml.in/yaml/v4"
 )
 
 // AppConfig is the app configuration.
@@ -43,6 +46,16 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 		},
 		HistoryDuration: 5 * time.Minute,
 	}
+}
+
+// NewAppConfigFromBytes creates an AppConfig from YAML bytes, filling missing values with defaults.
+func NewAppConfigFromBytes(bts []byte, baseDir string) (*AppConfig, error) {
+	cfg := NewDefaultAppConfig(baseDir)
+	if err := yaml.Unmarshal(bts, cfg); err != nil {
+		return nil, fmt.Errorf("unmarshalling app config: %w", err)
+	}
+	cfg.Paths = NewPaths(baseDir)
+	return cfg, nil
 }
 
 type EditorConfig struct {

@@ -61,6 +61,36 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
 	})
 
+	t.Run("upstream content-type header is forwarded", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"ok":true}`, string(w.buf))
+		assert.Equal("application/json; charset=utf-8", w.header.Get("Content-Type"))
+
+		// Check history has content-type
+		data := params.DB().History().Data()
+		rec := data["GET:/test/foo"]
+		assert.Equal("application/json; charset=utf-8", rec.Response.ContentType)
+	})
+
 	t.Run("history is present", func(t *testing.T) {
 		rcvdBody := ""
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -8,16 +8,21 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/sony/gobreaker/v2"
 )
 
+// upstreamResponse holds the response data from an upstream service.
+type upstreamResponse struct {
+	Body        []byte
+	ContentType string
+}
+
 // circuitBreakerExecutor defines the interface for circuit breaker execution.
 type circuitBreakerExecutor interface {
-	Execute(req func() ([]byte, error)) ([]byte, error)
+	Execute(req func() (*upstreamResponse, error)) (*upstreamResponse, error)
 }
 
 // CreateUpstreamRequestMiddleware returns a middleware that fetches data from an upstream service.
@@ -40,21 +45,24 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 			log.Println("Service has upstream service defined")
 
-			var response []byte
+			var resp *upstreamResponse
 			var err error
 
 			if cb != nil {
-				response, err = cb.Execute(func() ([]byte, error) {
+				resp, err = cb.Execute(func() (*upstreamResponse, error) {
 					return getUpstreamResponse(params, req)
 				})
 			} else {
-				response, err = getUpstreamResponse(params, req)
+				resp, err = getUpstreamResponse(params, req)
 			}
 
 			// If an upstream service returns a successful response, write it and return immediately
-			if err == nil && response != nil {
-				// history was set already
-				_, _ = w.Write(response)
+			if err == nil && resp != nil {
+				w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceUpstream)
+				if resp.ContentType != "" {
+					w.Header().Set("Content-Type", resp.ContentType)
+				}
+				_, _ = w.Write(resp.Body)
 				return
 			}
 
@@ -82,7 +90,7 @@ func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig
 		return createDistributedCircuitBreaker(settings, cbStore)
 	}
 
-	return gobreaker.NewCircuitBreaker[[]byte](settings)
+	return gobreaker.NewCircuitBreaker[*upstreamResponse](settings)
 }
 
 // buildCircuitBreakerSettings creates gobreaker.Settings from config.
@@ -128,13 +136,13 @@ func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreake
 
 // createDistributedCircuitBreaker creates a distributed circuit breaker using the provided store.
 func createDistributedCircuitBreaker(settings gobreaker.Settings, store gobreaker.SharedDataStore) circuitBreakerExecutor {
-	dcb, err := gobreaker.NewDistributedCircuitBreaker[[]byte](store, settings)
+	dcb, err := gobreaker.NewDistributedCircuitBreaker[*upstreamResponse](store, settings)
 	if err != nil {
 		slog.Error("Failed to create distributed circuit breaker, falling back to local",
 			"name", settings.Name,
 			"error", err,
 		)
-		return gobreaker.NewCircuitBreaker[[]byte](settings)
+		return gobreaker.NewCircuitBreaker[*upstreamResponse](settings)
 	}
 
 	slog.Info("Created distributed circuit breaker",
@@ -143,19 +151,18 @@ func createDistributedCircuitBreaker(settings gobreaker.Settings, store gobreake
 	return dcb
 }
 
-func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
+func getUpstreamResponse(params *Params, req *http.Request) (*upstreamResponse, error) {
 	cfg := params.ServiceConfig.Upstream
 
 	failOn := cfg.FailOn
 
-	timeOut := 5 * time.Second
-	if failOn != nil && cfg.FailOn.TimeOut > 0 {
-		timeOut = cfg.FailOn.TimeOut
+	timeout := config.DefaultUpstreamTimeout
+	if failOn != nil && failOn.TimeOut > 0 {
+		timeout = failOn.TimeOut
 	}
 
-	// TODO: add time out to the upstream config
 	client := http.Client{
-		Timeout: timeOut,
+		Timeout: timeout,
 	}
 
 	history := params.DB().History()
@@ -167,6 +174,7 @@ func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
 	outURL := fmt.Sprintf("%s/%s",
 		strings.TrimSuffix(cfg.URL, "/"),
 		strings.TrimPrefix(req.URL.Path[len(resourcePrefix):], "/"))
+
 	log.Println("Upstream request", "method", req.Method, "url", outURL)
 
 	upReq, err := http.NewRequest(req.Method, outURL, bytes.NewBuffer(bodyBytes))
@@ -182,11 +190,7 @@ func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
 	}
 	upReq.Header.Set("User-Agent", "Connexions/2.0")
 
-	slog.Info("Upstream request",
-		"method", upReq.Method,
-		"url", upReq.URL.String(),
-		"headers", upReq.Header,
-	)
+	slog.Info("Upstream request", "method", upReq.Method, "url", upReq.URL.String())
 
 	resp, err := client.Do(upReq)
 	if err != nil {
@@ -211,12 +215,18 @@ func getUpstreamResponse(params *Params, req *http.Request) ([]byte, error) {
 
 	slog.Info("received successful upstream response", "body", string(body))
 
+	contentType := resp.Header.Get("Content-Type")
+
 	historyResponse := &db.Response{
 		Data:           body,
 		StatusCode:     statusCode,
+		ContentType:    contentType,
 		IsFromUpstream: true,
 	}
 	history.Set(req.URL.Path, req, historyResponse)
 
-	return body, nil
+	return &upstreamResponse{
+		Body:        body,
+		ContentType: contentType,
+	}, nil
 }
