@@ -20,6 +20,12 @@ type service struct {
 // Ensure service implements ServiceInterface.
 var _ ServiceInterface = (*service)(nil)
 
+// newService creates a new service instance.
+// Add your custom initialization logic here.
+func newService(serviceDB db.DB) *service {
+	return &service{db: serviceDB}
+}
+
 // PostFooBar handles POST /foo/bar
 func (s *service) PostFooBar(ctx context.Context) (*PostFooBarResponseData, error) {
 	// TODO: Implement your business logic here.
