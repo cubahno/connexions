@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 )
 
 // CreateCacheReadMiddleware returns a middleware that checks if GET request is cached in History.
@@ -30,11 +29,6 @@ func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
 			}
 
 			slog.Info(fmt.Sprintf("Cache hit for %s", req.URL.Path))
-
-			latency := cfg.GetLatency()
-			if latency > 0 {
-				time.Sleep(latency)
-			}
 
 			response := res.Response
 			SetDurationHeader(w, req)

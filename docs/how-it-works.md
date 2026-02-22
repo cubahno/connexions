@@ -26,36 +26,57 @@ Request → Config Override → Latency/Error → Cache Read → Upstream ──
 
 ## Per-Request Config Overrides
 
-Override service configuration for individual requests using HTTP headers. 
+Override service configuration for individual requests using HTTP headers.
 This is useful for testing, debugging, or handling special cases without modifying the config file.
 
-### Supported Headers
+### Supported Request Headers
 
 | Header | Values | Description |
 |--------|--------|-------------|
 | `X-Cxs-Cache-Requests` | `true` / `false` | Enable/disable request caching |
-| `X-Cxs-Validate-Request` | `true` / `false` | Enable/disable request validation |
-| `X-Cxs-Validate-Response` | `true` / `false` | Enable/disable response validation |
 | `X-Cxs-Latency` | Duration (e.g., `100ms`, `1s`) | Override latency |
 | `X-Cxs-Upstream-Url` | URL or empty string | Override upstream URL (empty disables upstream) |
 
-### Examples
+### Response Headers
+
+Connexions adds headers to responses indicating how they were processed:
+
+| Header | Values | Description |
+|--------|--------|-------------|
+| `X-Cxs-Source` | `generated`, `cache`, `upstream` | Where the response came from |
+| `X-Cxs-Duration` | Duration (e.g., `5.123ms`) | Total request processing time |
+
+### Using Config Overrides in the UI
+
+The web UI provides a **Config Overrides** accordion in the generator view. This allows you to override settings without writing curl commands:
+
+1. Navigate to a service and select a resource
+2. Expand the **Config Overrides** accordion
+3. Check the box next to any setting you want to override:
+   - **Upstream URL**: Enter a URL to redirect requests, or leave empty to disable upstream (forces mock response)
+   - **Cache Requests**: Select `true` to enable caching or `false` to disable
+   - **Latency**: Enter a duration like `100ms` or `2s`
+4. Click refresh to send the request with your overrides
+
+Only checked options are sent as headers. Unchecked options use the server's default configuration.
+
+### curl Examples
 
 ```bash
 # Disable caching for this request
-curl -H "X-Cxs-Cache-Requests: false" http://localhost:8080/petstore/pets
+curl -H "X-Cxs-Cache-Requests: false" http://localhost:2200/petstore/pets
 
 # Add 500ms latency
-curl -H "X-Cxs-Latency: 500ms" http://localhost:8080/petstore/pets
+curl -H "X-Cxs-Latency: 500ms" http://localhost:2200/petstore/pets
 
 # Disable upstream proxy (force mock response)
-curl -H "X-Cxs-Upstream-Url: " http://localhost:8080/petstore/pets
+curl -H "X-Cxs-Upstream-Url: " http://localhost:2200/petstore/pets
 
-# Enable response validation for debugging
-curl -H "X-Cxs-Validate-Response: true" http://localhost:8080/petstore/pets
+# Redirect to a different upstream
+curl -H "X-Cxs-Upstream-Url: https://api.example.com" http://localhost:2200/petstore/pets
 
 # Combine multiple overrides
-curl -H "X-Cxs-Latency: 200ms" -H "X-Cxs-Cache-Requests: false" http://localhost:8080/petstore/pets
+curl -H "X-Cxs-Latency: 200ms" -H "X-Cxs-Cache-Requests: true" http://localhost:2200/petstore/pets
 ```
 
 ### Case Insensitivity

@@ -267,6 +267,29 @@ button:hover { background: var(--primary-dark); }
 .accordion-content.active { display: block; }
 .accordion-header.expanded { border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
 
+/* Config override rows */
+.config-override-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.config-override-row:last-child { margin-bottom: 0; }
+.config-override-row input[type="checkbox"] {
+    width: auto;
+    flex-shrink: 0;
+}
+.config-override-row label {
+    min-width: 100px;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+.config-override-row input[type="text"],
+.config-override-row select {
+    flex: 1;
+    min-width: 0;
+}
+
 /* Code blocks */
 pre, .code {
     background: var(--code-bg);

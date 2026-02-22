@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
@@ -187,39 +186,5 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 		mw(handler).ServeHTTP(w, req)
 
 		assert.Equal(ResponseHeaderSourceCache, w.header.Get(ResponseHeaderSource))
-	})
-
-	t.Run("applies latency when configured", func(t *testing.T) {
-		params := newTestParams(&config.ServiceConfig{
-			Name:    "service",
-			Latency: 10 * time.Millisecond,
-			Cache: &config.CacheConfig{
-				Requests: true,
-			},
-		}, nil)
-
-		resp := &db.HistoryResponse{
-			Data:        []byte("cached"),
-			StatusCode:  http.StatusOK,
-			ContentType: "application/json",
-		}
-		histReq := &http.Request{
-			URL:    &url.URL{Path: "/api/latency"},
-			Method: http.MethodGet,
-		}
-		params.DB().History().Set(context.Background(), "/api/latency", histReq, resp)
-
-		mw := CreateCacheReadMiddleware(params)
-
-		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/api/latency", nil)
-
-		start := time.Now()
-		mw(handler).ServeHTTP(w, req)
-		elapsed := time.Since(start)
-
-		assert.Equal("cached", string(w.buf))
-		// Should have waited at least 10ms due to latency
-		assert.GreaterOrEqual(elapsed.Milliseconds(), int64(10))
 	})
 }

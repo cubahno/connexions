@@ -136,6 +136,30 @@
                                 </div>
 
                                 <div class="accordion">
+                                    <div class="accordion-header">Config Overrides</div>
+                                    <div class="accordion-content">
+                                        <div class="config-override-row">
+                                            <input type="checkbox" id="override-upstream-enabled">
+                                            <label for="override-upstream-enabled">Upstream URL</label>
+                                            <input type="text" id="override-upstream-url" placeholder="empty = disable upstream">
+                                        </div>
+                                        <div class="config-override-row">
+                                            <input type="checkbox" id="override-cache-enabled">
+                                            <label for="override-cache-enabled">Cache Requests</label>
+                                            <select id="override-cache-value">
+                                                <option value="true">true</option>
+                                                <option value="false">false</option>
+                                            </select>
+                                        </div>
+                                        <div class="config-override-row">
+                                            <input type="checkbox" id="override-latency-enabled">
+                                            <label for="override-latency-enabled">Latency</label>
+                                            <input type="text" id="override-latency-value" placeholder="e.g. 100ms, 2s">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion">
                                     <div class="accordion-header">cURL</div>
                                     <div class="accordion-content">
                                         <div class="copy-code">
