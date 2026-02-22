@@ -1,0 +1,16 @@
+overlay: 1.0.0
+info:
+  title: Add nicknames field to Pet
+  version: 1.0.0
+actions:
+  - target: $.components.schemas.Pet.properties
+    update:
+      nicknames:
+        type: array
+        items:
+          type: string
+          enum:
+            - "Fluffy"
+            - "Spot"
+            - "Rover"
+        description: Alternative names for the pet

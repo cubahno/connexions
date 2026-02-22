@@ -1,0 +1,11 @@
+overlay: 1.0.0
+info:
+  title: Add Go type name extensions
+  version: 1.0.0
+actions:
+  - target: $.components.schemas.Pet
+    update:
+      x-go-name: PetModel
+  - target: $.components.schemas.Pet.properties.id
+    update:
+      x-go-name: PetID
