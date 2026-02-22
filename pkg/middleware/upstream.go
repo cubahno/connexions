@@ -166,9 +166,10 @@ func getUpstreamResponse(params *Params, req *http.Request) (*upstreamResponse, 
 		Timeout: timeout,
 	}
 
+	ctx := req.Context()
 	history := params.DB().History()
 	resourcePrefix := "/" + params.ServiceConfig.Name
-	rec := history.Set(req.URL.Path, req, nil)
+	rec := history.Set(ctx, req.URL.Path, req, nil)
 
 	bodyBytes := rec.Body
 
@@ -218,13 +219,13 @@ func getUpstreamResponse(params *Params, req *http.Request) (*upstreamResponse, 
 
 	contentType := resp.Header.Get("Content-Type")
 
-	historyResponse := &db.Response{
+	historyResponse := &db.HistoryResponse{
 		Data:           body,
 		StatusCode:     statusCode,
 		ContentType:    contentType,
 		IsFromUpstream: true,
 	}
-	history.Set(req.URL.Path, req, historyResponse)
+	history.Set(ctx, req.URL.Path, req, historyResponse)
 
 	return &upstreamResponse{
 		Body:        body,

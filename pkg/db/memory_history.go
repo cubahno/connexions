@@ -8,30 +8,24 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 )
 
 // memoryHistoryTable is an in-memory implementation of HistoryTable.
+// It wraps a Table from the shared storage to store history records.
 type memoryHistoryTable struct {
-	serviceName string
-	storage     Table // reference to service's generic storage table
-
-	mu         sync.RWMutex
-	data       map[string]*RequestedResource
+	table      *memoryTable // underlying storage table (svc:history)
 	cancelFunc context.CancelFunc
 }
 
 // newMemoryHistoryTable creates a new in-memory history table.
 // clearTimeout specifies how often the history is cleared (0 means no auto-clear).
-func newMemoryHistoryTable(serviceName string, storage Table, clearTimeout time.Duration) *memoryHistoryTable {
+func newMemoryHistoryTable(table *memoryTable, clearTimeout time.Duration) *memoryHistoryTable {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	h := &memoryHistoryTable{
-		serviceName: serviceName,
-		storage:     storage,
-		data:        make(map[string]*RequestedResource),
-		cancelFunc:  cancel,
+		table:      table,
+		cancelFunc: cancel,
 	}
 
 	if clearTimeout > 0 {
@@ -42,20 +36,26 @@ func newMemoryHistoryTable(serviceName string, storage Table, clearTimeout time.
 }
 
 // Get retrieves a request record by the HTTP request.
-func (h *memoryHistoryTable) Get(req *http.Request) (*RequestedResource, bool) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	value, ok := h.data[h.getKey(req)]
-	return value, ok
+func (h *memoryHistoryTable) Get(ctx context.Context, req *http.Request) (*HistoryEntry, bool) {
+	value, ok := h.table.Get(ctx, h.getKey(req))
+	if !ok {
+		return nil, false
+	}
+	record, ok := value.(*HistoryEntry)
+	return record, ok
 }
 
 // Set stores a request record.
-func (h *memoryHistoryTable) Set(resource string, req *http.Request, response *Response) *RequestedResource {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
+func (h *memoryHistoryTable) Set(ctx context.Context, resource string, req *http.Request, response *HistoryResponse) *HistoryEntry {
 	key := h.getKey(req)
-	record, recordExists := h.data[key]
+
+	// Check for existing record to reuse body
+	var existingBody []byte
+	if existing, ok := h.table.Get(ctx, key); ok {
+		if record, ok := existing.(*HistoryEntry); ok {
+			existingBody = record.Body
+		}
+	}
 
 	// Extract the body from the request
 	var body []byte
@@ -68,54 +68,53 @@ func (h *memoryHistoryTable) Set(resource string, req *http.Request, response *R
 		}
 		// Restore the body so it can be read by subsequent handlers
 		req.Body = io.NopCloser(bytes.NewBuffer(body))
-	} else if recordExists {
+	} else if len(existingBody) > 0 {
 		// If no body in request but record exists, reuse the old body
-		body = record.Body
+		body = existingBody
 	}
 
-	result := &RequestedResource{
+	result := &HistoryEntry{
 		Resource: resource,
 		Body:     body,
 		Request:  req,
 		Response: response,
-		Storage:  h.storage,
 	}
 
-	h.data[key] = result
+	h.table.Set(ctx, key, result, 0)
 	return result
 }
 
 // SetResponse updates the response for an existing request record.
-func (h *memoryHistoryTable) SetResponse(req *http.Request, response *Response) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	res, exists := h.data[h.getKey(req)]
+func (h *memoryHistoryTable) SetResponse(ctx context.Context, req *http.Request, response *HistoryResponse) {
+	key := h.getKey(req)
+	existing, exists := h.table.Get(ctx, key)
 	if !exists {
 		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", req.URL.String()))
 		return
 	}
 
-	res.Response = response
+	record, ok := existing.(*HistoryEntry)
+	if !ok {
+		return
+	}
+	record.Response = response
+	h.table.Set(ctx, key, record, 0)
 }
 
 // Data returns all request records.
-func (h *memoryHistoryTable) Data() map[string]*RequestedResource {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	cp := make(map[string]*RequestedResource, len(h.data))
-	for k, v := range h.data {
-		cp[k] = v
+func (h *memoryHistoryTable) Data(ctx context.Context) map[string]*HistoryEntry {
+	result := make(map[string]*HistoryEntry)
+	for k, v := range h.table.Data(ctx) {
+		if record, ok := v.(*HistoryEntry); ok {
+			result[k] = record
+		}
 	}
-	return cp
+	return result
 }
 
 // Clear removes all history records.
-func (h *memoryHistoryTable) Clear() {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.data = make(map[string]*RequestedResource)
+func (h *memoryHistoryTable) Clear(ctx context.Context) {
+	h.table.Clear(ctx)
 }
 
 // cancel stops the auto-clear goroutine.
@@ -139,7 +138,7 @@ func startResetTicker(ctx context.Context, h *memoryHistoryTable, clearTimeout t
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				h.Clear()
+				h.Clear(ctx)
 			}
 		}
 	}()

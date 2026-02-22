@@ -569,8 +569,9 @@ func TestServiceParams(t *testing.T) {
 		serviceCfg := &config.ServiceConfig{
 			Name: "test-service",
 		}
-		serviceDB := db.NewMemoryDB("test-service", 5*time.Minute)
-		defer serviceDB.Close()
+		storage := db.NewStorage(nil)
+		defer storage.Close()
+		serviceDB := storage.NewDB("test-service", 5*time.Minute)
 
 		params := &ServiceParams{
 			AppConfig:     appCfg,

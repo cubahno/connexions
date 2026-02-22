@@ -72,6 +72,7 @@ nav:
       - App Config: 'config/app.md'
       - Service Config: 'config/service.md'
       - Codegen Config: 'config/codegen.md'
+  - Storage: 'storage.md'
   - Middleware: 'middleware.md'
   - Contexts:
       - Overview: 'contexts.md'

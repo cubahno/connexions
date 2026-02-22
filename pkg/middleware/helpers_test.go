@@ -45,6 +45,7 @@ func newTestParams(serviceCfg *config.ServiceConfig, storageCfg *config.StorageC
 	if serviceCfg == nil {
 		serviceCfg = &config.ServiceConfig{Name: "test"}
 	}
-	database := db.NewMemoryDB(serviceCfg.Name, 100*time.Second)
+	storage := db.NewStorage(nil)
+	database := storage.NewDB(serviceCfg.Name, 100*time.Second)
 	return NewParams(serviceCfg, storageCfg, database)
 }
