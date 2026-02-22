@@ -105,10 +105,18 @@ func createUIHandler(router *Router) http.HandlerFunc {
 			log.Println("Failed to get home contents", err)
 		}
 
+		var headerContents []byte
+		if useFilesystem {
+			headerContents, _ = os.ReadFile(filepath.Join(uiPath, "header.html"))
+		} else {
+			headerContents, _ = resources.UIFS.ReadFile("ui/header.html")
+		}
+
 		data := &TemplateData{
 			AppConfig: cfg,
 			Contents: map[string]template.HTML{
-				"Home": template.HTML(homeContents),
+				"Home":   template.HTML(homeContents),
+				"Header": template.HTML(headerContents),
 			},
 			Version: os.Getenv("APP_VERSION"),
 		}
