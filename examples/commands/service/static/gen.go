@@ -147,7 +147,9 @@ func (a *HTTPAdapter) PostFooBar(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
