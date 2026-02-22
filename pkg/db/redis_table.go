@@ -15,21 +15,18 @@ import (
 type redisTable struct {
 	client    *redis.Client
 	namespace string // format: {service}:{tableName}
-	ttl       time.Duration
 }
 
 // newRedisTable creates a new Redis-backed table.
-func newRedisTable(client *redis.Client, serviceName, tableName string, ttl time.Duration) *redisTable {
+func newRedisTable(client *redis.Client, serviceName, tableName string) *redisTable {
 	return &redisTable{
 		client:    client,
 		namespace: serviceName + ":" + tableName,
-		ttl:       ttl,
 	}
 }
 
 // Get retrieves a value by key.
-func (t *redisTable) Get(key string) (any, bool) {
-	ctx := context.Background()
+func (t *redisTable) Get(ctx context.Context, key string) (any, bool) {
 	fullKey := t.fullKey(key)
 
 	data, err := t.client.Get(ctx, fullKey).Bytes()
@@ -48,8 +45,8 @@ func (t *redisTable) Get(key string) (any, bool) {
 }
 
 // Set stores a value with the given key.
-func (t *redisTable) Set(key string, value any) {
-	ctx := context.Background()
+// If ttl is 0, the value never expires.
+func (t *redisTable) Set(ctx context.Context, key string, value any, ttl time.Duration) {
 	fullKey := t.fullKey(key)
 
 	data, err := json.Marshal(value)
@@ -57,20 +54,18 @@ func (t *redisTable) Set(key string, value any) {
 		return
 	}
 
-	t.client.Set(ctx, fullKey, data, t.ttl)
+	t.client.Set(ctx, fullKey, data, ttl)
 }
 
 // Delete removes a value by key.
-func (t *redisTable) Delete(key string) {
-	ctx := context.Background()
+func (t *redisTable) Delete(ctx context.Context, key string) {
 	fullKey := t.fullKey(key)
 	t.client.Del(ctx, fullKey)
 }
 
 // Data returns a copy of all data in the table.
 // Note: This scans all keys with the namespace prefix, which can be slow for large datasets.
-func (t *redisTable) Data() map[string]any {
-	ctx := context.Background()
+func (t *redisTable) Data(ctx context.Context) map[string]any {
 	pattern := t.namespace + ":*"
 
 	result := make(map[string]any)
@@ -97,8 +92,7 @@ func (t *redisTable) Data() map[string]any {
 }
 
 // Clear removes all data from the table.
-func (t *redisTable) Clear() {
-	ctx := context.Background()
+func (t *redisTable) Clear(ctx context.Context) {
 	pattern := t.namespace + ":*"
 
 	iter := t.client.Scan(ctx, 0, pattern, 0).Iterator()

@@ -36,11 +36,11 @@ func isDebugEnabled() bool {
 	return debug == "1" || debug == "true"
 }
 
-// CountServiceLOC counts lines of code for a service's types directory
+// CountServiceLOC counts lines of code for a service's generated code (gen.go)
 func CountServiceLOC(serviceName, sandboxDir string) int {
 	paths := config.NewPaths(sandboxDir)
-	typesDir := filepath.Join(paths.Services, serviceName, "types")
-	return countLOC(typesDir)
+	serviceDir := filepath.Join(paths.Services, serviceName)
+	return countLOC(serviceDir)
 }
 
 // countLOC counts non-empty lines of code in all .go files in a directory

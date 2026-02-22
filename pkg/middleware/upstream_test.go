@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -54,7 +55,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal("Connexions/2.0", receivedHeaders.Get("User-Agent"))
 
 		// Check history
-		data := params.DB().History().Data()
+		data := params.DB().History().Data(context.Background())
 		assert.Equal(1, len(data))
 		rec := data["GET:/test/foo"]
 		assert.Equal(200, rec.Response.StatusCode)
@@ -86,7 +87,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal("application/json; charset=utf-8", w.header.Get("Content-Type"))
 
 		// Check history has content-type
-		data := params.DB().History().Data()
+		data := params.DB().History().Data(context.Background())
 		rec := data["GET:/test/foo"]
 		assert.Equal("application/json; charset=utf-8", rec.Response.ContentType)
 	})
@@ -135,7 +136,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:           []byte("cached"),
 			StatusCode:     http.StatusOK,
 			ContentType:    "application/json",
@@ -146,7 +147,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			Method: http.MethodPost,
 			Body:   io.NopCloser(strings.NewReader(`{"bar": "car"}`)),
 		}
-		params.DB().History().Set("/foo/resource", histReq, resp)
+		params.DB().History().Set(context.Background(), "/foo/resource", histReq, resp)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -155,7 +156,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(`{"foo": "bar"}`, rcvdBody)
 
 		// Check history
-		data := params.DB().History().Data()
+		data := params.DB().History().Data(context.Background())
 		assert.Equal(1, len(data))
 		rec := data["POST:/foo/resource"]
 		assert.Equal(200, rec.Response.StatusCode)

@@ -17,34 +17,29 @@ import (
 
 // redisHistoryTable is a Redis-backed implementation of HistoryTable.
 type redisHistoryTable struct {
-	client      *redis.Client
-	serviceName string
-	namespace   string // format: {service}:history
-	storage     Table
-	ttl         time.Duration
+	client    *redis.Client
+	namespace string // format: {service}:history
+	ttl       time.Duration
+}
+
+// redisHistoryRecord is the serializable form of HistoryEntry for Redis storage.
+type redisHistoryRecord struct {
+	Resource string           `json:"resource"`
+	Body     []byte           `json:"body"`
+	Response *HistoryResponse `json:"response,omitempty"`
 }
 
 // newRedisHistoryTable creates a new Redis-backed history table.
-func newRedisHistoryTable(client *redis.Client, serviceName string, storage Table, ttl time.Duration) *redisHistoryTable {
+func newRedisHistoryTable(client *redis.Client, namespace string, ttl time.Duration) *redisHistoryTable {
 	return &redisHistoryTable{
-		client:      client,
-		serviceName: serviceName,
-		namespace:   serviceName + ":history",
-		storage:     storage,
-		ttl:         ttl,
+		client:    client,
+		namespace: namespace,
+		ttl:       ttl,
 	}
 }
 
-// historyRecord is the serializable form of RequestedResource for Redis storage.
-type historyRecord struct {
-	Resource string    `json:"resource"`
-	Body     []byte    `json:"body"`
-	Response *Response `json:"response,omitempty"`
-}
-
 // Get retrieves a request record by the HTTP request.
-func (h *redisHistoryTable) Get(req *http.Request) (*RequestedResource, bool) {
-	ctx := context.Background()
+func (h *redisHistoryTable) Get(ctx context.Context, req *http.Request) (*HistoryEntry, bool) {
 	key := h.fullKey(h.getKey(req))
 
 	data, err := h.client.Get(ctx, key).Bytes()
@@ -55,29 +50,27 @@ func (h *redisHistoryTable) Get(req *http.Request) (*RequestedResource, bool) {
 		return nil, false
 	}
 
-	var record historyRecord
+	var record redisHistoryRecord
 	if err := json.Unmarshal(data, &record); err != nil {
 		return nil, false
 	}
 
-	return &RequestedResource{
+	return &HistoryEntry{
 		Resource: record.Resource,
 		Body:     record.Body,
 		Response: record.Response,
 		Request:  req,
-		Storage:  h.storage,
 	}, true
 }
 
 // Set stores a request record.
-func (h *redisHistoryTable) Set(resource string, req *http.Request, response *Response) *RequestedResource {
-	ctx := context.Background()
+func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.Request, response *HistoryResponse) *HistoryEntry {
 	key := h.fullKey(h.getKey(req))
 
 	// Try to get existing record for body reuse
 	var existingBody []byte
 	if existing, err := h.client.Get(ctx, key).Bytes(); err == nil {
-		var existingRecord historyRecord
+		var existingRecord redisHistoryRecord
 		if json.Unmarshal(existing, &existingRecord) == nil {
 			existingBody = existingRecord.Body
 		}
@@ -98,7 +91,7 @@ func (h *redisHistoryTable) Set(resource string, req *http.Request, response *Re
 		body = existingBody
 	}
 
-	record := historyRecord{
+	record := redisHistoryRecord{
 		Resource: resource,
 		Body:     body,
 		Response: response,
@@ -112,18 +105,16 @@ func (h *redisHistoryTable) Set(resource string, req *http.Request, response *Re
 
 	h.client.Set(ctx, key, data, h.ttl)
 
-	return &RequestedResource{
+	return &HistoryEntry{
 		Resource: resource,
 		Body:     body,
 		Request:  req,
 		Response: response,
-		Storage:  h.storage,
 	}
 }
 
 // SetResponse updates the response for an existing request record.
-func (h *redisHistoryTable) SetResponse(req *http.Request, response *Response) {
-	ctx := context.Background()
+func (h *redisHistoryTable) SetResponse(ctx context.Context, req *http.Request, response *HistoryResponse) {
 	key := h.fullKey(h.getKey(req))
 
 	data, err := h.client.Get(ctx, key).Bytes()
@@ -136,7 +127,7 @@ func (h *redisHistoryTable) SetResponse(req *http.Request, response *Response) {
 		return
 	}
 
-	var record historyRecord
+	var record redisHistoryRecord
 	if err := json.Unmarshal(data, &record); err != nil {
 		slog.Error("Error unmarshaling history record", "error", err)
 		return
@@ -155,11 +146,10 @@ func (h *redisHistoryTable) SetResponse(req *http.Request, response *Response) {
 
 // Data returns all request records.
 // Note: This scans all keys with the namespace prefix, which can be slow for large datasets.
-func (h *redisHistoryTable) Data() map[string]*RequestedResource {
-	ctx := context.Background()
+func (h *redisHistoryTable) Data(ctx context.Context) map[string]*HistoryEntry {
 	pattern := h.namespace + ":*"
 
-	result := make(map[string]*RequestedResource)
+	result := make(map[string]*HistoryEntry)
 	iter := h.client.Scan(ctx, 0, pattern, 0).Iterator()
 
 	for iter.Next(ctx) {
@@ -172,16 +162,15 @@ func (h *redisHistoryTable) Data() map[string]*RequestedResource {
 			continue
 		}
 
-		var record historyRecord
+		var record redisHistoryRecord
 		if err := json.Unmarshal(data, &record); err != nil {
 			continue
 		}
 
-		result[key] = &RequestedResource{
+		result[key] = &HistoryEntry{
 			Resource: record.Resource,
 			Body:     record.Body,
 			Response: record.Response,
-			Storage:  h.storage,
 		}
 	}
 
@@ -189,8 +178,7 @@ func (h *redisHistoryTable) Data() map[string]*RequestedResource {
 }
 
 // Clear removes all history records.
-func (h *redisHistoryTable) Clear() {
-	ctx := context.Background()
+func (h *redisHistoryTable) Clear(ctx context.Context) {
 	pattern := h.namespace + ":*"
 
 	iter := h.client.Scan(ctx, 0, pattern, 0).Iterator()

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -57,7 +58,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -66,7 +67,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/foo/bar"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/foo/bar", histReq, resp)
+		params.DB().History().Set(context.Background(), "/foo/bar", histReq, resp)
 
 		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
@@ -107,7 +108,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -116,7 +117,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/foo/bar"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/foo/bar", histReq, resp)
+		params.DB().History().Set(context.Background(), "/foo/bar", histReq, resp)
 
 		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
@@ -137,7 +138,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:        []byte(`{"cached": true}`),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -146,7 +147,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/api/data"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/api/data", histReq, resp)
+		params.DB().History().Set(context.Background(), "/api/data", histReq, resp)
 
 		mw := CreateCacheReadMiddleware(params)
 
@@ -167,7 +168,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:        []byte(`{"cached": true}`),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -176,7 +177,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/api/cached"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/api/cached", histReq, resp)
+		params.DB().History().Set(context.Background(), "/api/cached", histReq, resp)
 
 		mw := CreateCacheReadMiddleware(params)
 
@@ -197,7 +198,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "application/json",
@@ -206,7 +207,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/api/latency"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/api/latency", histReq, resp)
+		params.DB().History().Set(context.Background(), "/api/latency", histReq, resp)
 
 		mw := CreateCacheReadMiddleware(params)
 

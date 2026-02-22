@@ -80,6 +80,12 @@ func GenerateService(opts ServiceOptions) error {
 		opts.OutputDir = cwd
 	}
 
+	// If name is provided and output directory doesn't end with the name,
+	// append the name to create the service subdirectory
+	if opts.Name != "" && filepath.Base(opts.OutputDir) != opts.Name {
+		opts.OutputDir = filepath.Join(opts.OutputDir, opts.Name)
+	}
+
 	// Setup will be at <OutputDir>/setup/
 	serviceDir = opts.OutputDir
 	setupDir = filepath.Join(opts.OutputDir, "setup")

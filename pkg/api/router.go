@@ -23,6 +23,7 @@ type Router struct {
 
 	config   *config.AppConfig
 	contexts []map[string]map[string]any
+	storage  db.Storage
 
 	mu        sync.RWMutex
 	services  map[string]*ServiceItem
@@ -62,10 +63,14 @@ func NewRouter(options ...RouterOption) *Router {
 
 	cfg := loadAppConfig(".")
 
+	// Create shared storage backend
+	storage := db.NewStorage(cfg.Storage)
+
 	res := &Router{
 		Router:    r,
 		config:    cfg,
 		contexts:  defaultContexts,
+		storage:   storage,
 		services:  make(map[string]*ServiceItem),
 		databases: make(map[string]db.DB),
 	}
@@ -90,8 +95,8 @@ func (r *Router) RegisterService(
 	handler Handler,
 	serviceMiddleware []func(*middleware.Params) func(http.Handler) http.Handler,
 ) {
-	// Create per-service database based on storage config
-	serviceDB := db.NewDB(cfg.Name, r.config.HistoryDuration, r.config.Storage)
+	// Get service-scoped DB from shared storage
+	serviceDB := r.storage.NewDB(cfg.Name, r.config.HistoryDuration)
 	mwParams := middleware.NewParams(cfg, r.config.Storage, serviceDB)
 
 	// Use cfg.Name as the route prefix (ensure it starts with /)
@@ -151,8 +156,8 @@ func (r *Router) RegisterHTTPHandler(
 		opt(options)
 	}
 
-	// Create per-service database based on storage config
-	serviceDB := db.NewDB(cfg.Name, r.config.HistoryDuration, r.config.Storage)
+	// Get service-scoped DB from shared storage
+	serviceDB := r.storage.NewDB(cfg.Name, r.config.HistoryDuration)
 
 	// Create the handler with access to the DB
 	handler := handlerFactory(serviceDB)

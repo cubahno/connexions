@@ -75,7 +75,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:       []byte("cached"),
 			StatusCode: http.StatusOK,
 		}
@@ -83,7 +83,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/foo/bar"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/foo/bar", histReq, resp)
+		params.DB().History().Set(context.Background(), "/foo/bar", histReq, resp)
 
 		mw := CreateCacheWriteMiddleware(params)
 		assert.NotNil(mw)
@@ -98,7 +98,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			mw(handler).ServeHTTP(w, req)
 			assert.Equal("created", string(w.buf))
 
-			rec, exists := params.DB().History().Get(req)
+			rec, exists := params.DB().History().Get(context.Background(), req)
 			assert.True(exists)
 			assert.Equal(http.StatusCreated, rec.Response.StatusCode)
 			assert.Equal([]byte("created"), rec.Response.Data)
@@ -114,7 +114,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			mw(handler).ServeHTTP(w, req)
 			assert.Equal("fresh", string(w.buf))
 
-			rec, exists := params.DB().History().Get(req)
+			rec, exists := params.DB().History().Get(context.Background(), req)
 			assert.True(exists)
 			assert.Equal(http.StatusOK, rec.Response.StatusCode)
 			assert.Equal([]byte("fresh"), rec.Response.Data)
@@ -129,7 +129,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			},
 		}, nil)
 
-		resp := &db.Response{
+		resp := &db.HistoryResponse{
 			Data:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "text/plain",
@@ -138,7 +138,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			URL:    &url.URL{Path: "/foo/bar"},
 			Method: http.MethodGet,
 		}
-		params.DB().History().Set("/foo/bar", histReq, resp)
+		params.DB().History().Set(context.Background(), "/foo/bar", histReq, resp)
 
 		mw := CreateCacheWriteMiddleware(params)
 		assert.NotNil(mw)
@@ -153,7 +153,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		mw(handler).ServeHTTP(w, req)
 		assert.Equal("fresh", string(w.buf))
 
-		rec, exists := params.DB().History().Get(req)
+		rec, exists := params.DB().History().Get(context.Background(), req)
 		assert.True(exists)
 		assert.Equal(http.StatusOK, rec.Response.StatusCode)
 		assert.Equal([]byte("fresh"), rec.Response.Data)
@@ -186,7 +186,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		assert.Equal(`{"generated": true}`, string(w1.buf))
 
 		// Verify response was cached
-		rec, exists := params.DB().History().Get(req1)
+		rec, exists := params.DB().History().Get(context.Background(), req1)
 		assert.True(exists)
 		assert.NotNil(rec.Response, "Response should be set after cache_write")
 		assert.Equal(http.StatusOK, rec.Response.StatusCode)

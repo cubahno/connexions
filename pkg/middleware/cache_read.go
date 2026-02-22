@@ -23,7 +23,7 @@ func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
 				return
 			}
 
-			res, exists := params.DB().History().Get(req)
+			res, exists := params.DB().History().Get(req.Context(), req)
 			if !exists {
 				next.ServeHTTP(w, req)
 				return

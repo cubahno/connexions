@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -370,7 +371,7 @@ cache:
 		database := router.GetDB("test-service")
 		assert.NotNil(t, database, "Database should exist for test-service")
 
-		data := database.History().Data()
+		data := database.History().Data(context.Background())
 		assert.NotEmpty(t, data, "History should contain the request")
 
 		// Verify the stored response (key format is METHOD:URL)
@@ -416,7 +417,7 @@ cache:
 		database := router.GetDB("test-service")
 		assert.NotNil(t, database, "Database should exist for test-service")
 
-		data := database.History().Data()
+		data := database.History().Data(context.Background())
 		rec, exists := data["POST:/test-service/test"]
 
 		assert.True(t, exists)
@@ -497,7 +498,7 @@ cache:
 		database := router.GetDB("test-service")
 		assert.NotNil(t, database, "Database should exist for test-service")
 
-		data := database.History().Data()
+		data := database.History().Data(context.Background())
 		// History might have the request but not a successful response
 		if rec, exists := data["GET:/test-service/test"]; exists {
 			// If it exists, it should not have a successful status
@@ -534,7 +535,7 @@ cache:
 		database := router.GetDB("test-service")
 		assert.NotNil(t, database, "Database should exist for test-service")
 
-		data := database.History().Data()
+		data := database.History().Data(context.Background())
 		rec, exists := data["POST:/test-service/create"]
 
 		assert.True(t, exists)
@@ -856,7 +857,7 @@ cache:
 		// Verify cache write middleware stored the response
 		database := router.GetDB("test-service")
 		assert.NotNil(t, database, "Database should exist for test-service")
-		data := database.History().Data()
+		data := database.History().Data(context.Background())
 		rec, exists := data["POST:/test-service/test"]
 		assert.True(t, exists, "Response should be stored in history")
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)

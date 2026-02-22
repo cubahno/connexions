@@ -12,10 +12,6 @@ define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
 endef
 
-# Catch-all rule to prevent "No rule to make target" errors for positional arguments
-%:
-	@:
-
 .PHONY: clean
 clean:
 	rm -rf ${build_dir}
@@ -42,9 +38,9 @@ build: clean
 # TODO: add race flag, currently it breaks plugins tests
 test:
 	@if [ -z "$(PKG)" ]; then \
-		go test $$(go list ./... | grep -v '/cmd/' | grep -v '/resources/') -skip=TestIntegration -count=1 -coverprofile=coverage.out && ./coverage-exclude.sh; \
+		go test -race $$(go list ./... | grep -v '/cmd/' | grep -v '/resources/') -skip=TestIntegration -count=1 -coverprofile=coverage.out && ./coverage-exclude.sh; \
 	else \
-  		go test ./... -skip=TestIntegration -count=1 -coverprofile=coverage.out && ./coverage-exclude.sh ./$(PKG)/...; \
+  		go test -race ./... -skip=TestIntegration -count=1 -coverprofile=coverage.out && ./coverage-exclude.sh ./$(PKG)/...; \
 	fi
 	@git ls-files '**/*go.mod' -z | xargs -0 -I{} bash -c 'cd $$(dirname {}) && if [ -f Makefile ] && go list ./... >/dev/null 2>&1; then make test; fi'
 
@@ -211,3 +207,9 @@ docs-serve: docs-prepare
 @PHONY: docs-deploy
 docs-deploy: docs-prepare
 	mkdocs gh-deploy --force
+
+# Suppress "is up to date" messages for positional arguments (spec files, URLs)
+# These get passed to MAKECMDGOALS and treated as targets
+.PHONY: $(filter testdata/%, $(MAKECMDGOALS)) $(filter https://%, $(MAKECMDGOALS)) $(filter http://%, $(MAKECMDGOALS))
+$(filter testdata/%, $(MAKECMDGOALS)) $(filter https://%, $(MAKECMDGOALS)) $(filter http://%, $(MAKECMDGOALS)):
+	@:
