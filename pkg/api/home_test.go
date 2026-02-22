@@ -126,11 +126,11 @@ func TestCreateHomeRoutes_EmbeddedFallback(t *testing.T) {
 	})
 
 	t.Run("static files from embedded", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.ui/css/global.css", nil)
+		req := httptest.NewRequest("GET", "/.ui/css/console.css", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
 		assert.Equal(http.StatusOK, w.Code)
-		assert.Contains(w.Body.String(), "font-family")
+		assert.Equal("text/css; charset=utf-8", w.Header().Get("Content-Type"))
 	})
 }
