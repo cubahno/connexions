@@ -4,6 +4,39 @@ import * as validators from './validators.js';
 import * as navi from "./navi.js";
 import * as services from "./services.js";
 
+// Collect enabled config override headers from the UI
+const getConfigOverrideHeaders = () => {
+    const headers = {};
+
+    // Upstream URL override
+    const upstreamEnabled = document.getElementById('override-upstream-enabled');
+    if (upstreamEnabled && upstreamEnabled.checked) {
+        const upstreamUrl = document.getElementById('override-upstream-url');
+        // Always send the header when checked (empty string disables upstream)
+        headers['X-Cxs-Upstream-Url'] = upstreamUrl ? upstreamUrl.value : '';
+    }
+
+    // Cache Requests override
+    const cacheEnabled = document.getElementById('override-cache-enabled');
+    if (cacheEnabled && cacheEnabled.checked) {
+        const cacheValue = document.getElementById('override-cache-value');
+        if (cacheValue) {
+            headers['X-Cxs-Cache-Requests'] = cacheValue.value;
+        }
+    }
+
+    // Latency override
+    const latencyEnabled = document.getElementById('override-latency-enabled');
+    if (latencyEnabled && latencyEnabled.checked) {
+        const latencyValue = document.getElementById('override-latency-value');
+        if (latencyValue && latencyValue.value) {
+            headers['X-Cxs-Latency'] = latencyValue.value;
+        }
+    }
+
+    return headers;
+};
+
 export const show = match => {
     services.show();
 
@@ -240,6 +273,10 @@ export const generateResult = (service, ix, path, method) => {
                     method: method.toUpperCase(),
                     headers: { ...reqHeaders }
                 };
+
+                // Apply config overrides from UI
+                const overrideHeaders = getConfigOverrideHeaders();
+                Object.assign(fetchOptions.headers, overrideHeaders);
 
                 if (reqContentType) {
                     fetchOptions.headers['Content-Type'] = reqContentType;
