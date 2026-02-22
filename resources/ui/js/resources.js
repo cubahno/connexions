@@ -88,7 +88,7 @@ export const show = match => {
 
                 const methodCell = document.createElement('td');
                 methodCell.innerHTML = `${method.toUpperCase()}`;
-                methodCell.className = `fixed-resource-method ${method}`;
+                methodCell.className = `fixed-resource-method ${method.toLowerCase()}`;
                 row.appendChild(methodCell);
 
                 const pathCell = document.createElement('td');
@@ -173,6 +173,7 @@ export const generateResult = (service, ix, path, method) => {
             document.getElementById('request-path-container').style.display = 'block';
             const reqContentType = res["contentType"];
             const reqBody = res["body"];
+            const reqHeaders = res["headers"] || {};
 
             let formattedBody = ``;
             let reqBodyString = null;
@@ -200,6 +201,14 @@ export const generateResult = (service, ix, path, method) => {
             curlBlock.textContent = `curl --request ${method} \\\n'${baseUrl}${servicePrefix}${reqPath}'`;
             if (reqContentType) {
                 curlBlock.textContent += ` \\\n--header 'Content-Type: ${reqContentType}'`
+            }
+            // Add generated headers to cURL
+            for (const [headerName, headerValue] of Object.entries(reqHeaders)) {
+                curlBlock.textContent += ` \\\n--header '${headerName}: ${headerValue}'`;
+            }
+            // Add request body to cURL
+            if (reqBodyString && method.toLowerCase() !== 'get') {
+                curlBlock.textContent += ` \\\n--data '${reqBodyString.replace(/'/g, "\\'")}'`;
             }
             const exampleCurl = res.request?.examples?.curl;
             if (exampleCurl) {
@@ -229,7 +238,7 @@ export const generateResult = (service, ix, path, method) => {
                 const apiUrl = apiService ? `${baseUrl}/${apiService}${reqPath}` : `${baseUrl}${reqPath}`;
                 const fetchOptions = {
                     method: method.toUpperCase(),
-                    headers: {}
+                    headers: { ...reqHeaders }
                 };
 
                 if (reqContentType) {
