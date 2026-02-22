@@ -1747,7 +1747,9 @@ func (a *HTTPAdapter) SearchRecipes(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -1857,7 +1859,9 @@ func (a *HTTPAdapter) SearchRecipesByIngredients(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -2961,7 +2965,9 @@ func (a *HTTPAdapter) SearchRecipesByNutrients(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3032,7 +3038,9 @@ func (a *HTTPAdapter) GetRecipeInformation(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3090,7 +3098,9 @@ func (a *HTTPAdapter) GetRecipeInformationBulk(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3175,7 +3185,9 @@ func (a *HTTPAdapter) GetSimilarRecipes(w http.ResponseWriter, r *http.Request) 
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3257,7 +3269,9 @@ func (a *HTTPAdapter) GetRandomRecipes(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3325,7 +3339,9 @@ func (a *HTTPAdapter) AutocompleteRecipeSearch(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3396,7 +3412,9 @@ func (a *HTTPAdapter) GetRecipeTasteByID(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3481,7 +3499,9 @@ func (a *HTTPAdapter) RecipeTasteByIDImage(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -3535,7 +3555,9 @@ func (a *HTTPAdapter) GetRecipeEquipmentByID(w http.ResponseWriter, r *http.Requ
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3588,7 +3610,9 @@ func (a *HTTPAdapter) EquipmentByIDImage(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -3642,7 +3666,9 @@ func (a *HTTPAdapter) GetRecipePriceBreakdownByID(w http.ResponseWriter, r *http
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3695,7 +3721,9 @@ func (a *HTTPAdapter) PriceBreakdownByIDImage(w http.ResponseWriter, r *http.Req
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -3749,7 +3777,9 @@ func (a *HTTPAdapter) GetRecipeIngredientsByID(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3811,7 +3841,9 @@ func (a *HTTPAdapter) IngredientsByIDImage(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -3865,7 +3897,9 @@ func (a *HTTPAdapter) GetRecipeNutritionWidgetByID(w http.ResponseWriter, r *htt
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -3918,7 +3952,9 @@ func (a *HTTPAdapter) RecipeNutritionByIDImage(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -4032,7 +4068,9 @@ func (a *HTTPAdapter) RecipeNutritionLabelWidget(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4131,7 +4169,9 @@ func (a *HTTPAdapter) RecipeNutritionLabelImage(w http.ResponseWriter, r *http.R
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -4203,7 +4243,9 @@ func (a *HTTPAdapter) GetAnalyzedRecipeInstructions(w http.ResponseWriter, r *ht
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -4303,7 +4345,9 @@ func (a *HTTPAdapter) ExtractRecipeFromWebsite(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -4379,7 +4423,9 @@ func (a *HTTPAdapter) VisualizeRecipeIngredientsByID(w http.ResponseWriter, r *h
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4464,7 +4510,9 @@ func (a *HTTPAdapter) VisualizeRecipeTasteByID(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4535,7 +4583,9 @@ func (a *HTTPAdapter) VisualizeRecipeEquipmentByID(w http.ResponseWriter, r *htt
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4606,7 +4656,9 @@ func (a *HTTPAdapter) VisualizeRecipePriceBreakdownByID(w http.ResponseWriter, r
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4751,7 +4803,9 @@ func (a *HTTPAdapter) VisualizeRecipeTaste(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4868,7 +4922,9 @@ func (a *HTTPAdapter) VisualizeRecipeNutrition(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -4985,7 +5041,9 @@ func (a *HTTPAdapter) VisualizePriceBreakdown(w http.ResponseWriter, r *http.Req
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -5083,7 +5141,9 @@ func (a *HTTPAdapter) VisualizeEquipment(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -5157,7 +5217,9 @@ func (a *HTTPAdapter) AnalyzeRecipe(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5210,7 +5272,9 @@ func (a *HTTPAdapter) SummarizeRecipe(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5283,7 +5347,9 @@ func (a *HTTPAdapter) CreateRecipeCardGet(w http.ResponseWriter, r *http.Request
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5349,7 +5415,9 @@ func (a *HTTPAdapter) CreateRecipeCard(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5433,7 +5501,9 @@ func (a *HTTPAdapter) AnalyzeRecipeInstructions(w http.ResponseWriter, r *http.R
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5517,7 +5587,9 @@ func (a *HTTPAdapter) ClassifyCuisine(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5561,7 +5633,9 @@ func (a *HTTPAdapter) AnalyzeARecipeSearchQuery(w http.ResponseWriter, r *http.R
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5627,7 +5701,9 @@ func (a *HTTPAdapter) ConvertAmounts(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5730,7 +5806,9 @@ func (a *HTTPAdapter) ParseIngredients(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -5820,7 +5898,9 @@ func (a *HTTPAdapter) VisualizeRecipeNutritionByID(w http.ResponseWriter, r *htt
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -5937,7 +6017,9 @@ func (a *HTTPAdapter) VisualizeIngredients(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -5981,7 +6063,9 @@ func (a *HTTPAdapter) GuessNutritionByDishName(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6056,7 +6140,9 @@ func (a *HTTPAdapter) GetIngredientInformation(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6135,7 +6221,9 @@ func (a *HTTPAdapter) ComputeIngredientAmount(w http.ResponseWriter, r *http.Req
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6201,7 +6289,9 @@ func (a *HTTPAdapter) ComputeGlycemicLoad(w http.ResponseWriter, r *http.Request
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6301,7 +6391,9 @@ func (a *HTTPAdapter) AutocompleteIngredientSearch(w http.ResponseWriter, r *htt
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6521,7 +6613,9 @@ func (a *HTTPAdapter) IngredientSearch(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6565,7 +6659,9 @@ func (a *HTTPAdapter) GetIngredientSubstitutes(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6618,7 +6714,9 @@ func (a *HTTPAdapter) GetIngredientSubstitutesByID(w http.ResponseWriter, r *htt
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6826,7 +6924,9 @@ func (a *HTTPAdapter) SearchGroceryProducts(w http.ResponseWriter, r *http.Reque
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6879,7 +6979,9 @@ func (a *HTTPAdapter) SearchGroceryProductsByUPC(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -6969,7 +7071,9 @@ func (a *HTTPAdapter) SearchCustomFoods(w http.ResponseWriter, r *http.Request) 
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7022,7 +7126,9 @@ func (a *HTTPAdapter) GetProductInformation(w http.ResponseWriter, r *http.Reque
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7075,7 +7181,9 @@ func (a *HTTPAdapter) GetComparableProducts(w http.ResponseWriter, r *http.Reque
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7133,7 +7241,9 @@ func (a *HTTPAdapter) AutocompleteProductSearch(w http.ResponseWriter, r *http.R
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7223,7 +7333,9 @@ func (a *HTTPAdapter) VisualizeProductNutritionByID(w http.ResponseWriter, r *ht
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -7276,7 +7388,9 @@ func (a *HTTPAdapter) ProductNutritionByIDImage(w http.ResponseWriter, r *http.R
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -7390,7 +7504,9 @@ func (a *HTTPAdapter) ProductNutritionLabelWidget(w http.ResponseWriter, r *http
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -7489,7 +7605,9 @@ func (a *HTTPAdapter) ProductNutritionLabelImage(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -7547,7 +7665,9 @@ func (a *HTTPAdapter) ClassifyGroceryProduct(w http.ResponseWriter, r *http.Requ
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7603,7 +7723,9 @@ func (a *HTTPAdapter) ClassifyGroceryProductBulk(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7651,7 +7773,9 @@ func (a *HTTPAdapter) MapIngredientsToGroceryProducts(w http.ResponseWriter, r *
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7709,7 +7833,9 @@ func (a *HTTPAdapter) AutocompleteMenuItemSearch(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7917,7 +8043,9 @@ func (a *HTTPAdapter) SearchMenuItems(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -7970,7 +8098,9 @@ func (a *HTTPAdapter) GetMenuItemInformation(w http.ResponseWriter, r *http.Requ
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8060,7 +8190,9 @@ func (a *HTTPAdapter) VisualizeMenuItemNutritionByID(w http.ResponseWriter, r *h
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -8113,7 +8245,9 @@ func (a *HTTPAdapter) MenuItemNutritionByIDImage(w http.ResponseWriter, r *http.
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -8227,7 +8361,9 @@ func (a *HTTPAdapter) MenuItemNutritionLabelWidget(w http.ResponseWriter, r *htt
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "text/html")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "text/html")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_, _ = fmt.Fprintf(w, "%v", *resp.Body)
@@ -8326,7 +8462,9 @@ func (a *HTTPAdapter) MenuItemNutritionLabelImage(w http.ResponseWriter, r *http
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "image/png")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "image/png")
+	}
 
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
@@ -8393,7 +8531,9 @@ func (a *HTTPAdapter) GenerateMealPlan(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8454,7 +8594,9 @@ func (a *HTTPAdapter) GetMealPlanWeek(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8517,7 +8659,9 @@ func (a *HTTPAdapter) ClearMealPlanDay(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8578,7 +8722,9 @@ func (a *HTTPAdapter) AddToMealPlan(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8653,7 +8799,9 @@ func (a *HTTPAdapter) DeleteFromMealPlan(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8712,7 +8860,9 @@ func (a *HTTPAdapter) GetMealPlanTemplates(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8763,7 +8913,9 @@ func (a *HTTPAdapter) AddMealPlanTemplate(w http.ResponseWriter, r *http.Request
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8836,7 +8988,9 @@ func (a *HTTPAdapter) GetMealPlanTemplate(w http.ResponseWriter, r *http.Request
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8901,7 +9055,9 @@ func (a *HTTPAdapter) DeleteMealPlanTemplate(w http.ResponseWriter, r *http.Requ
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -8960,7 +9116,9 @@ func (a *HTTPAdapter) GetShoppingList(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9025,7 +9183,9 @@ func (a *HTTPAdapter) GenerateShoppingList(w http.ResponseWriter, r *http.Reques
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9063,7 +9223,9 @@ func (a *HTTPAdapter) ConnectUser(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9124,7 +9286,9 @@ func (a *HTTPAdapter) AddToShoppingList(w http.ResponseWriter, r *http.Request) 
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9199,7 +9363,9 @@ func (a *HTTPAdapter) DeleteFromShoppingList(w http.ResponseWriter, r *http.Requ
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9349,7 +9515,9 @@ func (a *HTTPAdapter) SearchRestaurants(w http.ResponseWriter, r *http.Request) 
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9393,7 +9561,9 @@ func (a *HTTPAdapter) GetDishPairingForWine(w http.ResponseWriter, r *http.Reque
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9451,7 +9621,9 @@ func (a *HTTPAdapter) GetWinePairing(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9495,7 +9667,9 @@ func (a *HTTPAdapter) GetWineDescription(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9581,7 +9755,9 @@ func (a *HTTPAdapter) GetWineRecommendation(w http.ResponseWriter, r *http.Reque
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9625,7 +9801,9 @@ func (a *HTTPAdapter) ImageClassificationByURL(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9669,7 +9847,9 @@ func (a *HTTPAdapter) ImageAnalysisByURL(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9713,7 +9893,9 @@ func (a *HTTPAdapter) QuickAnswer(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9797,7 +9979,9 @@ func (a *HTTPAdapter) DetectFoodInText(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9841,7 +10025,9 @@ func (a *HTTPAdapter) SearchSiteContent(w http.ResponseWriter, r *http.Request) 
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -9913,7 +10099,9 @@ func (a *HTTPAdapter) SearchAllFood(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -10043,7 +10231,9 @@ func (a *HTTPAdapter) SearchFoodVideos(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -10076,7 +10266,9 @@ func (a *HTTPAdapter) GetARandomFoodJoke(w http.ResponseWriter, r *http.Request)
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -10109,7 +10301,9 @@ func (a *HTTPAdapter) GetRandomFoodTrivia(w http.ResponseWriter, r *http.Request
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -10157,7 +10351,9 @@ func (a *HTTPAdapter) TalkToChatbot(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -10215,7 +10411,9 @@ func (a *HTTPAdapter) GetConversationSuggests(w http.ResponseWriter, r *http.Req
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)

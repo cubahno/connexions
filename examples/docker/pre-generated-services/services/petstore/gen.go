@@ -254,7 +254,9 @@ func (a *HTTPAdapter) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -302,7 +304,9 @@ func (a *HTTPAdapter) AddPet(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -347,7 +351,9 @@ func (a *HTTPAdapter) FindPetsByStatus(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -391,7 +397,9 @@ func (a *HTTPAdapter) FindPetsByTags(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -444,7 +452,9 @@ func (a *HTTPAdapter) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -509,7 +519,9 @@ func (a *HTTPAdapter) UpdatePetWithForm(w http.ResponseWriter, r *http.Request) 
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -630,7 +642,9 @@ func (a *HTTPAdapter) UploadFile(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -663,7 +677,9 @@ func (a *HTTPAdapter) GetInventory(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -711,7 +727,9 @@ func (a *HTTPAdapter) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -764,7 +782,9 @@ func (a *HTTPAdapter) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -861,7 +881,9 @@ func (a *HTTPAdapter) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -909,7 +931,9 @@ func (a *HTTPAdapter) CreateUsersWithListInput(w http.ResponseWriter, r *http.Re
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -957,7 +981,9 @@ func (a *HTTPAdapter) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
@@ -1027,7 +1053,9 @@ func (a *HTTPAdapter) GetUserByName(w http.ResponseWriter, r *http.Request) {
 	if resp != nil && resp.Status != 0 {
 		status = resp.Status
 	}
-	w.Header().Set("Content-Type", "application/json")
+	if w.Header().Get("Content-Type") == "" {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	w.WriteHeader(status)
 	if resp != nil && resp.Body != nil {
 		_ = json.NewEncoder(w).Encode(resp.Body)
