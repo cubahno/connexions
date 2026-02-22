@@ -1,0 +1,2 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/cubahno/connexions/refs/heads/master/resources/json-schema-service.json
+name: petstore

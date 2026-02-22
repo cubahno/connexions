@@ -180,6 +180,15 @@ func GenerateService(opts ServiceOptions) error {
 	}
 	cfg = cfg.WithDefaults()
 
+	// Resolve overlay paths to be absolute (relative to setup directory)
+	if cfg.Overlay != nil && len(cfg.Overlay.Sources) > 0 {
+		for i, src := range cfg.Overlay.Sources {
+			if !filepath.IsAbs(src) && !files.IsURL(src) {
+				cfg.Overlay.Sources[i] = filepath.Join(setupDir, src)
+			}
+		}
+	}
+
 	// Read the service config file
 	serviceCfgContents, err := os.ReadFile(serviceConfigFile)
 	if err != nil {
