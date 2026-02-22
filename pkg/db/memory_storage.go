@@ -31,7 +31,7 @@ func (s *memoryStorage) NewDB(serviceName string, historyDuration time.Duration)
 		storage:         s,
 		serviceName:     serviceName,
 		historyDuration: historyDuration,
-		history:         s.createHistoryTable(serviceName, historyDuration),
+		history:         newMemoryHistoryTable(newMemoryTable(), historyDuration),
 	}
 }
 
@@ -61,13 +61,6 @@ func (s *memoryStorage) getOrCreateTable(fullKey string) *memoryTable {
 	t = newMemoryTable()
 	s.tables[fullKey] = t
 	return t
-}
-
-// createHistoryTable creates a history table for a service.
-func (s *memoryStorage) createHistoryTable(serviceName string, historyDuration time.Duration) *memoryHistoryTable {
-	historyKey := serviceName + ":history"
-	table := s.getOrCreateTable(historyKey)
-	return newMemoryHistoryTable(table, historyDuration)
 }
 
 // memoryServiceDB is a service-scoped view into shared memory storage.
