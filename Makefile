@@ -12,10 +12,6 @@ define docker-cmd
 	sh -c 'docker-compose --env-file=.env.dist run --rm -e app_env=testing app $(1)'
 endef
 
-# Catch-all rule to prevent "No rule to make target" errors for positional arguments
-%:
-	@:
-
 .PHONY: clean
 clean:
 	rm -rf ${build_dir}
@@ -211,3 +207,9 @@ docs-serve: docs-prepare
 @PHONY: docs-deploy
 docs-deploy: docs-prepare
 	mkdocs gh-deploy --force
+
+# Suppress "is up to date" messages for positional arguments (spec files, URLs)
+# These get passed to MAKECMDGOALS and treated as targets
+.PHONY: $(filter testdata/%, $(MAKECMDGOALS)) $(filter https://%, $(MAKECMDGOALS)) $(filter http://%, $(MAKECMDGOALS))
+$(filter testdata/%, $(MAKECMDGOALS)) $(filter https://%, $(MAKECMDGOALS)) $(filter http://%, $(MAKECMDGOALS)):
+	@:
