@@ -78,6 +78,8 @@ export const show = match => {
                 const num = i + 1;
                 const row = document.createElement('tr');
                 row.id = `resource-${num}`;
+                row.style.cursor = 'pointer';
+                row.onclick = () => { window.location.hash = `#/services/${service}?ix=${num}`; };
 
                 const cell1 = document.createElement('td');
                 cell1.textContent = `${num}`;
@@ -90,7 +92,7 @@ export const show = match => {
                 row.appendChild(methodCell);
 
                 const pathCell = document.createElement('td');
-                pathCell.innerHTML = `<a href="#/services/${service}?ix=${num}">${path}</a>`;
+                pathCell.innerHTML = `<span>${path}</span>`;
                 pathCell.className = `fixed-resource-path`;
                 pathCell.title = path;
                 row.appendChild(pathCell);
@@ -112,7 +114,7 @@ export const generateResult = (service, ix, path, method) => {
     const onDone = () => {
         config.generatorCont.style.display = 'block';
         config.resourceRefreshBtn.onclick = () => generateResult(service, ix, path, method);
-        config.resourceRefreshBtn.style.display = 'block';
+        config.resourceRefreshBtn.style.display = 'inline';
     }
     commons.hideMessage();
     let replacements = null;
