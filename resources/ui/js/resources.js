@@ -214,13 +214,18 @@ export const generateResult = (service, ix, path, method) => {
                 if (reqContentType === `application/json`) {
                     formattedBody = JSON.stringify(reqBody, null, 2);
                     reqBodyString = JSON.stringify(reqBody);
-                    console.log(`formattedBody:`, formattedBody);
+                } else if (typeof reqBody === 'string') {
+                    // Handle non-JSON body (e.g., form-urlencoded, plain text)
+                    formattedBody = reqBody;
+                    reqBodyString = reqBody;
                 }
             }
 
             if (formattedBody.length) {
                 document.getElementById('request-body-container').style.display = 'block';
-                const reqView = commons.getCodeEditor(`request-body`, `json`);
+                // Use 'text' mode for non-JSON content types
+                const editorMode = reqContentType === 'application/json' ? 'json' : 'text';
+                const reqView = commons.getCodeEditor(`request-body`, editorMode);
                 reqView.setValue(formattedBody);
                 reqView.clearSelection();
                 reqView.setReadOnly(true);
