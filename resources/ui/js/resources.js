@@ -235,10 +235,13 @@ export const generateResult = (service, ix, path, method) => {
             if (reqContentType) {
                 curlBlock.textContent += ` \\\n--header 'Content-Type: ${reqContentType}'`
             }
-            // Add generated headers to cURL
+
+            // Add generated headers to cURL (skip Content-Type as it's already added above)
             for (const [headerName, headerValue] of Object.entries(reqHeaders)) {
+                if (headerName.toLowerCase() === 'content-type') continue;
                 curlBlock.textContent += ` \\\n--header '${headerName}: ${headerValue}'`;
             }
+
             // Add request body to cURL
             if (reqBodyString && method.toLowerCase() !== 'get') {
                 curlBlock.textContent += ` \\\n--data '${reqBodyString.replace(/'/g, "\\'")}'`;
