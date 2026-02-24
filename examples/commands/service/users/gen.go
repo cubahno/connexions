@@ -838,61 +838,73 @@ func (s *generatorService) ListUsers(ctx context.Context) (*ListUsersResponseDat
 
 // GetUser handles GET /users/{id}
 func (s *generatorService) GetUser(ctx context.Context, opts *GetUserServiceRequestOptions) (*GetUserResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}", "GET")
+		if respSchema == nil {
+			return NewGetUserResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetUserResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json; charset=utf-8", &body); err != nil {
+			return nil, err
+		}
+		return NewGetUserResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUser(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}", "GET")
-	if respSchema == nil {
-		return NewGetUserResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetUserResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json; charset=utf-8", &body); err != nil {
-		return nil, err
-	}
-	return NewGetUserResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetUserAvatar handles GET /users/{id}/avatar
 func (s *generatorService) GetUserAvatar(ctx context.Context, opts *GetUserAvatarServiceRequestOptions) (*GetUserAvatarResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserAvatarResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/avatar", "GET")
+		if respSchema == nil {
+			return NewGetUserAvatarResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewGetUserAvatarResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserAvatar(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/avatar", "GET")
-	if respSchema == nil {
-		return NewGetUserAvatarResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewGetUserAvatarResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetUserProfile handles GET /users/{id}/profile
 func (s *generatorService) GetUserProfile(ctx context.Context, opts *GetUserProfileServiceRequestOptions) (*GetUserProfileResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserProfileResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/profile", "GET")
+		if respSchema == nil {
+			return NewGetUserProfileResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetUserProfileResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html; charset=utf-8", &body); err != nil {
+			return nil, err
+		}
+		return NewGetUserProfileResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserProfile(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/profile", "GET")
-	if respSchema == nil {
-		return NewGetUserProfileResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetUserProfileResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html; charset=utf-8", &body); err != nil {
-		return nil, err
-	}
-	return NewGetUserProfileResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ExportUsers handles GET /users/export
@@ -914,82 +926,98 @@ func (s *generatorService) ExportUsers(ctx context.Context) (*ExportUsersRespons
 
 // GetUserConfig handles GET /users/{id}/config
 func (s *generatorService) GetUserConfig(ctx context.Context, opts *GetUserConfigServiceRequestOptions) (*GetUserConfigResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserConfigResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/config", "GET")
+		if respSchema == nil {
+			return NewGetUserConfigResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewGetUserConfigResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserConfig(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/config", "GET")
-	if respSchema == nil {
-		return NewGetUserConfigResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewGetUserConfigResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetUserAPIData handles GET /users/{id}/api-data
 func (s *generatorService) GetUserAPIData(ctx context.Context, opts *GetUserAPIDataServiceRequestOptions) (*GetUserAPIDataResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserAPIDataResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/api-data", "GET")
+		if respSchema == nil {
+			return NewGetUserAPIDataResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetUserAPIDataResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/vnd.api+json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetUserAPIDataResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserAPIData(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/api-data", "GET")
-	if respSchema == nil {
-		return NewGetUserAPIDataResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetUserAPIDataResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/vnd.api+json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetUserAPIDataResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetUserHal handles GET /users/{id}/hal
 func (s *generatorService) GetUserHal(ctx context.Context, opts *GetUserHalServiceRequestOptions) (*GetUserHalResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserHalResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/hal", "GET")
+		if respSchema == nil {
+			return NewGetUserHalResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetUserHalResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/hal+json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetUserHalResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserHal(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/hal", "GET")
-	if respSchema == nil {
-		return NewGetUserHalResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetUserHalResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/hal+json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetUserHalResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetUserProblem handles GET /users/{id}/problem
 func (s *generatorService) GetUserProblem(ctx context.Context, opts *GetUserProblemServiceRequestOptions) (*GetUserProblemResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserProblemResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/problem", "GET")
+		if respSchema == nil {
+			return NewGetUserProblemResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetUserProblemResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/problem+json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetUserProblemResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserProblem(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/problem", "GET")
-	if respSchema == nil {
-		return NewGetUserProblemResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetUserProblemResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/problem+json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetUserProblemResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // StreamUsers handles GET /users/stream
@@ -1011,19 +1039,23 @@ func (s *generatorService) StreamUsers(ctx context.Context) (*StreamUsersRespons
 
 // GetUserPdf handles GET /users/{id}/pdf
 func (s *generatorService) GetUserPdf(ctx context.Context, opts *GetUserPdfServiceRequestOptions) (*GetUserPdfResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserPdfResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/{id}/pdf", "GET")
+		if respSchema == nil {
+			return NewGetUserPdfResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewGetUserPdfResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserPdf(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/{id}/pdf", "GET")
-	if respSchema == nil {
-		return NewGetUserPdfResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewGetUserPdfResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 type GetUserPath struct {
@@ -1399,6 +1431,8 @@ type GetUserServiceRequestOptions struct {
 	PathParams *GetUserPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1424,6 +1458,8 @@ type GetUserAvatarServiceRequestOptions struct {
 	PathParams *GetUserAvatarPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserAvatarResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1449,6 +1485,8 @@ type GetUserProfileServiceRequestOptions struct {
 	PathParams *GetUserProfilePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserProfileResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1474,6 +1512,8 @@ type GetUserConfigServiceRequestOptions struct {
 	PathParams *GetUserConfigPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserConfigResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1499,6 +1539,8 @@ type GetUserAPIDataServiceRequestOptions struct {
 	PathParams *GetUserAPIDataPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserAPIDataResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1524,6 +1566,8 @@ type GetUserHalServiceRequestOptions struct {
 	PathParams *GetUserHalPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserHalResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1549,6 +1593,8 @@ type GetUserProblemServiceRequestOptions struct {
 	PathParams *GetUserProblemPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserProblemResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -1574,6 +1620,8 @@ type GetUserPdfServiceRequestOptions struct {
 	PathParams *GetUserPdfPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserPdfResponseData, error)
 }
 
 // Validate validates all the fields in the options.

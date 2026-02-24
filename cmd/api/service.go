@@ -228,8 +228,8 @@ func GenerateService(opts ServiceOptions) error {
 		cfg.UserTemplates = make(map[string]string)
 	}
 
-	// Override handler templates (scaffold templates)
-	for _, tmplName := range []string{"service.tmpl", "server.tmpl", "middleware.tmpl"} {
+	// Override handler templates (scaffold templates + service-options)
+	for _, tmplName := range []string{"service.tmpl", "server.tmpl", "middleware.tmpl", "service-options.tmpl"} {
 		tmplContent, err := templatesFS.ReadFile("templates/handler/" + tmplName)
 		if err != nil {
 			return fmt.Errorf("reading %s template: %w", tmplName, err)

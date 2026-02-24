@@ -247,42 +247,43 @@ var _ {{ $modelsPrefix }}ServiceInterface = (*generatorService)(nil)
 {{- end }}
 {{- if $op.HasRequestOptions }}
 func (s *generatorService) {{ $op.ID }}(ctx context.Context, opts *{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ServiceRequestOptions) ({{ if $op.Response.Success }}*{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ResponseData, error{{ else }}error{{ end }}) {
-	// Call user's service first
+	{{- if $op.Response.Success }}
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("{{ $op.Path }}", "{{ $op.Method }}")
+		if respSchema == nil {
+			return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		{{- $bodyType := $op.Response.Success.ResponseName -}}
+		{{- if eq $bodyType "struct{}" }}
+		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil).WithHeaders(res.Headers), nil
+		{{- else if $op.Response.Success.IsRaw }}
+		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(res.Body).WithHeaders(res.Headers), nil
+		{{- else }}
+		{{- if $modelsPrefix }}{{ $bodyType = printf "%s%s" $modelsPrefix $bodyType }}{{ end }}
+		var body {{ $bodyType }}
+		if err := api.UnmarshalResponseInto(res.Body, "{{ $op.Response.Success.ContentType | escapeGoString }}", &body); err != nil {
+			return nil, err
+		}
+		{{- if eq $op.Response.Success.Schema.GoType "[]byte" }}
+		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(body).WithHeaders(res.Headers), nil
+		{{- else }}
+		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(&body).WithHeaders(res.Headers), nil
+		{{- end }}
+		{{- end }}
+	}
+	{{- end }}
+
+	// Call user's service
 	if resp, err := s.service.{{ $op.ID }}(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("{{ $op.Path }}", "{{ $op.Method }}")
-	if respSchema == nil {
-		{{- if $op.Response.Success }}
-		return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil), nil
-		{{- else }}
-		return nil
-		{{- end }}
-	}
-
-	res := s.generator.Response(respSchema)
 	{{- if $op.Response.Success }}
-	{{- $bodyType := $op.Response.Success.ResponseName -}}
-	{{- if eq $bodyType "struct{}" }}
-	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil).WithHeaders(res.Headers), nil
-	{{- else if $op.Response.Success.IsRaw }}
-	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 	{{- else }}
-	{{- if $modelsPrefix }}{{ $bodyType = printf "%s%s" $modelsPrefix $bodyType }}{{ end }}
-	var body {{ $bodyType }}
-	if err := api.UnmarshalResponseInto(res.Body, "{{ $op.Response.Success.ContentType | escapeGoString }}", &body); err != nil {
-		return nil, err
-	}
-	{{- if eq $op.Response.Success.Schema.GoType "[]byte" }}
-	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(body).WithHeaders(res.Headers), nil
-	{{- else }}
-	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(&body).WithHeaders(res.Headers), nil
-	{{- end }}
-	{{- end }}
-	{{- else }}
-	_ = res
 	return nil
 	{{- end }}
 }
