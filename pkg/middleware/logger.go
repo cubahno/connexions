@@ -7,9 +7,38 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
+
+// skipPaths are path segments that should skip logging.
+var skipPaths = []string{"/assets/", "/static/", "/favicon"}
+
+// skipExtensions are file extensions that should skip logging.
+var skipExtensions = []string{
+	".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico",
+	".woff", ".woff2", ".ttf", ".eot", ".map",
+}
+
+func shouldSkipLogging(urlPath string) bool {
+	// Check path segments
+	for _, p := range skipPaths {
+		if strings.Contains(urlPath, p) {
+			return true
+		}
+	}
+
+	// Check file extensions
+	ext := strings.ToLower(path.Ext(urlPath))
+	for _, e := range skipExtensions {
+		if ext == e {
+			return true
+		}
+	}
+
+	return false
+}
 
 // LoggerMiddleware is a custom logging middleware
 func LoggerMiddleware(next http.Handler) http.Handler {
@@ -17,6 +46,12 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if disableLogger {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Skip logging for static assets and files
+		if shouldSkipLogging(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
