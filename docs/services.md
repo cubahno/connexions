@@ -82,6 +82,30 @@ cd services/petstore && go generate && go build && ./petstore
 
 See [service command](commands/service.md) for details.
 
+#### Customizing Generated Responses
+
+When implementing a service method, use `opts.GenerateResponse()` to get a
+pre-populated response based on the OpenAPI spec, then modify specific fields:
+
+```go
+func (s *service) GetUser(ctx context.Context, opts *GetUserServiceRequestOptions) (*GetUserResponseData, error) {
+    // Get a spec-compliant response with generated values
+    resp, err := opts.GenerateResponse()
+    if err != nil {
+        return nil, err
+    }
+
+    // Override specific fields
+    resp.Body.ID = opts.PathParams.UserID
+    resp.Body.Email = "custom@example.com"
+
+    return resp, nil
+}
+```
+
+This is useful when you need realistic data but want to control specific values
+(e.g., IDs matching the request, business-specific logic).
+
 
 ## File Structure
 
