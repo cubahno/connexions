@@ -35,6 +35,7 @@ type ServiceConfig struct {
 	Cache           *CacheConfig             `yaml:"cache,omitempty"`
 	ResourcesPrefix string                   `yaml:"resources-prefix,omitempty"`
 	SpecOptions     *SpecOptions             `yaml:"spec,omitempty"`
+	Extra           map[string]any           `yaml:"extra,omitempty"`
 
 	latencies []*KeyValue[int, time.Duration]
 	errors    []*KeyValue[int, int]
@@ -47,6 +48,7 @@ func NewServiceConfig() *ServiceConfig {
 		Latencies:   make(map[string]time.Duration),
 		Cache:       NewCacheConfig(),
 		SpecOptions: NewSpecOptions(),
+		Extra:       make(map[string]any),
 	}
 }
 
@@ -83,6 +85,10 @@ func (s *ServiceConfig) WithDefaults() *ServiceConfig {
 
 	if s.Latencies == nil {
 		s.Latencies = defaults.Latencies
+	}
+
+	if s.Extra == nil {
+		s.Extra = defaults.Extra
 	}
 
 	// Fill empty string fields with defaults
@@ -157,6 +163,15 @@ func (s *ServiceConfig) OverwriteWith(other *ServiceConfig) *ServiceConfig {
 
 	if other.SpecOptions != nil {
 		s.SpecOptions = other.SpecOptions
+	}
+
+	if other.Extra != nil {
+		if s.Extra == nil {
+			s.Extra = make(map[string]any)
+		}
+		for k, v := range other.Extra {
+			s.Extra[k] = v
+		}
 	}
 
 	return s
