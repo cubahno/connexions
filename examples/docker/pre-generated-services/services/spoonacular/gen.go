@@ -10729,1957 +10729,2337 @@ var _ ServiceInterface = (*generatorService)(nil)
 
 // SearchRecipes handles GET /recipes/complexSearch
 func (s *generatorService) SearchRecipes(ctx context.Context, opts *SearchRecipesServiceRequestOptions) (*SearchRecipesResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchRecipesResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/complexSearch", "GET")
+		if respSchema == nil {
+			return NewSearchRecipesResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchRecipesResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchRecipesResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchRecipes(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/complexSearch", "GET")
-	if respSchema == nil {
-		return NewSearchRecipesResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchRecipesResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchRecipesResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchRecipesByIngredients handles GET /recipes/findByIngredients
 func (s *generatorService) SearchRecipesByIngredients(ctx context.Context, opts *SearchRecipesByIngredientsServiceRequestOptions) (*SearchRecipesByIngredientsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchRecipesByIngredientsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/findByIngredients", "GET")
+		if respSchema == nil {
+			return NewSearchRecipesByIngredientsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchRecipesByIngredientsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchRecipesByIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchRecipesByIngredients(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/findByIngredients", "GET")
-	if respSchema == nil {
-		return NewSearchRecipesByIngredientsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchRecipesByIngredientsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchRecipesByIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchRecipesByNutrients handles GET /recipes/findByNutrients
 func (s *generatorService) SearchRecipesByNutrients(ctx context.Context, opts *SearchRecipesByNutrientsServiceRequestOptions) (*SearchRecipesByNutrientsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchRecipesByNutrientsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/findByNutrients", "GET")
+		if respSchema == nil {
+			return NewSearchRecipesByNutrientsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchRecipesByNutrientsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchRecipesByNutrientsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchRecipesByNutrients(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/findByNutrients", "GET")
-	if respSchema == nil {
-		return NewSearchRecipesByNutrientsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchRecipesByNutrientsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchRecipesByNutrientsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipeInformation handles GET /recipes/{id}/information
 func (s *generatorService) GetRecipeInformation(ctx context.Context, opts *GetRecipeInformationServiceRequestOptions) (*GetRecipeInformationResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipeInformationResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/information", "GET")
+		if respSchema == nil {
+			return NewGetRecipeInformationResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipeInformationResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipeInformationResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipeInformation(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/information", "GET")
-	if respSchema == nil {
-		return NewGetRecipeInformationResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipeInformationResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipeInformationResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipeInformationBulk handles GET /recipes/informationBulk
 func (s *generatorService) GetRecipeInformationBulk(ctx context.Context, opts *GetRecipeInformationBulkServiceRequestOptions) (*GetRecipeInformationBulkResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipeInformationBulkResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/informationBulk", "GET")
+		if respSchema == nil {
+			return NewGetRecipeInformationBulkResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipeInformationBulkResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipeInformationBulkResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipeInformationBulk(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/informationBulk", "GET")
-	if respSchema == nil {
-		return NewGetRecipeInformationBulkResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipeInformationBulkResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipeInformationBulkResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetSimilarRecipes handles GET /recipes/{id}/similar
 func (s *generatorService) GetSimilarRecipes(ctx context.Context, opts *GetSimilarRecipesServiceRequestOptions) (*GetSimilarRecipesResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetSimilarRecipesResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/similar", "GET")
+		if respSchema == nil {
+			return NewGetSimilarRecipesResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetSimilarRecipesResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetSimilarRecipesResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetSimilarRecipes(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/similar", "GET")
-	if respSchema == nil {
-		return NewGetSimilarRecipesResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetSimilarRecipesResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetSimilarRecipesResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRandomRecipes handles GET /recipes/random
 func (s *generatorService) GetRandomRecipes(ctx context.Context, opts *GetRandomRecipesServiceRequestOptions) (*GetRandomRecipesResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRandomRecipesResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/random", "GET")
+		if respSchema == nil {
+			return NewGetRandomRecipesResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRandomRecipesResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRandomRecipesResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRandomRecipes(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/random", "GET")
-	if respSchema == nil {
-		return NewGetRandomRecipesResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRandomRecipesResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRandomRecipesResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AutocompleteRecipeSearch handles GET /recipes/autocomplete
 func (s *generatorService) AutocompleteRecipeSearch(ctx context.Context, opts *AutocompleteRecipeSearchServiceRequestOptions) (*AutocompleteRecipeSearchResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AutocompleteRecipeSearchResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/autocomplete", "GET")
+		if respSchema == nil {
+			return NewAutocompleteRecipeSearchResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AutocompleteRecipeSearchResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAutocompleteRecipeSearchResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AutocompleteRecipeSearch(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/autocomplete", "GET")
-	if respSchema == nil {
-		return NewAutocompleteRecipeSearchResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AutocompleteRecipeSearchResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAutocompleteRecipeSearchResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipeTasteByID handles GET /recipes/{id}/tasteWidget.json
 func (s *generatorService) GetRecipeTasteByID(ctx context.Context, opts *GetRecipeTasteByIDServiceRequestOptions) (*GetRecipeTasteByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipeTasteByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/tasteWidget.json", "GET")
+		if respSchema == nil {
+			return NewGetRecipeTasteByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipeTasteByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipeTasteByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipeTasteByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/tasteWidget.json", "GET")
-	if respSchema == nil {
-		return NewGetRecipeTasteByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipeTasteByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipeTasteByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // RecipeTasteByIDImage handles GET /recipes/{id}/tasteWidget.png
 func (s *generatorService) RecipeTasteByIDImage(ctx context.Context, opts *RecipeTasteByIDImageServiceRequestOptions) (*RecipeTasteByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*RecipeTasteByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/tasteWidget.png", "GET")
+		if respSchema == nil {
+			return NewRecipeTasteByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewRecipeTasteByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.RecipeTasteByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/tasteWidget.png", "GET")
-	if respSchema == nil {
-		return NewRecipeTasteByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewRecipeTasteByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipeEquipmentByID handles GET /recipes/{id}/equipmentWidget.json
 func (s *generatorService) GetRecipeEquipmentByID(ctx context.Context, opts *GetRecipeEquipmentByIDServiceRequestOptions) (*GetRecipeEquipmentByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipeEquipmentByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/equipmentWidget.json", "GET")
+		if respSchema == nil {
+			return NewGetRecipeEquipmentByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipeEquipmentByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipeEquipmentByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipeEquipmentByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/equipmentWidget.json", "GET")
-	if respSchema == nil {
-		return NewGetRecipeEquipmentByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipeEquipmentByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipeEquipmentByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // EquipmentByIDImage handles GET /recipes/{id}/equipmentWidget.png
 func (s *generatorService) EquipmentByIDImage(ctx context.Context, opts *EquipmentByIDImageServiceRequestOptions) (*EquipmentByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*EquipmentByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/equipmentWidget.png", "GET")
+		if respSchema == nil {
+			return NewEquipmentByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewEquipmentByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.EquipmentByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/equipmentWidget.png", "GET")
-	if respSchema == nil {
-		return NewEquipmentByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewEquipmentByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipePriceBreakdownByID handles GET /recipes/{id}/priceBreakdownWidget.json
 func (s *generatorService) GetRecipePriceBreakdownByID(ctx context.Context, opts *GetRecipePriceBreakdownByIDServiceRequestOptions) (*GetRecipePriceBreakdownByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipePriceBreakdownByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/priceBreakdownWidget.json", "GET")
+		if respSchema == nil {
+			return NewGetRecipePriceBreakdownByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipePriceBreakdownByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipePriceBreakdownByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipePriceBreakdownByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/priceBreakdownWidget.json", "GET")
-	if respSchema == nil {
-		return NewGetRecipePriceBreakdownByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipePriceBreakdownByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipePriceBreakdownByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // PriceBreakdownByIDImage handles GET /recipes/{id}/priceBreakdownWidget.png
 func (s *generatorService) PriceBreakdownByIDImage(ctx context.Context, opts *PriceBreakdownByIDImageServiceRequestOptions) (*PriceBreakdownByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*PriceBreakdownByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/priceBreakdownWidget.png", "GET")
+		if respSchema == nil {
+			return NewPriceBreakdownByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewPriceBreakdownByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.PriceBreakdownByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/priceBreakdownWidget.png", "GET")
-	if respSchema == nil {
-		return NewPriceBreakdownByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewPriceBreakdownByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipeIngredientsByID handles GET /recipes/{id}/ingredientWidget.json
 func (s *generatorService) GetRecipeIngredientsByID(ctx context.Context, opts *GetRecipeIngredientsByIDServiceRequestOptions) (*GetRecipeIngredientsByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipeIngredientsByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/ingredientWidget.json", "GET")
+		if respSchema == nil {
+			return NewGetRecipeIngredientsByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipeIngredientsByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipeIngredientsByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipeIngredientsByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/ingredientWidget.json", "GET")
-	if respSchema == nil {
-		return NewGetRecipeIngredientsByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipeIngredientsByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipeIngredientsByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // IngredientsByIDImage handles GET /recipes/{id}/ingredientWidget.png
 func (s *generatorService) IngredientsByIDImage(ctx context.Context, opts *IngredientsByIDImageServiceRequestOptions) (*IngredientsByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*IngredientsByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/ingredientWidget.png", "GET")
+		if respSchema == nil {
+			return NewIngredientsByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewIngredientsByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.IngredientsByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/ingredientWidget.png", "GET")
-	if respSchema == nil {
-		return NewIngredientsByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewIngredientsByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetRecipeNutritionWidgetByID handles GET /recipes/{id}/nutritionWidget.json
 func (s *generatorService) GetRecipeNutritionWidgetByID(ctx context.Context, opts *GetRecipeNutritionWidgetByIDServiceRequestOptions) (*GetRecipeNutritionWidgetByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetRecipeNutritionWidgetByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionWidget.json", "GET")
+		if respSchema == nil {
+			return NewGetRecipeNutritionWidgetByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetRecipeNutritionWidgetByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetRecipeNutritionWidgetByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetRecipeNutritionWidgetByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionWidget.json", "GET")
-	if respSchema == nil {
-		return NewGetRecipeNutritionWidgetByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetRecipeNutritionWidgetByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetRecipeNutritionWidgetByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // RecipeNutritionByIDImage handles GET /recipes/{id}/nutritionWidget.png
 func (s *generatorService) RecipeNutritionByIDImage(ctx context.Context, opts *RecipeNutritionByIDImageServiceRequestOptions) (*RecipeNutritionByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*RecipeNutritionByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionWidget.png", "GET")
+		if respSchema == nil {
+			return NewRecipeNutritionByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewRecipeNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.RecipeNutritionByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionWidget.png", "GET")
-	if respSchema == nil {
-		return NewRecipeNutritionByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewRecipeNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // RecipeNutritionLabelWidget handles GET /recipes/{id}/nutritionLabel
 func (s *generatorService) RecipeNutritionLabelWidget(ctx context.Context, opts *RecipeNutritionLabelWidgetServiceRequestOptions) (*RecipeNutritionLabelWidgetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*RecipeNutritionLabelWidgetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionLabel", "GET")
+		if respSchema == nil {
+			return NewRecipeNutritionLabelWidgetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body RecipeNutritionLabelWidgetResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewRecipeNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.RecipeNutritionLabelWidget(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionLabel", "GET")
-	if respSchema == nil {
-		return NewRecipeNutritionLabelWidgetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body RecipeNutritionLabelWidgetResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewRecipeNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // RecipeNutritionLabelImage handles GET /recipes/{id}/nutritionLabel.png
 func (s *generatorService) RecipeNutritionLabelImage(ctx context.Context, opts *RecipeNutritionLabelImageServiceRequestOptions) (*RecipeNutritionLabelImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*RecipeNutritionLabelImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionLabel.png", "GET")
+		if respSchema == nil {
+			return NewRecipeNutritionLabelImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewRecipeNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.RecipeNutritionLabelImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionLabel.png", "GET")
-	if respSchema == nil {
-		return NewRecipeNutritionLabelImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewRecipeNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetAnalyzedRecipeInstructions handles GET /recipes/{id}/analyzedInstructions
 func (s *generatorService) GetAnalyzedRecipeInstructions(ctx context.Context, opts *GetAnalyzedRecipeInstructionsServiceRequestOptions) (*GetAnalyzedRecipeInstructionsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetAnalyzedRecipeInstructionsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/analyzedInstructions", "GET")
+		if respSchema == nil {
+			return NewGetAnalyzedRecipeInstructionsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetAnalyzedRecipeInstructionsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetAnalyzedRecipeInstructionsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetAnalyzedRecipeInstructions(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/analyzedInstructions", "GET")
-	if respSchema == nil {
-		return NewGetAnalyzedRecipeInstructionsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetAnalyzedRecipeInstructionsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetAnalyzedRecipeInstructionsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ExtractRecipeFromWebsite handles GET /recipes/extract
 func (s *generatorService) ExtractRecipeFromWebsite(ctx context.Context, opts *ExtractRecipeFromWebsiteServiceRequestOptions) (*ExtractRecipeFromWebsiteResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ExtractRecipeFromWebsiteResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/extract", "GET")
+		if respSchema == nil {
+			return NewExtractRecipeFromWebsiteResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ExtractRecipeFromWebsiteResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewExtractRecipeFromWebsiteResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ExtractRecipeFromWebsite(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/extract", "GET")
-	if respSchema == nil {
-		return NewExtractRecipeFromWebsiteResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ExtractRecipeFromWebsiteResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewExtractRecipeFromWebsiteResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipeIngredientsByID handles GET /recipes/{id}/ingredientWidget
 func (s *generatorService) VisualizeRecipeIngredientsByID(ctx context.Context, opts *VisualizeRecipeIngredientsByIDServiceRequestOptions) (*VisualizeRecipeIngredientsByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipeIngredientsByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/ingredientWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeRecipeIngredientsByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipeIngredientsByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipeIngredientsByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipeIngredientsByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/ingredientWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeRecipeIngredientsByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipeIngredientsByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipeIngredientsByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipeTasteByID handles GET /recipes/{id}/tasteWidget
 func (s *generatorService) VisualizeRecipeTasteByID(ctx context.Context, opts *VisualizeRecipeTasteByIDServiceRequestOptions) (*VisualizeRecipeTasteByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipeTasteByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/tasteWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeRecipeTasteByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipeTasteByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipeTasteByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipeTasteByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/tasteWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeRecipeTasteByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipeTasteByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipeTasteByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipeEquipmentByID handles GET /recipes/{id}/equipmentWidget
 func (s *generatorService) VisualizeRecipeEquipmentByID(ctx context.Context, opts *VisualizeRecipeEquipmentByIDServiceRequestOptions) (*VisualizeRecipeEquipmentByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipeEquipmentByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/equipmentWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeRecipeEquipmentByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipeEquipmentByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipeEquipmentByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipeEquipmentByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/equipmentWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeRecipeEquipmentByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipeEquipmentByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipeEquipmentByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipePriceBreakdownByID handles GET /recipes/{id}/priceBreakdownWidget
 func (s *generatorService) VisualizeRecipePriceBreakdownByID(ctx context.Context, opts *VisualizeRecipePriceBreakdownByIDServiceRequestOptions) (*VisualizeRecipePriceBreakdownByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipePriceBreakdownByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/priceBreakdownWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeRecipePriceBreakdownByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipePriceBreakdownByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipePriceBreakdownByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipePriceBreakdownByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/priceBreakdownWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeRecipePriceBreakdownByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipePriceBreakdownByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipePriceBreakdownByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipeTaste handles POST /recipes/visualizeTaste
 func (s *generatorService) VisualizeRecipeTaste(ctx context.Context, opts *VisualizeRecipeTasteServiceRequestOptions) (*VisualizeRecipeTasteResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipeTasteResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/visualizeTaste", "POST")
+		if respSchema == nil {
+			return NewVisualizeRecipeTasteResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipeTasteResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipeTasteResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipeTaste(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/visualizeTaste", "POST")
-	if respSchema == nil {
-		return NewVisualizeRecipeTasteResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipeTasteResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipeTasteResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipeNutrition handles POST /recipes/visualizeNutrition
 func (s *generatorService) VisualizeRecipeNutrition(ctx context.Context, opts *VisualizeRecipeNutritionServiceRequestOptions) (*VisualizeRecipeNutritionResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipeNutritionResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/visualizeNutrition", "POST")
+		if respSchema == nil {
+			return NewVisualizeRecipeNutritionResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipeNutritionResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipeNutritionResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipeNutrition(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/visualizeNutrition", "POST")
-	if respSchema == nil {
-		return NewVisualizeRecipeNutritionResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipeNutritionResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipeNutritionResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizePriceBreakdown handles POST /recipes/visualizePriceEstimator
 func (s *generatorService) VisualizePriceBreakdown(ctx context.Context, opts *VisualizePriceBreakdownServiceRequestOptions) (*VisualizePriceBreakdownResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizePriceBreakdownResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/visualizePriceEstimator", "POST")
+		if respSchema == nil {
+			return NewVisualizePriceBreakdownResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizePriceBreakdownResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizePriceBreakdownResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizePriceBreakdown(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/visualizePriceEstimator", "POST")
-	if respSchema == nil {
-		return NewVisualizePriceBreakdownResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizePriceBreakdownResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizePriceBreakdownResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeEquipment handles POST /recipes/visualizeEquipment
 func (s *generatorService) VisualizeEquipment(ctx context.Context, opts *VisualizeEquipmentServiceRequestOptions) (*VisualizeEquipmentResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeEquipmentResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/visualizeEquipment", "POST")
+		if respSchema == nil {
+			return NewVisualizeEquipmentResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeEquipmentResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeEquipmentResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeEquipment(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/visualizeEquipment", "POST")
-	if respSchema == nil {
-		return NewVisualizeEquipmentResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeEquipmentResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeEquipmentResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AnalyzeRecipe handles POST /recipes/analyze
 func (s *generatorService) AnalyzeRecipe(ctx context.Context, opts *AnalyzeRecipeServiceRequestOptions) (*AnalyzeRecipeResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AnalyzeRecipeResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/analyze", "POST")
+		if respSchema == nil {
+			return NewAnalyzeRecipeResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AnalyzeRecipeResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAnalyzeRecipeResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AnalyzeRecipe(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/analyze", "POST")
-	if respSchema == nil {
-		return NewAnalyzeRecipeResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AnalyzeRecipeResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAnalyzeRecipeResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SummarizeRecipe handles GET /recipes/{id}/summary
 func (s *generatorService) SummarizeRecipe(ctx context.Context, opts *SummarizeRecipeServiceRequestOptions) (*SummarizeRecipeResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SummarizeRecipeResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/summary", "GET")
+		if respSchema == nil {
+			return NewSummarizeRecipeResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SummarizeRecipeResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSummarizeRecipeResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SummarizeRecipe(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/summary", "GET")
-	if respSchema == nil {
-		return NewSummarizeRecipeResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SummarizeRecipeResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSummarizeRecipeResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // CreateRecipeCardGet handles GET /recipes/{id}/card
 func (s *generatorService) CreateRecipeCardGet(ctx context.Context, opts *CreateRecipeCardGetServiceRequestOptions) (*CreateRecipeCardGetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*CreateRecipeCardGetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/card", "GET")
+		if respSchema == nil {
+			return NewCreateRecipeCardGetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body CreateRecipeCardGetResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewCreateRecipeCardGetResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.CreateRecipeCardGet(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/card", "GET")
-	if respSchema == nil {
-		return NewCreateRecipeCardGetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body CreateRecipeCardGetResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewCreateRecipeCardGetResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // CreateRecipeCard handles POST /recipes/visualizeRecipe
 func (s *generatorService) CreateRecipeCard(ctx context.Context, opts *CreateRecipeCardServiceRequestOptions) (*CreateRecipeCardResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*CreateRecipeCardResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/visualizeRecipe", "POST")
+		if respSchema == nil {
+			return NewCreateRecipeCardResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body CreateRecipeCardResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewCreateRecipeCardResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.CreateRecipeCard(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/visualizeRecipe", "POST")
-	if respSchema == nil {
-		return NewCreateRecipeCardResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body CreateRecipeCardResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewCreateRecipeCardResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AnalyzeRecipeInstructions handles POST /recipes/analyzeInstructions
 func (s *generatorService) AnalyzeRecipeInstructions(ctx context.Context, opts *AnalyzeRecipeInstructionsServiceRequestOptions) (*AnalyzeRecipeInstructionsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AnalyzeRecipeInstructionsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/analyzeInstructions", "POST")
+		if respSchema == nil {
+			return NewAnalyzeRecipeInstructionsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AnalyzeRecipeInstructionsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAnalyzeRecipeInstructionsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AnalyzeRecipeInstructions(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/analyzeInstructions", "POST")
-	if respSchema == nil {
-		return NewAnalyzeRecipeInstructionsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AnalyzeRecipeInstructionsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAnalyzeRecipeInstructionsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ClassifyCuisine handles POST /recipes/cuisine
 func (s *generatorService) ClassifyCuisine(ctx context.Context, opts *ClassifyCuisineServiceRequestOptions) (*ClassifyCuisineResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ClassifyCuisineResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/cuisine", "POST")
+		if respSchema == nil {
+			return NewClassifyCuisineResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ClassifyCuisineResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewClassifyCuisineResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ClassifyCuisine(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/cuisine", "POST")
-	if respSchema == nil {
-		return NewClassifyCuisineResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ClassifyCuisineResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewClassifyCuisineResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AnalyzeARecipeSearchQuery handles GET /recipes/queries/analyze
 func (s *generatorService) AnalyzeARecipeSearchQuery(ctx context.Context, opts *AnalyzeARecipeSearchQueryServiceRequestOptions) (*AnalyzeARecipeSearchQueryResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AnalyzeARecipeSearchQueryResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/queries/analyze", "GET")
+		if respSchema == nil {
+			return NewAnalyzeARecipeSearchQueryResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AnalyzeARecipeSearchQueryResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAnalyzeARecipeSearchQueryResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AnalyzeARecipeSearchQuery(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/queries/analyze", "GET")
-	if respSchema == nil {
-		return NewAnalyzeARecipeSearchQueryResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AnalyzeARecipeSearchQueryResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAnalyzeARecipeSearchQueryResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ConvertAmounts handles GET /recipes/convert
 func (s *generatorService) ConvertAmounts(ctx context.Context, opts *ConvertAmountsServiceRequestOptions) (*ConvertAmountsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ConvertAmountsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/convert", "GET")
+		if respSchema == nil {
+			return NewConvertAmountsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ConvertAmountsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewConvertAmountsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ConvertAmounts(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/convert", "GET")
-	if respSchema == nil {
-		return NewConvertAmountsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ConvertAmountsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewConvertAmountsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ParseIngredients handles POST /recipes/parseIngredients
 func (s *generatorService) ParseIngredients(ctx context.Context, opts *ParseIngredientsServiceRequestOptions) (*ParseIngredientsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ParseIngredientsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/parseIngredients", "POST")
+		if respSchema == nil {
+			return NewParseIngredientsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ParseIngredientsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewParseIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ParseIngredients(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/parseIngredients", "POST")
-	if respSchema == nil {
-		return NewParseIngredientsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ParseIngredientsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewParseIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeRecipeNutritionByID handles GET /recipes/{id}/nutritionWidget
 func (s *generatorService) VisualizeRecipeNutritionByID(ctx context.Context, opts *VisualizeRecipeNutritionByIDServiceRequestOptions) (*VisualizeRecipeNutritionByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeRecipeNutritionByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeRecipeNutritionByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeRecipeNutritionByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeRecipeNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeRecipeNutritionByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/{id}/nutritionWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeRecipeNutritionByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeRecipeNutritionByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeRecipeNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeIngredients handles POST /recipes/visualizeIngredients
 func (s *generatorService) VisualizeIngredients(ctx context.Context, opts *VisualizeIngredientsServiceRequestOptions) (*VisualizeIngredientsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeIngredientsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/visualizeIngredients", "POST")
+		if respSchema == nil {
+			return NewVisualizeIngredientsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeIngredientsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeIngredients(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/visualizeIngredients", "POST")
-	if respSchema == nil {
-		return NewVisualizeIngredientsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeIngredientsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GuessNutritionByDishName handles GET /recipes/guessNutrition
 func (s *generatorService) GuessNutritionByDishName(ctx context.Context, opts *GuessNutritionByDishNameServiceRequestOptions) (*GuessNutritionByDishNameResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GuessNutritionByDishNameResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/guessNutrition", "GET")
+		if respSchema == nil {
+			return NewGuessNutritionByDishNameResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GuessNutritionByDishNameResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGuessNutritionByDishNameResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GuessNutritionByDishName(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/guessNutrition", "GET")
-	if respSchema == nil {
-		return NewGuessNutritionByDishNameResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GuessNutritionByDishNameResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGuessNutritionByDishNameResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetIngredientInformation handles GET /food/ingredients/{id}/information
 func (s *generatorService) GetIngredientInformation(ctx context.Context, opts *GetIngredientInformationServiceRequestOptions) (*GetIngredientInformationResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetIngredientInformationResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/{id}/information", "GET")
+		if respSchema == nil {
+			return NewGetIngredientInformationResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetIngredientInformationResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetIngredientInformationResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetIngredientInformation(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/{id}/information", "GET")
-	if respSchema == nil {
-		return NewGetIngredientInformationResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetIngredientInformationResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetIngredientInformationResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ComputeIngredientAmount handles GET /food/ingredients/{id}/amount
 func (s *generatorService) ComputeIngredientAmount(ctx context.Context, opts *ComputeIngredientAmountServiceRequestOptions) (*ComputeIngredientAmountResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ComputeIngredientAmountResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/{id}/amount", "GET")
+		if respSchema == nil {
+			return NewComputeIngredientAmountResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ComputeIngredientAmountResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewComputeIngredientAmountResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ComputeIngredientAmount(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/{id}/amount", "GET")
-	if respSchema == nil {
-		return NewComputeIngredientAmountResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ComputeIngredientAmountResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewComputeIngredientAmountResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ComputeGlycemicLoad handles POST /food/ingredients/glycemicLoad
 func (s *generatorService) ComputeGlycemicLoad(ctx context.Context, opts *ComputeGlycemicLoadServiceRequestOptions) (*ComputeGlycemicLoadResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ComputeGlycemicLoadResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/glycemicLoad", "POST")
+		if respSchema == nil {
+			return NewComputeGlycemicLoadResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ComputeGlycemicLoadResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewComputeGlycemicLoadResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ComputeGlycemicLoad(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/glycemicLoad", "POST")
-	if respSchema == nil {
-		return NewComputeGlycemicLoadResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ComputeGlycemicLoadResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewComputeGlycemicLoadResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AutocompleteIngredientSearch handles GET /food/ingredients/autocomplete
 func (s *generatorService) AutocompleteIngredientSearch(ctx context.Context, opts *AutocompleteIngredientSearchServiceRequestOptions) (*AutocompleteIngredientSearchResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AutocompleteIngredientSearchResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/autocomplete", "GET")
+		if respSchema == nil {
+			return NewAutocompleteIngredientSearchResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AutocompleteIngredientSearchResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAutocompleteIngredientSearchResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AutocompleteIngredientSearch(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/autocomplete", "GET")
-	if respSchema == nil {
-		return NewAutocompleteIngredientSearchResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AutocompleteIngredientSearchResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAutocompleteIngredientSearchResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // IngredientSearch handles GET /food/ingredients/search
 func (s *generatorService) IngredientSearch(ctx context.Context, opts *IngredientSearchServiceRequestOptions) (*IngredientSearchResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*IngredientSearchResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/search", "GET")
+		if respSchema == nil {
+			return NewIngredientSearchResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body IngredientSearchResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewIngredientSearchResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.IngredientSearch(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/search", "GET")
-	if respSchema == nil {
-		return NewIngredientSearchResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body IngredientSearchResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewIngredientSearchResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetIngredientSubstitutes handles GET /food/ingredients/substitutes
 func (s *generatorService) GetIngredientSubstitutes(ctx context.Context, opts *GetIngredientSubstitutesServiceRequestOptions) (*GetIngredientSubstitutesResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetIngredientSubstitutesResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/substitutes", "GET")
+		if respSchema == nil {
+			return NewGetIngredientSubstitutesResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetIngredientSubstitutesResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetIngredientSubstitutesResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetIngredientSubstitutes(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/substitutes", "GET")
-	if respSchema == nil {
-		return NewGetIngredientSubstitutesResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetIngredientSubstitutesResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetIngredientSubstitutesResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetIngredientSubstitutesByID handles GET /food/ingredients/{id}/substitutes
 func (s *generatorService) GetIngredientSubstitutesByID(ctx context.Context, opts *GetIngredientSubstitutesByIDServiceRequestOptions) (*GetIngredientSubstitutesByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetIngredientSubstitutesByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/{id}/substitutes", "GET")
+		if respSchema == nil {
+			return NewGetIngredientSubstitutesByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetIngredientSubstitutesByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetIngredientSubstitutesByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetIngredientSubstitutesByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/{id}/substitutes", "GET")
-	if respSchema == nil {
-		return NewGetIngredientSubstitutesByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetIngredientSubstitutesByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetIngredientSubstitutesByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchGroceryProducts handles GET /food/products/search
 func (s *generatorService) SearchGroceryProducts(ctx context.Context, opts *SearchGroceryProductsServiceRequestOptions) (*SearchGroceryProductsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchGroceryProductsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/search", "GET")
+		if respSchema == nil {
+			return NewSearchGroceryProductsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchGroceryProductsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchGroceryProductsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchGroceryProducts(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/search", "GET")
-	if respSchema == nil {
-		return NewSearchGroceryProductsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchGroceryProductsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchGroceryProductsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchGroceryProductsByUPC handles GET /food/products/upc/{upc}
 func (s *generatorService) SearchGroceryProductsByUPC(ctx context.Context, opts *SearchGroceryProductsByUPCServiceRequestOptions) (*SearchGroceryProductsByUPCResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchGroceryProductsByUPCResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/upc/{upc}", "GET")
+		if respSchema == nil {
+			return NewSearchGroceryProductsByUPCResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchGroceryProductsByUPCResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchGroceryProductsByUPCResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchGroceryProductsByUPC(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/upc/{upc}", "GET")
-	if respSchema == nil {
-		return NewSearchGroceryProductsByUPCResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchGroceryProductsByUPCResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchGroceryProductsByUPCResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchCustomFoods handles GET /food/customFoods/search
 func (s *generatorService) SearchCustomFoods(ctx context.Context, opts *SearchCustomFoodsServiceRequestOptions) (*SearchCustomFoodsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchCustomFoodsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/customFoods/search", "GET")
+		if respSchema == nil {
+			return NewSearchCustomFoodsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchCustomFoodsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchCustomFoodsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchCustomFoods(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/customFoods/search", "GET")
-	if respSchema == nil {
-		return NewSearchCustomFoodsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchCustomFoodsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchCustomFoodsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetProductInformation handles GET /food/products/{id}
 func (s *generatorService) GetProductInformation(ctx context.Context, opts *GetProductInformationServiceRequestOptions) (*GetProductInformationResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetProductInformationResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/{id}", "GET")
+		if respSchema == nil {
+			return NewGetProductInformationResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetProductInformationResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetProductInformationResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetProductInformation(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/{id}", "GET")
-	if respSchema == nil {
-		return NewGetProductInformationResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetProductInformationResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetProductInformationResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetComparableProducts handles GET /food/products/upc/{upc}/comparable
 func (s *generatorService) GetComparableProducts(ctx context.Context, opts *GetComparableProductsServiceRequestOptions) (*GetComparableProductsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetComparableProductsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/upc/{upc}/comparable", "GET")
+		if respSchema == nil {
+			return NewGetComparableProductsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetComparableProductsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetComparableProductsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetComparableProducts(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/upc/{upc}/comparable", "GET")
-	if respSchema == nil {
-		return NewGetComparableProductsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetComparableProductsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetComparableProductsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AutocompleteProductSearch handles GET /food/products/suggest
 func (s *generatorService) AutocompleteProductSearch(ctx context.Context, opts *AutocompleteProductSearchServiceRequestOptions) (*AutocompleteProductSearchResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AutocompleteProductSearchResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/suggest", "GET")
+		if respSchema == nil {
+			return NewAutocompleteProductSearchResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AutocompleteProductSearchResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAutocompleteProductSearchResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AutocompleteProductSearch(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/suggest", "GET")
-	if respSchema == nil {
-		return NewAutocompleteProductSearchResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AutocompleteProductSearchResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAutocompleteProductSearchResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeProductNutritionByID handles GET /food/products/{id}/nutritionWidget
 func (s *generatorService) VisualizeProductNutritionByID(ctx context.Context, opts *VisualizeProductNutritionByIDServiceRequestOptions) (*VisualizeProductNutritionByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeProductNutritionByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeProductNutritionByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeProductNutritionByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeProductNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeProductNutritionByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeProductNutritionByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeProductNutritionByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeProductNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ProductNutritionByIDImage handles GET /food/products/{id}/nutritionWidget.png
 func (s *generatorService) ProductNutritionByIDImage(ctx context.Context, opts *ProductNutritionByIDImageServiceRequestOptions) (*ProductNutritionByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ProductNutritionByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionWidget.png", "GET")
+		if respSchema == nil {
+			return NewProductNutritionByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewProductNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ProductNutritionByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionWidget.png", "GET")
-	if respSchema == nil {
-		return NewProductNutritionByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewProductNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ProductNutritionLabelWidget handles GET /food/products/{id}/nutritionLabel
 func (s *generatorService) ProductNutritionLabelWidget(ctx context.Context, opts *ProductNutritionLabelWidgetServiceRequestOptions) (*ProductNutritionLabelWidgetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ProductNutritionLabelWidgetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionLabel", "GET")
+		if respSchema == nil {
+			return NewProductNutritionLabelWidgetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ProductNutritionLabelWidgetResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewProductNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ProductNutritionLabelWidget(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionLabel", "GET")
-	if respSchema == nil {
-		return NewProductNutritionLabelWidgetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ProductNutritionLabelWidgetResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewProductNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ProductNutritionLabelImage handles GET /food/products/{id}/nutritionLabel.png
 func (s *generatorService) ProductNutritionLabelImage(ctx context.Context, opts *ProductNutritionLabelImageServiceRequestOptions) (*ProductNutritionLabelImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ProductNutritionLabelImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionLabel.png", "GET")
+		if respSchema == nil {
+			return NewProductNutritionLabelImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewProductNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ProductNutritionLabelImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/{id}/nutritionLabel.png", "GET")
-	if respSchema == nil {
-		return NewProductNutritionLabelImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewProductNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ClassifyGroceryProduct handles POST /food/products/classify
 func (s *generatorService) ClassifyGroceryProduct(ctx context.Context, opts *ClassifyGroceryProductServiceRequestOptions) (*ClassifyGroceryProductResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ClassifyGroceryProductResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/classify", "POST")
+		if respSchema == nil {
+			return NewClassifyGroceryProductResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ClassifyGroceryProductResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewClassifyGroceryProductResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ClassifyGroceryProduct(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/classify", "POST")
-	if respSchema == nil {
-		return NewClassifyGroceryProductResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ClassifyGroceryProductResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewClassifyGroceryProductResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ClassifyGroceryProductBulk handles POST /food/products/classifyBatch
 func (s *generatorService) ClassifyGroceryProductBulk(ctx context.Context, opts *ClassifyGroceryProductBulkServiceRequestOptions) (*ClassifyGroceryProductBulkResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ClassifyGroceryProductBulkResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/products/classifyBatch", "POST")
+		if respSchema == nil {
+			return NewClassifyGroceryProductBulkResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ClassifyGroceryProductBulkResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewClassifyGroceryProductBulkResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ClassifyGroceryProductBulk(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/products/classifyBatch", "POST")
-	if respSchema == nil {
-		return NewClassifyGroceryProductBulkResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ClassifyGroceryProductBulkResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewClassifyGroceryProductBulkResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // MapIngredientsToGroceryProducts handles POST /food/ingredients/map
 func (s *generatorService) MapIngredientsToGroceryProducts(ctx context.Context, opts *MapIngredientsToGroceryProductsServiceRequestOptions) (*MapIngredientsToGroceryProductsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*MapIngredientsToGroceryProductsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/ingredients/map", "POST")
+		if respSchema == nil {
+			return NewMapIngredientsToGroceryProductsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body MapIngredientsToGroceryProductsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewMapIngredientsToGroceryProductsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.MapIngredientsToGroceryProducts(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/ingredients/map", "POST")
-	if respSchema == nil {
-		return NewMapIngredientsToGroceryProductsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body MapIngredientsToGroceryProductsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewMapIngredientsToGroceryProductsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AutocompleteMenuItemSearch handles GET /food/menuItems/suggest
 func (s *generatorService) AutocompleteMenuItemSearch(ctx context.Context, opts *AutocompleteMenuItemSearchServiceRequestOptions) (*AutocompleteMenuItemSearchResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AutocompleteMenuItemSearchResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/suggest", "GET")
+		if respSchema == nil {
+			return NewAutocompleteMenuItemSearchResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AutocompleteMenuItemSearchResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAutocompleteMenuItemSearchResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AutocompleteMenuItemSearch(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/suggest", "GET")
-	if respSchema == nil {
-		return NewAutocompleteMenuItemSearchResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AutocompleteMenuItemSearchResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAutocompleteMenuItemSearchResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchMenuItems handles GET /food/menuItems/search
 func (s *generatorService) SearchMenuItems(ctx context.Context, opts *SearchMenuItemsServiceRequestOptions) (*SearchMenuItemsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchMenuItemsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/search", "GET")
+		if respSchema == nil {
+			return NewSearchMenuItemsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchMenuItemsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchMenuItemsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchMenuItems(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/search", "GET")
-	if respSchema == nil {
-		return NewSearchMenuItemsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchMenuItemsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchMenuItemsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetMenuItemInformation handles GET /food/menuItems/{id}
 func (s *generatorService) GetMenuItemInformation(ctx context.Context, opts *GetMenuItemInformationServiceRequestOptions) (*GetMenuItemInformationResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetMenuItemInformationResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}", "GET")
+		if respSchema == nil {
+			return NewGetMenuItemInformationResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetMenuItemInformationResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetMenuItemInformationResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetMenuItemInformation(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}", "GET")
-	if respSchema == nil {
-		return NewGetMenuItemInformationResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetMenuItemInformationResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetMenuItemInformationResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // VisualizeMenuItemNutritionByID handles GET /food/menuItems/{id}/nutritionWidget
 func (s *generatorService) VisualizeMenuItemNutritionByID(ctx context.Context, opts *VisualizeMenuItemNutritionByIDServiceRequestOptions) (*VisualizeMenuItemNutritionByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*VisualizeMenuItemNutritionByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionWidget", "GET")
+		if respSchema == nil {
+			return NewVisualizeMenuItemNutritionByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body VisualizeMenuItemNutritionByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewVisualizeMenuItemNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.VisualizeMenuItemNutritionByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionWidget", "GET")
-	if respSchema == nil {
-		return NewVisualizeMenuItemNutritionByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body VisualizeMenuItemNutritionByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewVisualizeMenuItemNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // MenuItemNutritionByIDImage handles GET /food/menuItems/{id}/nutritionWidget.png
 func (s *generatorService) MenuItemNutritionByIDImage(ctx context.Context, opts *MenuItemNutritionByIDImageServiceRequestOptions) (*MenuItemNutritionByIDImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*MenuItemNutritionByIDImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionWidget.png", "GET")
+		if respSchema == nil {
+			return NewMenuItemNutritionByIDImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewMenuItemNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.MenuItemNutritionByIDImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionWidget.png", "GET")
-	if respSchema == nil {
-		return NewMenuItemNutritionByIDImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewMenuItemNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // MenuItemNutritionLabelWidget handles GET /food/menuItems/{id}/nutritionLabel
 func (s *generatorService) MenuItemNutritionLabelWidget(ctx context.Context, opts *MenuItemNutritionLabelWidgetServiceRequestOptions) (*MenuItemNutritionLabelWidgetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*MenuItemNutritionLabelWidgetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionLabel", "GET")
+		if respSchema == nil {
+			return NewMenuItemNutritionLabelWidgetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body MenuItemNutritionLabelWidgetResponse
+		if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+			return nil, err
+		}
+		return NewMenuItemNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.MenuItemNutritionLabelWidget(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionLabel", "GET")
-	if respSchema == nil {
-		return NewMenuItemNutritionLabelWidgetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body MenuItemNutritionLabelWidgetResponse
-	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
-		return nil, err
-	}
-	return NewMenuItemNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // MenuItemNutritionLabelImage handles GET /food/menuItems/{id}/nutritionLabel.png
 func (s *generatorService) MenuItemNutritionLabelImage(ctx context.Context, opts *MenuItemNutritionLabelImageServiceRequestOptions) (*MenuItemNutritionLabelImageResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*MenuItemNutritionLabelImageResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionLabel.png", "GET")
+		if respSchema == nil {
+			return NewMenuItemNutritionLabelImageResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewMenuItemNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.MenuItemNutritionLabelImage(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/menuItems/{id}/nutritionLabel.png", "GET")
-	if respSchema == nil {
-		return NewMenuItemNutritionLabelImageResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewMenuItemNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GenerateMealPlan handles GET /mealplanner/generate
 func (s *generatorService) GenerateMealPlan(ctx context.Context, opts *GenerateMealPlanServiceRequestOptions) (*GenerateMealPlanResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GenerateMealPlanResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/generate", "GET")
+		if respSchema == nil {
+			return NewGenerateMealPlanResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GenerateMealPlanResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGenerateMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GenerateMealPlan(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/generate", "GET")
-	if respSchema == nil {
-		return NewGenerateMealPlanResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GenerateMealPlanResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGenerateMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetMealPlanWeek handles GET /mealplanner/{username}/week/{start-date}
 func (s *generatorService) GetMealPlanWeek(ctx context.Context, opts *GetMealPlanWeekServiceRequestOptions) (*GetMealPlanWeekResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetMealPlanWeekResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/week/{start-date}", "GET")
+		if respSchema == nil {
+			return NewGetMealPlanWeekResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetMealPlanWeekResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetMealPlanWeekResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetMealPlanWeek(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/week/{start-date}", "GET")
-	if respSchema == nil {
-		return NewGetMealPlanWeekResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetMealPlanWeekResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetMealPlanWeekResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ClearMealPlanDay handles DELETE /mealplanner/{username}/day/{date}
 func (s *generatorService) ClearMealPlanDay(ctx context.Context, opts *ClearMealPlanDayServiceRequestOptions) (*ClearMealPlanDayResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ClearMealPlanDayResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/day/{date}", "DELETE")
+		if respSchema == nil {
+			return NewClearMealPlanDayResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ClearMealPlanDayResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewClearMealPlanDayResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ClearMealPlanDay(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/day/{date}", "DELETE")
-	if respSchema == nil {
-		return NewClearMealPlanDayResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ClearMealPlanDayResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewClearMealPlanDayResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AddToMealPlan handles POST /mealplanner/{username}/items
 func (s *generatorService) AddToMealPlan(ctx context.Context, opts *AddToMealPlanServiceRequestOptions) (*AddToMealPlanResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AddToMealPlanResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/items", "POST")
+		if respSchema == nil {
+			return NewAddToMealPlanResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AddToMealPlanResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAddToMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AddToMealPlan(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/items", "POST")
-	if respSchema == nil {
-		return NewAddToMealPlanResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AddToMealPlanResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAddToMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DeleteFromMealPlan handles DELETE /mealplanner/{username}/items/{id}
 func (s *generatorService) DeleteFromMealPlan(ctx context.Context, opts *DeleteFromMealPlanServiceRequestOptions) (*DeleteFromMealPlanResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DeleteFromMealPlanResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/items/{id}", "DELETE")
+		if respSchema == nil {
+			return NewDeleteFromMealPlanResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body DeleteFromMealPlanResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewDeleteFromMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DeleteFromMealPlan(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/items/{id}", "DELETE")
-	if respSchema == nil {
-		return NewDeleteFromMealPlanResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body DeleteFromMealPlanResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewDeleteFromMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetMealPlanTemplates handles GET /mealplanner/{username}/templates
 func (s *generatorService) GetMealPlanTemplates(ctx context.Context, opts *GetMealPlanTemplatesServiceRequestOptions) (*GetMealPlanTemplatesResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetMealPlanTemplatesResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates", "GET")
+		if respSchema == nil {
+			return NewGetMealPlanTemplatesResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetMealPlanTemplatesResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetMealPlanTemplatesResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetMealPlanTemplates(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates", "GET")
-	if respSchema == nil {
-		return NewGetMealPlanTemplatesResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetMealPlanTemplatesResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetMealPlanTemplatesResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AddMealPlanTemplate handles POST /mealplanner/{username}/templates
 func (s *generatorService) AddMealPlanTemplate(ctx context.Context, opts *AddMealPlanTemplateServiceRequestOptions) (*AddMealPlanTemplateResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AddMealPlanTemplateResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates", "POST")
+		if respSchema == nil {
+			return NewAddMealPlanTemplateResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AddMealPlanTemplateResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAddMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AddMealPlanTemplate(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates", "POST")
-	if respSchema == nil {
-		return NewAddMealPlanTemplateResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AddMealPlanTemplateResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAddMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetMealPlanTemplate handles GET /mealplanner/{username}/templates/{id}
 func (s *generatorService) GetMealPlanTemplate(ctx context.Context, opts *GetMealPlanTemplateServiceRequestOptions) (*GetMealPlanTemplateResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetMealPlanTemplateResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates/{id}", "GET")
+		if respSchema == nil {
+			return NewGetMealPlanTemplateResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetMealPlanTemplateResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetMealPlanTemplate(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates/{id}", "GET")
-	if respSchema == nil {
-		return NewGetMealPlanTemplateResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetMealPlanTemplateResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DeleteMealPlanTemplate handles DELETE /mealplanner/{username}/templates/{id}
 func (s *generatorService) DeleteMealPlanTemplate(ctx context.Context, opts *DeleteMealPlanTemplateServiceRequestOptions) (*DeleteMealPlanTemplateResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DeleteMealPlanTemplateResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates/{id}", "DELETE")
+		if respSchema == nil {
+			return NewDeleteMealPlanTemplateResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body DeleteMealPlanTemplateResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewDeleteMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DeleteMealPlanTemplate(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/templates/{id}", "DELETE")
-	if respSchema == nil {
-		return NewDeleteMealPlanTemplateResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body DeleteMealPlanTemplateResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewDeleteMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetShoppingList handles GET /mealplanner/{username}/shopping-list
 func (s *generatorService) GetShoppingList(ctx context.Context, opts *GetShoppingListServiceRequestOptions) (*GetShoppingListResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetShoppingListResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list", "GET")
+		if respSchema == nil {
+			return NewGetShoppingListResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetShoppingListResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetShoppingList(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list", "GET")
-	if respSchema == nil {
-		return NewGetShoppingListResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetShoppingListResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GenerateShoppingList handles POST /mealplanner/{username}/shopping-list/{start-date}/{end-date}
 func (s *generatorService) GenerateShoppingList(ctx context.Context, opts *GenerateShoppingListServiceRequestOptions) (*GenerateShoppingListResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GenerateShoppingListResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list/{start-date}/{end-date}", "POST")
+		if respSchema == nil {
+			return NewGenerateShoppingListResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GenerateShoppingListResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGenerateShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GenerateShoppingList(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list/{start-date}/{end-date}", "POST")
-	if respSchema == nil {
-		return NewGenerateShoppingListResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GenerateShoppingListResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGenerateShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ConnectUser handles POST /users/connect
 func (s *generatorService) ConnectUser(ctx context.Context, opts *ConnectUserServiceRequestOptions) (*ConnectUserResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ConnectUserResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/users/connect", "POST")
+		if respSchema == nil {
+			return NewConnectUserResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ConnectUserResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewConnectUserResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ConnectUser(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/users/connect", "POST")
-	if respSchema == nil {
-		return NewConnectUserResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ConnectUserResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewConnectUserResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AddToShoppingList handles POST /mealplanner/{username}/shopping-list/items
 func (s *generatorService) AddToShoppingList(ctx context.Context, opts *AddToShoppingListServiceRequestOptions) (*AddToShoppingListResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AddToShoppingListResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list/items", "POST")
+		if respSchema == nil {
+			return NewAddToShoppingListResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AddToShoppingListResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAddToShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AddToShoppingList(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list/items", "POST")
-	if respSchema == nil {
-		return NewAddToShoppingListResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AddToShoppingListResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAddToShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DeleteFromShoppingList handles DELETE /mealplanner/{username}/shopping-list/items/{id}
 func (s *generatorService) DeleteFromShoppingList(ctx context.Context, opts *DeleteFromShoppingListServiceRequestOptions) (*DeleteFromShoppingListResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DeleteFromShoppingListResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list/items/{id}", "DELETE")
+		if respSchema == nil {
+			return NewDeleteFromShoppingListResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body DeleteFromShoppingListResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewDeleteFromShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DeleteFromShoppingList(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/mealplanner/{username}/shopping-list/items/{id}", "DELETE")
-	if respSchema == nil {
-		return NewDeleteFromShoppingListResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body DeleteFromShoppingListResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewDeleteFromShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchRestaurants handles GET /food/restaurants/search
 func (s *generatorService) SearchRestaurants(ctx context.Context, opts *SearchRestaurantsServiceRequestOptions) (*SearchRestaurantsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchRestaurantsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/restaurants/search", "GET")
+		if respSchema == nil {
+			return NewSearchRestaurantsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchRestaurantsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchRestaurantsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchRestaurants(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/restaurants/search", "GET")
-	if respSchema == nil {
-		return NewSearchRestaurantsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchRestaurantsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchRestaurantsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetDishPairingForWine handles GET /food/wine/dishes
 func (s *generatorService) GetDishPairingForWine(ctx context.Context, opts *GetDishPairingForWineServiceRequestOptions) (*GetDishPairingForWineResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetDishPairingForWineResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/wine/dishes", "GET")
+		if respSchema == nil {
+			return NewGetDishPairingForWineResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetDishPairingForWineResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetDishPairingForWineResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetDishPairingForWine(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/wine/dishes", "GET")
-	if respSchema == nil {
-		return NewGetDishPairingForWineResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetDishPairingForWineResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetDishPairingForWineResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetWinePairing handles GET /food/wine/pairing
 func (s *generatorService) GetWinePairing(ctx context.Context, opts *GetWinePairingServiceRequestOptions) (*GetWinePairingResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetWinePairingResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/wine/pairing", "GET")
+		if respSchema == nil {
+			return NewGetWinePairingResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetWinePairingResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetWinePairingResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetWinePairing(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/wine/pairing", "GET")
-	if respSchema == nil {
-		return NewGetWinePairingResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetWinePairingResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetWinePairingResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetWineDescription handles GET /food/wine/description
 func (s *generatorService) GetWineDescription(ctx context.Context, opts *GetWineDescriptionServiceRequestOptions) (*GetWineDescriptionResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetWineDescriptionResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/wine/description", "GET")
+		if respSchema == nil {
+			return NewGetWineDescriptionResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetWineDescriptionResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetWineDescriptionResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetWineDescription(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/wine/description", "GET")
-	if respSchema == nil {
-		return NewGetWineDescriptionResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetWineDescriptionResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetWineDescriptionResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetWineRecommendation handles GET /food/wine/recommendation
 func (s *generatorService) GetWineRecommendation(ctx context.Context, opts *GetWineRecommendationServiceRequestOptions) (*GetWineRecommendationResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetWineRecommendationResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/wine/recommendation", "GET")
+		if respSchema == nil {
+			return NewGetWineRecommendationResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetWineRecommendationResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetWineRecommendationResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetWineRecommendation(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/wine/recommendation", "GET")
-	if respSchema == nil {
-		return NewGetWineRecommendationResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetWineRecommendationResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetWineRecommendationResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ImageClassificationByURL handles GET /food/images/classify
 func (s *generatorService) ImageClassificationByURL(ctx context.Context, opts *ImageClassificationByURLServiceRequestOptions) (*ImageClassificationByURLResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ImageClassificationByURLResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/images/classify", "GET")
+		if respSchema == nil {
+			return NewImageClassificationByURLResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ImageClassificationByURLResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewImageClassificationByURLResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ImageClassificationByURL(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/images/classify", "GET")
-	if respSchema == nil {
-		return NewImageClassificationByURLResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ImageClassificationByURLResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewImageClassificationByURLResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // ImageAnalysisByURL handles GET /food/images/analyze
 func (s *generatorService) ImageAnalysisByURL(ctx context.Context, opts *ImageAnalysisByURLServiceRequestOptions) (*ImageAnalysisByURLResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*ImageAnalysisByURLResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/images/analyze", "GET")
+		if respSchema == nil {
+			return NewImageAnalysisByURLResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body ImageAnalysisByURLResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewImageAnalysisByURLResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.ImageAnalysisByURL(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/images/analyze", "GET")
-	if respSchema == nil {
-		return NewImageAnalysisByURLResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body ImageAnalysisByURLResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewImageAnalysisByURLResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // QuickAnswer handles GET /recipes/quickAnswer
 func (s *generatorService) QuickAnswer(ctx context.Context, opts *QuickAnswerServiceRequestOptions) (*QuickAnswerResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*QuickAnswerResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/recipes/quickAnswer", "GET")
+		if respSchema == nil {
+			return NewQuickAnswerResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body QuickAnswerResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewQuickAnswerResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.QuickAnswer(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/recipes/quickAnswer", "GET")
-	if respSchema == nil {
-		return NewQuickAnswerResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body QuickAnswerResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewQuickAnswerResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DetectFoodInText handles POST /food/detect
 func (s *generatorService) DetectFoodInText(ctx context.Context, opts *DetectFoodInTextServiceRequestOptions) (*DetectFoodInTextResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DetectFoodInTextResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/detect", "POST")
+		if respSchema == nil {
+			return NewDetectFoodInTextResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body DetectFoodInTextResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewDetectFoodInTextResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DetectFoodInText(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/detect", "POST")
-	if respSchema == nil {
-		return NewDetectFoodInTextResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body DetectFoodInTextResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewDetectFoodInTextResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchSiteContent handles GET /food/site/search
 func (s *generatorService) SearchSiteContent(ctx context.Context, opts *SearchSiteContentServiceRequestOptions) (*SearchSiteContentResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchSiteContentResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/site/search", "GET")
+		if respSchema == nil {
+			return NewSearchSiteContentResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchSiteContentResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchSiteContentResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchSiteContent(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/site/search", "GET")
-	if respSchema == nil {
-		return NewSearchSiteContentResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchSiteContentResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchSiteContentResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchAllFood handles GET /food/search
 func (s *generatorService) SearchAllFood(ctx context.Context, opts *SearchAllFoodServiceRequestOptions) (*SearchAllFoodResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchAllFoodResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/search", "GET")
+		if respSchema == nil {
+			return NewSearchAllFoodResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchAllFoodResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchAllFoodResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchAllFood(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/search", "GET")
-	if respSchema == nil {
-		return NewSearchAllFoodResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchAllFoodResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchAllFoodResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // SearchFoodVideos handles GET /food/videos/search
 func (s *generatorService) SearchFoodVideos(ctx context.Context, opts *SearchFoodVideosServiceRequestOptions) (*SearchFoodVideosResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*SearchFoodVideosResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/videos/search", "GET")
+		if respSchema == nil {
+			return NewSearchFoodVideosResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body SearchFoodVideosResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewSearchFoodVideosResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.SearchFoodVideos(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/videos/search", "GET")
-	if respSchema == nil {
-		return NewSearchFoodVideosResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body SearchFoodVideosResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewSearchFoodVideosResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetARandomFoodJoke handles GET /food/jokes/random
@@ -12726,44 +13106,52 @@ func (s *generatorService) GetRandomFoodTrivia(ctx context.Context) (*GetRandomF
 
 // TalkToChatbot handles GET /food/converse
 func (s *generatorService) TalkToChatbot(ctx context.Context, opts *TalkToChatbotServiceRequestOptions) (*TalkToChatbotResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*TalkToChatbotResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/converse", "GET")
+		if respSchema == nil {
+			return NewTalkToChatbotResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body TalkToChatbotResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewTalkToChatbotResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.TalkToChatbot(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/converse", "GET")
-	if respSchema == nil {
-		return NewTalkToChatbotResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body TalkToChatbotResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewTalkToChatbotResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetConversationSuggests handles GET /food/converse/suggest
 func (s *generatorService) GetConversationSuggests(ctx context.Context, opts *GetConversationSuggestsServiceRequestOptions) (*GetConversationSuggestsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetConversationSuggestsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/food/converse/suggest", "GET")
+		if respSchema == nil {
+			return NewGetConversationSuggestsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetConversationSuggestsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetConversationSuggestsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetConversationSuggests(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/food/converse/suggest", "GET")
-	if respSchema == nil {
-		return NewGetConversationSuggestsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetConversationSuggestsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetConversationSuggestsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 type VisualizeRecipeTasteHeaders struct {
@@ -18412,6 +18800,8 @@ type SearchRecipesServiceRequestOptions struct {
 	Query *SearchRecipesQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchRecipesResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18437,6 +18827,8 @@ type SearchRecipesByIngredientsServiceRequestOptions struct {
 	Query *SearchRecipesByIngredientsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchRecipesByIngredientsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18462,6 +18854,8 @@ type SearchRecipesByNutrientsServiceRequestOptions struct {
 	Query *SearchRecipesByNutrientsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchRecipesByNutrientsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18488,6 +18882,8 @@ type GetRecipeInformationServiceRequestOptions struct {
 	Query      *GetRecipeInformationQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipeInformationResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18521,6 +18917,8 @@ type GetRecipeInformationBulkServiceRequestOptions struct {
 	Query *GetRecipeInformationBulkQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipeInformationBulkResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18547,6 +18945,8 @@ type GetSimilarRecipesServiceRequestOptions struct {
 	Query      *GetSimilarRecipesQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetSimilarRecipesResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18580,6 +18980,8 @@ type GetRandomRecipesServiceRequestOptions struct {
 	Query *GetRandomRecipesQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRandomRecipesResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18605,6 +19007,8 @@ type AutocompleteRecipeSearchServiceRequestOptions struct {
 	Query *AutocompleteRecipeSearchQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AutocompleteRecipeSearchResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18631,6 +19035,8 @@ type GetRecipeTasteByIDServiceRequestOptions struct {
 	Query      *GetRecipeTasteByIDQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipeTasteByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18665,6 +19071,8 @@ type RecipeTasteByIDImageServiceRequestOptions struct {
 	Query      *RecipeTasteByIDImageQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*RecipeTasteByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18698,6 +19106,8 @@ type GetRecipeEquipmentByIDServiceRequestOptions struct {
 	PathParams *GetRecipeEquipmentByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipeEquipmentByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18723,6 +19133,8 @@ type EquipmentByIDImageServiceRequestOptions struct {
 	PathParams *EquipmentByIDImagePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*EquipmentByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18748,6 +19160,8 @@ type GetRecipePriceBreakdownByIDServiceRequestOptions struct {
 	PathParams *GetRecipePriceBreakdownByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipePriceBreakdownByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18773,6 +19187,8 @@ type PriceBreakdownByIDImageServiceRequestOptions struct {
 	PathParams *PriceBreakdownByIDImagePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*PriceBreakdownByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18798,6 +19214,8 @@ type GetRecipeIngredientsByIDServiceRequestOptions struct {
 	PathParams *GetRecipeIngredientsByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipeIngredientsByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18824,6 +19242,8 @@ type IngredientsByIDImageServiceRequestOptions struct {
 	Query      *IngredientsByIDImageQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*IngredientsByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18857,6 +19277,8 @@ type GetRecipeNutritionWidgetByIDServiceRequestOptions struct {
 	PathParams *GetRecipeNutritionWidgetByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetRecipeNutritionWidgetByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18882,6 +19304,8 @@ type RecipeNutritionByIDImageServiceRequestOptions struct {
 	PathParams *RecipeNutritionByIDImagePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*RecipeNutritionByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18908,6 +19332,8 @@ type RecipeNutritionLabelWidgetServiceRequestOptions struct {
 	Query      *RecipeNutritionLabelWidgetQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*RecipeNutritionLabelWidgetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18942,6 +19368,8 @@ type RecipeNutritionLabelImageServiceRequestOptions struct {
 	Query      *RecipeNutritionLabelImageQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*RecipeNutritionLabelImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -18976,6 +19404,8 @@ type GetAnalyzedRecipeInstructionsServiceRequestOptions struct {
 	Query      *GetAnalyzedRecipeInstructionsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetAnalyzedRecipeInstructionsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19009,6 +19439,8 @@ type ExtractRecipeFromWebsiteServiceRequestOptions struct {
 	Query *ExtractRecipeFromWebsiteQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ExtractRecipeFromWebsiteResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19035,6 +19467,8 @@ type VisualizeRecipeIngredientsByIDServiceRequestOptions struct {
 	Query      *VisualizeRecipeIngredientsByIDQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipeIngredientsByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19069,6 +19503,8 @@ type VisualizeRecipeTasteByIDServiceRequestOptions struct {
 	Query      *VisualizeRecipeTasteByIDQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipeTasteByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19103,6 +19539,8 @@ type VisualizeRecipeEquipmentByIDServiceRequestOptions struct {
 	Query      *VisualizeRecipeEquipmentByIDQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipeEquipmentByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19137,6 +19575,8 @@ type VisualizeRecipePriceBreakdownByIDServiceRequestOptions struct {
 	Query      *VisualizeRecipePriceBreakdownByIDQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipePriceBreakdownByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19172,6 +19612,8 @@ type VisualizeRecipeTasteServiceRequestOptions struct {
 	Header *VisualizeRecipeTasteHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipeTasteResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19215,6 +19657,8 @@ type VisualizeRecipeNutritionServiceRequestOptions struct {
 	Header *VisualizeRecipeNutritionHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipeNutritionResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19258,6 +19702,8 @@ type VisualizePriceBreakdownServiceRequestOptions struct {
 	Header *VisualizePriceBreakdownHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizePriceBreakdownResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19300,6 +19746,8 @@ type VisualizeEquipmentServiceRequestOptions struct {
 	Header *VisualizeEquipmentHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeEquipmentResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19333,6 +19781,8 @@ type AnalyzeRecipeServiceRequestOptions struct {
 	Query *AnalyzeRecipeQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AnalyzeRecipeResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19358,6 +19808,8 @@ type SummarizeRecipeServiceRequestOptions struct {
 	PathParams *SummarizeRecipePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SummarizeRecipeResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19384,6 +19836,8 @@ type CreateRecipeCardGetServiceRequestOptions struct {
 	Query      *CreateRecipeCardGetQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*CreateRecipeCardGetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19418,6 +19872,8 @@ type CreateRecipeCardServiceRequestOptions struct {
 	Header *CreateRecipeCardHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*CreateRecipeCardResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19452,6 +19908,8 @@ type AnalyzeRecipeInstructionsServiceRequestOptions struct {
 	Header *AnalyzeRecipeInstructionsHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AnalyzeRecipeInstructionsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19486,6 +19944,8 @@ type ClassifyCuisineServiceRequestOptions struct {
 	Header *ClassifyCuisineHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ClassifyCuisineResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19519,6 +19979,8 @@ type AnalyzeARecipeSearchQueryServiceRequestOptions struct {
 	Query *AnalyzeARecipeSearchQueryQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AnalyzeARecipeSearchQueryResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19544,6 +20006,8 @@ type ConvertAmountsServiceRequestOptions struct {
 	Query *ConvertAmountsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ConvertAmountsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19571,6 +20035,8 @@ type ParseIngredientsServiceRequestOptions struct {
 	Header *ParseIngredientsHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ParseIngredientsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19614,6 +20080,8 @@ type VisualizeRecipeNutritionByIDServiceRequestOptions struct {
 	Header     *VisualizeRecipeNutritionByIDHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeRecipeNutritionByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19657,6 +20125,8 @@ type VisualizeIngredientsServiceRequestOptions struct {
 	Header *VisualizeIngredientsHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeIngredientsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19698,6 +20168,8 @@ type GuessNutritionByDishNameServiceRequestOptions struct {
 	Query *GuessNutritionByDishNameQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GuessNutritionByDishNameResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19724,6 +20196,8 @@ type GetIngredientInformationServiceRequestOptions struct {
 	Query      *GetIngredientInformationQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetIngredientInformationResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19758,6 +20232,8 @@ type ComputeIngredientAmountServiceRequestOptions struct {
 	Query      *ComputeIngredientAmountQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ComputeIngredientAmountResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19792,6 +20268,8 @@ type ComputeGlycemicLoadServiceRequestOptions struct {
 	Body  *ComputeGlycemicLoadBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ComputeGlycemicLoadResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19825,6 +20303,8 @@ type AutocompleteIngredientSearchServiceRequestOptions struct {
 	Query *AutocompleteIngredientSearchQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AutocompleteIngredientSearchResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19850,6 +20330,8 @@ type IngredientSearchServiceRequestOptions struct {
 	Query *IngredientSearchQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*IngredientSearchResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19875,6 +20357,8 @@ type GetIngredientSubstitutesServiceRequestOptions struct {
 	Query *GetIngredientSubstitutesQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetIngredientSubstitutesResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19900,6 +20384,8 @@ type GetIngredientSubstitutesByIDServiceRequestOptions struct {
 	PathParams *GetIngredientSubstitutesByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetIngredientSubstitutesByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19925,6 +20411,8 @@ type SearchGroceryProductsServiceRequestOptions struct {
 	Query *SearchGroceryProductsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchGroceryProductsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19950,6 +20438,8 @@ type SearchGroceryProductsByUPCServiceRequestOptions struct {
 	PathParams *SearchGroceryProductsByUPCPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchGroceryProductsByUPCResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -19975,6 +20465,8 @@ type SearchCustomFoodsServiceRequestOptions struct {
 	Query *SearchCustomFoodsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchCustomFoodsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20000,6 +20492,8 @@ type GetProductInformationServiceRequestOptions struct {
 	PathParams *GetProductInformationPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetProductInformationResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20025,6 +20519,8 @@ type GetComparableProductsServiceRequestOptions struct {
 	PathParams *GetComparableProductsPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetComparableProductsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20050,6 +20546,8 @@ type AutocompleteProductSearchServiceRequestOptions struct {
 	Query *AutocompleteProductSearchQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AutocompleteProductSearchResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20077,6 +20575,8 @@ type VisualizeProductNutritionByIDServiceRequestOptions struct {
 	Header     *VisualizeProductNutritionByIDHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeProductNutritionByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20118,6 +20618,8 @@ type ProductNutritionByIDImageServiceRequestOptions struct {
 	PathParams *ProductNutritionByIDImagePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ProductNutritionByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20144,6 +20646,8 @@ type ProductNutritionLabelWidgetServiceRequestOptions struct {
 	Query      *ProductNutritionLabelWidgetQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ProductNutritionLabelWidgetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20178,6 +20682,8 @@ type ProductNutritionLabelImageServiceRequestOptions struct {
 	Query      *ProductNutritionLabelImageQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ProductNutritionLabelImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20212,6 +20718,8 @@ type ClassifyGroceryProductServiceRequestOptions struct {
 	Body  *ClassifyGroceryProductBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ClassifyGroceryProductResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20246,6 +20754,8 @@ type ClassifyGroceryProductBulkServiceRequestOptions struct {
 	Body  *ClassifyGroceryProductBulkBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ClassifyGroceryProductBulkResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20279,6 +20789,8 @@ type MapIngredientsToGroceryProductsServiceRequestOptions struct {
 	Body *MapIngredientsToGroceryProductsBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*MapIngredientsToGroceryProductsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20304,6 +20816,8 @@ type AutocompleteMenuItemSearchServiceRequestOptions struct {
 	Query *AutocompleteMenuItemSearchQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AutocompleteMenuItemSearchResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20329,6 +20843,8 @@ type SearchMenuItemsServiceRequestOptions struct {
 	Query *SearchMenuItemsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchMenuItemsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20354,6 +20870,8 @@ type GetMenuItemInformationServiceRequestOptions struct {
 	PathParams *GetMenuItemInformationPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetMenuItemInformationResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20381,6 +20899,8 @@ type VisualizeMenuItemNutritionByIDServiceRequestOptions struct {
 	Header     *VisualizeMenuItemNutritionByIDHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*VisualizeMenuItemNutritionByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20422,6 +20942,8 @@ type MenuItemNutritionByIDImageServiceRequestOptions struct {
 	PathParams *MenuItemNutritionByIDImagePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*MenuItemNutritionByIDImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20448,6 +20970,8 @@ type MenuItemNutritionLabelWidgetServiceRequestOptions struct {
 	Query      *MenuItemNutritionLabelWidgetQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*MenuItemNutritionLabelWidgetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20482,6 +21006,8 @@ type MenuItemNutritionLabelImageServiceRequestOptions struct {
 	Query      *MenuItemNutritionLabelImageQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*MenuItemNutritionLabelImageResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20515,6 +21041,8 @@ type GenerateMealPlanServiceRequestOptions struct {
 	Query *GenerateMealPlanQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GenerateMealPlanResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20541,6 +21069,8 @@ type GetMealPlanWeekServiceRequestOptions struct {
 	Query      *GetMealPlanWeekQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetMealPlanWeekResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20575,6 +21105,8 @@ type ClearMealPlanDayServiceRequestOptions struct {
 	Query      *ClearMealPlanDayQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ClearMealPlanDayResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20609,6 +21141,8 @@ type AddToMealPlanServiceRequestOptions struct {
 	Query      *AddToMealPlanQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AddToMealPlanResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20643,6 +21177,8 @@ type DeleteFromMealPlanServiceRequestOptions struct {
 	Query      *DeleteFromMealPlanQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DeleteFromMealPlanResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20677,6 +21213,8 @@ type GetMealPlanTemplatesServiceRequestOptions struct {
 	Query      *GetMealPlanTemplatesQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetMealPlanTemplatesResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20711,6 +21249,8 @@ type AddMealPlanTemplateServiceRequestOptions struct {
 	Query      *AddMealPlanTemplateQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AddMealPlanTemplateResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20745,6 +21285,8 @@ type GetMealPlanTemplateServiceRequestOptions struct {
 	Query      *GetMealPlanTemplateQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetMealPlanTemplateResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20779,6 +21321,8 @@ type DeleteMealPlanTemplateServiceRequestOptions struct {
 	Query      *DeleteMealPlanTemplateQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DeleteMealPlanTemplateResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20813,6 +21357,8 @@ type GetShoppingListServiceRequestOptions struct {
 	Query      *GetShoppingListQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetShoppingListResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20847,6 +21393,8 @@ type GenerateShoppingListServiceRequestOptions struct {
 	Query      *GenerateShoppingListQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GenerateShoppingListResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20879,6 +21427,8 @@ func (o *GenerateShoppingListServiceRequestOptions) Validate() error {
 type ConnectUserServiceRequestOptions struct {
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ConnectUserResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20898,6 +21448,8 @@ type AddToShoppingListServiceRequestOptions struct {
 	Query      *AddToShoppingListQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AddToShoppingListResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20932,6 +21484,8 @@ type DeleteFromShoppingListServiceRequestOptions struct {
 	Query      *DeleteFromShoppingListQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DeleteFromShoppingListResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20965,6 +21519,8 @@ type SearchRestaurantsServiceRequestOptions struct {
 	Query *SearchRestaurantsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchRestaurantsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -20990,6 +21546,8 @@ type GetDishPairingForWineServiceRequestOptions struct {
 	Query *GetDishPairingForWineQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetDishPairingForWineResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21015,6 +21573,8 @@ type GetWinePairingServiceRequestOptions struct {
 	Query *GetWinePairingQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetWinePairingResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21040,6 +21600,8 @@ type GetWineDescriptionServiceRequestOptions struct {
 	Query *GetWineDescriptionQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetWineDescriptionResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21065,6 +21627,8 @@ type GetWineRecommendationServiceRequestOptions struct {
 	Query *GetWineRecommendationQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetWineRecommendationResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21090,6 +21654,8 @@ type ImageClassificationByURLServiceRequestOptions struct {
 	Query *ImageClassificationByURLQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ImageClassificationByURLResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21115,6 +21681,8 @@ type ImageAnalysisByURLServiceRequestOptions struct {
 	Query *ImageAnalysisByURLQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*ImageAnalysisByURLResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21140,6 +21708,8 @@ type QuickAnswerServiceRequestOptions struct {
 	Query *QuickAnswerQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*QuickAnswerResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21166,6 +21736,8 @@ type DetectFoodInTextServiceRequestOptions struct {
 	Header *DetectFoodInTextHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DetectFoodInTextResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21199,6 +21771,8 @@ type SearchSiteContentServiceRequestOptions struct {
 	Query *SearchSiteContentQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchSiteContentResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21224,6 +21798,8 @@ type SearchAllFoodServiceRequestOptions struct {
 	Query *SearchAllFoodQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchAllFoodResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21249,6 +21825,8 @@ type SearchFoodVideosServiceRequestOptions struct {
 	Query *SearchFoodVideosQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*SearchFoodVideosResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21274,6 +21852,8 @@ type TalkToChatbotServiceRequestOptions struct {
 	Query *TalkToChatbotQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*TalkToChatbotResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -21299,6 +21879,8 @@ type GetConversationSuggestsServiceRequestOptions struct {
 	Query *GetConversationSuggestsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetConversationSuggestsResponseData, error)
 }
 
 // Validate validates all the fields in the options.

@@ -1377,166 +1377,198 @@ var _ ServiceInterface = (*generatorService)(nil)
 
 // UpdatePet handles PUT /pet
 func (s *generatorService) UpdatePet(ctx context.Context, opts *UpdatePetServiceRequestOptions) (*UpdatePetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*UpdatePetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet", "PUT")
+		if respSchema == nil {
+			return NewUpdatePetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body UpdatePetResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewUpdatePetResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.UpdatePet(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet", "PUT")
-	if respSchema == nil {
-		return NewUpdatePetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body UpdatePetResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewUpdatePetResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // AddPet handles POST /pet
 func (s *generatorService) AddPet(ctx context.Context, opts *AddPetServiceRequestOptions) (*AddPetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*AddPetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet", "POST")
+		if respSchema == nil {
+			return NewAddPetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body AddPetResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewAddPetResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.AddPet(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet", "POST")
-	if respSchema == nil {
-		return NewAddPetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body AddPetResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewAddPetResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // FindPetsByStatus handles GET /pet/findByStatus
 func (s *generatorService) FindPetsByStatus(ctx context.Context, opts *FindPetsByStatusServiceRequestOptions) (*FindPetsByStatusResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*FindPetsByStatusResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet/findByStatus", "GET")
+		if respSchema == nil {
+			return NewFindPetsByStatusResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body FindPetsByStatusResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewFindPetsByStatusResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.FindPetsByStatus(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet/findByStatus", "GET")
-	if respSchema == nil {
-		return NewFindPetsByStatusResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body FindPetsByStatusResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewFindPetsByStatusResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // FindPetsByTags handles GET /pet/findByTags
 func (s *generatorService) FindPetsByTags(ctx context.Context, opts *FindPetsByTagsServiceRequestOptions) (*FindPetsByTagsResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*FindPetsByTagsResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet/findByTags", "GET")
+		if respSchema == nil {
+			return NewFindPetsByTagsResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body FindPetsByTagsResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewFindPetsByTagsResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.FindPetsByTags(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet/findByTags", "GET")
-	if respSchema == nil {
-		return NewFindPetsByTagsResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body FindPetsByTagsResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewFindPetsByTagsResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetPetByID handles GET /pet/{petId}
 func (s *generatorService) GetPetByID(ctx context.Context, opts *GetPetByIDServiceRequestOptions) (*GetPetByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetPetByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet/{petId}", "GET")
+		if respSchema == nil {
+			return NewGetPetByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetPetByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetPetByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetPetByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet/{petId}", "GET")
-	if respSchema == nil {
-		return NewGetPetByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetPetByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetPetByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // UpdatePetWithForm handles POST /pet/{petId}
 func (s *generatorService) UpdatePetWithForm(ctx context.Context, opts *UpdatePetWithFormServiceRequestOptions) (*UpdatePetWithFormResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*UpdatePetWithFormResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet/{petId}", "POST")
+		if respSchema == nil {
+			return NewUpdatePetWithFormResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body UpdatePetWithFormResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewUpdatePetWithFormResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.UpdatePetWithForm(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet/{petId}", "POST")
-	if respSchema == nil {
-		return NewUpdatePetWithFormResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body UpdatePetWithFormResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewUpdatePetWithFormResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DeletePet handles DELETE /pet/{petId}
 func (s *generatorService) DeletePet(ctx context.Context, opts *DeletePetServiceRequestOptions) (*DeletePetResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DeletePetResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet/{petId}", "DELETE")
+		if respSchema == nil {
+			return NewDeletePetResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewDeletePetResponseData(nil).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DeletePet(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet/{petId}", "DELETE")
-	if respSchema == nil {
-		return NewDeletePetResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewDeletePetResponseData(nil).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // UploadFile handles POST /pet/{petId}/uploadImage
 func (s *generatorService) UploadFile(ctx context.Context, opts *UploadFileServiceRequestOptions) (*UploadFileResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*UploadFileResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/pet/{petId}/uploadImage", "POST")
+		if respSchema == nil {
+			return NewUploadFileResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body UploadFileResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewUploadFileResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.UploadFile(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/pet/{petId}/uploadImage", "POST")
-	if respSchema == nil {
-		return NewUploadFileResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body UploadFileResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewUploadFileResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetInventory handles GET /store/inventory
@@ -1562,124 +1594,148 @@ func (s *generatorService) GetInventory(ctx context.Context) (*GetInventoryRespo
 
 // PlaceOrder handles POST /store/order
 func (s *generatorService) PlaceOrder(ctx context.Context, opts *PlaceOrderServiceRequestOptions) (*PlaceOrderResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*PlaceOrderResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/store/order", "POST")
+		if respSchema == nil {
+			return NewPlaceOrderResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body PlaceOrderResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewPlaceOrderResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.PlaceOrder(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/store/order", "POST")
-	if respSchema == nil {
-		return NewPlaceOrderResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body PlaceOrderResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewPlaceOrderResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // GetOrderByID handles GET /store/order/{orderId}
 func (s *generatorService) GetOrderByID(ctx context.Context, opts *GetOrderByIDServiceRequestOptions) (*GetOrderByIDResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetOrderByIDResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/store/order/{orderId}", "GET")
+		if respSchema == nil {
+			return NewGetOrderByIDResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetOrderByIDResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetOrderByIDResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetOrderByID(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/store/order/{orderId}", "GET")
-	if respSchema == nil {
-		return NewGetOrderByIDResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetOrderByIDResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetOrderByIDResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DeleteOrder handles DELETE /store/order/{orderId}
 func (s *generatorService) DeleteOrder(ctx context.Context, opts *DeleteOrderServiceRequestOptions) (*DeleteOrderResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DeleteOrderResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/store/order/{orderId}", "DELETE")
+		if respSchema == nil {
+			return NewDeleteOrderResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewDeleteOrderResponseData(nil).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DeleteOrder(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/store/order/{orderId}", "DELETE")
-	if respSchema == nil {
-		return NewDeleteOrderResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewDeleteOrderResponseData(nil).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // CreateUser handles POST /user
 func (s *generatorService) CreateUser(ctx context.Context, opts *CreateUserServiceRequestOptions) (*CreateUserResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*CreateUserResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/user", "POST")
+		if respSchema == nil {
+			return NewCreateUserResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body CreateUserResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewCreateUserResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.CreateUser(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/user", "POST")
-	if respSchema == nil {
-		return NewCreateUserResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body CreateUserResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewCreateUserResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // CreateUsersWithListInput handles POST /user/createWithList
 func (s *generatorService) CreateUsersWithListInput(ctx context.Context, opts *CreateUsersWithListInputServiceRequestOptions) (*CreateUsersWithListInputResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*CreateUsersWithListInputResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/user/createWithList", "POST")
+		if respSchema == nil {
+			return NewCreateUsersWithListInputResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body CreateUsersWithListInputResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewCreateUsersWithListInputResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.CreateUsersWithListInput(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/user/createWithList", "POST")
-	if respSchema == nil {
-		return NewCreateUsersWithListInputResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body CreateUsersWithListInputResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewCreateUsersWithListInputResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // LoginUser handles GET /user/login
 func (s *generatorService) LoginUser(ctx context.Context, opts *LoginUserServiceRequestOptions) (*LoginUserResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*LoginUserResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/user/login", "GET")
+		if respSchema == nil {
+			return NewLoginUserResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body LoginUserResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewLoginUserResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.LoginUser(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/user/login", "GET")
-	if respSchema == nil {
-		return NewLoginUserResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body LoginUserResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewLoginUserResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // LogoutUser handles GET /user/logout
@@ -1701,57 +1757,69 @@ func (s *generatorService) LogoutUser(ctx context.Context) (*LogoutUserResponseD
 
 // GetUserByName handles GET /user/{username}
 func (s *generatorService) GetUserByName(ctx context.Context, opts *GetUserByNameServiceRequestOptions) (*GetUserByNameResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*GetUserByNameResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/user/{username}", "GET")
+		if respSchema == nil {
+			return NewGetUserByNameResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		var body GetUserByNameResponse
+		if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+			return nil, err
+		}
+		return NewGetUserByNameResponseData(&body).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.GetUserByName(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/user/{username}", "GET")
-	if respSchema == nil {
-		return NewGetUserByNameResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	var body GetUserByNameResponse
-	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
-		return nil, err
-	}
-	return NewGetUserByNameResponseData(&body).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // UpdateUser handles PUT /user/{username}
 func (s *generatorService) UpdateUser(ctx context.Context, opts *UpdateUserServiceRequestOptions) (*UpdateUserResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*UpdateUserResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/user/{username}", "PUT")
+		if respSchema == nil {
+			return NewUpdateUserResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewUpdateUserResponseData(nil).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.UpdateUser(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/user/{username}", "PUT")
-	if respSchema == nil {
-		return NewUpdateUserResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewUpdateUserResponseData(nil).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 // DeleteUser handles DELETE /user/{username}
 func (s *generatorService) DeleteUser(ctx context.Context, opts *DeleteUserServiceRequestOptions) (*DeleteUserResponseData, error) {
-	// Call user's service first
+	// Inject GenerateResponse so user service can call it
+	opts.GenerateResponse = func() (*DeleteUserResponseData, error) {
+		respSchema := s.registry.GetResponseSchema("/user/{username}", "DELETE")
+		if respSchema == nil {
+			return NewDeleteUserResponseData(nil), nil
+		}
+		res := s.generator.Response(respSchema)
+		return NewDeleteUserResponseData(nil).WithHeaders(res.Headers), nil
+	}
+
+	// Call user's service
 	if resp, err := s.service.DeleteUser(ctx, opts); resp != nil || err != nil {
 		return resp, err
 	}
 
 	// Fallback to generator
-	respSchema := s.registry.GetResponseSchema("/user/{username}", "DELETE")
-	if respSchema == nil {
-		return NewDeleteUserResponseData(nil), nil
-	}
-
-	res := s.generator.Response(respSchema)
-	return NewDeleteUserResponseData(nil).WithHeaders(res.Headers), nil
+	return opts.GenerateResponse()
 }
 
 type DeletePetHeaders struct {
@@ -2426,6 +2494,8 @@ type UpdatePetServiceRequestOptions struct {
 	Body *UpdatePetBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*UpdatePetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2451,6 +2521,8 @@ type AddPetServiceRequestOptions struct {
 	Body *AddPetBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*AddPetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2476,6 +2548,8 @@ type FindPetsByStatusServiceRequestOptions struct {
 	Query *FindPetsByStatusQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*FindPetsByStatusResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2501,6 +2575,8 @@ type FindPetsByTagsServiceRequestOptions struct {
 	Query *FindPetsByTagsQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*FindPetsByTagsResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2526,6 +2602,8 @@ type GetPetByIDServiceRequestOptions struct {
 	PathParams *GetPetByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetPetByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2552,6 +2630,8 @@ type UpdatePetWithFormServiceRequestOptions struct {
 	Query      *UpdatePetWithFormQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*UpdatePetWithFormResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2586,6 +2666,8 @@ type DeletePetServiceRequestOptions struct {
 	Header     *DeletePetHeaders
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DeletePetResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2620,6 +2702,8 @@ type UploadFileServiceRequestOptions struct {
 	Query      *UploadFileQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*UploadFileResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2653,6 +2737,8 @@ type PlaceOrderServiceRequestOptions struct {
 	Body *PlaceOrderBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*PlaceOrderResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2678,6 +2764,8 @@ type GetOrderByIDServiceRequestOptions struct {
 	PathParams *GetOrderByIDPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetOrderByIDResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2703,6 +2791,8 @@ type DeleteOrderServiceRequestOptions struct {
 	PathParams *DeleteOrderPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DeleteOrderResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2728,6 +2818,8 @@ type CreateUserServiceRequestOptions struct {
 	Body *CreateUserBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*CreateUserResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2753,6 +2845,8 @@ type CreateUsersWithListInputServiceRequestOptions struct {
 	Body *CreateUsersWithListInputBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*CreateUsersWithListInputResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2778,6 +2872,8 @@ type LoginUserServiceRequestOptions struct {
 	Query *LoginUserQuery
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*LoginUserResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2803,6 +2899,8 @@ type GetUserByNameServiceRequestOptions struct {
 	PathParams *GetUserByNamePath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*GetUserByNameResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2829,6 +2927,8 @@ type UpdateUserServiceRequestOptions struct {
 	Body       *UpdateUserBody
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*UpdateUserResponseData, error)
 }
 
 // Validate validates all the fields in the options.
@@ -2862,6 +2962,8 @@ type DeleteUserServiceRequestOptions struct {
 	PathParams *DeleteUserPath
 	// RawRequest provides access to the underlying HTTP request for custom content type handling.
 	RawRequest *http.Request
+	// GenerateResponse generates a sample response with random data satisfying the OpenAPI schema.
+	GenerateResponse func() (*DeleteUserResponseData, error)
 }
 
 // Validate validates all the fields in the options.
