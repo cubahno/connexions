@@ -107,6 +107,8 @@ func (r *Router) RegisterService(
 
 		// Standard middleware (always applied)
 		subRouter.Use(middleware.CreateLatencyAndErrorMiddleware(mwParams))
+		subRouter.Use(middleware.CreateReplayReadMiddleware(mwParams))
+		subRouter.Use(middleware.CreateReplayWriteMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheReadMiddleware(mwParams))
 		subRouter.Use(middleware.CreateUpstreamRequestMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheWriteMiddleware(mwParams))
@@ -172,6 +174,8 @@ func (r *Router) RegisterHTTPHandler(
 
 		// Standard middleware (always applied)
 		subRouter.Use(middleware.CreateLatencyAndErrorMiddleware(mwParams))
+		subRouter.Use(middleware.CreateReplayReadMiddleware(mwParams))
+		subRouter.Use(middleware.CreateReplayWriteMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheReadMiddleware(mwParams))
 		subRouter.Use(middleware.CreateUpstreamRequestMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheWriteMiddleware(mwParams))

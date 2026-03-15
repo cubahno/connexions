@@ -861,3 +861,182 @@ max: 10
 		assert.Equal(t, 10, opts.Max)
 	})
 }
+
+func TestReplayConfig_WithDefaults(t *testing.T) {
+	t.Run("sets TTL to default when zero", func(t *testing.T) {
+		rc := &ReplayConfig{}
+		rc.WithDefaults()
+		assert.Equal(t, DefaultReplayTTL, rc.TTL)
+	})
+
+	t.Run("does not override non-zero TTL", func(t *testing.T) {
+		rc := &ReplayConfig{TTL: 1 * time.Hour}
+		rc.WithDefaults()
+		assert.Equal(t, 1*time.Hour, rc.TTL)
+	})
+}
+
+func TestReplayConfig_GetEndpoint(t *testing.T) {
+	rc := &ReplayConfig{
+		Endpoints: map[string]map[string]*ReplayEndpoint{
+			"/foo/{f-id}/bar/{b-id}": {
+				"POST": {Match: []string{"data.name"}},
+			},
+			"/simple": {
+				"GET": {Match: []string{"q"}},
+			},
+		},
+	}
+
+	t.Run("matches parameterized path", func(t *testing.T) {
+		pattern, ep := rc.GetEndpoint("/foo/123/bar/456", "POST")
+		assert.Equal(t, "/foo/{f-id}/bar/{b-id}", pattern)
+		assert.NotNil(t, ep)
+		assert.Equal(t, []string{"data.name"}, ep.Match)
+	})
+
+	t.Run("matches simple path", func(t *testing.T) {
+		pattern, ep := rc.GetEndpoint("/simple", "GET")
+		assert.Equal(t, "/simple", pattern)
+		assert.NotNil(t, ep)
+	})
+
+	t.Run("returns nil for wrong method", func(t *testing.T) {
+		pattern, ep := rc.GetEndpoint("/foo/123/bar/456", "GET")
+		assert.Equal(t, "", pattern)
+		assert.Nil(t, ep)
+	})
+
+	t.Run("returns nil for non-matching path", func(t *testing.T) {
+		pattern, ep := rc.GetEndpoint("/unknown/path", "POST")
+		assert.Equal(t, "", pattern)
+		assert.Nil(t, ep)
+	})
+
+	t.Run("returns nil for nil config", func(t *testing.T) {
+		var nilRC *ReplayConfig
+		pattern, ep := nilRC.GetEndpoint("/foo", "GET")
+		assert.Equal(t, "", pattern)
+		assert.Nil(t, ep)
+	})
+
+	t.Run("returns nil for nil endpoints", func(t *testing.T) {
+		rc := &ReplayConfig{}
+		pattern, ep := rc.GetEndpoint("/foo", "GET")
+		assert.Equal(t, "", pattern)
+		assert.Nil(t, ep)
+	})
+}
+
+func TestMatchesPattern(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		pattern  string
+		expected bool
+	}{
+		{"exact match", "/foo/bar", "/foo/bar", true},
+		{"param match", "/foo/123/bar/456", "/foo/{id}/bar/{bid}", true},
+		{"length mismatch", "/foo/bar/baz", "/foo/bar", false},
+		{"segment mismatch", "/foo/baz", "/foo/bar", false},
+		{"trailing slash ignored", "/foo/bar/", "/foo/bar", true},
+		{"leading slash ignored", "foo/bar", "/foo/bar", true},
+		{"all params", "/a/b/c", "/{x}/{y}/{z}", true},
+		{"empty segments", "/", "/", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, matchesPattern(tt.path, tt.pattern))
+		})
+	}
+}
+
+func TestCacheConfig_ReplayParsing(t *testing.T) {
+	t.Run("parses replay config from YAML", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  requests: true
+  replay:
+    ttl: 12h
+    upstream-only: true
+    endpoints:
+      /foo/{f-id}/bar/{b-id}:
+        POST:
+          match:
+            - data.name
+            - data.address.zip
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.Cache)
+		assert.NotNil(t, cfg.Cache.Replay)
+		assert.Equal(t, 12*time.Hour, cfg.Cache.Replay.TTL)
+		assert.True(t, cfg.Cache.Replay.UpstreamOnly)
+		assert.Len(t, cfg.Cache.Replay.Endpoints, 1)
+
+		methods := cfg.Cache.Replay.Endpoints["/foo/{f-id}/bar/{b-id}"]
+		assert.NotNil(t, methods)
+		assert.NotNil(t, methods["POST"])
+		assert.Equal(t, []string{"data.name", "data.address.zip"}, methods["POST"].Match)
+	})
+
+	t.Run("parses replay config without optional fields", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  requests: true
+  replay:
+    endpoints:
+      /test:
+        GET:
+          match:
+            - q
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.Cache.Replay)
+		assert.Equal(t, time.Duration(0), cfg.Cache.Replay.TTL)
+		assert.False(t, cfg.Cache.Replay.UpstreamOnly)
+	})
+
+	t.Run("nil replay when not specified", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  requests: true
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		assert.Nil(t, cfg.Cache.Replay)
+	})
+
+	t.Run("parses auto-replay", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  replay:
+    auto-replay: true
+    endpoints:
+      /foo:
+        POST:
+          match:
+            - name
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		assert.True(t, cfg.Cache.Replay.AutoReplay)
+	})
+
+	t.Run("auto-replay defaults to false", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  replay:
+    endpoints:
+      /foo:
+        POST:
+          match:
+            - name
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		assert.False(t, cfg.Cache.Replay.AutoReplay)
+	})
+}

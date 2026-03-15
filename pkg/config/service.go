@@ -250,8 +250,101 @@ func (s *ServiceConfig) parseErrors() []*KeyValue[int, int] {
 
 // CacheConfig defines the cache configuration for a service.
 // Requests is a flag whether to cache GET requests.
+// Replay is the replay configuration for recording and replaying API responses.
 type CacheConfig struct {
-	Requests bool `yaml:"requests"`
+	Requests bool          `yaml:"requests"`
+	Replay   *ReplayConfig `yaml:"replay,omitempty"`
+}
+
+// DefaultReplayTTL is the default time-to-live for replay recordings.
+const DefaultReplayTTL = 24 * time.Hour
+
+// ReplayConfig defines the replay (VCR-like) configuration for recording and replaying
+// API responses based on request body content.
+//
+// Replay is activated either by the X-Cxs-Replay header or by setting AutoReplay to true.
+// When a request comes in, specified fields are extracted from the request body,
+// a content-addressed key is built, and a stored recording is returned if one exists.
+// If no recording exists, the response from downstream is captured and stored.
+//
+// Example YAML:
+//
+//	cache:
+//	  replay:
+//	    ttl: 24h
+//	    auto-replay: true
+//	    upstream-only: false
+//	    endpoints:
+//	      /foo/{f-id}/bar/{b-id}:
+//	        POST:
+//	          match:
+//	            - data.name
+//	            - data.address.zip
+type ReplayConfig struct {
+	// TTL is how long recordings are kept. Default: 24h.
+	TTL time.Duration `yaml:"ttl"`
+	// UpstreamOnly when true only records responses from upstream services.
+	UpstreamOnly bool `yaml:"upstream-only"`
+	// AutoReplay when true activates replay for configured endpoints without requiring
+	// the X-Cxs-Replay header. When false (default), the header must be present.
+	AutoReplay bool `yaml:"auto-replay"`
+	// Endpoints maps path patterns (e.g. "/foo/{id}/bar") to HTTP methods
+	// and their match configurations.
+	Endpoints map[string]map[string]*ReplayEndpoint `yaml:"endpoints"`
+}
+
+// ReplayEndpoint defines the match configuration for a specific endpoint and HTTP method.
+type ReplayEndpoint struct {
+	// Match is a list of dotted paths into the request body whose values
+	// form the replay key. Example: ["data.name", "data.address.zip"].
+	Match []string `yaml:"match"`
+}
+
+// WithDefaults fills zero-valued fields with defaults.
+func (rc *ReplayConfig) WithDefaults() *ReplayConfig {
+	if rc.TTL == 0 {
+		rc.TTL = DefaultReplayTTL
+	}
+	return rc
+}
+
+// GetEndpoint finds the matching endpoint config for a request path and method.
+// Returns the pattern path (for key building) and the endpoint config.
+// Returns "", nil if no match is found.
+func (rc *ReplayConfig) GetEndpoint(requestPath, method string) (string, *ReplayEndpoint) {
+	if rc == nil || rc.Endpoints == nil {
+		return "", nil
+	}
+
+	for pattern, methods := range rc.Endpoints {
+		if matchesPattern(requestPath, pattern) {
+			if ep, ok := methods[method]; ok {
+				return pattern, ep
+			}
+		}
+	}
+	return "", nil
+}
+
+// matchesPattern checks if a request path matches a parameterized pattern.
+// Pattern segments enclosed in {...} match any value.
+func matchesPattern(requestPath, pattern string) bool {
+	reqParts := strings.Split(strings.Trim(requestPath, "/"), "/")
+	patParts := strings.Split(strings.Trim(pattern, "/"), "/")
+
+	if len(reqParts) != len(patParts) {
+		return false
+	}
+
+	for i, pat := range patParts {
+		if strings.HasPrefix(pat, "{") && strings.HasSuffix(pat, "}") {
+			continue
+		}
+		if pat != reqParts[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // NewCacheConfig creates a new CacheConfig with default values.

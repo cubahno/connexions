@@ -1,0 +1,419 @@
+package middleware
+
+import (
+	"bytes"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/cubahno/connexions/v2/pkg/config"
+	assert2 "github.com/stretchr/testify/assert"
+)
+
+func TestParseReplayHeader(t *testing.T) {
+	assert := assert2.New(t)
+
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{"empty string", "", nil},
+		{"single field", "data.name", []string{"data.name"}},
+		{"multiple fields", "data.name,data.zip", []string{"data.name", "data.zip"}},
+		{"fields with spaces", " data.name , data.zip ", []string{"data.name", "data.zip"}},
+		{"trailing comma", "data.name,", []string{"data.name"}},
+		{"only commas", ",,", []string{}},
+		{"only spaces", "  ,  ,  ", []string{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseReplayHeader(tt.input)
+			assert.Equal(tt.expected, result)
+		})
+	}
+}
+
+func TestResolveReplayParams(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("no header and no auto-replay returns nil", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Nil(fields)
+		assert.Empty(pattern)
+	})
+
+	t.Run("header with values overrides config", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
+		req.Header.Set(headerReplayMatch, "age,city")
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Equal([]string{"age", "city"}, fields)
+		assert.Equal("/foo", pattern) // uses config pattern
+	})
+
+	t.Run("empty header falls back to config match", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name", "zip"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
+		req.Header.Set(headerReplayMatch, "")
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Equal([]string{"name", "zip"}, fields)
+		assert.Equal("/foo", pattern)
+	})
+
+	t.Run("header without config uses actual path", func(t *testing.T) {
+		cfg := &config.ServiceConfig{Name: "svc"}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo/123", nil)
+		req.Header.Set(headerReplayMatch, "name")
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Equal([]string{"name"}, fields)
+		assert.Equal("/foo/123", pattern) // actual path, no config pattern
+	})
+
+	t.Run("empty header without config returns nil", func(t *testing.T) {
+		cfg := &config.ServiceConfig{Name: "svc"}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
+		req.Header.Set(headerReplayMatch, "")
+
+		fields, _ := resolveReplayParams(req, cfg)
+		assert.Nil(fields)
+	})
+
+	t.Run("auto-replay activates for configured endpoint", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					AutoReplay: true,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Equal([]string{"name"}, fields)
+		assert.Equal("/foo", pattern)
+	})
+
+	t.Run("auto-replay skips non-configured endpoint", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					AutoReplay: true,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/bar", nil)
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Nil(fields)
+		assert.Empty(pattern)
+	})
+
+	t.Run("header overrides auto-replay config", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					AutoReplay: true,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
+		req.Header.Set(headerReplayMatch, "age")
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Equal([]string{"age"}, fields)
+		assert.Equal("/foo", pattern) // still uses config pattern
+	})
+
+	t.Run("parameterized pattern path returned", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo/{id}/bar": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo/123/bar", nil)
+		req.Header.Set(headerReplayMatch, "")
+
+		fields, pattern := resolveReplayParams(req, cfg)
+		assert.Equal([]string{"name"}, fields)
+		assert.Equal("/foo/{id}/bar", pattern)
+	})
+}
+
+func TestBuildReplayKey(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("deterministic for same input", func(t *testing.T) {
+		body := []byte(`{"name":"Jane","zip":"12345"}`)
+		key1 := buildReplayKey("POST", "/foo", []string{"name", "zip"}, body)
+		key2 := buildReplayKey("POST", "/foo", []string{"name", "zip"}, body)
+		assert.Equal(key1, key2)
+	})
+
+	t.Run("fields are sorted for determinism", func(t *testing.T) {
+		body := []byte(`{"name":"Jane","zip":"12345"}`)
+		key1 := buildReplayKey("POST", "/foo", []string{"name", "zip"}, body)
+		key2 := buildReplayKey("POST", "/foo", []string{"zip", "name"}, body)
+		assert.Equal(key1, key2)
+	})
+
+	t.Run("different methods produce different keys", func(t *testing.T) {
+		body := []byte(`{"name":"Jane"}`)
+		key1 := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		key2 := buildReplayKey("PUT", "/foo", []string{"name"}, body)
+		assert.NotEqual(key1, key2)
+	})
+
+	t.Run("different paths produce different keys", func(t *testing.T) {
+		body := []byte(`{"name":"Jane"}`)
+		key1 := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		key2 := buildReplayKey("POST", "/bar", []string{"name"}, body)
+		assert.NotEqual(key1, key2)
+	})
+
+	t.Run("different values produce different keys", func(t *testing.T) {
+		body1 := []byte(`{"name":"Jane"}`)
+		body2 := []byte(`{"name":"John"}`)
+		key1 := buildReplayKey("POST", "/foo", []string{"name"}, body1)
+		key2 := buildReplayKey("POST", "/foo", []string{"name"}, body2)
+		assert.NotEqual(key1, key2)
+	})
+
+	t.Run("missing field produces nil value in key", func(t *testing.T) {
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey("POST", "/foo", []string{"missing"}, body)
+		assert.NotEmpty(key)
+		assert.Len(key, 64) // SHA-256 hex is 64 chars
+	})
+
+	t.Run("nil body", func(t *testing.T) {
+		key := buildReplayKey("POST", "/foo", []string{"name"}, nil)
+		assert.NotEmpty(key)
+		assert.Len(key, 64)
+	})
+
+	t.Run("empty fields", func(t *testing.T) {
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey("POST", "/foo", []string{}, body)
+		assert.NotEmpty(key)
+		assert.Len(key, 64)
+	})
+}
+
+func TestReadAndRestoreBody(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("reads and restores body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/test", strings.NewReader(`{"name":"Jane"}`))
+
+		body := readAndRestoreBody(req)
+		assert.Equal([]byte(`{"name":"Jane"}`), body)
+
+		// Body should be readable again
+		restored, err := io.ReadAll(req.Body)
+		assert.NoError(err)
+		assert.Equal([]byte(`{"name":"Jane"}`), restored)
+	})
+
+	t.Run("nil body returns nil", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Body = nil
+
+		body := readAndRestoreBody(req)
+		assert.Nil(body)
+	})
+
+	t.Run("empty body returns empty bytes", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/test", strings.NewReader(""))
+
+		body := readAndRestoreBody(req)
+		assert.Equal([]byte{}, body)
+	})
+
+	t.Run("body can be read multiple times", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/test", strings.NewReader("data"))
+
+		body1 := readAndRestoreBody(req)
+		body2 := readAndRestoreBody(req)
+		assert.Equal(body1, body2)
+	})
+}
+
+func TestGetEndpointPath(t *testing.T) {
+	assert := assert2.New(t)
+
+	tests := []struct {
+		name        string
+		urlPath     string
+		serviceName string
+		expected    string
+	}{
+		{"strips service prefix", "/svc/foo/bar", "svc", "/foo/bar"},
+		{"root path", "/svc", "svc", "/"},
+		{"no prefix match", "/other/foo", "svc", "/other/foo"},
+		{"nested path", "/svc/a/b/c", "svc", "/a/b/c"},
+		{"empty service name", "/foo/bar", "", "foo/bar"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.urlPath, nil)
+			result := getEndpointPath(req, tt.serviceName)
+			assert.Equal(tt.expected, result)
+		})
+	}
+}
+
+func TestDeserializeReplayRecord(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("nil returns nil", func(t *testing.T) {
+		assert.Nil(deserializeReplayRecord(nil))
+	})
+
+	t.Run("direct *ReplayRecord", func(t *testing.T) {
+		rec := &ReplayRecord{
+			Data:       []byte("test"),
+			StatusCode: 200,
+		}
+		result := deserializeReplayRecord(rec)
+		assert.Equal(rec, result)
+	})
+
+	t.Run("map[string]any (Redis-like)", func(t *testing.T) {
+		m := map[string]any{
+			"data":           "dGVzdA==", // base64 of "test"
+			"statusCode":     float64(200),
+			"contentType":    "application/json",
+			"isFromUpstream": true,
+			"headers":        map[string]any{"X-Custom": "val"},
+			"matchValues":    map[string]any{"name": "Jane"},
+			"createdAt":      "2024-01-01T00:00:00Z",
+		}
+
+		result := deserializeReplayRecord(m)
+		assert.NotNil(result)
+		assert.Equal(200, result.StatusCode)
+		assert.Equal("application/json", result.ContentType)
+		assert.True(result.IsFromUpstream)
+	})
+
+	t.Run("incompatible type returns nil", func(t *testing.T) {
+		result := deserializeReplayRecord("not a record")
+		assert.Nil(result)
+	})
+
+	t.Run("complete round-trip", func(t *testing.T) {
+		original := &ReplayRecord{
+			Data:           []byte(`{"result":true}`),
+			Headers:        map[string]string{"Content-Type": "application/json"},
+			StatusCode:     201,
+			ContentType:    "application/json",
+			IsFromUpstream: false,
+			RequestBody:    []byte(`{"name":"Jane"}`),
+			MatchValues:    map[string]any{"name": "Jane"},
+			CreatedAt:      time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		}
+
+		// Direct pointer
+		result := deserializeReplayRecord(original)
+		assert.Equal(original, result)
+	})
+}
+
+func TestWriteThrough(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("copies headers status and body", func(t *testing.T) {
+		w := httptest.NewRecorder()
+
+		buf := new(bytes.Buffer)
+		buf.WriteString("response body")
+
+		underlying := httptest.NewRecorder()
+		underlying.Header().Set("Content-Type", "application/json")
+		underlying.Header().Set("X-Custom", "value")
+
+		capture := &responseWriter{
+			ResponseWriter: underlying,
+			body:           buf,
+			statusCode:     http.StatusCreated,
+		}
+
+		writeThrough(w, capture)
+
+		assert.Equal(http.StatusCreated, w.Code)
+		assert.Equal("response body", w.Body.String())
+		assert.Equal("application/json", w.Header().Get("Content-Type"))
+		assert.Equal("value", w.Header().Get("X-Custom"))
+	})
+
+	t.Run("empty body and default status", func(t *testing.T) {
+		w := httptest.NewRecorder()
+
+		capture := &responseWriter{
+			ResponseWriter: httptest.NewRecorder(),
+			body:           new(bytes.Buffer),
+			statusCode:     http.StatusOK,
+		}
+
+		writeThrough(w, capture)
+
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Empty(w.Body.String())
+	})
+}

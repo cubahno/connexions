@@ -7,22 +7,24 @@ This page explains the request flow through Connexions and how different feature
 When a request arrives at Connexions, it passes through a middleware chain:
 
 ```
-Request → Config Override → Latency/Error → Cache Read → Upstream ──────────→ Response
-                                                ↓            ↓ (if failed)
-                                            (if hit)    Custom MW → Handler → Cache Write
-                                                ↓                                  ↓
-                                             Response ←────────────────────────────┘
+Request → Config Override → Latency/Error → Replay Read → Replay Write ──→ Cache Read → Upstream ──────────→ Response
+                                                ↓                               ↓            ↓ (if failed)
+                                            (if hit)                        (if hit)    Custom MW → Handler → Cache Write
+                                                ↓                               ↓                                  ↓
+                                             Response                        Response ←────────────────────────────┘
 ```
 
 ### Middleware Chain
 
 1. **Config Override Middleware** - Applies per-request config overrides from `X-Cxs-*` headers
 2. **Latency & Error Middleware** - Simulates network latency and injects errors
-3. **Cache Read Middleware** - Returns cached response if available (short-circuits)
-4. **Upstream Middleware** - Forwards to real backend; returns response if successful (short-circuits)
-5. **Custom Middleware** - Your service-specific middleware (compiled services only)
-6. **Handler** - Generates mock response from OpenAPI spec
-7. **Cache Write Middleware** - Stores response in cache for future requests
+3. **Replay Read Middleware** - Returns a recorded replay if the request matches (short-circuits)
+4. **Replay Write Middleware** - Wraps downstream to capture and record responses for replay
+5. **Cache Read Middleware** - Returns cached response if available (short-circuits)
+6. **Upstream Middleware** - Forwards to real backend; returns response if successful (short-circuits)
+7. **Custom Middleware** - Your service-specific middleware (compiled services only)
+8. **Handler** - Generates mock response from OpenAPI spec
+9. **Cache Write Middleware** - Stores response in cache for future requests
 
 ## Per-Request Config Overrides
 
@@ -36,6 +38,7 @@ This is useful for testing, debugging, or handling special cases without modifyi
 | `X-Cxs-Cache-Requests` | `true` / `false` | Enable/disable request caching |
 | `X-Cxs-Latency` | Duration (e.g., `100ms`, `1s`) | Override latency |
 | `X-Cxs-Upstream-Url` | URL or empty string | Override upstream URL (empty disables upstream) |
+| `X-Cxs-Replay` | Comma-separated dotted paths (or empty) | Activate replay; optionally override match fields |
 
 ### Response Headers
 
@@ -43,7 +46,7 @@ Connexions adds headers to responses indicating how they were processed:
 
 | Header | Values | Description |
 |--------|--------|-------------|
-| `X-Cxs-Source` | `generated`, `cache`, `upstream` | Where the response came from |
+| `X-Cxs-Source` | `generated`, `cache`, `upstream`, `replay` | Where the response came from |
 | `X-Cxs-Duration` | Duration (e.g., `5.123ms`) | Total request processing time |
 
 ### Using Config Overrides in the UI
@@ -248,6 +251,19 @@ paths:
                 [{"id": 1, "name": "Fluffy"}]
 ```
 
+## Replay
+
+Record API responses and replay them on subsequent requests that match specific request body fields. See [Service Config - Replay](config/service.md#replay) for full configuration reference.
+
+### How It Works
+
+1. Request arrives with `X-Cxs-Replay` header (or hits an `auto-replay` endpoint)
+2. Replay Read checks for a stored recording matching the request body fields
+3. If found → return immediately with `X-Cxs-Source: replay`
+4. If not found → Replay Write captures the downstream response and stores it for future matches
+
+Replay sits before the cache in the middleware chain, so content-addressed replay lookups take priority over URL-based cache lookups.
+
 ## Combining Features
 
 Features can be combined for realistic testing scenarios:
@@ -266,6 +282,13 @@ upstream:
 
 cache:
   requests: true
+  replay:
+    upstream-only: true
+    endpoints:
+      /search:
+        POST:
+          match:
+            - query
 ```
 
 This configuration:
@@ -273,4 +296,4 @@ This configuration:
 2. Injects 5% server errors
 3. Tries upstream first, falls back to mock
 4. Caches successful GET responses
-
+5. Records and replays upstream POST responses matched by request body fields

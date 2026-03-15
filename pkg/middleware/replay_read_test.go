@@ -1,0 +1,242 @@
+package middleware
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/cubahno/connexions/v2/pkg/config"
+	assert2 "github.com/stretchr/testify/assert"
+)
+
+func TestCreateReplayReadMiddleware(t *testing.T) {
+	assert := assert2.New(t)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("fresh"))
+	})
+
+	t.Run("no header passes through", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}, nil)
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"test"}`))
+		// No X-Cxs-Replay header
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
+	})
+
+	t.Run("nil config passes through", func(t *testing.T) {
+		params := newTestParams(nil, nil)
+		params.ServiceConfig = nil
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/test/foo", strings.NewReader(`{"name":"test"}`))
+		req.Header.Set(headerReplayMatch, "name")
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
+	})
+
+	t.Run("header with fields but no config works with actual path", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+		}, nil)
+
+		// Store using actual endpoint path (no config pattern)
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		rec := &ReplayRecord{
+			Data:        []byte(`{"result":"no-config"}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}
+		params.DB().Table("replay").Set(context.TODO(), key, rec, 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req.Header.Set(headerReplayMatch, "name")
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"result":"no-config"}`, string(w.buf))
+		assert.Equal(ResponseHeaderSourceReplay, w.header.Get(ResponseHeaderSource))
+	})
+
+	t.Run("miss passes through", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}, nil)
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"test"}`))
+		req.Header.Set(headerReplayMatch, "name")
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
+	})
+
+	t.Run("hit returns stored response", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}, nil)
+
+		// Pre-store a replay record using config pattern path
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		rec := &ReplayRecord{
+			Data:        []byte(`{"result":"stored"}`),
+			Headers:     map[string]string{"X-Custom": "value"},
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}
+		params.DB().Table("replay").Set(context.TODO(), key, rec, 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req.Header.Set(headerReplayMatch, "") // empty value → fall back to config
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"result":"stored"}`, string(w.buf))
+		assert.Equal("application/json", w.header.Get("Content-Type"))
+		assert.Equal(ResponseHeaderSourceReplay, w.header.Get(ResponseHeaderSource))
+		assert.Equal("value", w.header.Get("X-Custom"))
+	})
+
+	t.Run("header value overrides config match fields", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}, nil)
+
+		// Store with override fields but using config pattern path
+		body := []byte(`{"name":"Jane","age":30}`)
+		key := buildReplayKey("POST", "/foo", []string{"age"}, body)
+		rec := &ReplayRecord{
+			Data:        []byte(`{"result":"header-override"}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}
+		params.DB().Table("replay").Set(context.TODO(), key, rec, 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane","age":30}`))
+		req.Header.Set(headerReplayMatch, "age")
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"result":"header-override"}`, string(w.buf))
+		assert.Equal(ResponseHeaderSourceReplay, w.header.Get(ResponseHeaderSource))
+	})
+
+	t.Run("empty header value with no config passes through", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{Name: "svc"}, nil)
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"test"}`))
+		req.Header.Set(headerReplayMatch, "") // empty, no config → no match fields
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
+	})
+
+	t.Run("auto-replay activates without header", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					AutoReplay: true,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}, nil)
+
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		rec := &ReplayRecord{
+			Data:        []byte(`{"result":"auto"}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}
+		params.DB().Table("replay").Set(context.TODO(), key, rec, 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		// No header — auto-replay should activate
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"result":"auto"}`, string(w.buf))
+		assert.Equal(ResponseHeaderSourceReplay, w.header.Get(ResponseHeaderSource))
+	})
+
+	t.Run("auto-replay skips non-configured endpoints", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					AutoReplay: true,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: []string{"name"}}},
+					},
+				},
+			},
+		}, nil)
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/bar", strings.NewReader(`{"name":"Jane"}`))
+		// No header, /bar not configured → pass through
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
+	})
+}

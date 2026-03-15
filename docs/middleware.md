@@ -8,9 +8,11 @@ Custom middleware is applied **after** the standard middleware chain:
 
 ```
 Request → [Standard Middleware] → [Custom Middleware] → Handler → Response
+
+Standard: Config Override → Latency/Error → Replay Read/Write → Cache Read → Upstream → Cache Write
 ```
 
-Standard middleware handles: latency, errors, caching, upstream proxy.
+Standard middleware handles: latency, errors, replay, caching, upstream proxy.
 
 ## Adding Custom Middleware
 

@@ -2,7 +2,6 @@ package integrationtest
 
 import (
 	"embed"
-	_ "embed"
 	"fmt"
 	"io/fs"
 	"os"
