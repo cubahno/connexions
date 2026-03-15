@@ -16,6 +16,7 @@ const (
 	ResponseHeaderSourceUpstream  = "upstream"
 	ResponseHeaderSourceCache     = "cache"
 	ResponseHeaderSourceGenerated = "generated"
+	ResponseHeaderSourceReplay    = "replay"
 )
 
 // Params provides access to service configuration and database for middleware.
