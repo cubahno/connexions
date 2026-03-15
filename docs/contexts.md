@@ -293,6 +293,40 @@ in-header:
 
 Area-specific contexts take precedence over default context replacements.
 
+### Request/Response Areas
+
+Compound area keys allow targeting request or response generation independently. This is useful when the same field needs different values depending on direction:
+
+```yaml
+id: 42                        # default for everything
+in-request:
+  id: "abc-123"               # request body/query only
+in-response:
+  id: 100                     # response body only
+in-request-header:
+  authorization: "Bearer tok" # request headers only
+in-response-header:
+  x-request-id: "fixed"      # response headers only
+```
+
+**Priority chain (most specific wins):**
+
+```
+in-request-header > in-header > in-request > root
+in-response-header > in-header > in-response > root
+```
+
+Available compound areas:
+
+| Area | Applies to |
+|------|-----------|
+| `in-request` | Request body and query parameters |
+| `in-response` | Response body |
+| `in-request-header` | Request headers only |
+| `in-response-header` | Response headers only |
+
+### Prefix Configuration
+
 The `in-` prefix can be changed in `config.yml`:
 ```yaml
 app:
