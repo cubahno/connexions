@@ -12,13 +12,16 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
-	"strings"
+
+	"sync"
 
 	"github.com/cubahno/connexions/v2/pkg/api"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/factory"
 	"github.com/cubahno/connexions/v2/pkg/generator"
 	"github.com/cubahno/connexions/v2/pkg/loader"
+	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/cubahno/connexions/v2/pkg/typedef"
 	oapicodegen "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/runtime"
@@ -737,11 +740,11 @@ func readFirstEmbeddedFile(fsys embed.FS) ([]byte, error) {
 		return nil, fmt.Errorf("reading embedded directory: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasPrefix(entry.Name(), "openapi.") {
+		if !entry.IsDir() {
 			return fsys.ReadFile(path.Join("setup", entry.Name()))
 		}
 	}
-	return nil, errors.New("no openapi spec file found in embedded filesystem")
+	return nil, errors.New("no file found in embedded filesystem")
 }
 
 // ============================================================================
@@ -1057,6 +1060,459 @@ func (s *generatorService) GetUserPdf(ctx context.Context, opts *GetUserPdfServi
 
 	// Fallback to generator
 	return opts.GenerateResponse()
+}
+
+// ============================================================================
+// Factory (programmatic request/response generation)
+// ============================================================================
+
+var (
+	defaultFactory     *factory.Factory
+	defaultFactoryOnce sync.Once
+	defaultFactoryErr  error
+)
+
+// NewFactory creates a Factory pre-configured with this service's OpenAPI spec,
+// codegen config, spec options, and context.
+// Use it to generate mock requests and responses programmatically without running the server.
+func NewFactory(opts ...factory.FactoryOption) (*factory.Factory, error) {
+	openapiSpec, err := readFirstEmbeddedFile(openapiSpecFS)
+	if err != nil {
+		return nil, err
+	}
+
+	var codegenCfg oapicodegen.Configuration
+	if err := yamlv4.Unmarshal(codegenConfigSrc, &codegenCfg); err != nil {
+		return nil, err
+	}
+
+	allOpts := []factory.FactoryOption{
+		factory.WithServiceContext(contextSrc),
+		factory.WithCodegenConfig(codegenCfg),
+	}
+	if cfg != nil && cfg.SpecOptions != nil {
+		allOpts = append(allOpts, factory.WithSpecOptions(cfg.SpecOptions))
+	}
+	allOpts = append(allOpts, opts...)
+	return factory.NewFactory(openapiSpec, allOpts...)
+}
+
+// GetFactory returns a singleton Factory instance.
+// The factory is initialized on first call and reused for subsequent calls.
+func GetFactory() (*factory.Factory, error) {
+	defaultFactoryOnce.Do(func() {
+		defaultFactory, defaultFactoryErr = NewFactory()
+	})
+	return defaultFactory, defaultFactoryErr
+}
+
+// GenerateListUsersResponse generates a mock response for GET /users.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateListUsersResponse(ctx map[string]any) (*ListUsersResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ListUsersResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewListUsersResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateListUsersResponseBody generates a mock response body for GET /users.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateListUsersResponseBody(ctx map[string]any) (*ListUsersResponse, error) {
+	res, err := GenerateListUsersResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateListUsersRequest generates a mock request for GET /users.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateListUsersRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users", "GET", ctx)
+}
+
+// GenerateGetUserResponse generates a mock response for GET /users/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserResponse(ctx map[string]any) (*GetUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetUserResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json; charset=utf-8", &body); err != nil {
+		return nil, err
+	}
+	return NewGetUserResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserResponseBody generates a mock response body for GET /users/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserResponseBody(ctx map[string]any) (*GetUserResponse, error) {
+	res, err := GenerateGetUserResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserRequest generates a mock request for GET /users/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}", "GET", ctx)
+}
+
+// GenerateGetUserAvatarResponse generates a mock response for GET /users/{id}/avatar.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserAvatarResponse(ctx map[string]any) (*GetUserAvatarResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/avatar", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewGetUserAvatarResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserAvatarResponseBody generates a mock response body for GET /users/{id}/avatar.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserAvatarResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateGetUserAvatarResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserAvatarRequest generates a mock request for GET /users/{id}/avatar.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserAvatarRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/avatar", "GET", ctx)
+}
+
+// GenerateGetUserProfileResponse generates a mock response for GET /users/{id}/profile.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserProfileResponse(ctx map[string]any) (*GetUserProfileResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/profile", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetUserProfileResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html; charset=utf-8", &body); err != nil {
+		return nil, err
+	}
+	return NewGetUserProfileResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserProfileResponseBody generates a mock response body for GET /users/{id}/profile.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserProfileResponseBody(ctx map[string]any) (*GetUserProfileResponse, error) {
+	res, err := GenerateGetUserProfileResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserProfileRequest generates a mock request for GET /users/{id}/profile.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserProfileRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/profile", "GET", ctx)
+}
+
+// GenerateExportUsersResponse generates a mock response for GET /users/export.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateExportUsersResponse(ctx map[string]any) (*ExportUsersResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/export", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewExportUsersResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateExportUsersResponseBody generates a mock response body for GET /users/export.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateExportUsersResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateExportUsersResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateExportUsersRequest generates a mock request for GET /users/export.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateExportUsersRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/export", "GET", ctx)
+}
+
+// GenerateGetUserConfigResponse generates a mock response for GET /users/{id}/config.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserConfigResponse(ctx map[string]any) (*GetUserConfigResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/config", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewGetUserConfigResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserConfigResponseBody generates a mock response body for GET /users/{id}/config.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserConfigResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateGetUserConfigResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserConfigRequest generates a mock request for GET /users/{id}/config.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserConfigRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/config", "GET", ctx)
+}
+
+// GenerateGetUserAPIDataResponse generates a mock response for GET /users/{id}/api-data.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserAPIDataResponse(ctx map[string]any) (*GetUserAPIDataResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/api-data", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetUserAPIDataResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/vnd.api+json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetUserAPIDataResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserAPIDataResponseBody generates a mock response body for GET /users/{id}/api-data.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserAPIDataResponseBody(ctx map[string]any) (*GetUserAPIDataResponse, error) {
+	res, err := GenerateGetUserAPIDataResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserAPIDataRequest generates a mock request for GET /users/{id}/api-data.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserAPIDataRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/api-data", "GET", ctx)
+}
+
+// GenerateGetUserHalResponse generates a mock response for GET /users/{id}/hal.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserHalResponse(ctx map[string]any) (*GetUserHalResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/hal", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetUserHalResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/hal+json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetUserHalResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserHalResponseBody generates a mock response body for GET /users/{id}/hal.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserHalResponseBody(ctx map[string]any) (*GetUserHalResponse, error) {
+	res, err := GenerateGetUserHalResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserHalRequest generates a mock request for GET /users/{id}/hal.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserHalRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/hal", "GET", ctx)
+}
+
+// GenerateGetUserProblemResponse generates a mock response for GET /users/{id}/problem.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserProblemResponse(ctx map[string]any) (*GetUserProblemResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/problem", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetUserProblemResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/problem+json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetUserProblemResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserProblemResponseBody generates a mock response body for GET /users/{id}/problem.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserProblemResponseBody(ctx map[string]any) (*GetUserProblemResponse, error) {
+	res, err := GenerateGetUserProblemResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserProblemRequest generates a mock request for GET /users/{id}/problem.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserProblemRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/problem", "GET", ctx)
+}
+
+// GenerateStreamUsersResponse generates a mock response for GET /users/stream.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateStreamUsersResponse(ctx map[string]any) (*StreamUsersResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/stream", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewStreamUsersResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateStreamUsersResponseBody generates a mock response body for GET /users/stream.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateStreamUsersResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateStreamUsersResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateStreamUsersRequest generates a mock request for GET /users/stream.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateStreamUsersRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/stream", "GET", ctx)
+}
+
+// GenerateGetUserPdfResponse generates a mock response for GET /users/{id}/pdf.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserPdfResponse(ctx map[string]any) (*GetUserPdfResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/{id}/pdf", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewGetUserPdfResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserPdfResponseBody generates a mock response body for GET /users/{id}/pdf.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserPdfResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateGetUserPdfResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserPdfRequest generates a mock request for GET /users/{id}/pdf.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserPdfRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/{id}/pdf", "GET", ctx)
 }
 
 type GetUserPath struct {

@@ -246,9 +246,12 @@ func GenerateService(opts ServiceOptions) error {
 
 	// Add imports required by connexions generator code
 	cfg.AdditionalImports = append(cfg.AdditionalImports,
+		codegen.AdditionalImport{Package: "sync"},
 		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/api"},
 		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/config"},
 		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/db"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/factory"},
+		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/schema"},
 		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/generator"},
 		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/loader"},
 		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/typedef"},

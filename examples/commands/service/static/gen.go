@@ -12,13 +12,16 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
-	"strings"
+
+	"sync"
 
 	"github.com/cubahno/connexions/v2/pkg/api"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/factory"
 	"github.com/cubahno/connexions/v2/pkg/generator"
 	"github.com/cubahno/connexions/v2/pkg/loader"
+	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/cubahno/connexions/v2/pkg/typedef"
 	oapicodegen "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/runtime"
@@ -287,11 +290,11 @@ func readFirstEmbeddedFile(fsys embed.FS) ([]byte, error) {
 		return nil, fmt.Errorf("reading embedded directory: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasPrefix(entry.Name(), "openapi.") {
+		if !entry.IsDir() {
 			return fsys.ReadFile(path.Join("setup", entry.Name()))
 		}
 	}
-	return nil, errors.New("no openapi spec file found in embedded filesystem")
+	return nil, errors.New("no file found in embedded filesystem")
 }
 
 // ============================================================================
@@ -385,6 +388,89 @@ func (s *generatorService) PostFooBar(ctx context.Context) (*PostFooBarResponseD
 		return nil, err
 	}
 	return NewPostFooBarResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// ============================================================================
+// Factory (programmatic request/response generation)
+// ============================================================================
+
+var (
+	defaultFactory     *factory.Factory
+	defaultFactoryOnce sync.Once
+	defaultFactoryErr  error
+)
+
+// NewFactory creates a Factory pre-configured with this service's OpenAPI spec,
+// codegen config, spec options, and context.
+// Use it to generate mock requests and responses programmatically without running the server.
+func NewFactory(opts ...factory.FactoryOption) (*factory.Factory, error) {
+	openapiSpec, err := readFirstEmbeddedFile(openapiSpecFS)
+	if err != nil {
+		return nil, err
+	}
+
+	var codegenCfg oapicodegen.Configuration
+	if err := yamlv4.Unmarshal(codegenConfigSrc, &codegenCfg); err != nil {
+		return nil, err
+	}
+
+	allOpts := []factory.FactoryOption{
+		factory.WithServiceContext(contextSrc),
+		factory.WithCodegenConfig(codegenCfg),
+	}
+	if cfg != nil && cfg.SpecOptions != nil {
+		allOpts = append(allOpts, factory.WithSpecOptions(cfg.SpecOptions))
+	}
+	allOpts = append(allOpts, opts...)
+	return factory.NewFactory(openapiSpec, allOpts...)
+}
+
+// GetFactory returns a singleton Factory instance.
+// The factory is initialized on first call and reused for subsequent calls.
+func GetFactory() (*factory.Factory, error) {
+	defaultFactoryOnce.Do(func() {
+		defaultFactory, defaultFactoryErr = NewFactory()
+	})
+	return defaultFactory, defaultFactoryErr
+}
+
+// GeneratePostFooBarResponse generates a mock response for POST /foo/bar.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePostFooBarResponse(ctx map[string]any) (*PostFooBarResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/foo/bar", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body PostFooBarResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewPostFooBarResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GeneratePostFooBarResponseBody generates a mock response body for POST /foo/bar.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePostFooBarResponseBody(ctx map[string]any) (*PostFooBarResponse, error) {
+	res, err := GeneratePostFooBarResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GeneratePostFooBarRequest generates a mock request for POST /foo/bar.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePostFooBarRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/foo/bar", "POST", ctx)
 }
 
 // PostFooBarResponseData wraps the success response with optional headers and status override.
