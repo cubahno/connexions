@@ -12,14 +12,17 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
-	"strings"
 	"time"
+
+	"sync"
 
 	"github.com/cubahno/connexions/v2/pkg/api"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/factory"
 	"github.com/cubahno/connexions/v2/pkg/generator"
 	"github.com/cubahno/connexions/v2/pkg/loader"
+	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/cubahno/connexions/v2/pkg/typedef"
 	oapicodegen "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/runtime"
@@ -1716,11 +1719,11 @@ func readFirstEmbeddedFile(fsys embed.FS) ([]byte, error) {
 		return nil, fmt.Errorf("reading embedded directory: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasPrefix(entry.Name(), "openapi.") {
+		if !entry.IsDir() {
 			return fsys.ReadFile(path.Join("setup", entry.Name()))
 		}
 	}
-	return nil, errors.New("no openapi spec file found in embedded filesystem")
+	return nil, errors.New("no file found in embedded filesystem")
 }
 
 // ============================================================================
@@ -2240,6 +2243,854 @@ func (s *generatorService) DeleteUser(ctx context.Context, opts *DeleteUserServi
 
 	// Fallback to generator
 	return opts.GenerateResponse()
+}
+
+// ============================================================================
+// Factory (programmatic request/response generation)
+// ============================================================================
+
+var (
+	defaultFactory     *factory.Factory
+	defaultFactoryOnce sync.Once
+	defaultFactoryErr  error
+)
+
+// NewFactory creates a Factory pre-configured with this service's OpenAPI spec,
+// codegen config, spec options, and context.
+// Use it to generate mock requests and responses programmatically without running the server.
+func NewFactory(opts ...factory.FactoryOption) (*factory.Factory, error) {
+	openapiSpec, err := readFirstEmbeddedFile(openapiSpecFS)
+	if err != nil {
+		return nil, err
+	}
+
+	var codegenCfg oapicodegen.Configuration
+	if err := yamlv4.Unmarshal(codegenConfigSrc, &codegenCfg); err != nil {
+		return nil, err
+	}
+
+	allOpts := []factory.FactoryOption{
+		factory.WithServiceContext(contextSrc),
+		factory.WithCodegenConfig(codegenCfg),
+	}
+	if cfg != nil && cfg.SpecOptions != nil {
+		allOpts = append(allOpts, factory.WithSpecOptions(cfg.SpecOptions))
+	}
+	allOpts = append(allOpts, opts...)
+	return factory.NewFactory(openapiSpec, allOpts...)
+}
+
+// GetFactory returns a singleton Factory instance.
+// The factory is initialized on first call and reused for subsequent calls.
+func GetFactory() (*factory.Factory, error) {
+	defaultFactoryOnce.Do(func() {
+		defaultFactory, defaultFactoryErr = NewFactory()
+	})
+	return defaultFactory, defaultFactoryErr
+}
+
+// GenerateUpdatePetResponse generates a mock response for PUT /pet.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetResponse(ctx map[string]any) (*UpdatePetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet", "PUT", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body UpdatePetResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewUpdatePetResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateUpdatePetResponseBody generates a mock response body for PUT /pet.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetResponseBody(ctx map[string]any) (*UpdatePetResponse, error) {
+	res, err := GenerateUpdatePetResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateUpdatePetRequest generates a mock request for PUT /pet.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet", "PUT", ctx)
+}
+
+// GenerateUpdatePetRequestBody generates a typed mock request body for PUT /pet.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetRequestBody(ctx map[string]any) (*UpdatePetBody, error) {
+	req, err := GenerateUpdatePetRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body UpdatePetBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAddPetResponse generates a mock response for POST /pet.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddPetResponse(ctx map[string]any) (*AddPetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddPetResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAddPetResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAddPetResponseBody generates a mock response body for POST /pet.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddPetResponseBody(ctx map[string]any) (*AddPetResponse, error) {
+	res, err := GenerateAddPetResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAddPetRequest generates a mock request for POST /pet.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddPetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet", "POST", ctx)
+}
+
+// GenerateAddPetRequestBody generates a typed mock request body for POST /pet.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddPetRequestBody(ctx map[string]any) (*AddPetBody, error) {
+	req, err := GenerateAddPetRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddPetBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateFindPetsByStatusResponse generates a mock response for GET /pet/findByStatus.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateFindPetsByStatusResponse(ctx map[string]any) (*FindPetsByStatusResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet/findByStatus", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body FindPetsByStatusResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewFindPetsByStatusResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateFindPetsByStatusResponseBody generates a mock response body for GET /pet/findByStatus.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateFindPetsByStatusResponseBody(ctx map[string]any) (*FindPetsByStatusResponse, error) {
+	res, err := GenerateFindPetsByStatusResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateFindPetsByStatusRequest generates a mock request for GET /pet/findByStatus.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateFindPetsByStatusRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet/findByStatus", "GET", ctx)
+}
+
+// GenerateFindPetsByTagsResponse generates a mock response for GET /pet/findByTags.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateFindPetsByTagsResponse(ctx map[string]any) (*FindPetsByTagsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet/findByTags", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body FindPetsByTagsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewFindPetsByTagsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateFindPetsByTagsResponseBody generates a mock response body for GET /pet/findByTags.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateFindPetsByTagsResponseBody(ctx map[string]any) (*FindPetsByTagsResponse, error) {
+	res, err := GenerateFindPetsByTagsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateFindPetsByTagsRequest generates a mock request for GET /pet/findByTags.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateFindPetsByTagsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet/findByTags", "GET", ctx)
+}
+
+// GenerateGetPetByIDResponse generates a mock response for GET /pet/{petId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetPetByIDResponse(ctx map[string]any) (*GetPetByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet/{petId}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetPetByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetPetByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetPetByIDResponseBody generates a mock response body for GET /pet/{petId}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetPetByIDResponseBody(ctx map[string]any) (*GetPetByIDResponse, error) {
+	res, err := GenerateGetPetByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetPetByIDRequest generates a mock request for GET /pet/{petId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetPetByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet/{petId}", "GET", ctx)
+}
+
+// GenerateUpdatePetWithFormResponse generates a mock response for POST /pet/{petId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetWithFormResponse(ctx map[string]any) (*UpdatePetWithFormResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet/{petId}", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body UpdatePetWithFormResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewUpdatePetWithFormResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateUpdatePetWithFormResponseBody generates a mock response body for POST /pet/{petId}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetWithFormResponseBody(ctx map[string]any) (*UpdatePetWithFormResponse, error) {
+	res, err := GenerateUpdatePetWithFormResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateUpdatePetWithFormRequest generates a mock request for POST /pet/{petId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdatePetWithFormRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet/{petId}", "POST", ctx)
+}
+
+// GenerateDeletePetResponse generates a mock response for DELETE /pet/{petId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeletePetResponse(ctx map[string]any) (*DeletePetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet/{petId}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewDeletePetResponseData(nil).WithHeaders(res.Headers), nil
+}
+
+// GenerateDeletePetResponseBody generates a mock response body for DELETE /pet/{petId}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeletePetResponseBody(ctx map[string]any) error {
+	_, err := GenerateDeletePetResponse(ctx)
+	return err
+}
+
+// GenerateDeletePetRequest generates a mock request for DELETE /pet/{petId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeletePetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet/{petId}", "DELETE", ctx)
+}
+
+// GenerateUploadFileResponse generates a mock response for POST /pet/{petId}/uploadImage.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUploadFileResponse(ctx map[string]any) (*UploadFileResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/pet/{petId}/uploadImage", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body UploadFileResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewUploadFileResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateUploadFileResponseBody generates a mock response body for POST /pet/{petId}/uploadImage.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUploadFileResponseBody(ctx map[string]any) (*UploadFileResponse, error) {
+	res, err := GenerateUploadFileResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateUploadFileRequest generates a mock request for POST /pet/{petId}/uploadImage.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUploadFileRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/pet/{petId}/uploadImage", "POST", ctx)
+}
+
+// GenerateUploadFileRequestBody generates a typed mock request body for POST /pet/{petId}/uploadImage.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUploadFileRequestBody(ctx map[string]any) (*UploadFileBody, error) {
+	req, err := GenerateUploadFileRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body UploadFileBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateGetInventoryResponse generates a mock response for GET /store/inventory.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetInventoryResponse(ctx map[string]any) (*GetInventoryResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/store/inventory", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetInventoryResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetInventoryResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetInventoryResponseBody generates a mock response body for GET /store/inventory.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetInventoryResponseBody(ctx map[string]any) (*GetInventoryResponse, error) {
+	res, err := GenerateGetInventoryResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetInventoryRequest generates a mock request for GET /store/inventory.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetInventoryRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/store/inventory", "GET", ctx)
+}
+
+// GeneratePlaceOrderResponse generates a mock response for POST /store/order.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePlaceOrderResponse(ctx map[string]any) (*PlaceOrderResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/store/order", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body PlaceOrderResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewPlaceOrderResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GeneratePlaceOrderResponseBody generates a mock response body for POST /store/order.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePlaceOrderResponseBody(ctx map[string]any) (*PlaceOrderResponse, error) {
+	res, err := GeneratePlaceOrderResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GeneratePlaceOrderRequest generates a mock request for POST /store/order.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePlaceOrderRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/store/order", "POST", ctx)
+}
+
+// GeneratePlaceOrderRequestBody generates a typed mock request body for POST /store/order.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePlaceOrderRequestBody(ctx map[string]any) (*PlaceOrderBody, error) {
+	req, err := GeneratePlaceOrderRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body PlaceOrderBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateGetOrderByIDResponse generates a mock response for GET /store/order/{orderId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetOrderByIDResponse(ctx map[string]any) (*GetOrderByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/store/order/{orderId}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetOrderByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetOrderByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetOrderByIDResponseBody generates a mock response body for GET /store/order/{orderId}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetOrderByIDResponseBody(ctx map[string]any) (*GetOrderByIDResponse, error) {
+	res, err := GenerateGetOrderByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetOrderByIDRequest generates a mock request for GET /store/order/{orderId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetOrderByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/store/order/{orderId}", "GET", ctx)
+}
+
+// GenerateDeleteOrderResponse generates a mock response for DELETE /store/order/{orderId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteOrderResponse(ctx map[string]any) (*DeleteOrderResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/store/order/{orderId}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewDeleteOrderResponseData(nil).WithHeaders(res.Headers), nil
+}
+
+// GenerateDeleteOrderResponseBody generates a mock response body for DELETE /store/order/{orderId}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteOrderResponseBody(ctx map[string]any) error {
+	_, err := GenerateDeleteOrderResponse(ctx)
+	return err
+}
+
+// GenerateDeleteOrderRequest generates a mock request for DELETE /store/order/{orderId}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteOrderRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/store/order/{orderId}", "DELETE", ctx)
+}
+
+// GenerateCreateUserResponse generates a mock response for POST /user.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUserResponse(ctx map[string]any) (*CreateUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateUserResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewCreateUserResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateCreateUserResponseBody generates a mock response body for POST /user.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUserResponseBody(ctx map[string]any) (*CreateUserResponse, error) {
+	res, err := GenerateCreateUserResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateCreateUserRequest generates a mock request for POST /user.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user", "POST", ctx)
+}
+
+// GenerateCreateUserRequestBody generates a typed mock request body for POST /user.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUserRequestBody(ctx map[string]any) (*CreateUserBody, error) {
+	req, err := GenerateCreateUserRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateUserBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateCreateUsersWithListInputResponse generates a mock response for POST /user/createWithList.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUsersWithListInputResponse(ctx map[string]any) (*CreateUsersWithListInputResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user/createWithList", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateUsersWithListInputResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewCreateUsersWithListInputResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateCreateUsersWithListInputResponseBody generates a mock response body for POST /user/createWithList.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUsersWithListInputResponseBody(ctx map[string]any) (*CreateUsersWithListInputResponse, error) {
+	res, err := GenerateCreateUsersWithListInputResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateCreateUsersWithListInputRequest generates a mock request for POST /user/createWithList.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUsersWithListInputRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user/createWithList", "POST", ctx)
+}
+
+// GenerateCreateUsersWithListInputRequestBody generates a typed mock request body for POST /user/createWithList.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateUsersWithListInputRequestBody(ctx map[string]any) (*CreateUsersWithListInputBody, error) {
+	req, err := GenerateCreateUsersWithListInputRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateUsersWithListInputBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateLoginUserResponse generates a mock response for GET /user/login.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateLoginUserResponse(ctx map[string]any) (*LoginUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user/login", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body LoginUserResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewLoginUserResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateLoginUserResponseBody generates a mock response body for GET /user/login.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateLoginUserResponseBody(ctx map[string]any) (*LoginUserResponse, error) {
+	res, err := GenerateLoginUserResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateLoginUserRequest generates a mock request for GET /user/login.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateLoginUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user/login", "GET", ctx)
+}
+
+// GenerateLogoutUserResponse generates a mock response for GET /user/logout.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateLogoutUserResponse(ctx map[string]any) (*LogoutUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user/logout", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewLogoutUserResponseData(nil).WithHeaders(res.Headers), nil
+}
+
+// GenerateLogoutUserResponseBody generates a mock response body for GET /user/logout.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateLogoutUserResponseBody(ctx map[string]any) error {
+	_, err := GenerateLogoutUserResponse(ctx)
+	return err
+}
+
+// GenerateLogoutUserRequest generates a mock request for GET /user/logout.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateLogoutUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user/logout", "GET", ctx)
+}
+
+// GenerateGetUserByNameResponse generates a mock response for GET /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserByNameResponse(ctx map[string]any) (*GetUserByNameResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user/{username}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetUserByNameResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetUserByNameResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetUserByNameResponseBody generates a mock response body for GET /user/{username}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserByNameResponseBody(ctx map[string]any) (*GetUserByNameResponse, error) {
+	res, err := GenerateGetUserByNameResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetUserByNameRequest generates a mock request for GET /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetUserByNameRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user/{username}", "GET", ctx)
+}
+
+// GenerateUpdateUserResponse generates a mock response for PUT /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdateUserResponse(ctx map[string]any) (*UpdateUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user/{username}", "PUT", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewUpdateUserResponseData(nil).WithHeaders(res.Headers), nil
+}
+
+// GenerateUpdateUserResponseBody generates a mock response body for PUT /user/{username}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdateUserResponseBody(ctx map[string]any) error {
+	_, err := GenerateUpdateUserResponse(ctx)
+	return err
+}
+
+// GenerateUpdateUserRequest generates a mock request for PUT /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdateUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user/{username}", "PUT", ctx)
+}
+
+// GenerateUpdateUserRequestBody generates a typed mock request body for PUT /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateUpdateUserRequestBody(ctx map[string]any) (*UpdateUserBody, error) {
+	req, err := GenerateUpdateUserRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body UpdateUserBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateDeleteUserResponse generates a mock response for DELETE /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteUserResponse(ctx map[string]any) (*DeleteUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/user/{username}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewDeleteUserResponseData(nil).WithHeaders(res.Headers), nil
+}
+
+// GenerateDeleteUserResponseBody generates a mock response body for DELETE /user/{username}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteUserResponseBody(ctx map[string]any) error {
+	_, err := GenerateDeleteUserResponse(ctx)
+	return err
+}
+
+// GenerateDeleteUserRequest generates a mock request for DELETE /user/{username}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/user/{username}", "DELETE", ctx)
 }
 
 type DeletePetHeaders struct {

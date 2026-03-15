@@ -68,6 +68,7 @@ nav:
       - Docker: 'usage/docker.md'
       - Docker Compose: 'usage/docker-compose.md'
   - Services: 'services.md'
+  - Factory: 'factory.md'
   - Configuration:
       - App Config: 'config/app.md'
       - Service Config: 'config/service.md'

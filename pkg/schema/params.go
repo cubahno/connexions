@@ -53,6 +53,14 @@ type ResponseData struct {
 	IsError bool            `json:"isError,omitempty"`
 }
 
+// GeneratedRequest is a struct that represents a generated mock request.
+type GeneratedRequest struct {
+	Path        string          `json:"path"`
+	ContentType string          `json:"contentType,omitempty"`
+	Headers     any             `json:"headers,omitempty"`
+	Body        json.RawMessage `json:"body,omitempty"`
+}
+
 // Path is a struct that represents a path parameter.
 type Path struct {
 	Value   string

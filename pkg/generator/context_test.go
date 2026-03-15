@@ -75,3 +75,20 @@ user_id: 12345
 		assert.Equal(12345, result[0]["user_id"])
 	})
 }
+
+func TestLoadDefaultContexts(t *testing.T) {
+	assert := assert2.New(t)
+
+	result := LoadDefaultContexts()
+
+	assert.Len(result, 3)
+	// Each entry should be a single-key map: common, fake, words
+	assert.Contains(result[0], "common")
+	assert.Contains(result[1], "fake")
+	assert.Contains(result[2], "words")
+
+	// Verify contexts are non-empty
+	assert.NotEmpty(result[0]["common"])
+	assert.NotEmpty(result[1]["fake"])
+	assert.NotEmpty(result[2]["words"])
+}

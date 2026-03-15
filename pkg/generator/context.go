@@ -1,6 +1,9 @@
 package generator
 
-import "github.com/cubahno/connexions/v2/internal/contexts"
+import (
+	"github.com/cubahno/connexions/v2/internal/contexts"
+	"github.com/cubahno/connexions/v2/resources"
+)
 
 // LoadServiceContext loads the service context and combines it with the default contexts.
 // It returns a flattened array of context maps in a specific order:
@@ -24,5 +27,20 @@ func LoadServiceContext(serviceCtx []byte, defaultContexts []map[string]map[stri
 		combinedCtx["common"],
 		combinedCtx["fake"],
 		combinedCtx["words"],
+	}
+}
+
+// LoadDefaultContexts loads the built-in replacement contexts (common, fake, words).
+// This allows standalone usage without an api.Router.
+func LoadDefaultContexts() []map[string]map[string]any {
+	ctxs := contexts.Load(map[string][]byte{
+		"common": resources.CommonContextYAMLContents,
+		"fake":   resources.FakeContextYAMLContents,
+		"words":  resources.WordsContextYAMLContents,
+	}, nil)
+	return []map[string]map[string]any{
+		{"common": ctxs["common"]},
+		{"fake": ctxs["fake"]},
+		{"words": ctxs["words"]},
 	}
 }

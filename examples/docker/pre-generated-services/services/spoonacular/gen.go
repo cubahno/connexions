@@ -12,13 +12,16 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
-	"strings"
+
+	"sync"
 
 	"github.com/cubahno/connexions/v2/pkg/api"
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/cubahno/connexions/v2/pkg/factory"
 	"github.com/cubahno/connexions/v2/pkg/generator"
 	"github.com/cubahno/connexions/v2/pkg/loader"
+	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/cubahno/connexions/v2/pkg/typedef"
 	oapicodegen "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/runtime"
@@ -10649,11 +10652,11 @@ func readFirstEmbeddedFile(fsys embed.FS) ([]byte, error) {
 		return nil, fmt.Errorf("reading embedded directory: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasPrefix(entry.Name(), "openapi.") {
+		if !entry.IsDir() {
 			return fsys.ReadFile(path.Join("setup", entry.Name()))
 		}
 	}
-	return nil, errors.New("no openapi spec file found in embedded filesystem")
+	return nil, errors.New("no file found in embedded filesystem")
 }
 
 // ============================================================================
@@ -13153,6 +13156,4207 @@ func (s *generatorService) GetConversationSuggests(ctx context.Context, opts *Ge
 
 	// Fallback to generator
 	return opts.GenerateResponse()
+}
+
+// ============================================================================
+// Factory (programmatic request/response generation)
+// ============================================================================
+
+var (
+	defaultFactory     *factory.Factory
+	defaultFactoryOnce sync.Once
+	defaultFactoryErr  error
+)
+
+// NewFactory creates a Factory pre-configured with this service's OpenAPI spec,
+// codegen config, spec options, and context.
+// Use it to generate mock requests and responses programmatically without running the server.
+func NewFactory(opts ...factory.FactoryOption) (*factory.Factory, error) {
+	openapiSpec, err := readFirstEmbeddedFile(openapiSpecFS)
+	if err != nil {
+		return nil, err
+	}
+
+	var codegenCfg oapicodegen.Configuration
+	if err := yamlv4.Unmarshal(codegenConfigSrc, &codegenCfg); err != nil {
+		return nil, err
+	}
+
+	allOpts := []factory.FactoryOption{
+		factory.WithServiceContext(contextSrc),
+		factory.WithCodegenConfig(codegenCfg),
+	}
+	if cfg != nil && cfg.SpecOptions != nil {
+		allOpts = append(allOpts, factory.WithSpecOptions(cfg.SpecOptions))
+	}
+	allOpts = append(allOpts, opts...)
+	return factory.NewFactory(openapiSpec, allOpts...)
+}
+
+// GetFactory returns a singleton Factory instance.
+// The factory is initialized on first call and reused for subsequent calls.
+func GetFactory() (*factory.Factory, error) {
+	defaultFactoryOnce.Do(func() {
+		defaultFactory, defaultFactoryErr = NewFactory()
+	})
+	return defaultFactory, defaultFactoryErr
+}
+
+// GenerateSearchRecipesResponse generates a mock response for GET /recipes/complexSearch.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesResponse(ctx map[string]any) (*SearchRecipesResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/complexSearch", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchRecipesResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchRecipesResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchRecipesResponseBody generates a mock response body for GET /recipes/complexSearch.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesResponseBody(ctx map[string]any) (*SearchRecipesResponse, error) {
+	res, err := GenerateSearchRecipesResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchRecipesRequest generates a mock request for GET /recipes/complexSearch.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/complexSearch", "GET", ctx)
+}
+
+// GenerateSearchRecipesByIngredientsResponse generates a mock response for GET /recipes/findByIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesByIngredientsResponse(ctx map[string]any) (*SearchRecipesByIngredientsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/findByIngredients", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchRecipesByIngredientsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchRecipesByIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchRecipesByIngredientsResponseBody generates a mock response body for GET /recipes/findByIngredients.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesByIngredientsResponseBody(ctx map[string]any) (*SearchRecipesByIngredientsResponse, error) {
+	res, err := GenerateSearchRecipesByIngredientsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchRecipesByIngredientsRequest generates a mock request for GET /recipes/findByIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesByIngredientsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/findByIngredients", "GET", ctx)
+}
+
+// GenerateSearchRecipesByNutrientsResponse generates a mock response for GET /recipes/findByNutrients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesByNutrientsResponse(ctx map[string]any) (*SearchRecipesByNutrientsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/findByNutrients", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchRecipesByNutrientsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchRecipesByNutrientsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchRecipesByNutrientsResponseBody generates a mock response body for GET /recipes/findByNutrients.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesByNutrientsResponseBody(ctx map[string]any) (*SearchRecipesByNutrientsResponse, error) {
+	res, err := GenerateSearchRecipesByNutrientsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchRecipesByNutrientsRequest generates a mock request for GET /recipes/findByNutrients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRecipesByNutrientsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/findByNutrients", "GET", ctx)
+}
+
+// GenerateGetRecipeInformationResponse generates a mock response for GET /recipes/{id}/information.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeInformationResponse(ctx map[string]any) (*GetRecipeInformationResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/information", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipeInformationResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipeInformationResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipeInformationResponseBody generates a mock response body for GET /recipes/{id}/information.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeInformationResponseBody(ctx map[string]any) (*GetRecipeInformationResponse, error) {
+	res, err := GenerateGetRecipeInformationResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipeInformationRequest generates a mock request for GET /recipes/{id}/information.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeInformationRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/information", "GET", ctx)
+}
+
+// GenerateGetRecipeInformationBulkResponse generates a mock response for GET /recipes/informationBulk.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeInformationBulkResponse(ctx map[string]any) (*GetRecipeInformationBulkResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/informationBulk", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipeInformationBulkResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipeInformationBulkResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipeInformationBulkResponseBody generates a mock response body for GET /recipes/informationBulk.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeInformationBulkResponseBody(ctx map[string]any) (*GetRecipeInformationBulkResponse, error) {
+	res, err := GenerateGetRecipeInformationBulkResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipeInformationBulkRequest generates a mock request for GET /recipes/informationBulk.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeInformationBulkRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/informationBulk", "GET", ctx)
+}
+
+// GenerateGetSimilarRecipesResponse generates a mock response for GET /recipes/{id}/similar.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetSimilarRecipesResponse(ctx map[string]any) (*GetSimilarRecipesResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/similar", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetSimilarRecipesResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetSimilarRecipesResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetSimilarRecipesResponseBody generates a mock response body for GET /recipes/{id}/similar.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetSimilarRecipesResponseBody(ctx map[string]any) (*GetSimilarRecipesResponse, error) {
+	res, err := GenerateGetSimilarRecipesResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetSimilarRecipesRequest generates a mock request for GET /recipes/{id}/similar.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetSimilarRecipesRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/similar", "GET", ctx)
+}
+
+// GenerateGetRandomRecipesResponse generates a mock response for GET /recipes/random.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRandomRecipesResponse(ctx map[string]any) (*GetRandomRecipesResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/random", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRandomRecipesResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRandomRecipesResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRandomRecipesResponseBody generates a mock response body for GET /recipes/random.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRandomRecipesResponseBody(ctx map[string]any) (*GetRandomRecipesResponse, error) {
+	res, err := GenerateGetRandomRecipesResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRandomRecipesRequest generates a mock request for GET /recipes/random.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRandomRecipesRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/random", "GET", ctx)
+}
+
+// GenerateAutocompleteRecipeSearchResponse generates a mock response for GET /recipes/autocomplete.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteRecipeSearchResponse(ctx map[string]any) (*AutocompleteRecipeSearchResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/autocomplete", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AutocompleteRecipeSearchResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAutocompleteRecipeSearchResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAutocompleteRecipeSearchResponseBody generates a mock response body for GET /recipes/autocomplete.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteRecipeSearchResponseBody(ctx map[string]any) (*AutocompleteRecipeSearchResponse, error) {
+	res, err := GenerateAutocompleteRecipeSearchResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAutocompleteRecipeSearchRequest generates a mock request for GET /recipes/autocomplete.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteRecipeSearchRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/autocomplete", "GET", ctx)
+}
+
+// GenerateGetRecipeTasteByIDResponse generates a mock response for GET /recipes/{id}/tasteWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeTasteByIDResponse(ctx map[string]any) (*GetRecipeTasteByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/tasteWidget.json", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipeTasteByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipeTasteByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipeTasteByIDResponseBody generates a mock response body for GET /recipes/{id}/tasteWidget.json.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeTasteByIDResponseBody(ctx map[string]any) (*GetRecipeTasteByIDResponse, error) {
+	res, err := GenerateGetRecipeTasteByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipeTasteByIDRequest generates a mock request for GET /recipes/{id}/tasteWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeTasteByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/tasteWidget.json", "GET", ctx)
+}
+
+// GenerateRecipeTasteByIDImageResponse generates a mock response for GET /recipes/{id}/tasteWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeTasteByIDImageResponse(ctx map[string]any) (*RecipeTasteByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/tasteWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewRecipeTasteByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateRecipeTasteByIDImageResponseBody generates a mock response body for GET /recipes/{id}/tasteWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeTasteByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateRecipeTasteByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateRecipeTasteByIDImageRequest generates a mock request for GET /recipes/{id}/tasteWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeTasteByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/tasteWidget.png", "GET", ctx)
+}
+
+// GenerateGetRecipeEquipmentByIDResponse generates a mock response for GET /recipes/{id}/equipmentWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeEquipmentByIDResponse(ctx map[string]any) (*GetRecipeEquipmentByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/equipmentWidget.json", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipeEquipmentByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipeEquipmentByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipeEquipmentByIDResponseBody generates a mock response body for GET /recipes/{id}/equipmentWidget.json.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeEquipmentByIDResponseBody(ctx map[string]any) (*GetRecipeEquipmentByIDResponse, error) {
+	res, err := GenerateGetRecipeEquipmentByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipeEquipmentByIDRequest generates a mock request for GET /recipes/{id}/equipmentWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeEquipmentByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/equipmentWidget.json", "GET", ctx)
+}
+
+// GenerateEquipmentByIDImageResponse generates a mock response for GET /recipes/{id}/equipmentWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateEquipmentByIDImageResponse(ctx map[string]any) (*EquipmentByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/equipmentWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewEquipmentByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateEquipmentByIDImageResponseBody generates a mock response body for GET /recipes/{id}/equipmentWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateEquipmentByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateEquipmentByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateEquipmentByIDImageRequest generates a mock request for GET /recipes/{id}/equipmentWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateEquipmentByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/equipmentWidget.png", "GET", ctx)
+}
+
+// GenerateGetRecipePriceBreakdownByIDResponse generates a mock response for GET /recipes/{id}/priceBreakdownWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipePriceBreakdownByIDResponse(ctx map[string]any) (*GetRecipePriceBreakdownByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/priceBreakdownWidget.json", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipePriceBreakdownByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipePriceBreakdownByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipePriceBreakdownByIDResponseBody generates a mock response body for GET /recipes/{id}/priceBreakdownWidget.json.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipePriceBreakdownByIDResponseBody(ctx map[string]any) (*GetRecipePriceBreakdownByIDResponse, error) {
+	res, err := GenerateGetRecipePriceBreakdownByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipePriceBreakdownByIDRequest generates a mock request for GET /recipes/{id}/priceBreakdownWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipePriceBreakdownByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/priceBreakdownWidget.json", "GET", ctx)
+}
+
+// GeneratePriceBreakdownByIDImageResponse generates a mock response for GET /recipes/{id}/priceBreakdownWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePriceBreakdownByIDImageResponse(ctx map[string]any) (*PriceBreakdownByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/priceBreakdownWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewPriceBreakdownByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GeneratePriceBreakdownByIDImageResponseBody generates a mock response body for GET /recipes/{id}/priceBreakdownWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePriceBreakdownByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GeneratePriceBreakdownByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GeneratePriceBreakdownByIDImageRequest generates a mock request for GET /recipes/{id}/priceBreakdownWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GeneratePriceBreakdownByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/priceBreakdownWidget.png", "GET", ctx)
+}
+
+// GenerateGetRecipeIngredientsByIDResponse generates a mock response for GET /recipes/{id}/ingredientWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeIngredientsByIDResponse(ctx map[string]any) (*GetRecipeIngredientsByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/ingredientWidget.json", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipeIngredientsByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipeIngredientsByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipeIngredientsByIDResponseBody generates a mock response body for GET /recipes/{id}/ingredientWidget.json.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeIngredientsByIDResponseBody(ctx map[string]any) (*GetRecipeIngredientsByIDResponse, error) {
+	res, err := GenerateGetRecipeIngredientsByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipeIngredientsByIDRequest generates a mock request for GET /recipes/{id}/ingredientWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeIngredientsByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/ingredientWidget.json", "GET", ctx)
+}
+
+// GenerateIngredientsByIDImageResponse generates a mock response for GET /recipes/{id}/ingredientWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateIngredientsByIDImageResponse(ctx map[string]any) (*IngredientsByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/ingredientWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewIngredientsByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateIngredientsByIDImageResponseBody generates a mock response body for GET /recipes/{id}/ingredientWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateIngredientsByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateIngredientsByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateIngredientsByIDImageRequest generates a mock request for GET /recipes/{id}/ingredientWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateIngredientsByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/ingredientWidget.png", "GET", ctx)
+}
+
+// GenerateGetRecipeNutritionWidgetByIDResponse generates a mock response for GET /recipes/{id}/nutritionWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeNutritionWidgetByIDResponse(ctx map[string]any) (*GetRecipeNutritionWidgetByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/nutritionWidget.json", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRecipeNutritionWidgetByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRecipeNutritionWidgetByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRecipeNutritionWidgetByIDResponseBody generates a mock response body for GET /recipes/{id}/nutritionWidget.json.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeNutritionWidgetByIDResponseBody(ctx map[string]any) (*GetRecipeNutritionWidgetByIDResponse, error) {
+	res, err := GenerateGetRecipeNutritionWidgetByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRecipeNutritionWidgetByIDRequest generates a mock request for GET /recipes/{id}/nutritionWidget.json.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRecipeNutritionWidgetByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/nutritionWidget.json", "GET", ctx)
+}
+
+// GenerateRecipeNutritionByIDImageResponse generates a mock response for GET /recipes/{id}/nutritionWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionByIDImageResponse(ctx map[string]any) (*RecipeNutritionByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/nutritionWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewRecipeNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateRecipeNutritionByIDImageResponseBody generates a mock response body for GET /recipes/{id}/nutritionWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateRecipeNutritionByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateRecipeNutritionByIDImageRequest generates a mock request for GET /recipes/{id}/nutritionWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/nutritionWidget.png", "GET", ctx)
+}
+
+// GenerateRecipeNutritionLabelWidgetResponse generates a mock response for GET /recipes/{id}/nutritionLabel.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionLabelWidgetResponse(ctx map[string]any) (*RecipeNutritionLabelWidgetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/nutritionLabel", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body RecipeNutritionLabelWidgetResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewRecipeNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateRecipeNutritionLabelWidgetResponseBody generates a mock response body for GET /recipes/{id}/nutritionLabel.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionLabelWidgetResponseBody(ctx map[string]any) (*RecipeNutritionLabelWidgetResponse, error) {
+	res, err := GenerateRecipeNutritionLabelWidgetResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateRecipeNutritionLabelWidgetRequest generates a mock request for GET /recipes/{id}/nutritionLabel.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionLabelWidgetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/nutritionLabel", "GET", ctx)
+}
+
+// GenerateRecipeNutritionLabelImageResponse generates a mock response for GET /recipes/{id}/nutritionLabel.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionLabelImageResponse(ctx map[string]any) (*RecipeNutritionLabelImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/nutritionLabel.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewRecipeNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateRecipeNutritionLabelImageResponseBody generates a mock response body for GET /recipes/{id}/nutritionLabel.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionLabelImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateRecipeNutritionLabelImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateRecipeNutritionLabelImageRequest generates a mock request for GET /recipes/{id}/nutritionLabel.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateRecipeNutritionLabelImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/nutritionLabel.png", "GET", ctx)
+}
+
+// GenerateGetAnalyzedRecipeInstructionsResponse generates a mock response for GET /recipes/{id}/analyzedInstructions.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetAnalyzedRecipeInstructionsResponse(ctx map[string]any) (*GetAnalyzedRecipeInstructionsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/analyzedInstructions", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetAnalyzedRecipeInstructionsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetAnalyzedRecipeInstructionsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetAnalyzedRecipeInstructionsResponseBody generates a mock response body for GET /recipes/{id}/analyzedInstructions.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetAnalyzedRecipeInstructionsResponseBody(ctx map[string]any) (*GetAnalyzedRecipeInstructionsResponse, error) {
+	res, err := GenerateGetAnalyzedRecipeInstructionsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetAnalyzedRecipeInstructionsRequest generates a mock request for GET /recipes/{id}/analyzedInstructions.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetAnalyzedRecipeInstructionsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/analyzedInstructions", "GET", ctx)
+}
+
+// GenerateExtractRecipeFromWebsiteResponse generates a mock response for GET /recipes/extract.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateExtractRecipeFromWebsiteResponse(ctx map[string]any) (*ExtractRecipeFromWebsiteResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/extract", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ExtractRecipeFromWebsiteResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewExtractRecipeFromWebsiteResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateExtractRecipeFromWebsiteResponseBody generates a mock response body for GET /recipes/extract.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateExtractRecipeFromWebsiteResponseBody(ctx map[string]any) (*ExtractRecipeFromWebsiteResponse, error) {
+	res, err := GenerateExtractRecipeFromWebsiteResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateExtractRecipeFromWebsiteRequest generates a mock request for GET /recipes/extract.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateExtractRecipeFromWebsiteRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/extract", "GET", ctx)
+}
+
+// GenerateVisualizeRecipeIngredientsByIDResponse generates a mock response for GET /recipes/{id}/ingredientWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeIngredientsByIDResponse(ctx map[string]any) (*VisualizeRecipeIngredientsByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/ingredientWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeIngredientsByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipeIngredientsByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipeIngredientsByIDResponseBody generates a mock response body for GET /recipes/{id}/ingredientWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeIngredientsByIDResponseBody(ctx map[string]any) (*VisualizeRecipeIngredientsByIDResponse, error) {
+	res, err := GenerateVisualizeRecipeIngredientsByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipeIngredientsByIDRequest generates a mock request for GET /recipes/{id}/ingredientWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeIngredientsByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/ingredientWidget", "GET", ctx)
+}
+
+// GenerateVisualizeRecipeTasteByIDResponse generates a mock response for GET /recipes/{id}/tasteWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteByIDResponse(ctx map[string]any) (*VisualizeRecipeTasteByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/tasteWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeTasteByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipeTasteByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipeTasteByIDResponseBody generates a mock response body for GET /recipes/{id}/tasteWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteByIDResponseBody(ctx map[string]any) (*VisualizeRecipeTasteByIDResponse, error) {
+	res, err := GenerateVisualizeRecipeTasteByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipeTasteByIDRequest generates a mock request for GET /recipes/{id}/tasteWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/tasteWidget", "GET", ctx)
+}
+
+// GenerateVisualizeRecipeEquipmentByIDResponse generates a mock response for GET /recipes/{id}/equipmentWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeEquipmentByIDResponse(ctx map[string]any) (*VisualizeRecipeEquipmentByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/equipmentWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeEquipmentByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipeEquipmentByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipeEquipmentByIDResponseBody generates a mock response body for GET /recipes/{id}/equipmentWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeEquipmentByIDResponseBody(ctx map[string]any) (*VisualizeRecipeEquipmentByIDResponse, error) {
+	res, err := GenerateVisualizeRecipeEquipmentByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipeEquipmentByIDRequest generates a mock request for GET /recipes/{id}/equipmentWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeEquipmentByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/equipmentWidget", "GET", ctx)
+}
+
+// GenerateVisualizeRecipePriceBreakdownByIDResponse generates a mock response for GET /recipes/{id}/priceBreakdownWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipePriceBreakdownByIDResponse(ctx map[string]any) (*VisualizeRecipePriceBreakdownByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/priceBreakdownWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipePriceBreakdownByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipePriceBreakdownByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipePriceBreakdownByIDResponseBody generates a mock response body for GET /recipes/{id}/priceBreakdownWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipePriceBreakdownByIDResponseBody(ctx map[string]any) (*VisualizeRecipePriceBreakdownByIDResponse, error) {
+	res, err := GenerateVisualizeRecipePriceBreakdownByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipePriceBreakdownByIDRequest generates a mock request for GET /recipes/{id}/priceBreakdownWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipePriceBreakdownByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/priceBreakdownWidget", "GET", ctx)
+}
+
+// GenerateVisualizeRecipeTasteResponse generates a mock response for POST /recipes/visualizeTaste.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteResponse(ctx map[string]any) (*VisualizeRecipeTasteResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/visualizeTaste", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeTasteResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipeTasteResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipeTasteResponseBody generates a mock response body for POST /recipes/visualizeTaste.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteResponseBody(ctx map[string]any) (*VisualizeRecipeTasteResponse, error) {
+	res, err := GenerateVisualizeRecipeTasteResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipeTasteRequest generates a mock request for POST /recipes/visualizeTaste.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/visualizeTaste", "POST", ctx)
+}
+
+// GenerateVisualizeRecipeTasteRequestBody generates a typed mock request body for POST /recipes/visualizeTaste.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeTasteRequestBody(ctx map[string]any) (*VisualizeRecipeTasteBody, error) {
+	req, err := GenerateVisualizeRecipeTasteRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeTasteBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateVisualizeRecipeNutritionResponse generates a mock response for POST /recipes/visualizeNutrition.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionResponse(ctx map[string]any) (*VisualizeRecipeNutritionResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/visualizeNutrition", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeNutritionResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipeNutritionResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipeNutritionResponseBody generates a mock response body for POST /recipes/visualizeNutrition.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionResponseBody(ctx map[string]any) (*VisualizeRecipeNutritionResponse, error) {
+	res, err := GenerateVisualizeRecipeNutritionResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipeNutritionRequest generates a mock request for POST /recipes/visualizeNutrition.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/visualizeNutrition", "POST", ctx)
+}
+
+// GenerateVisualizeRecipeNutritionRequestBody generates a typed mock request body for POST /recipes/visualizeNutrition.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionRequestBody(ctx map[string]any) (*VisualizeRecipeNutritionBody, error) {
+	req, err := GenerateVisualizeRecipeNutritionRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeNutritionBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateVisualizePriceBreakdownResponse generates a mock response for POST /recipes/visualizePriceEstimator.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizePriceBreakdownResponse(ctx map[string]any) (*VisualizePriceBreakdownResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/visualizePriceEstimator", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizePriceBreakdownResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizePriceBreakdownResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizePriceBreakdownResponseBody generates a mock response body for POST /recipes/visualizePriceEstimator.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizePriceBreakdownResponseBody(ctx map[string]any) (*VisualizePriceBreakdownResponse, error) {
+	res, err := GenerateVisualizePriceBreakdownResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizePriceBreakdownRequest generates a mock request for POST /recipes/visualizePriceEstimator.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizePriceBreakdownRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/visualizePriceEstimator", "POST", ctx)
+}
+
+// GenerateVisualizePriceBreakdownRequestBody generates a typed mock request body for POST /recipes/visualizePriceEstimator.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizePriceBreakdownRequestBody(ctx map[string]any) (*VisualizePriceBreakdownBody, error) {
+	req, err := GenerateVisualizePriceBreakdownRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizePriceBreakdownBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateVisualizeEquipmentResponse generates a mock response for POST /recipes/visualizeEquipment.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeEquipmentResponse(ctx map[string]any) (*VisualizeEquipmentResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/visualizeEquipment", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeEquipmentResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeEquipmentResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeEquipmentResponseBody generates a mock response body for POST /recipes/visualizeEquipment.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeEquipmentResponseBody(ctx map[string]any) (*VisualizeEquipmentResponse, error) {
+	res, err := GenerateVisualizeEquipmentResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeEquipmentRequest generates a mock request for POST /recipes/visualizeEquipment.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeEquipmentRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/visualizeEquipment", "POST", ctx)
+}
+
+// GenerateVisualizeEquipmentRequestBody generates a typed mock request body for POST /recipes/visualizeEquipment.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeEquipmentRequestBody(ctx map[string]any) (*VisualizeEquipmentBody, error) {
+	req, err := GenerateVisualizeEquipmentRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeEquipmentBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAnalyzeRecipeResponse generates a mock response for POST /recipes/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeResponse(ctx map[string]any) (*AnalyzeRecipeResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/analyze", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AnalyzeRecipeResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAnalyzeRecipeResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAnalyzeRecipeResponseBody generates a mock response body for POST /recipes/analyze.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeResponseBody(ctx map[string]any) (*AnalyzeRecipeResponse, error) {
+	res, err := GenerateAnalyzeRecipeResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAnalyzeRecipeRequest generates a mock request for POST /recipes/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/analyze", "POST", ctx)
+}
+
+// GenerateAnalyzeRecipeRequestBody generates a typed mock request body for POST /recipes/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeRequestBody(ctx map[string]any) (*AnalyzeRecipeBody, error) {
+	req, err := GenerateAnalyzeRecipeRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AnalyzeRecipeBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateSummarizeRecipeResponse generates a mock response for GET /recipes/{id}/summary.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSummarizeRecipeResponse(ctx map[string]any) (*SummarizeRecipeResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/summary", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SummarizeRecipeResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSummarizeRecipeResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSummarizeRecipeResponseBody generates a mock response body for GET /recipes/{id}/summary.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSummarizeRecipeResponseBody(ctx map[string]any) (*SummarizeRecipeResponse, error) {
+	res, err := GenerateSummarizeRecipeResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSummarizeRecipeRequest generates a mock request for GET /recipes/{id}/summary.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSummarizeRecipeRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/summary", "GET", ctx)
+}
+
+// GenerateCreateRecipeCardGetResponse generates a mock response for GET /recipes/{id}/card.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardGetResponse(ctx map[string]any) (*CreateRecipeCardGetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/card", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateRecipeCardGetResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewCreateRecipeCardGetResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateCreateRecipeCardGetResponseBody generates a mock response body for GET /recipes/{id}/card.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardGetResponseBody(ctx map[string]any) (*CreateRecipeCardGetResponse, error) {
+	res, err := GenerateCreateRecipeCardGetResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateCreateRecipeCardGetRequest generates a mock request for GET /recipes/{id}/card.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardGetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/card", "GET", ctx)
+}
+
+// GenerateCreateRecipeCardResponse generates a mock response for POST /recipes/visualizeRecipe.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardResponse(ctx map[string]any) (*CreateRecipeCardResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/visualizeRecipe", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateRecipeCardResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewCreateRecipeCardResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateCreateRecipeCardResponseBody generates a mock response body for POST /recipes/visualizeRecipe.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardResponseBody(ctx map[string]any) (*CreateRecipeCardResponse, error) {
+	res, err := GenerateCreateRecipeCardResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateCreateRecipeCardRequest generates a mock request for POST /recipes/visualizeRecipe.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/visualizeRecipe", "POST", ctx)
+}
+
+// GenerateCreateRecipeCardRequestBody generates a typed mock request body for POST /recipes/visualizeRecipe.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateCreateRecipeCardRequestBody(ctx map[string]any) (*CreateRecipeCardBody, error) {
+	req, err := GenerateCreateRecipeCardRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body CreateRecipeCardBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAnalyzeRecipeInstructionsResponse generates a mock response for POST /recipes/analyzeInstructions.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeInstructionsResponse(ctx map[string]any) (*AnalyzeRecipeInstructionsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/analyzeInstructions", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AnalyzeRecipeInstructionsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAnalyzeRecipeInstructionsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAnalyzeRecipeInstructionsResponseBody generates a mock response body for POST /recipes/analyzeInstructions.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeInstructionsResponseBody(ctx map[string]any) (*AnalyzeRecipeInstructionsResponse, error) {
+	res, err := GenerateAnalyzeRecipeInstructionsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAnalyzeRecipeInstructionsRequest generates a mock request for POST /recipes/analyzeInstructions.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeInstructionsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/analyzeInstructions", "POST", ctx)
+}
+
+// GenerateAnalyzeRecipeInstructionsRequestBody generates a typed mock request body for POST /recipes/analyzeInstructions.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeRecipeInstructionsRequestBody(ctx map[string]any) (*AnalyzeRecipeInstructionsBody, error) {
+	req, err := GenerateAnalyzeRecipeInstructionsRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AnalyzeRecipeInstructionsBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateClassifyCuisineResponse generates a mock response for POST /recipes/cuisine.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyCuisineResponse(ctx map[string]any) (*ClassifyCuisineResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/cuisine", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClassifyCuisineResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewClassifyCuisineResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateClassifyCuisineResponseBody generates a mock response body for POST /recipes/cuisine.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyCuisineResponseBody(ctx map[string]any) (*ClassifyCuisineResponse, error) {
+	res, err := GenerateClassifyCuisineResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateClassifyCuisineRequest generates a mock request for POST /recipes/cuisine.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyCuisineRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/cuisine", "POST", ctx)
+}
+
+// GenerateClassifyCuisineRequestBody generates a typed mock request body for POST /recipes/cuisine.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyCuisineRequestBody(ctx map[string]any) (*ClassifyCuisineBody, error) {
+	req, err := GenerateClassifyCuisineRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClassifyCuisineBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAnalyzeARecipeSearchQueryResponse generates a mock response for GET /recipes/queries/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeARecipeSearchQueryResponse(ctx map[string]any) (*AnalyzeARecipeSearchQueryResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/queries/analyze", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AnalyzeARecipeSearchQueryResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAnalyzeARecipeSearchQueryResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAnalyzeARecipeSearchQueryResponseBody generates a mock response body for GET /recipes/queries/analyze.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeARecipeSearchQueryResponseBody(ctx map[string]any) (*AnalyzeARecipeSearchQueryResponse, error) {
+	res, err := GenerateAnalyzeARecipeSearchQueryResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAnalyzeARecipeSearchQueryRequest generates a mock request for GET /recipes/queries/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAnalyzeARecipeSearchQueryRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/queries/analyze", "GET", ctx)
+}
+
+// GenerateConvertAmountsResponse generates a mock response for GET /recipes/convert.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConvertAmountsResponse(ctx map[string]any) (*ConvertAmountsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/convert", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ConvertAmountsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewConvertAmountsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateConvertAmountsResponseBody generates a mock response body for GET /recipes/convert.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConvertAmountsResponseBody(ctx map[string]any) (*ConvertAmountsResponse, error) {
+	res, err := GenerateConvertAmountsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateConvertAmountsRequest generates a mock request for GET /recipes/convert.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConvertAmountsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/convert", "GET", ctx)
+}
+
+// GenerateParseIngredientsResponse generates a mock response for POST /recipes/parseIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateParseIngredientsResponse(ctx map[string]any) (*ParseIngredientsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/parseIngredients", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ParseIngredientsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewParseIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateParseIngredientsResponseBody generates a mock response body for POST /recipes/parseIngredients.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateParseIngredientsResponseBody(ctx map[string]any) (*ParseIngredientsResponse, error) {
+	res, err := GenerateParseIngredientsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateParseIngredientsRequest generates a mock request for POST /recipes/parseIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateParseIngredientsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/parseIngredients", "POST", ctx)
+}
+
+// GenerateParseIngredientsRequestBody generates a typed mock request body for POST /recipes/parseIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateParseIngredientsRequestBody(ctx map[string]any) (*ParseIngredientsBody, error) {
+	req, err := GenerateParseIngredientsRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ParseIngredientsBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateVisualizeRecipeNutritionByIDResponse generates a mock response for GET /recipes/{id}/nutritionWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionByIDResponse(ctx map[string]any) (*VisualizeRecipeNutritionByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/{id}/nutritionWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeRecipeNutritionByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeRecipeNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeRecipeNutritionByIDResponseBody generates a mock response body for GET /recipes/{id}/nutritionWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionByIDResponseBody(ctx map[string]any) (*VisualizeRecipeNutritionByIDResponse, error) {
+	res, err := GenerateVisualizeRecipeNutritionByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeRecipeNutritionByIDRequest generates a mock request for GET /recipes/{id}/nutritionWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeRecipeNutritionByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/{id}/nutritionWidget", "GET", ctx)
+}
+
+// GenerateVisualizeIngredientsResponse generates a mock response for POST /recipes/visualizeIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeIngredientsResponse(ctx map[string]any) (*VisualizeIngredientsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/visualizeIngredients", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeIngredientsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeIngredientsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeIngredientsResponseBody generates a mock response body for POST /recipes/visualizeIngredients.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeIngredientsResponseBody(ctx map[string]any) (*VisualizeIngredientsResponse, error) {
+	res, err := GenerateVisualizeIngredientsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeIngredientsRequest generates a mock request for POST /recipes/visualizeIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeIngredientsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/visualizeIngredients", "POST", ctx)
+}
+
+// GenerateVisualizeIngredientsRequestBody generates a typed mock request body for POST /recipes/visualizeIngredients.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeIngredientsRequestBody(ctx map[string]any) (*VisualizeIngredientsBody, error) {
+	req, err := GenerateVisualizeIngredientsRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeIngredientsBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateGuessNutritionByDishNameResponse generates a mock response for GET /recipes/guessNutrition.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGuessNutritionByDishNameResponse(ctx map[string]any) (*GuessNutritionByDishNameResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/guessNutrition", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GuessNutritionByDishNameResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGuessNutritionByDishNameResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGuessNutritionByDishNameResponseBody generates a mock response body for GET /recipes/guessNutrition.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGuessNutritionByDishNameResponseBody(ctx map[string]any) (*GuessNutritionByDishNameResponse, error) {
+	res, err := GenerateGuessNutritionByDishNameResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGuessNutritionByDishNameRequest generates a mock request for GET /recipes/guessNutrition.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGuessNutritionByDishNameRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/guessNutrition", "GET", ctx)
+}
+
+// GenerateGetIngredientInformationResponse generates a mock response for GET /food/ingredients/{id}/information.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientInformationResponse(ctx map[string]any) (*GetIngredientInformationResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/{id}/information", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetIngredientInformationResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetIngredientInformationResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetIngredientInformationResponseBody generates a mock response body for GET /food/ingredients/{id}/information.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientInformationResponseBody(ctx map[string]any) (*GetIngredientInformationResponse, error) {
+	res, err := GenerateGetIngredientInformationResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetIngredientInformationRequest generates a mock request for GET /food/ingredients/{id}/information.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientInformationRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/{id}/information", "GET", ctx)
+}
+
+// GenerateComputeIngredientAmountResponse generates a mock response for GET /food/ingredients/{id}/amount.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeIngredientAmountResponse(ctx map[string]any) (*ComputeIngredientAmountResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/{id}/amount", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ComputeIngredientAmountResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewComputeIngredientAmountResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateComputeIngredientAmountResponseBody generates a mock response body for GET /food/ingredients/{id}/amount.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeIngredientAmountResponseBody(ctx map[string]any) (*ComputeIngredientAmountResponse, error) {
+	res, err := GenerateComputeIngredientAmountResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateComputeIngredientAmountRequest generates a mock request for GET /food/ingredients/{id}/amount.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeIngredientAmountRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/{id}/amount", "GET", ctx)
+}
+
+// GenerateComputeGlycemicLoadResponse generates a mock response for POST /food/ingredients/glycemicLoad.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeGlycemicLoadResponse(ctx map[string]any) (*ComputeGlycemicLoadResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/glycemicLoad", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ComputeGlycemicLoadResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewComputeGlycemicLoadResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateComputeGlycemicLoadResponseBody generates a mock response body for POST /food/ingredients/glycemicLoad.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeGlycemicLoadResponseBody(ctx map[string]any) (*ComputeGlycemicLoadResponse, error) {
+	res, err := GenerateComputeGlycemicLoadResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateComputeGlycemicLoadRequest generates a mock request for POST /food/ingredients/glycemicLoad.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeGlycemicLoadRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/glycemicLoad", "POST", ctx)
+}
+
+// GenerateComputeGlycemicLoadRequestBody generates a typed mock request body for POST /food/ingredients/glycemicLoad.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateComputeGlycemicLoadRequestBody(ctx map[string]any) (*ComputeGlycemicLoadBody, error) {
+	req, err := GenerateComputeGlycemicLoadRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ComputeGlycemicLoadBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAutocompleteIngredientSearchResponse generates a mock response for GET /food/ingredients/autocomplete.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteIngredientSearchResponse(ctx map[string]any) (*AutocompleteIngredientSearchResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/autocomplete", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AutocompleteIngredientSearchResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAutocompleteIngredientSearchResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAutocompleteIngredientSearchResponseBody generates a mock response body for GET /food/ingredients/autocomplete.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteIngredientSearchResponseBody(ctx map[string]any) (*AutocompleteIngredientSearchResponse, error) {
+	res, err := GenerateAutocompleteIngredientSearchResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAutocompleteIngredientSearchRequest generates a mock request for GET /food/ingredients/autocomplete.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteIngredientSearchRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/autocomplete", "GET", ctx)
+}
+
+// GenerateIngredientSearchResponse generates a mock response for GET /food/ingredients/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateIngredientSearchResponse(ctx map[string]any) (*IngredientSearchResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body IngredientSearchResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewIngredientSearchResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateIngredientSearchResponseBody generates a mock response body for GET /food/ingredients/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateIngredientSearchResponseBody(ctx map[string]any) (*IngredientSearchResponse, error) {
+	res, err := GenerateIngredientSearchResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateIngredientSearchRequest generates a mock request for GET /food/ingredients/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateIngredientSearchRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/search", "GET", ctx)
+}
+
+// GenerateGetIngredientSubstitutesResponse generates a mock response for GET /food/ingredients/substitutes.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientSubstitutesResponse(ctx map[string]any) (*GetIngredientSubstitutesResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/substitutes", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetIngredientSubstitutesResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetIngredientSubstitutesResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetIngredientSubstitutesResponseBody generates a mock response body for GET /food/ingredients/substitutes.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientSubstitutesResponseBody(ctx map[string]any) (*GetIngredientSubstitutesResponse, error) {
+	res, err := GenerateGetIngredientSubstitutesResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetIngredientSubstitutesRequest generates a mock request for GET /food/ingredients/substitutes.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientSubstitutesRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/substitutes", "GET", ctx)
+}
+
+// GenerateGetIngredientSubstitutesByIDResponse generates a mock response for GET /food/ingredients/{id}/substitutes.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientSubstitutesByIDResponse(ctx map[string]any) (*GetIngredientSubstitutesByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/{id}/substitutes", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetIngredientSubstitutesByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetIngredientSubstitutesByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetIngredientSubstitutesByIDResponseBody generates a mock response body for GET /food/ingredients/{id}/substitutes.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientSubstitutesByIDResponseBody(ctx map[string]any) (*GetIngredientSubstitutesByIDResponse, error) {
+	res, err := GenerateGetIngredientSubstitutesByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetIngredientSubstitutesByIDRequest generates a mock request for GET /food/ingredients/{id}/substitutes.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetIngredientSubstitutesByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/{id}/substitutes", "GET", ctx)
+}
+
+// GenerateSearchGroceryProductsResponse generates a mock response for GET /food/products/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchGroceryProductsResponse(ctx map[string]any) (*SearchGroceryProductsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchGroceryProductsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchGroceryProductsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchGroceryProductsResponseBody generates a mock response body for GET /food/products/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchGroceryProductsResponseBody(ctx map[string]any) (*SearchGroceryProductsResponse, error) {
+	res, err := GenerateSearchGroceryProductsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchGroceryProductsRequest generates a mock request for GET /food/products/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchGroceryProductsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/search", "GET", ctx)
+}
+
+// GenerateSearchGroceryProductsByUPCResponse generates a mock response for GET /food/products/upc/{upc}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchGroceryProductsByUPCResponse(ctx map[string]any) (*SearchGroceryProductsByUPCResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/upc/{upc}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchGroceryProductsByUPCResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchGroceryProductsByUPCResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchGroceryProductsByUPCResponseBody generates a mock response body for GET /food/products/upc/{upc}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchGroceryProductsByUPCResponseBody(ctx map[string]any) (*SearchGroceryProductsByUPCResponse, error) {
+	res, err := GenerateSearchGroceryProductsByUPCResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchGroceryProductsByUPCRequest generates a mock request for GET /food/products/upc/{upc}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchGroceryProductsByUPCRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/upc/{upc}", "GET", ctx)
+}
+
+// GenerateSearchCustomFoodsResponse generates a mock response for GET /food/customFoods/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchCustomFoodsResponse(ctx map[string]any) (*SearchCustomFoodsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/customFoods/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchCustomFoodsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchCustomFoodsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchCustomFoodsResponseBody generates a mock response body for GET /food/customFoods/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchCustomFoodsResponseBody(ctx map[string]any) (*SearchCustomFoodsResponse, error) {
+	res, err := GenerateSearchCustomFoodsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchCustomFoodsRequest generates a mock request for GET /food/customFoods/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchCustomFoodsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/customFoods/search", "GET", ctx)
+}
+
+// GenerateGetProductInformationResponse generates a mock response for GET /food/products/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetProductInformationResponse(ctx map[string]any) (*GetProductInformationResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/{id}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetProductInformationResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetProductInformationResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetProductInformationResponseBody generates a mock response body for GET /food/products/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetProductInformationResponseBody(ctx map[string]any) (*GetProductInformationResponse, error) {
+	res, err := GenerateGetProductInformationResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetProductInformationRequest generates a mock request for GET /food/products/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetProductInformationRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/{id}", "GET", ctx)
+}
+
+// GenerateGetComparableProductsResponse generates a mock response for GET /food/products/upc/{upc}/comparable.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetComparableProductsResponse(ctx map[string]any) (*GetComparableProductsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/upc/{upc}/comparable", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetComparableProductsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetComparableProductsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetComparableProductsResponseBody generates a mock response body for GET /food/products/upc/{upc}/comparable.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetComparableProductsResponseBody(ctx map[string]any) (*GetComparableProductsResponse, error) {
+	res, err := GenerateGetComparableProductsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetComparableProductsRequest generates a mock request for GET /food/products/upc/{upc}/comparable.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetComparableProductsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/upc/{upc}/comparable", "GET", ctx)
+}
+
+// GenerateAutocompleteProductSearchResponse generates a mock response for GET /food/products/suggest.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteProductSearchResponse(ctx map[string]any) (*AutocompleteProductSearchResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/suggest", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AutocompleteProductSearchResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAutocompleteProductSearchResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAutocompleteProductSearchResponseBody generates a mock response body for GET /food/products/suggest.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteProductSearchResponseBody(ctx map[string]any) (*AutocompleteProductSearchResponse, error) {
+	res, err := GenerateAutocompleteProductSearchResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAutocompleteProductSearchRequest generates a mock request for GET /food/products/suggest.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteProductSearchRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/suggest", "GET", ctx)
+}
+
+// GenerateVisualizeProductNutritionByIDResponse generates a mock response for GET /food/products/{id}/nutritionWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeProductNutritionByIDResponse(ctx map[string]any) (*VisualizeProductNutritionByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/{id}/nutritionWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeProductNutritionByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeProductNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeProductNutritionByIDResponseBody generates a mock response body for GET /food/products/{id}/nutritionWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeProductNutritionByIDResponseBody(ctx map[string]any) (*VisualizeProductNutritionByIDResponse, error) {
+	res, err := GenerateVisualizeProductNutritionByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeProductNutritionByIDRequest generates a mock request for GET /food/products/{id}/nutritionWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeProductNutritionByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/{id}/nutritionWidget", "GET", ctx)
+}
+
+// GenerateProductNutritionByIDImageResponse generates a mock response for GET /food/products/{id}/nutritionWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionByIDImageResponse(ctx map[string]any) (*ProductNutritionByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/{id}/nutritionWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewProductNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateProductNutritionByIDImageResponseBody generates a mock response body for GET /food/products/{id}/nutritionWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateProductNutritionByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateProductNutritionByIDImageRequest generates a mock request for GET /food/products/{id}/nutritionWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/{id}/nutritionWidget.png", "GET", ctx)
+}
+
+// GenerateProductNutritionLabelWidgetResponse generates a mock response for GET /food/products/{id}/nutritionLabel.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionLabelWidgetResponse(ctx map[string]any) (*ProductNutritionLabelWidgetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/{id}/nutritionLabel", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ProductNutritionLabelWidgetResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewProductNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateProductNutritionLabelWidgetResponseBody generates a mock response body for GET /food/products/{id}/nutritionLabel.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionLabelWidgetResponseBody(ctx map[string]any) (*ProductNutritionLabelWidgetResponse, error) {
+	res, err := GenerateProductNutritionLabelWidgetResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateProductNutritionLabelWidgetRequest generates a mock request for GET /food/products/{id}/nutritionLabel.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionLabelWidgetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/{id}/nutritionLabel", "GET", ctx)
+}
+
+// GenerateProductNutritionLabelImageResponse generates a mock response for GET /food/products/{id}/nutritionLabel.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionLabelImageResponse(ctx map[string]any) (*ProductNutritionLabelImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/{id}/nutritionLabel.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewProductNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateProductNutritionLabelImageResponseBody generates a mock response body for GET /food/products/{id}/nutritionLabel.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionLabelImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateProductNutritionLabelImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateProductNutritionLabelImageRequest generates a mock request for GET /food/products/{id}/nutritionLabel.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateProductNutritionLabelImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/{id}/nutritionLabel.png", "GET", ctx)
+}
+
+// GenerateClassifyGroceryProductResponse generates a mock response for POST /food/products/classify.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductResponse(ctx map[string]any) (*ClassifyGroceryProductResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/classify", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClassifyGroceryProductResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewClassifyGroceryProductResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateClassifyGroceryProductResponseBody generates a mock response body for POST /food/products/classify.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductResponseBody(ctx map[string]any) (*ClassifyGroceryProductResponse, error) {
+	res, err := GenerateClassifyGroceryProductResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateClassifyGroceryProductRequest generates a mock request for POST /food/products/classify.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/classify", "POST", ctx)
+}
+
+// GenerateClassifyGroceryProductRequestBody generates a typed mock request body for POST /food/products/classify.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductRequestBody(ctx map[string]any) (*ClassifyGroceryProductBody, error) {
+	req, err := GenerateClassifyGroceryProductRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClassifyGroceryProductBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateClassifyGroceryProductBulkResponse generates a mock response for POST /food/products/classifyBatch.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductBulkResponse(ctx map[string]any) (*ClassifyGroceryProductBulkResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/products/classifyBatch", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClassifyGroceryProductBulkResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewClassifyGroceryProductBulkResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateClassifyGroceryProductBulkResponseBody generates a mock response body for POST /food/products/classifyBatch.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductBulkResponseBody(ctx map[string]any) (*ClassifyGroceryProductBulkResponse, error) {
+	res, err := GenerateClassifyGroceryProductBulkResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateClassifyGroceryProductBulkRequest generates a mock request for POST /food/products/classifyBatch.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductBulkRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/products/classifyBatch", "POST", ctx)
+}
+
+// GenerateClassifyGroceryProductBulkRequestBody generates a typed mock request body for POST /food/products/classifyBatch.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClassifyGroceryProductBulkRequestBody(ctx map[string]any) (*ClassifyGroceryProductBulkBody, error) {
+	req, err := GenerateClassifyGroceryProductBulkRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClassifyGroceryProductBulkBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateMapIngredientsToGroceryProductsResponse generates a mock response for POST /food/ingredients/map.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMapIngredientsToGroceryProductsResponse(ctx map[string]any) (*MapIngredientsToGroceryProductsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/ingredients/map", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body MapIngredientsToGroceryProductsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewMapIngredientsToGroceryProductsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateMapIngredientsToGroceryProductsResponseBody generates a mock response body for POST /food/ingredients/map.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMapIngredientsToGroceryProductsResponseBody(ctx map[string]any) (*MapIngredientsToGroceryProductsResponse, error) {
+	res, err := GenerateMapIngredientsToGroceryProductsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateMapIngredientsToGroceryProductsRequest generates a mock request for POST /food/ingredients/map.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMapIngredientsToGroceryProductsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/ingredients/map", "POST", ctx)
+}
+
+// GenerateMapIngredientsToGroceryProductsRequestBody generates a typed mock request body for POST /food/ingredients/map.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMapIngredientsToGroceryProductsRequestBody(ctx map[string]any) (*MapIngredientsToGroceryProductsBody, error) {
+	req, err := GenerateMapIngredientsToGroceryProductsRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body MapIngredientsToGroceryProductsBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAutocompleteMenuItemSearchResponse generates a mock response for GET /food/menuItems/suggest.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteMenuItemSearchResponse(ctx map[string]any) (*AutocompleteMenuItemSearchResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/suggest", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AutocompleteMenuItemSearchResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAutocompleteMenuItemSearchResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAutocompleteMenuItemSearchResponseBody generates a mock response body for GET /food/menuItems/suggest.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteMenuItemSearchResponseBody(ctx map[string]any) (*AutocompleteMenuItemSearchResponse, error) {
+	res, err := GenerateAutocompleteMenuItemSearchResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAutocompleteMenuItemSearchRequest generates a mock request for GET /food/menuItems/suggest.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAutocompleteMenuItemSearchRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/suggest", "GET", ctx)
+}
+
+// GenerateSearchMenuItemsResponse generates a mock response for GET /food/menuItems/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchMenuItemsResponse(ctx map[string]any) (*SearchMenuItemsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchMenuItemsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchMenuItemsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchMenuItemsResponseBody generates a mock response body for GET /food/menuItems/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchMenuItemsResponseBody(ctx map[string]any) (*SearchMenuItemsResponse, error) {
+	res, err := GenerateSearchMenuItemsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchMenuItemsRequest generates a mock request for GET /food/menuItems/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchMenuItemsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/search", "GET", ctx)
+}
+
+// GenerateGetMenuItemInformationResponse generates a mock response for GET /food/menuItems/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMenuItemInformationResponse(ctx map[string]any) (*GetMenuItemInformationResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/{id}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetMenuItemInformationResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetMenuItemInformationResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetMenuItemInformationResponseBody generates a mock response body for GET /food/menuItems/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMenuItemInformationResponseBody(ctx map[string]any) (*GetMenuItemInformationResponse, error) {
+	res, err := GenerateGetMenuItemInformationResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetMenuItemInformationRequest generates a mock request for GET /food/menuItems/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMenuItemInformationRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/{id}", "GET", ctx)
+}
+
+// GenerateVisualizeMenuItemNutritionByIDResponse generates a mock response for GET /food/menuItems/{id}/nutritionWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeMenuItemNutritionByIDResponse(ctx map[string]any) (*VisualizeMenuItemNutritionByIDResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/{id}/nutritionWidget", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body VisualizeMenuItemNutritionByIDResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewVisualizeMenuItemNutritionByIDResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateVisualizeMenuItemNutritionByIDResponseBody generates a mock response body for GET /food/menuItems/{id}/nutritionWidget.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeMenuItemNutritionByIDResponseBody(ctx map[string]any) (*VisualizeMenuItemNutritionByIDResponse, error) {
+	res, err := GenerateVisualizeMenuItemNutritionByIDResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateVisualizeMenuItemNutritionByIDRequest generates a mock request for GET /food/menuItems/{id}/nutritionWidget.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateVisualizeMenuItemNutritionByIDRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/{id}/nutritionWidget", "GET", ctx)
+}
+
+// GenerateMenuItemNutritionByIDImageResponse generates a mock response for GET /food/menuItems/{id}/nutritionWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionByIDImageResponse(ctx map[string]any) (*MenuItemNutritionByIDImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/{id}/nutritionWidget.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewMenuItemNutritionByIDImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateMenuItemNutritionByIDImageResponseBody generates a mock response body for GET /food/menuItems/{id}/nutritionWidget.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionByIDImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateMenuItemNutritionByIDImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateMenuItemNutritionByIDImageRequest generates a mock request for GET /food/menuItems/{id}/nutritionWidget.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionByIDImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/{id}/nutritionWidget.png", "GET", ctx)
+}
+
+// GenerateMenuItemNutritionLabelWidgetResponse generates a mock response for GET /food/menuItems/{id}/nutritionLabel.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionLabelWidgetResponse(ctx map[string]any) (*MenuItemNutritionLabelWidgetResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/{id}/nutritionLabel", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body MenuItemNutritionLabelWidgetResponse
+	if err := api.UnmarshalResponseInto(res.Body, "text/html", &body); err != nil {
+		return nil, err
+	}
+	return NewMenuItemNutritionLabelWidgetResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateMenuItemNutritionLabelWidgetResponseBody generates a mock response body for GET /food/menuItems/{id}/nutritionLabel.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionLabelWidgetResponseBody(ctx map[string]any) (*MenuItemNutritionLabelWidgetResponse, error) {
+	res, err := GenerateMenuItemNutritionLabelWidgetResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateMenuItemNutritionLabelWidgetRequest generates a mock request for GET /food/menuItems/{id}/nutritionLabel.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionLabelWidgetRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/{id}/nutritionLabel", "GET", ctx)
+}
+
+// GenerateMenuItemNutritionLabelImageResponse generates a mock response for GET /food/menuItems/{id}/nutritionLabel.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionLabelImageResponse(ctx map[string]any) (*MenuItemNutritionLabelImageResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/menuItems/{id}/nutritionLabel.png", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewMenuItemNutritionLabelImageResponseData(res.Body).WithHeaders(res.Headers), nil
+}
+
+// GenerateMenuItemNutritionLabelImageResponseBody generates a mock response body for GET /food/menuItems/{id}/nutritionLabel.png.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionLabelImageResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := GenerateMenuItemNutritionLabelImageResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateMenuItemNutritionLabelImageRequest generates a mock request for GET /food/menuItems/{id}/nutritionLabel.png.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateMenuItemNutritionLabelImageRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/menuItems/{id}/nutritionLabel.png", "GET", ctx)
+}
+
+// GenerateGenerateMealPlanResponse generates a mock response for GET /mealplanner/generate.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateMealPlanResponse(ctx map[string]any) (*GenerateMealPlanResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/generate", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GenerateMealPlanResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGenerateMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGenerateMealPlanResponseBody generates a mock response body for GET /mealplanner/generate.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateMealPlanResponseBody(ctx map[string]any) (*GenerateMealPlanResponse, error) {
+	res, err := GenerateGenerateMealPlanResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGenerateMealPlanRequest generates a mock request for GET /mealplanner/generate.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateMealPlanRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/generate", "GET", ctx)
+}
+
+// GenerateGetMealPlanWeekResponse generates a mock response for GET /mealplanner/{username}/week/{start-date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanWeekResponse(ctx map[string]any) (*GetMealPlanWeekResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/week/{start-date}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetMealPlanWeekResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetMealPlanWeekResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetMealPlanWeekResponseBody generates a mock response body for GET /mealplanner/{username}/week/{start-date}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanWeekResponseBody(ctx map[string]any) (*GetMealPlanWeekResponse, error) {
+	res, err := GenerateGetMealPlanWeekResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetMealPlanWeekRequest generates a mock request for GET /mealplanner/{username}/week/{start-date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanWeekRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/week/{start-date}", "GET", ctx)
+}
+
+// GenerateClearMealPlanDayResponse generates a mock response for DELETE /mealplanner/{username}/day/{date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClearMealPlanDayResponse(ctx map[string]any) (*ClearMealPlanDayResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/day/{date}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClearMealPlanDayResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewClearMealPlanDayResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateClearMealPlanDayResponseBody generates a mock response body for DELETE /mealplanner/{username}/day/{date}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClearMealPlanDayResponseBody(ctx map[string]any) (*ClearMealPlanDayResponse, error) {
+	res, err := GenerateClearMealPlanDayResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateClearMealPlanDayRequest generates a mock request for DELETE /mealplanner/{username}/day/{date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClearMealPlanDayRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/day/{date}", "DELETE", ctx)
+}
+
+// GenerateClearMealPlanDayRequestBody generates a typed mock request body for DELETE /mealplanner/{username}/day/{date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateClearMealPlanDayRequestBody(ctx map[string]any) (*ClearMealPlanDayBody, error) {
+	req, err := GenerateClearMealPlanDayRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ClearMealPlanDayBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAddToMealPlanResponse generates a mock response for POST /mealplanner/{username}/items.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToMealPlanResponse(ctx map[string]any) (*AddToMealPlanResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/items", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddToMealPlanResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAddToMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAddToMealPlanResponseBody generates a mock response body for POST /mealplanner/{username}/items.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToMealPlanResponseBody(ctx map[string]any) (*AddToMealPlanResponse, error) {
+	res, err := GenerateAddToMealPlanResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAddToMealPlanRequest generates a mock request for POST /mealplanner/{username}/items.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToMealPlanRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/items", "POST", ctx)
+}
+
+// GenerateAddToMealPlanRequestBody generates a typed mock request body for POST /mealplanner/{username}/items.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToMealPlanRequestBody(ctx map[string]any) (*AddToMealPlanBody, error) {
+	req, err := GenerateAddToMealPlanRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddToMealPlanBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateDeleteFromMealPlanResponse generates a mock response for DELETE /mealplanner/{username}/items/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromMealPlanResponse(ctx map[string]any) (*DeleteFromMealPlanResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/items/{id}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DeleteFromMealPlanResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewDeleteFromMealPlanResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateDeleteFromMealPlanResponseBody generates a mock response body for DELETE /mealplanner/{username}/items/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromMealPlanResponseBody(ctx map[string]any) (*DeleteFromMealPlanResponse, error) {
+	res, err := GenerateDeleteFromMealPlanResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateDeleteFromMealPlanRequest generates a mock request for DELETE /mealplanner/{username}/items/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromMealPlanRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/items/{id}", "DELETE", ctx)
+}
+
+// GenerateDeleteFromMealPlanRequestBody generates a typed mock request body for DELETE /mealplanner/{username}/items/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromMealPlanRequestBody(ctx map[string]any) (*DeleteFromMealPlanBody, error) {
+	req, err := GenerateDeleteFromMealPlanRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DeleteFromMealPlanBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateGetMealPlanTemplatesResponse generates a mock response for GET /mealplanner/{username}/templates.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanTemplatesResponse(ctx map[string]any) (*GetMealPlanTemplatesResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/templates", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetMealPlanTemplatesResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetMealPlanTemplatesResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetMealPlanTemplatesResponseBody generates a mock response body for GET /mealplanner/{username}/templates.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanTemplatesResponseBody(ctx map[string]any) (*GetMealPlanTemplatesResponse, error) {
+	res, err := GenerateGetMealPlanTemplatesResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetMealPlanTemplatesRequest generates a mock request for GET /mealplanner/{username}/templates.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanTemplatesRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/templates", "GET", ctx)
+}
+
+// GenerateAddMealPlanTemplateResponse generates a mock response for POST /mealplanner/{username}/templates.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddMealPlanTemplateResponse(ctx map[string]any) (*AddMealPlanTemplateResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/templates", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddMealPlanTemplateResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAddMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAddMealPlanTemplateResponseBody generates a mock response body for POST /mealplanner/{username}/templates.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddMealPlanTemplateResponseBody(ctx map[string]any) (*AddMealPlanTemplateResponse, error) {
+	res, err := GenerateAddMealPlanTemplateResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAddMealPlanTemplateRequest generates a mock request for POST /mealplanner/{username}/templates.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddMealPlanTemplateRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/templates", "POST", ctx)
+}
+
+// GenerateAddMealPlanTemplateRequestBody generates a typed mock request body for POST /mealplanner/{username}/templates.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddMealPlanTemplateRequestBody(ctx map[string]any) (*AddMealPlanTemplateBody, error) {
+	req, err := GenerateAddMealPlanTemplateRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddMealPlanTemplateBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateGetMealPlanTemplateResponse generates a mock response for GET /mealplanner/{username}/templates/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanTemplateResponse(ctx map[string]any) (*GetMealPlanTemplateResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/templates/{id}", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetMealPlanTemplateResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetMealPlanTemplateResponseBody generates a mock response body for GET /mealplanner/{username}/templates/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanTemplateResponseBody(ctx map[string]any) (*GetMealPlanTemplateResponse, error) {
+	res, err := GenerateGetMealPlanTemplateResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetMealPlanTemplateRequest generates a mock request for GET /mealplanner/{username}/templates/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetMealPlanTemplateRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/templates/{id}", "GET", ctx)
+}
+
+// GenerateDeleteMealPlanTemplateResponse generates a mock response for DELETE /mealplanner/{username}/templates/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteMealPlanTemplateResponse(ctx map[string]any) (*DeleteMealPlanTemplateResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/templates/{id}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DeleteMealPlanTemplateResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewDeleteMealPlanTemplateResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateDeleteMealPlanTemplateResponseBody generates a mock response body for DELETE /mealplanner/{username}/templates/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteMealPlanTemplateResponseBody(ctx map[string]any) (*DeleteMealPlanTemplateResponse, error) {
+	res, err := GenerateDeleteMealPlanTemplateResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateDeleteMealPlanTemplateRequest generates a mock request for DELETE /mealplanner/{username}/templates/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteMealPlanTemplateRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/templates/{id}", "DELETE", ctx)
+}
+
+// GenerateDeleteMealPlanTemplateRequestBody generates a typed mock request body for DELETE /mealplanner/{username}/templates/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteMealPlanTemplateRequestBody(ctx map[string]any) (*DeleteMealPlanTemplateBody, error) {
+	req, err := GenerateDeleteMealPlanTemplateRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DeleteMealPlanTemplateBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateGetShoppingListResponse generates a mock response for GET /mealplanner/{username}/shopping-list.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetShoppingListResponse(ctx map[string]any) (*GetShoppingListResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/shopping-list", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetShoppingListResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetShoppingListResponseBody generates a mock response body for GET /mealplanner/{username}/shopping-list.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetShoppingListResponseBody(ctx map[string]any) (*GetShoppingListResponse, error) {
+	res, err := GenerateGetShoppingListResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetShoppingListRequest generates a mock request for GET /mealplanner/{username}/shopping-list.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetShoppingListRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/shopping-list", "GET", ctx)
+}
+
+// GenerateGenerateShoppingListResponse generates a mock response for POST /mealplanner/{username}/shopping-list/{start-date}/{end-date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateShoppingListResponse(ctx map[string]any) (*GenerateShoppingListResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/shopping-list/{start-date}/{end-date}", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GenerateShoppingListResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGenerateShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGenerateShoppingListResponseBody generates a mock response body for POST /mealplanner/{username}/shopping-list/{start-date}/{end-date}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateShoppingListResponseBody(ctx map[string]any) (*GenerateShoppingListResponse, error) {
+	res, err := GenerateGenerateShoppingListResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGenerateShoppingListRequest generates a mock request for POST /mealplanner/{username}/shopping-list/{start-date}/{end-date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateShoppingListRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/shopping-list/{start-date}/{end-date}", "POST", ctx)
+}
+
+// GenerateGenerateShoppingListRequestBody generates a typed mock request body for POST /mealplanner/{username}/shopping-list/{start-date}/{end-date}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGenerateShoppingListRequestBody(ctx map[string]any) (*GenerateShoppingListBody, error) {
+	req, err := GenerateGenerateShoppingListRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GenerateShoppingListBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateConnectUserResponse generates a mock response for POST /users/connect.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConnectUserResponse(ctx map[string]any) (*ConnectUserResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/users/connect", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ConnectUserResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewConnectUserResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateConnectUserResponseBody generates a mock response body for POST /users/connect.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConnectUserResponseBody(ctx map[string]any) (*ConnectUserResponse, error) {
+	res, err := GenerateConnectUserResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateConnectUserRequest generates a mock request for POST /users/connect.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConnectUserRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/users/connect", "POST", ctx)
+}
+
+// GenerateConnectUserRequestBody generates a typed mock request body for POST /users/connect.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateConnectUserRequestBody(ctx map[string]any) (*ConnectUserBody, error) {
+	req, err := GenerateConnectUserRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ConnectUserBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateAddToShoppingListResponse generates a mock response for POST /mealplanner/{username}/shopping-list/items.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToShoppingListResponse(ctx map[string]any) (*AddToShoppingListResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/shopping-list/items", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddToShoppingListResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewAddToShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateAddToShoppingListResponseBody generates a mock response body for POST /mealplanner/{username}/shopping-list/items.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToShoppingListResponseBody(ctx map[string]any) (*AddToShoppingListResponse, error) {
+	res, err := GenerateAddToShoppingListResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateAddToShoppingListRequest generates a mock request for POST /mealplanner/{username}/shopping-list/items.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToShoppingListRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/shopping-list/items", "POST", ctx)
+}
+
+// GenerateAddToShoppingListRequestBody generates a typed mock request body for POST /mealplanner/{username}/shopping-list/items.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateAddToShoppingListRequestBody(ctx map[string]any) (*AddToShoppingListBody, error) {
+	req, err := GenerateAddToShoppingListRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body AddToShoppingListBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateDeleteFromShoppingListResponse generates a mock response for DELETE /mealplanner/{username}/shopping-list/items/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromShoppingListResponse(ctx map[string]any) (*DeleteFromShoppingListResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/mealplanner/{username}/shopping-list/items/{id}", "DELETE", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DeleteFromShoppingListResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewDeleteFromShoppingListResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateDeleteFromShoppingListResponseBody generates a mock response body for DELETE /mealplanner/{username}/shopping-list/items/{id}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromShoppingListResponseBody(ctx map[string]any) (*DeleteFromShoppingListResponse, error) {
+	res, err := GenerateDeleteFromShoppingListResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateDeleteFromShoppingListRequest generates a mock request for DELETE /mealplanner/{username}/shopping-list/items/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromShoppingListRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/mealplanner/{username}/shopping-list/items/{id}", "DELETE", ctx)
+}
+
+// GenerateDeleteFromShoppingListRequestBody generates a typed mock request body for DELETE /mealplanner/{username}/shopping-list/items/{id}.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDeleteFromShoppingListRequestBody(ctx map[string]any) (*DeleteFromShoppingListBody, error) {
+	req, err := GenerateDeleteFromShoppingListRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DeleteFromShoppingListBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateSearchRestaurantsResponse generates a mock response for GET /food/restaurants/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRestaurantsResponse(ctx map[string]any) (*SearchRestaurantsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/restaurants/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchRestaurantsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchRestaurantsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchRestaurantsResponseBody generates a mock response body for GET /food/restaurants/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRestaurantsResponseBody(ctx map[string]any) (*SearchRestaurantsResponse, error) {
+	res, err := GenerateSearchRestaurantsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchRestaurantsRequest generates a mock request for GET /food/restaurants/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchRestaurantsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/restaurants/search", "GET", ctx)
+}
+
+// GenerateGetDishPairingForWineResponse generates a mock response for GET /food/wine/dishes.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetDishPairingForWineResponse(ctx map[string]any) (*GetDishPairingForWineResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/wine/dishes", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetDishPairingForWineResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetDishPairingForWineResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetDishPairingForWineResponseBody generates a mock response body for GET /food/wine/dishes.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetDishPairingForWineResponseBody(ctx map[string]any) (*GetDishPairingForWineResponse, error) {
+	res, err := GenerateGetDishPairingForWineResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetDishPairingForWineRequest generates a mock request for GET /food/wine/dishes.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetDishPairingForWineRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/wine/dishes", "GET", ctx)
+}
+
+// GenerateGetWinePairingResponse generates a mock response for GET /food/wine/pairing.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWinePairingResponse(ctx map[string]any) (*GetWinePairingResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/wine/pairing", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetWinePairingResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetWinePairingResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetWinePairingResponseBody generates a mock response body for GET /food/wine/pairing.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWinePairingResponseBody(ctx map[string]any) (*GetWinePairingResponse, error) {
+	res, err := GenerateGetWinePairingResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetWinePairingRequest generates a mock request for GET /food/wine/pairing.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWinePairingRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/wine/pairing", "GET", ctx)
+}
+
+// GenerateGetWineDescriptionResponse generates a mock response for GET /food/wine/description.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWineDescriptionResponse(ctx map[string]any) (*GetWineDescriptionResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/wine/description", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetWineDescriptionResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetWineDescriptionResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetWineDescriptionResponseBody generates a mock response body for GET /food/wine/description.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWineDescriptionResponseBody(ctx map[string]any) (*GetWineDescriptionResponse, error) {
+	res, err := GenerateGetWineDescriptionResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetWineDescriptionRequest generates a mock request for GET /food/wine/description.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWineDescriptionRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/wine/description", "GET", ctx)
+}
+
+// GenerateGetWineRecommendationResponse generates a mock response for GET /food/wine/recommendation.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWineRecommendationResponse(ctx map[string]any) (*GetWineRecommendationResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/wine/recommendation", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetWineRecommendationResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetWineRecommendationResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetWineRecommendationResponseBody generates a mock response body for GET /food/wine/recommendation.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWineRecommendationResponseBody(ctx map[string]any) (*GetWineRecommendationResponse, error) {
+	res, err := GenerateGetWineRecommendationResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetWineRecommendationRequest generates a mock request for GET /food/wine/recommendation.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetWineRecommendationRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/wine/recommendation", "GET", ctx)
+}
+
+// GenerateImageClassificationByURLResponse generates a mock response for GET /food/images/classify.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateImageClassificationByURLResponse(ctx map[string]any) (*ImageClassificationByURLResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/images/classify", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ImageClassificationByURLResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewImageClassificationByURLResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateImageClassificationByURLResponseBody generates a mock response body for GET /food/images/classify.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateImageClassificationByURLResponseBody(ctx map[string]any) (*ImageClassificationByURLResponse, error) {
+	res, err := GenerateImageClassificationByURLResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateImageClassificationByURLRequest generates a mock request for GET /food/images/classify.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateImageClassificationByURLRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/images/classify", "GET", ctx)
+}
+
+// GenerateImageAnalysisByURLResponse generates a mock response for GET /food/images/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateImageAnalysisByURLResponse(ctx map[string]any) (*ImageAnalysisByURLResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/images/analyze", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body ImageAnalysisByURLResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewImageAnalysisByURLResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateImageAnalysisByURLResponseBody generates a mock response body for GET /food/images/analyze.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateImageAnalysisByURLResponseBody(ctx map[string]any) (*ImageAnalysisByURLResponse, error) {
+	res, err := GenerateImageAnalysisByURLResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateImageAnalysisByURLRequest generates a mock request for GET /food/images/analyze.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateImageAnalysisByURLRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/images/analyze", "GET", ctx)
+}
+
+// GenerateQuickAnswerResponse generates a mock response for GET /recipes/quickAnswer.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateQuickAnswerResponse(ctx map[string]any) (*QuickAnswerResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/recipes/quickAnswer", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body QuickAnswerResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewQuickAnswerResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateQuickAnswerResponseBody generates a mock response body for GET /recipes/quickAnswer.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateQuickAnswerResponseBody(ctx map[string]any) (*QuickAnswerResponse, error) {
+	res, err := GenerateQuickAnswerResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateQuickAnswerRequest generates a mock request for GET /recipes/quickAnswer.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateQuickAnswerRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/recipes/quickAnswer", "GET", ctx)
+}
+
+// GenerateDetectFoodInTextResponse generates a mock response for POST /food/detect.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDetectFoodInTextResponse(ctx map[string]any) (*DetectFoodInTextResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/detect", "POST", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DetectFoodInTextResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewDetectFoodInTextResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateDetectFoodInTextResponseBody generates a mock response body for POST /food/detect.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDetectFoodInTextResponseBody(ctx map[string]any) (*DetectFoodInTextResponse, error) {
+	res, err := GenerateDetectFoodInTextResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateDetectFoodInTextRequest generates a mock request for POST /food/detect.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDetectFoodInTextRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/detect", "POST", ctx)
+}
+
+// GenerateDetectFoodInTextRequestBody generates a typed mock request body for POST /food/detect.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateDetectFoodInTextRequestBody(ctx map[string]any) (*DetectFoodInTextBody, error) {
+	req, err := GenerateDetectFoodInTextRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body DetectFoodInTextBody
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
+}
+
+// GenerateSearchSiteContentResponse generates a mock response for GET /food/site/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchSiteContentResponse(ctx map[string]any) (*SearchSiteContentResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/site/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchSiteContentResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchSiteContentResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchSiteContentResponseBody generates a mock response body for GET /food/site/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchSiteContentResponseBody(ctx map[string]any) (*SearchSiteContentResponse, error) {
+	res, err := GenerateSearchSiteContentResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchSiteContentRequest generates a mock request for GET /food/site/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchSiteContentRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/site/search", "GET", ctx)
+}
+
+// GenerateSearchAllFoodResponse generates a mock response for GET /food/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchAllFoodResponse(ctx map[string]any) (*SearchAllFoodResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchAllFoodResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchAllFoodResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchAllFoodResponseBody generates a mock response body for GET /food/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchAllFoodResponseBody(ctx map[string]any) (*SearchAllFoodResponse, error) {
+	res, err := GenerateSearchAllFoodResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchAllFoodRequest generates a mock request for GET /food/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchAllFoodRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/search", "GET", ctx)
+}
+
+// GenerateSearchFoodVideosResponse generates a mock response for GET /food/videos/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchFoodVideosResponse(ctx map[string]any) (*SearchFoodVideosResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/videos/search", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body SearchFoodVideosResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewSearchFoodVideosResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateSearchFoodVideosResponseBody generates a mock response body for GET /food/videos/search.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchFoodVideosResponseBody(ctx map[string]any) (*SearchFoodVideosResponse, error) {
+	res, err := GenerateSearchFoodVideosResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateSearchFoodVideosRequest generates a mock request for GET /food/videos/search.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateSearchFoodVideosRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/videos/search", "GET", ctx)
+}
+
+// GenerateGetARandomFoodJokeResponse generates a mock response for GET /food/jokes/random.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetARandomFoodJokeResponse(ctx map[string]any) (*GetARandomFoodJokeResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/jokes/random", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetARandomFoodJokeResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetARandomFoodJokeResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetARandomFoodJokeResponseBody generates a mock response body for GET /food/jokes/random.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetARandomFoodJokeResponseBody(ctx map[string]any) (*GetARandomFoodJokeResponse, error) {
+	res, err := GenerateGetARandomFoodJokeResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetARandomFoodJokeRequest generates a mock request for GET /food/jokes/random.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetARandomFoodJokeRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/jokes/random", "GET", ctx)
+}
+
+// GenerateGetRandomFoodTriviaResponse generates a mock response for GET /food/trivia/random.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRandomFoodTriviaResponse(ctx map[string]any) (*GetRandomFoodTriviaResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/trivia/random", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetRandomFoodTriviaResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetRandomFoodTriviaResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetRandomFoodTriviaResponseBody generates a mock response body for GET /food/trivia/random.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRandomFoodTriviaResponseBody(ctx map[string]any) (*GetRandomFoodTriviaResponse, error) {
+	res, err := GenerateGetRandomFoodTriviaResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetRandomFoodTriviaRequest generates a mock request for GET /food/trivia/random.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetRandomFoodTriviaRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/trivia/random", "GET", ctx)
+}
+
+// GenerateTalkToChatbotResponse generates a mock response for GET /food/converse.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateTalkToChatbotResponse(ctx map[string]any) (*TalkToChatbotResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/converse", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body TalkToChatbotResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewTalkToChatbotResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateTalkToChatbotResponseBody generates a mock response body for GET /food/converse.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateTalkToChatbotResponseBody(ctx map[string]any) (*TalkToChatbotResponse, error) {
+	res, err := GenerateTalkToChatbotResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateTalkToChatbotRequest generates a mock request for GET /food/converse.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateTalkToChatbotRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/converse", "GET", ctx)
+}
+
+// GenerateGetConversationSuggestsResponse generates a mock response for GET /food/converse/suggest.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetConversationSuggestsResponse(ctx map[string]any) (*GetConversationSuggestsResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("/food/converse/suggest", "GET", ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body GetConversationSuggestsResponse
+	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
+		return nil, err
+	}
+	return NewGetConversationSuggestsResponseData(&body).WithHeaders(res.Headers), nil
+}
+
+// GenerateGetConversationSuggestsResponseBody generates a mock response body for GET /food/converse/suggest.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetConversationSuggestsResponseBody(ctx map[string]any) (*GetConversationSuggestsResponse, error) {
+	res, err := GenerateGetConversationSuggestsResponse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+
+// GenerateGetConversationSuggestsRequest generates a mock request for GET /food/converse/suggest.
+// ctx is an optional replacement context for controlling generated values.
+func GenerateGetConversationSuggestsRequest(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("/food/converse/suggest", "GET", ctx)
 }
 
 type VisualizeRecipeTasteHeaders struct {

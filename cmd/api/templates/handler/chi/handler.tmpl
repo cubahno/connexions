@@ -161,11 +161,11 @@ func readFirstEmbeddedFile(fsys embed.FS) ([]byte, error) {
 		return nil, fmt.Errorf("reading embedded directory: %w", err)
 	}
 	for _, entry := range entries {
-		if !entry.IsDir() && strings.HasPrefix(entry.Name(), "openapi.") {
+		if !entry.IsDir() {
 			return fsys.ReadFile(path.Join("setup", entry.Name()))
 		}
 	}
-	return nil, errors.New("no openapi spec file found in embedded filesystem")
+	return nil, errors.New("no file found in embedded filesystem")
 }
 
 // ============================================================================
@@ -328,6 +328,140 @@ func (s *generatorService) {{ $op.ID }}(ctx context.Context) ({{ if $op.Response
 	_ = res
 	return nil
 	{{- end }}
+}
+{{- end }}
+{{- end }}
+
+// ============================================================================
+// Factory (programmatic request/response generation)
+// ============================================================================
+
+var (
+	defaultFactory     *factory.Factory
+	defaultFactoryOnce sync.Once
+	defaultFactoryErr  error
+)
+
+// NewFactory creates a Factory pre-configured with this service's OpenAPI spec,
+// codegen config, spec options, and context.
+// Use it to generate mock requests and responses programmatically without running the server.
+func NewFactory(opts ...factory.FactoryOption) (*factory.Factory, error) {
+	openapiSpec, err := readFirstEmbeddedFile(openapiSpecFS)
+	if err != nil {
+		return nil, err
+	}
+
+	var codegenCfg oapicodegen.Configuration
+	if err := yamlv4.Unmarshal(codegenConfigSrc, &codegenCfg); err != nil {
+		return nil, err
+	}
+
+	allOpts := []factory.FactoryOption{
+		factory.WithServiceContext(contextSrc),
+		factory.WithCodegenConfig(codegenCfg),
+	}
+	if cfg != nil && cfg.SpecOptions != nil {
+		allOpts = append(allOpts, factory.WithSpecOptions(cfg.SpecOptions))
+	}
+	allOpts = append(allOpts, opts...)
+	return factory.NewFactory(openapiSpec, allOpts...)
+}
+
+// GetFactory returns a singleton Factory instance.
+// The factory is initialized on first call and reused for subsequent calls.
+func GetFactory() (*factory.Factory, error) {
+	defaultFactoryOnce.Do(func() {
+		defaultFactory, defaultFactoryErr = NewFactory()
+	})
+	return defaultFactory, defaultFactoryErr
+}
+
+{{- range $operations }}{{ $op := . }}
+{{- if $op.Response.Success }}
+
+// Generate{{ $op.ID | ucFirst }}Response generates a mock response for {{ $op.Method }} {{ $op.Path }}.
+// ctx is an optional replacement context for controlling generated values.
+func Generate{{ $op.ID | ucFirst }}Response(ctx map[string]any) (*{{ $modelsPrefix }}{{ $op.ID | ucFirst }}ResponseData, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return nil, err
+	}
+	res, err := f.Response("{{ $op.Path }}", "{{ $op.Method }}", ctx)
+	if err != nil {
+		return nil, err
+	}
+	{{- $bodyType := $op.Response.Success.ResponseName -}}
+	{{- if eq $bodyType "struct{}" }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(nil).WithHeaders(res.Headers), nil
+	{{- else if $op.Response.Success.IsRaw }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(res.Body).WithHeaders(res.Headers), nil
+	{{- else }}
+	{{- if $modelsPrefix }}{{ $bodyType = printf "%s%s" $modelsPrefix $bodyType }}{{ end }}
+	var body {{ $bodyType }}
+	if err := api.UnmarshalResponseInto(res.Body, "{{ $op.Response.Success.ContentType | escapeGoString }}", &body); err != nil {
+		return nil, err
+	}
+	{{- if eq $op.Response.Success.Schema.GoType "[]byte" }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(body).WithHeaders(res.Headers), nil
+	{{- else }}
+	return {{ $modelsPrefix }}New{{ $op.ID | ucFirst }}ResponseData(&body).WithHeaders(res.Headers), nil
+	{{- end }}
+	{{- end }}
+}
+
+// Generate{{ $op.ID | ucFirst }}ResponseBody generates a mock response body for {{ $op.Method }} {{ $op.Path }}.
+// Returns just the typed body without headers or status.
+// ctx is an optional replacement context for controlling generated values.
+{{- $bodyType2 := $op.Response.Success.ResponseName }}
+{{- if eq $bodyType2 "struct{}" }}
+func Generate{{ $op.ID | ucFirst }}ResponseBody(ctx map[string]any) error {
+	_, err := Generate{{ $op.ID | ucFirst }}Response(ctx)
+	return err
+}
+{{- else if or $op.Response.Success.IsRaw (eq $op.Response.Success.Schema.GoType "[]byte") }}
+func Generate{{ $op.ID | ucFirst }}ResponseBody(ctx map[string]any) ([]byte, error) {
+	res, err := Generate{{ $op.ID | ucFirst }}Response(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+{{- else }}
+{{- if $modelsPrefix }}{{ $bodyType2 = printf "%s%s" $modelsPrefix $bodyType2 }}{{ end }}
+func Generate{{ $op.ID | ucFirst }}ResponseBody(ctx map[string]any) (*{{ $bodyType2 }}, error) {
+	res, err := Generate{{ $op.ID | ucFirst }}Response(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return res.Body, nil
+}
+{{- end }}
+{{- end }}
+
+// Generate{{ $op.ID | ucFirst }}Request generates a mock request for {{ $op.Method }} {{ $op.Path }}.
+// ctx is an optional replacement context for controlling generated values.
+func Generate{{ $op.ID | ucFirst }}Request(ctx map[string]any) (schema.GeneratedRequest, error) {
+	f, err := GetFactory()
+	if err != nil {
+		return schema.GeneratedRequest{}, err
+	}
+	return f.Request("{{ $op.Path }}", "{{ $op.Method }}", ctx)
+}
+
+{{- if $op.Body }}
+
+// Generate{{ $op.ID | ucFirst }}RequestBody generates a typed mock request body for {{ $op.Method }} {{ $op.Path }}.
+// ctx is an optional replacement context for controlling generated values.
+func Generate{{ $op.ID | ucFirst }}RequestBody(ctx map[string]any) (*{{ $modelsPrefix }}{{ $op.Body.Name }}, error) {
+	req, err := Generate{{ $op.ID | ucFirst }}Request(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var body {{ $modelsPrefix }}{{ $op.Body.Name }}
+	if err := json.Unmarshal(req.Body, &body); err != nil {
+		return nil, err
+	}
+	return &body, nil
 }
 {{- end }}
 {{- end }}
