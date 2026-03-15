@@ -123,6 +123,192 @@ func TestHasCorrectSchemaValue(t *testing.T) {
 	})
 }
 
+func TestReplaceInRequest(t *testing.T) {
+	assert := assert2.New(t)
+	fake := faker.New()
+
+	t.Run("skipped-when-not-write-only", func(t *testing.T) {
+		state := NewReplaceState(WithName("id"), WithReadOnly())
+		res := replaceInRequest(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-request": map[string]any{
+						"id": "abc-123",
+					},
+				},
+			},
+		})
+		assert.Nil(res)
+	})
+
+	t.Run("request-header-area", func(t *testing.T) {
+		state := NewReplaceState(WithName("authorization"), WithHeader(), WithWriteOnly())
+		res := replaceInRequest(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-request-header": map[string]any{
+						"authorization": "Bearer tok",
+					},
+					"in-request": map[string]any{
+						"authorization": "should-not-match",
+					},
+				},
+			},
+		})
+		assert.Equal("Bearer tok", res)
+	})
+
+	t.Run("general-request-area", func(t *testing.T) {
+		state := NewReplaceState(WithName("id"), WithWriteOnly())
+		res := replaceInRequest(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-request": map[string]any{
+						"id": "abc-123",
+					},
+				},
+			},
+		})
+		assert.Equal("abc-123", res)
+	})
+
+	t.Run("falls-through-when-no-match", func(t *testing.T) {
+		state := NewReplaceState(WithName("unknown"), WithWriteOnly())
+		res := replaceInRequest(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-request": map[string]any{
+						"id": "abc-123",
+					},
+				},
+			},
+		})
+		assert.Nil(res)
+	})
+
+	t.Run("header-falls-through-to-general-request", func(t *testing.T) {
+		state := NewReplaceState(WithName("x-token"), WithHeader(), WithWriteOnly())
+		res := replaceInRequest(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-request": map[string]any{
+						"x-token": "general-request-val",
+					},
+				},
+			},
+		})
+		assert.Equal("general-request-val", res)
+	})
+}
+
+func TestReplaceInResponse(t *testing.T) {
+	assert := assert2.New(t)
+	fake := faker.New()
+
+	t.Run("skipped-when-not-read-only", func(t *testing.T) {
+		state := NewReplaceState(WithName("id"), WithWriteOnly())
+		res := replaceInResponse(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-response": map[string]any{
+						"id": 100,
+					},
+				},
+			},
+		})
+		assert.Nil(res)
+	})
+
+	t.Run("response-header-area", func(t *testing.T) {
+		state := NewReplaceState(WithName("x-request-id"), WithHeader(), WithReadOnly())
+		res := replaceInResponse(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-response-header": map[string]any{
+						"x-request-id": "fixed",
+					},
+					"in-response": map[string]any{
+						"x-request-id": "should-not-match",
+					},
+				},
+			},
+		})
+		assert.Equal("fixed", res)
+	})
+
+	t.Run("general-response-area", func(t *testing.T) {
+		state := NewReplaceState(WithName("id"), WithReadOnly())
+		res := replaceInResponse(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-response": map[string]any{
+						"id": 100,
+					},
+				},
+			},
+		})
+		assert.Equal(100, res)
+	})
+
+	t.Run("falls-through-when-no-match", func(t *testing.T) {
+		state := NewReplaceState(WithName("unknown"), WithReadOnly())
+		res := replaceInResponse(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-response": map[string]any{
+						"id": 100,
+					},
+				},
+			},
+		})
+		assert.Nil(res)
+	})
+
+	t.Run("header-falls-through-to-general-response", func(t *testing.T) {
+		state := NewReplaceState(WithName("x-token"), WithHeader(), WithReadOnly())
+		res := replaceInResponse(&ReplaceContext{
+			faker:      fake,
+			state:      state,
+			areaPrefix: "in-",
+			data: []map[string]any{
+				{
+					"in-response": map[string]any{
+						"x-token": "general-response-val",
+					},
+				},
+			},
+		})
+		assert.Equal("general-response-val", res)
+	})
+}
+
 func TestReplaceInHeaders(t *testing.T) {
 	assert := assert2.New(t)
 	fake := faker.New()

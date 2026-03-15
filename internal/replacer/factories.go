@@ -66,6 +66,8 @@ func (r *ReplaceContext) stringExpression() string {
 
 // Replacers is a list of replacers that are used to replace values in schemas and contents in the specified order.
 var Replacers = []Replacer{
+	replaceInRequest,
+	replaceInResponse,
 	replaceInHeaders,
 	replaceInPath,
 	replaceFromContext,

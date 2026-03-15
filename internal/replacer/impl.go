@@ -146,6 +146,38 @@ func hasCorrectSchemaValue(ctx *ReplaceContext, value any) bool {
 	}
 }
 
+// replaceInRequest is a replacer that replaces values only during request (write-only) generation.
+// It checks compound areas: in-request-header, then in-request.
+func replaceInRequest(ctx *ReplaceContext) any {
+	if !ctx.state.IsContentWriteOnly {
+		return nil
+	}
+
+	if ctx.state.IsHeader {
+		if v := replaceInArea(ctx, "request-header"); v != nil {
+			return v
+		}
+	}
+
+	return replaceInArea(ctx, "request")
+}
+
+// replaceInResponse is a replacer that replaces values only during response (read-only) generation.
+// It checks compound areas: in-response-header, then in-response.
+func replaceInResponse(ctx *ReplaceContext) any {
+	if !ctx.state.IsContentReadOnly {
+		return nil
+	}
+
+	if ctx.state.IsHeader {
+		if v := replaceInArea(ctx, "response-header"); v != nil {
+			return v
+		}
+	}
+
+	return replaceInArea(ctx, "response")
+}
+
 // replaceInHeaders is a replacer that replaces values only in headers.
 func replaceInHeaders(ctx *ReplaceContext) any {
 	if !ctx.state.IsHeader {
@@ -190,6 +222,10 @@ func replaceInPath(ctx *ReplaceContext) any {
 func replaceInArea(ctx *ReplaceContext, area string) any {
 	ctxAreaPrefix := ctx.areaPrefix
 	if ctxAreaPrefix == "" {
+		return nil
+	}
+
+	if len(ctx.state.NamePath) == 0 {
 		return nil
 	}
 

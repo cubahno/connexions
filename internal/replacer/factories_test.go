@@ -14,7 +14,7 @@ import (
 
 func TestReplacers(t *testing.T) {
 	assert := assert2.New(t)
-	assert.Equal(7, len(Replacers))
+	assert.Equal(9, len(Replacers))
 }
 
 func TestCreateValueReplacer(t *testing.T) {
