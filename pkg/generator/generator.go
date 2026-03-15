@@ -4,25 +4,28 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/cubahno/connexions/v2/internal/contexts"
 	"github.com/cubahno/connexions/v2/internal/replacer"
 	"github.com/cubahno/connexions/v2/internal/types"
 	"github.com/cubahno/connexions/v2/pkg/api"
 	"github.com/cubahno/connexions/v2/pkg/schema"
+	"go.yaml.in/yaml/v4"
 )
 
 type Generate interface {
-	Request(req *api.GenerateRequest, op *schema.Operation) json.RawMessage
-	Response(respSchema *schema.ResponseSchema) schema.ResponseData
+	Request(req *api.GenerateRequest, op *schema.Operation, ctxData map[string]any) json.RawMessage
+	Response(respSchema *schema.ResponseSchema, ctxData map[string]any) schema.ResponseData
 	Error(errSchema *schema.Schema, errPath, error string) []byte
 }
 
 type ResponseGenerator struct {
 	serviceContexts []map[string]any
+	defaultContexts []map[string]map[string]any
 	valueReplacer   replacer.ValueReplacer
 }
 
-func (g *ResponseGenerator) Request(req *api.GenerateRequest, op *schema.Operation) json.RawMessage {
-	valueReplacer := g.valueReplacer
+func (g *ResponseGenerator) Request(req *api.GenerateRequest, op *schema.Operation, ctxData map[string]any) json.RawMessage {
+	valueReplacer := g.resolveReplacer(ctxData)
 
 	// static resources.
 	if op == nil {
@@ -48,13 +51,6 @@ func (g *ResponseGenerator) Request(req *api.GenerateRequest, op *schema.Operati
 		}
 		jsonBytes, _ := json.Marshal(res)
 		return jsonBytes
-	}
-
-	// user could have provided custom context.
-	// this should be prepended and we need new replacer instance.
-	if len(req.Context) > 0 {
-		orderedCtx := append([]map[string]any{req.Context}, g.serviceContexts...)
-		valueReplacer = replacer.CreateValueReplacer(replacer.Replacers, orderedCtx)
 	}
 
 	res := map[string]any{
@@ -97,18 +93,20 @@ func (g *ResponseGenerator) Request(req *api.GenerateRequest, op *schema.Operati
 	return nil
 }
 
-func (g *ResponseGenerator) Response(respSchema *schema.ResponseSchema) schema.ResponseData {
+func (g *ResponseGenerator) Response(respSchema *schema.ResponseSchema, ctxData map[string]any) schema.ResponseData {
 	// no response respSchema, nothing to generate
 	if respSchema == nil {
 		return schema.ResponseData{}
 	}
 
+	valueReplacer := g.resolveReplacer(ctxData)
+
 	state := replacer.NewReplaceState(
 		replacer.WithContentType(respSchema.ContentType),
 		replacer.WithReadOnly())
 
-	content := generateContentFromSchema(respSchema.Body, g.valueReplacer, state)
-	headers := generateHeaders(respSchema.Headers, g.valueReplacer)
+	content := generateContentFromSchema(respSchema.Body, valueReplacer, state)
+	headers := generateHeaders(respSchema.Headers, valueReplacer)
 
 	isError := false
 	enc, err := encodeContent(content, respSchema.ContentType)
@@ -160,11 +158,24 @@ func (g *ResponseGenerator) Error(errSchema *schema.Schema, errPath, error strin
 	return encoded
 }
 
-func NewGenerator(orderedCtx []map[string]any) (*ResponseGenerator, error) {
+// resolveReplacer returns a valueReplacer with the given user context processed and prepended,
+// or the default valueReplacer if ctx is nil.
+func (g *ResponseGenerator) resolveReplacer(ctxData map[string]any) replacer.ValueReplacer {
+	if len(ctxData) == 0 {
+		return g.valueReplacer
+	}
+	yamlBytes, _ := yaml.Marshal(ctxData)
+	processed := contexts.Load(map[string][]byte{"user": yamlBytes}, g.defaultContexts)
+	orderedCtx := append([]map[string]any{processed["user"]}, g.serviceContexts...)
+	return replacer.CreateValueReplacer(replacer.Replacers, orderedCtx)
+}
+
+func NewGenerator(orderedCtx []map[string]any, defaultContexts []map[string]map[string]any) (*ResponseGenerator, error) {
 	valueReplacer := replacer.CreateValueReplacer(replacer.Replacers, orderedCtx)
 
 	return &ResponseGenerator{
 		serviceContexts: orderedCtx,
+		defaultContexts: defaultContexts,
 		valueReplacer:   valueReplacer,
 	}, nil
 }

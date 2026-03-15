@@ -134,7 +134,7 @@ func TestReplaceInHeaders(t *testing.T) {
 			state: state,
 			data: []map[string]any{
 				{
-					"user_id": "1234",
+					"userID": "1234",
 				},
 			},
 		})
@@ -248,9 +248,9 @@ func TestReplaceInHeaders(t *testing.T) {
 			areaPrefix: "in-",
 			data: []map[string]any{
 				{
-					"user_id": "1234",
+					"userID": "1234",
 					"in-header": map[string]string{
-						"user_id": "5678",
+						"userID": "5678",
 					},
 				},
 			},
@@ -270,7 +270,7 @@ func TestReplaceInPath(t *testing.T) {
 			state: state,
 			data: []map[string]any{
 				{
-					"user_id": "1234",
+					"userID": "1234",
 				},
 			},
 		})
@@ -285,9 +285,9 @@ func TestReplaceInPath(t *testing.T) {
 			areaPrefix: "in-",
 			data: []map[string]any{
 				{
-					"user_id": "1234",
+					"userID": "1234",
 					"in-path": map[string]string{
-						"user_id": "5678",
+						"userID": "5678",
 					},
 				},
 			},
@@ -303,7 +303,7 @@ func TestReplaceInPath(t *testing.T) {
 			areaPrefix: "in-",
 			data: []map[string]any{
 				{
-					"user_id": "1234",
+					"userID": "1234",
 				},
 			},
 		})
@@ -322,7 +322,7 @@ func TestReplaceInArea(t *testing.T) {
 			state: state,
 			data: []map[string]any{
 				{
-					"user_id": "1234",
+					"userID": "1234",
 				},
 			},
 		}, "path")
@@ -346,8 +346,8 @@ func TestReplaceFromContext(t *testing.T) {
 			state:  state,
 			data: []map[string]any{
 				{
-					"person": map[string]any{
-						"date_of_birth": "1980-01-01",
+					"Person": map[string]any{
+						"dateOfBirth": "1980-01-01",
 					},
 				},
 			},
@@ -367,7 +367,7 @@ func TestReplaceFromContext(t *testing.T) {
 			data: []map[string]any{
 				{
 					"people": map[string]any{
-						"date_of_birth": "1980-01-01",
+						"dateOfBirth": "1980-01-01",
 					},
 				},
 			},
@@ -812,6 +812,191 @@ func TestReplaceValueWithMapContext(t *testing.T) {
 			res = replaceValueWithMapContext[string](path, data)
 			assert.Equal("wildcard-match", res, "* should match field: %s", fieldName)
 		}
+	})
+}
+
+func TestIsMapValue(t *testing.T) {
+	assert := assert2.New(t)
+
+	assert.True(isMapValue(map[string]any{"a": 1}))
+	assert.True(isMapValue(map[string]string{"a": "b"}))
+	assert.True(isMapValue(map[string]int{"a": 1}))
+	assert.True(isMapValue(map[string]bool{"a": true}))
+	assert.True(isMapValue(map[string]float64{"a": 1.0}))
+	assert.False(isMapValue("string"))
+	assert.False(isMapValue(123))
+	assert.False(isMapValue(true))
+	assert.False(isMapValue([]string{"a", "b"}))
+}
+
+func TestSuffixMatching(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("root-level-primitive-matches-any-depth", func(t *testing.T) {
+		data := map[string]any{
+			"foo": "global-foo",
+		}
+		path := []string{"response", "user", "data", "foo"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("global-foo", res)
+	})
+
+	t.Run("nested-context-suffix-match", func(t *testing.T) {
+		data := map[string]any{
+			"data": map[string]any{
+				"foo": "nested-data-foo",
+			},
+		}
+		path := []string{"user", "data", "foo"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("nested-data-foo", res)
+	})
+
+	t.Run("longer-suffix-wins-over-root-level", func(t *testing.T) {
+		data := map[string]any{
+			"foo": "global",
+			"data": map[string]any{
+				"foo": "specific",
+			},
+		}
+		path := []string{"user", "data", "foo"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("specific", res)
+	})
+
+	t.Run("root-level-map-not-treated-as-value", func(t *testing.T) {
+		data := map[string]any{
+			"data": map[string]any{
+				"inner": "value",
+			},
+		}
+		path := []string{"data"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Nil(res)
+	})
+
+	t.Run("partial-suffix-match-deep-path", func(t *testing.T) {
+		data := map[string]any{
+			"address": map[string]any{
+				"city": "Berlin",
+			},
+		}
+		path := []string{"user", "home", "address", "city"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("Berlin", res)
+	})
+
+	t.Run("no-match-when-suffix-does-not-align", func(t *testing.T) {
+		data := map[string]any{
+			"billing": map[string]any{
+				"city": "Munich",
+			},
+		}
+		path := []string{"user", "shipping", "city"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Nil(res)
+	})
+
+	t.Run("regex-pattern-in-nested-context", func(t *testing.T) {
+		data := map[string]any{
+			"user": map[string]any{
+				"_id$": "user-id-value",
+			},
+		}
+		path := []string{"user", "account_id"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("user-id-value", res)
+	})
+
+	t.Run("regex-pattern-on-path-element-matches-nested", func(t *testing.T) {
+		// Phase 1 regex: wildcard * on path element matches a parent
+		data := map[string]any{
+			"*": map[string]any{
+				"city": "Berlin",
+			},
+		}
+		path := []string{"user", "address", "city"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("Berlin", res)
+	})
+
+	t.Run("regex-pattern-on-path-element-with-suffix", func(t *testing.T) {
+		// Phase 1 regex: pattern on path element
+		data := map[string]any{
+			"^addr": map[string]any{
+				"city": "Munich",
+			},
+		}
+		path := []string{"response", "address", "city"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("Munich", res)
+	})
+
+	t.Run("regex-pattern-root-level", func(t *testing.T) {
+		data := map[string]any{
+			"(_id|Id)$": "any-id-value",
+		}
+		path := []string{"response", "data", "userId"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("any-id-value", res)
+	})
+
+	t.Run("FakeFunc-at-root-matches-any-depth", func(t *testing.T) {
+		fn := contexts.FakeFunc(func() contexts.MixedValue {
+			return contexts.StringValue("fake-result")
+		})
+		data := map[string]any{
+			"email": fn,
+		}
+		path := []string{"user", "contact", "email"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Equal("fake-result", res)
+	})
+
+	t.Run("array-at-root-matches-any-depth", func(t *testing.T) {
+		data := map[string]any{
+			"status": []string{"active", "inactive"},
+		}
+		path := []string{"order", "status"}
+		res := replaceValueWithMapContext[any](path, data)
+		assert.Contains([]string{"active", "inactive"}, res)
+	})
+
+	t.Run("nested-wins-over-root-in-replaceFromContext", func(t *testing.T) {
+		fake := faker.New()
+		s := &schema.Schema{Type: types.TypeString}
+		state := NewReplaceStateWithName("order").WithOptions(WithName("status"))
+		res := replaceFromContext(&ReplaceContext{
+			faker:  fake,
+			schema: s,
+			state:  state,
+			data: []map[string]any{
+				{
+					"status": []string{"global-a", "global-b"},
+					"order": map[string]any{
+						"status": []string{"pending", "shipped"},
+					},
+				},
+			},
+		})
+		assert.Contains([]string{"pending", "shipped"}, res)
+	})
+
+	t.Run("exact-field-name-preserved-no-snake-case", func(t *testing.T) {
+		fake := faker.New()
+		s := &schema.Schema{Type: types.TypeString}
+		state := NewReplaceStateWithName("dateOfBirth")
+		res := replaceFromContext(&ReplaceContext{
+			faker:  fake,
+			schema: s,
+			state:  state,
+			data: []map[string]any{
+				{
+					"dateOfBirth": "1990-05-15",
+				},
+			},
+		})
+		assert.Equal("1990-05-15", res)
 	})
 }
 

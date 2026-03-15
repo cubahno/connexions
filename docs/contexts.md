@@ -22,7 +22,7 @@ The context system operates in three phases:
 2. **Alias resolution phase**: All aliases are resolved across namespaces
 3. **Function processing phase**: Function prefixes (`fake:`, `func:`, `botify:`, `join:`) are processed
 
-When generating content, the system looks up property names (converted to `snake_case`) in the loaded contexts and replaces values accordingly.
+When generating content, the system looks up property names as-is (no case conversion) in the loaded contexts and replaces values accordingly.
 
 ### Default Contexts
 
@@ -68,21 +68,62 @@ tag: "dog"
 }
 ```
 
-### Nested Properties
+### Matching Behavior
 
-For schemas with nested objects, use nested YAML structure:
+**Root-level primitives** (strings, numbers, booleans, arrays, functions) match the field name at any depth in the generated response:
 
 ```yaml
-pet:
+status: ["active", "inactive"]  # Matches any field named "status" regardless of nesting
+email: "fake:internet.email"    # Matches any field named "email" at any level
+```
+
+**Nested objects** use suffix matching — they only match when the response path ends with the context path:
+
+```yaml
+data:
+  foo: "replace-data.foo"
+```
+
+This matches `user.address.data.foo` because the path ends with `data.foo`, but does NOT match `user.foo` (no `data` parent).
+
+**Priority:** More specific (longer) suffix matches win over root-level matches:
+
+```yaml
+status: ["global-a", "global-b"]       # Least specific: matches "status" anywhere
+order:
+  status: ["pending", "shipped"]        # More specific: wins when path ends with "order.status"
+```
+
+For a field at path `order.status`, the nested `order.status` context wins over the root-level `status`.
+
+### Nested Properties
+
+For schemas with nested objects, use nested YAML structure with keys matching your schema property names exactly:
+
+```yaml
+Pet:
   id: 123e4567-e89b-12d3-a456-426614174000
   name: "doggie"
   tag: "dog"
-owner_person:
+ownerPerson:
   id: 1
   name: "Jane Doe"
 ```
 
-**Note:** Keys inside context files should be `snake_case`. The system automatically converts `camelCase` property names from schemas to `snake_case` for matching.
+**Note:** Context keys must match your schema property names exactly — there is no automatic case conversion. If your OpenAPI schema uses `camelCase`, your context keys should also be `camelCase`.
+
+### Arrays
+
+Arrays are transparent in context matching. The context describes the schema structure, not the runtime shape. Array items share the same schema, so the replacement applies to every generated element:
+
+```yaml
+user:
+  addresses:
+    city: "fake:address.city"
+    street: "fake:address.street_address"
+```
+
+If `addresses` is an array of objects, each generated item gets its `city` and `street` replaced. The context path `user.addresses.city` matches regardless of how many items are produced.
 
 ## Context Functions
 
@@ -95,11 +136,11 @@ Generates random values using the [jaswdr/faker](https://github.com/jaswdr/faker
 **Syntax:** `fake:path.to.function`
 
 ```yaml
-pet:
+Pet:
   id: "fake:uuid.v4"
   name: "fake:pet.name"
   tag: "fake:gamer.tag"
-owner_person:
+ownerPerson:
   id: "fake:u_int8"
   name: "fake:person.name"
   email: "fake:internet.email"
@@ -125,14 +166,14 @@ References values from other contexts or namespaces.
 ```yaml title="petstore.yml"
 id: "fake:uuid.v4"
 name: "fake:pet.name"
-owner_id: "alias:person.id"
-owner_name: "alias:person.name"
+ownerId: "alias:person.id"
+ownerName: "alias:person.name"
 ```
 
 ```yaml title="person.yml"
 id: "fake:u_int8"
 name: "fake:person.name"
-pet_id: "alias:petstore.id"
+petId: "alias:petstore.id"
 ```
 
 If an alias doesn't resolve to a valid target, it remains as-is in the output, making issues easy to spot.
@@ -156,7 +197,7 @@ Calls registered functions with optional arguments.
 
 **Example:**
 ```yaml
-total_items: "func:int8_between:1,100"
+totalItems: "func:int8_between:1,100"
 code: "func:echo:FIXED_CODE"
 ```
 
@@ -196,17 +237,19 @@ Context keys can use regex patterns to match multiple property names.
 Keys ending with `$` match properties that end with that pattern:
 
 ```yaml
-_id$: "alias:fake.u_int8"           # Matches: user_id, pet_id, order_id
-_email$: "alias:fake.internet.email" # Matches: user_email, contact_email
-_count$: "alias:fake.u_int8"         # Matches: item_count, total_count
+(_id|Id)$: "alias:fake.u_int8"           # Matches: user_id, userId, pet_id, petId
+(_email|Email)$: "alias:fake.internet.email" # Matches: user_email, userEmail
+(_count|Count)$: "alias:fake.u_int8"         # Matches: item_count, itemCount
 ```
+
+Since there is no automatic case conversion, use alternation patterns like `(_id|Id)$` to match both `snake_case` and `camelCase` field names.
 
 ### Prefix Matching
 
 Keys starting with `^` match properties that start with that pattern:
 
 ```yaml
-^total_: "func:int8_between:1,100"   # Matches: total_items, total_count
+(^total_|^total[A-Z]): "func:int8_between:1,100"   # Matches: total_items, totalItems
 ```
 
 ### Wildcard Matching
@@ -240,12 +283,12 @@ Different contexts can be applied to specific areas (path parameters, headers, e
 
 ```yaml
 in-path:
-  pet_id: "alias:fake.u_int8"
-  id$: "alias:fake.u_int8"
+  petId: "alias:fake.u_int8"
+  (id|Id)$: "alias:fake.u_int8"
 
 in-header:
-  x_pet_name: "alias:fake.pet.name"
-  x_request_id: "alias:fake.uuid.v4"
+  x-pet-name: "alias:fake.pet.name"
+  x-request-id: "alias:fake.uuid.v4"
 ```
 
 Area-specific contexts take precedence over default context replacements.
@@ -270,6 +313,33 @@ services:
 ```
 
 Replacement is applied in the order of definition. If no configuration is provided for a service, default contexts are used.
+
+## Resolution Order
+
+When generating values, contexts are checked in the following order. The first match wins:
+
+1. **User context** — provided via the UI editor or `X-Cxs-Context` HTTP header (base64-encoded JSON)
+2. **Service context** — from the service's `context.yml` file
+3. **Common context** — built-in patterns like `(_id|Id)$`, `email`, etc.
+4. **Fake context** — faker library generators
+5. **Words context** — common nouns, adjectives, verbs for fallback data
+
+User context overrides service context, which overrides defaults. This applies to both request and response generation.
+
+## Per-Request Context via Header
+
+Context replacements can be passed with any HTTP request using the `X-Cxs-Context` header. The value should be base64-encoded JSON:
+
+```
+X-Cxs-Context: eyJuYW1lIjoiZm9vIiwiaWQiOjExfQ==
+```
+
+This is useful for:
+- The UI context editor (sent automatically)
+- CI pipelines testing specific values
+- Programmatic response generation with custom data
+
+All context functions (`func:`, `fake:`, `alias:`, `botify:`, `join:`) are supported in the header value — they are processed the same way as context YAML files.
 
 ## Using in Fixed Responses
 

@@ -187,6 +187,7 @@ func NewRouter(svc ServiceInterface, opts ...RouterOption) chi.Router {
 	}
 
 	r := chi.NewRouter()
+	r.Use(api.ContextReplacementsMiddleware)
 	for _, mw := range cfg.middlewares {
 		r.Use(mw)
 	}
@@ -254,7 +255,7 @@ func RegisterAPIRouter(router *api.Router) {
 
 	// Create the generator with service contexts
 	orderedCtx := generator.LoadServiceContext(contextSrc, router.GetContexts())
-	gen, err := generator.NewGenerator(orderedCtx)
+	gen, err := generator.NewGenerator(orderedCtx, router.GetContexts())
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to create generator for %s", serviceName),
 			"error", err,
@@ -346,7 +347,7 @@ func (h *serviceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	op := h.registry.FindOperation(req.Path, req.Method)
-	res := h.gen.Request(&req, op)
+	res := h.gen.Request(&req, op, req.Context)
 	api.NewJSONResponse(w).Send(res)
 }
 
@@ -378,7 +379,7 @@ func (s *generatorService) PostFooBar(ctx context.Context) (*PostFooBarResponseD
 		return NewPostFooBarResponseData(nil), nil
 	}
 
-	res := s.generator.Response(respSchema)
+	res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 	var body PostFooBarResponse
 	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
 		return nil, err

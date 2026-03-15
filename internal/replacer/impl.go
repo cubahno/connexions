@@ -193,7 +193,7 @@ func replaceInArea(ctx *ReplaceContext, area string) any {
 		return nil
 	}
 
-	snakedNamePath := []string{types.ToSnakeCase(ctx.state.NamePath[0])}
+	namePath := []string{ctx.state.NamePath[0]}
 
 	for _, data := range ctx.data {
 		replacements, ok := data[fmt.Sprintf("%s%s", ctxAreaPrefix, area)]
@@ -201,7 +201,7 @@ func replaceInArea(ctx *ReplaceContext, area string) any {
 			continue
 		}
 
-		if res := replaceValueWithContext(snakedNamePath, replacements); res != nil {
+		if res := replaceValueWithContext(namePath, replacements); res != nil {
 			return res
 		}
 	}
@@ -211,14 +211,8 @@ func replaceInArea(ctx *ReplaceContext, area string) any {
 
 // replaceFromContext is a replacer that replaces values from the context.
 func replaceFromContext(ctx *ReplaceContext) any {
-	var snakedNamePath []string
-	// context data is stored in snake case
-	for _, name := range ctx.state.NamePath {
-		snakedNamePath = append(snakedNamePath, types.ToSnakeCase(name))
-	}
-
 	for _, data := range ctx.data {
-		if res := replaceValueWithContext(snakedNamePath, data); res != nil {
+		if res := replaceValueWithContext(ctx.state.NamePath, data); res != nil {
 			v := castToSchemaFormat(ctx, res)
 
 			// If context returned empty string, return nil to let other replacers handle it
@@ -323,35 +317,69 @@ func replaceValueWithMapContext[T any](path []string, contextData map[string]T) 
 
 	fieldName := path[len(path)-1]
 
-	// Expect direct match first.
-	if value, exists := contextData[fieldName]; exists {
-		return replaceValueWithContext(path[1:], value)
-	}
+	// Phase 1: Try nested/suffix matches (most specific first).
+	// Scan path elements from left to right (indices 0 to len-2).
+	// Left-to-right means we try the longest suffix first.
+	for i := 0; i < len(path)-1; i++ {
+		pathElem := path[i]
 
-	// Shrink the context data to the last element of the path.
-	if len(path) > 1 {
-		fst := path[0]
-		if value, exists := contextData[fst]; exists {
-			return replaceValueWithContext(path[1:], value)
+		// Direct key match
+		if value, exists := contextData[pathElem]; exists {
+			if isMapValue(value) {
+				if result := replaceValueWithContext(path[i+1:], value); result != nil {
+					return result
+				}
+			}
+		}
+
+		// Regex pattern match on path element
+		for key, keyValue := range contextData {
+			if types.MaybeRegexPattern(key) && isMapValue(keyValue) {
+				pattern := key
+				if pattern == "*" {
+					pattern = ".*"
+				}
+				if types.ValidateStringWithPattern(pathElem, pattern) {
+					if result := replaceValueWithContext(path[i+1:], keyValue); result != nil {
+						return result
+					}
+				}
+			}
 		}
 	}
 
-	// Field doesn't exist in the context as-is.
-	// But the context field might be a regex pattern.
+	// Phase 2: Root-level field name match (least specific).
+	// Skip map values — those are namespaces for nested matching, not leaf values.
+	if value, exists := contextData[fieldName]; exists {
+		if !isMapValue(value) {
+			return replaceValueWithContext(nil, value)
+		}
+	}
+
+	// Phase 3: Regex pattern match on field name, also skipping map values.
 	for key, keyValue := range contextData {
-		if types.MaybeRegexPattern(key) {
-			// Convert wildcard * to .* for regex matching
+		if types.MaybeRegexPattern(key) && !isMapValue(keyValue) {
 			pattern := key
 			if pattern == "*" {
 				pattern = ".*"
 			}
 			if types.ValidateStringWithPattern(fieldName, pattern) {
-				return replaceValueWithContext(path[1:], keyValue)
+				return replaceValueWithContext(nil, keyValue)
 			}
 		}
 	}
 
 	return nil
+}
+
+// isMapValue checks if the given value is a map type.
+func isMapValue[T any](value T) bool {
+	switch any(value).(type) {
+	case map[string]string, map[string]int, map[string]bool, map[string]float64, map[string]any:
+		return true
+	default:
+		return false
+	}
 }
 
 // replaceFromSchemaFormat is a replacer that replaces values from the schema format.

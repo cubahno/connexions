@@ -627,6 +627,7 @@ func NewRouter(svc ServiceInterface, opts ...RouterOption) chi.Router {
 	}
 
 	r := chi.NewRouter()
+	r.Use(api.ContextReplacementsMiddleware)
 	for _, mw := range cfg.middlewares {
 		r.Use(mw)
 	}
@@ -704,7 +705,7 @@ func RegisterAPIRouter(router *api.Router) {
 
 	// Create the generator with service contexts
 	orderedCtx := generator.LoadServiceContext(contextSrc, router.GetContexts())
-	gen, err := generator.NewGenerator(orderedCtx)
+	gen, err := generator.NewGenerator(orderedCtx, router.GetContexts())
 	if err != nil {
 		slog.Error(fmt.Sprintf("Failed to create generator for %s", serviceName),
 			"error", err,
@@ -796,7 +797,7 @@ func (h *serviceHandler) Generate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	op := h.registry.FindOperation(req.Path, req.Method)
-	res := h.gen.Request(&req, op)
+	res := h.gen.Request(&req, op, req.Context)
 	api.NewJSONResponse(w).Send(res)
 }
 
@@ -828,7 +829,7 @@ func (s *generatorService) ListUsers(ctx context.Context) (*ListUsersResponseDat
 		return NewListUsersResponseData(nil), nil
 	}
 
-	res := s.generator.Response(respSchema)
+	res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 	var body ListUsersResponse
 	if err := api.UnmarshalResponseInto(res.Body, "application/json", &body); err != nil {
 		return nil, err
@@ -844,7 +845,7 @@ func (s *generatorService) GetUser(ctx context.Context, opts *GetUserServiceRequ
 		if respSchema == nil {
 			return NewGetUserResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		var body GetUserResponse
 		if err := api.UnmarshalResponseInto(res.Body, "application/json; charset=utf-8", &body); err != nil {
 			return nil, err
@@ -869,7 +870,7 @@ func (s *generatorService) GetUserAvatar(ctx context.Context, opts *GetUserAvata
 		if respSchema == nil {
 			return NewGetUserAvatarResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		return NewGetUserAvatarResponseData(res.Body).WithHeaders(res.Headers), nil
 	}
 
@@ -890,7 +891,7 @@ func (s *generatorService) GetUserProfile(ctx context.Context, opts *GetUserProf
 		if respSchema == nil {
 			return NewGetUserProfileResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		var body GetUserProfileResponse
 		if err := api.UnmarshalResponseInto(res.Body, "text/html; charset=utf-8", &body); err != nil {
 			return nil, err
@@ -920,7 +921,7 @@ func (s *generatorService) ExportUsers(ctx context.Context) (*ExportUsersRespons
 		return NewExportUsersResponseData(nil), nil
 	}
 
-	res := s.generator.Response(respSchema)
+	res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 	return NewExportUsersResponseData(res.Body).WithHeaders(res.Headers), nil
 }
 
@@ -932,7 +933,7 @@ func (s *generatorService) GetUserConfig(ctx context.Context, opts *GetUserConfi
 		if respSchema == nil {
 			return NewGetUserConfigResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		return NewGetUserConfigResponseData(res.Body).WithHeaders(res.Headers), nil
 	}
 
@@ -953,7 +954,7 @@ func (s *generatorService) GetUserAPIData(ctx context.Context, opts *GetUserAPID
 		if respSchema == nil {
 			return NewGetUserAPIDataResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		var body GetUserAPIDataResponse
 		if err := api.UnmarshalResponseInto(res.Body, "application/vnd.api+json", &body); err != nil {
 			return nil, err
@@ -978,7 +979,7 @@ func (s *generatorService) GetUserHal(ctx context.Context, opts *GetUserHalServi
 		if respSchema == nil {
 			return NewGetUserHalResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		var body GetUserHalResponse
 		if err := api.UnmarshalResponseInto(res.Body, "application/hal+json", &body); err != nil {
 			return nil, err
@@ -1003,7 +1004,7 @@ func (s *generatorService) GetUserProblem(ctx context.Context, opts *GetUserProb
 		if respSchema == nil {
 			return NewGetUserProblemResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		var body GetUserProblemResponse
 		if err := api.UnmarshalResponseInto(res.Body, "application/problem+json", &body); err != nil {
 			return nil, err
@@ -1033,7 +1034,7 @@ func (s *generatorService) StreamUsers(ctx context.Context) (*StreamUsersRespons
 		return NewStreamUsersResponseData(nil), nil
 	}
 
-	res := s.generator.Response(respSchema)
+	res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 	return NewStreamUsersResponseData(res.Body).WithHeaders(res.Headers), nil
 }
 
@@ -1045,7 +1046,7 @@ func (s *generatorService) GetUserPdf(ctx context.Context, opts *GetUserPdfServi
 		if respSchema == nil {
 			return NewGetUserPdfResponseData(nil), nil
 		}
-		res := s.generator.Response(respSchema)
+		res := s.generator.Response(respSchema, api.UserContextFromGoContext(ctx))
 		return NewGetUserPdfResponseData(res.Body).WithHeaders(res.Headers), nil
 	}
 

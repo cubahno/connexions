@@ -286,6 +286,11 @@ export const generateResult = (service, ix, path, method) => {
                 const overrideHeaders = getConfigOverrideHeaders();
                 Object.assign(fetchOptions.headers, overrideHeaders);
 
+                // Pass context replacements via header for response generation
+                if (replacements) {
+                    fetchOptions.headers['X-Cxs-Context'] = btoa(JSON.stringify(replacements));
+                }
+
                 if (reqContentType) {
                     fetchOptions.headers['Content-Type'] = reqContentType;
                 }

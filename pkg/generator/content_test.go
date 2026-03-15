@@ -66,7 +66,7 @@ func TestNestedRefsResponse(t *testing.T) {
 	assert.NotNil(responseSchema, "Response schema should not be nil")
 
 	// Create a generator to get the value replacer
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 
@@ -240,7 +240,7 @@ type: string
 				"status": []string{"success", "pending", "failed"},
 			},
 		}
-		gen, err := NewGenerator(contexts)
+		gen, err := NewGenerator(contexts, nil)
 		assert.NoError(err)
 
 		result := generateContentFromSchema(op.Response.GetSuccess().Content, gen.valueReplacer, nil)
@@ -619,7 +619,7 @@ required:
 
 	t.Run("required-fields-with-real-value-replacer", func(t *testing.T) {
 		// Test with the actual default value replacer to see what it generates
-		gen, err := NewGenerator(nil)
+		gen, err := NewGenerator(nil, nil)
 		assert.NoError(err)
 
 		s := createSchemaFromString(t, `
@@ -660,7 +660,7 @@ required:
 
 	t.Run("required-boolean-field-should-not-be-nil", func(t *testing.T) {
 		// Verify that boolean fields always get a value, never nil
-		gen, err := NewGenerator(nil)
+		gen, err := NewGenerator(nil, nil)
 		assert.NoError(err)
 
 		s := createSchemaFromString(t, `
@@ -691,7 +691,7 @@ func TestGenerateContentFromSchema_UnionTypes(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 
@@ -1003,7 +1003,7 @@ func TestGenerateContentFromArray(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 
