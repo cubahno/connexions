@@ -13,22 +13,22 @@ import (
 func TestGenerator_Generate(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 
 	t.Run("nil response schema returns nil", func(t *testing.T) {
-		res := gen.Response(nil)
+		res := gen.Response(nil, nil)
 		assert.Nil(res.Body)
 	})
 
 	t.Run("empty response schema returns nil", func(t *testing.T) {
-		res := gen.Response(&schema.ResponseSchema{})
+		res := gen.Response(&schema.ResponseSchema{}, nil)
 		assert.Nil(res.Body)
 	})
 
 	t.Run("empty body schema returns nil", func(t *testing.T) {
-		res := gen.Response(&schema.ResponseSchema{Body: &schema.Schema{}})
+		res := gen.Response(&schema.ResponseSchema{Body: &schema.Schema{}}, nil)
 		assert.Nil(res.Body)
 	})
 
@@ -40,7 +40,7 @@ func TestGenerator_Generate(t *testing.T) {
 				Properties: map[string]*schema.Schema{},
 				Nullable:   true,
 			},
-		})
+		}, nil)
 		assert.Equal("{}", string(res.Body))
 	})
 
@@ -48,7 +48,7 @@ func TestGenerator_Generate(t *testing.T) {
 		res := gen.Response(&schema.ResponseSchema{
 			ContentType: "text/plain",
 			Body:        &schema.Schema{Example: "hallo, welt!"},
-		})
+		}, nil)
 		assert.Equal("hallo, welt!", string(res.Body))
 	})
 
@@ -67,7 +67,7 @@ func TestGenerator_Generate(t *testing.T) {
 			},
 		}
 
-		res := gen.Response(respSchema)
+		res := gen.Response(respSchema, nil)
 		assert.NotNil(res.Body)
 		assert.NotNil(res.Headers)
 		assert.Equal("req-123", res.Headers.Get("x-request-id"))
@@ -91,7 +91,7 @@ func TestGenerator_Generate(t *testing.T) {
 			},
 		}
 
-		res := gen.Response(respSchema)
+		res := gen.Response(respSchema, nil)
 		assert.NotNil(res.Body)
 		// When encoding fails, the error message is returned as body
 		assert.True(res.IsError)
@@ -123,7 +123,7 @@ func TestGenerator_Generate(t *testing.T) {
 			},
 		}
 
-		res := gen.Response(respSchema)
+		res := gen.Response(respSchema, nil)
 		assert.NotNil(res.Body)
 		t.Logf("Generated response: %s", string(res.Body))
 
@@ -174,7 +174,7 @@ func TestGenerator_Generate(t *testing.T) {
 			},
 		}
 
-		res := gen.Response(respSchema)
+		res := gen.Response(respSchema, nil)
 		assert.NotNil(res.Body)
 		t.Logf("Generated response: %s", string(res.Body))
 
@@ -204,7 +204,7 @@ func TestGenerator_GenerateError(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 
@@ -391,7 +391,7 @@ func TestNewGenerator(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 	assert.NotNil(gen.valueReplacer)
@@ -401,7 +401,7 @@ func TestGenerator_Request(t *testing.T) {
 	assert := assert2.New(t)
 	t.Parallel()
 
-	gen, err := NewGenerator(nil)
+	gen, err := NewGenerator(nil, nil)
 	assert.NoError(err)
 	assert.NotNil(gen)
 
@@ -411,7 +411,7 @@ func TestGenerator_Request(t *testing.T) {
 			Method: "GET",
 		}
 
-		result := gen.Request(req, nil)
+		result := gen.Request(req, nil, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -441,7 +441,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		result := gen.Request(req, op)
+		result := gen.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -467,7 +467,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		result := gen.Request(req, op)
+		result := gen.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -498,7 +498,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		result := gen.Request(req, op)
+		result := gen.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -525,7 +525,7 @@ func TestGenerator_Request(t *testing.T) {
 			Method: "GET",
 		}
 
-		result := gen.Request(req, op)
+		result := gen.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -542,7 +542,7 @@ func TestGenerator_Request(t *testing.T) {
 				"*": abc,
 			},
 		}
-		genWithWildcard, err := NewGenerator(contexts)
+		genWithWildcard, err := NewGenerator(contexts, nil)
 		assert.NoError(err)
 
 		req := &api.GenerateRequest{
@@ -562,7 +562,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		result := genWithWildcard.Request(req, op)
+		result := genWithWildcard.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -596,7 +596,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		result := gen.Request(req, op)
+		result := gen.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -629,7 +629,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		result := gen.Request(req, op)
+		result := gen.Request(req, op, nil)
 		assert.NotNil(result)
 
 		var decoded map[string]any
@@ -640,16 +640,10 @@ func TestGenerator_Request(t *testing.T) {
 		assert.Equal("raw-string-body", decoded["body"])
 	})
 
-	t.Run("request with unmarshalable body returns nil", func(t *testing.T) {
-		// Test line 97: json.Marshal error returns nil
-		// Create a generator with a valueReplacer that returns a channel (unmarshalable)
-		unmarshalableReplacer := func(s any, state *replacer.ReplaceState) any {
-			return make(chan int) // channels can't be marshaled to JSON
-		}
-
-		customGen := &ResponseGenerator{
-			valueReplacer: unmarshalableReplacer,
-		}
+	t.Run("request rebuilds replacer from service contexts", func(t *testing.T) {
+		// Request() rebuilds valueReplacer from serviceContexts,
+		// so a custom replacer set directly on the struct gets overridden.
+		customGen := &ResponseGenerator{}
 
 		req := &api.GenerateRequest{
 			Path:   "/test",
@@ -661,12 +655,99 @@ func TestGenerator_Request(t *testing.T) {
 			Body: &schema.Schema{
 				Type: "object",
 				Properties: map[string]*schema.Schema{
-					"data": {Type: "string"},
+					"data": {Type: "string", Enum: []any{"hello"}},
 				},
 			},
 		}
 
-		result := customGen.Request(req, op)
-		assert.Nil(result, "should return nil when json.Marshal fails")
+		result := customGen.Request(req, op, nil)
+		assert.NotNil(result)
+	})
+
+	t.Run("user context overrides service context in request", func(t *testing.T) {
+		serviceCtx := []map[string]any{
+			{"name": "service-name"},
+		}
+		gen, err := NewGenerator(serviceCtx, nil)
+		assert.NoError(err)
+
+		req := &api.GenerateRequest{
+			Path:   "/users",
+			Method: "POST",
+		}
+		op := &schema.Operation{
+			Path:   "/users",
+			Method: "POST",
+			Body: &schema.Schema{
+				Type: "object",
+				Properties: map[string]*schema.Schema{
+					"name": {Type: "string"},
+				},
+			},
+		}
+
+		userCtx := map[string]any{"name": "user-override"}
+		result := gen.Request(req, op, userCtx)
+		assert.NotNil(result)
+
+		var decoded map[string]any
+		err = json.Unmarshal(result, &decoded)
+		assert.NoError(err)
+		body := decoded["body"].(map[string]any)
+		assert.Equal("user-override", body["name"])
+	})
+
+	t.Run("user context overrides service context in response", func(t *testing.T) {
+		serviceCtx := []map[string]any{
+			{"status": "from-service"},
+		}
+		gen, err := NewGenerator(serviceCtx, nil)
+		assert.NoError(err)
+
+		respSchema := &schema.ResponseSchema{
+			ContentType: "application/json",
+			Body: &schema.Schema{
+				Type: "object",
+				Properties: map[string]*schema.Schema{
+					"status": {Type: "string"},
+				},
+			},
+		}
+
+		userCtx := map[string]any{"status": "from-user"}
+		res := gen.Response(respSchema, userCtx)
+		assert.NotNil(res.Body)
+
+		var decoded map[string]any
+		err = json.Unmarshal(res.Body, &decoded)
+		assert.NoError(err)
+		assert.Equal("from-user", decoded["status"])
+	})
+
+	t.Run("user context with func prefix is resolved", func(t *testing.T) {
+		gen, err := NewGenerator(nil, nil)
+		assert.NoError(err)
+
+		respSchema := &schema.ResponseSchema{
+			ContentType: "application/json",
+			Body: &schema.Schema{
+				Type: "object",
+				Properties: map[string]*schema.Schema{
+					"count": {Type: "integer"},
+				},
+			},
+		}
+
+		userCtx := map[string]any{"count": "func:int8_between:1,100"}
+		res := gen.Response(respSchema, userCtx)
+		assert.NotNil(res.Body)
+
+		var decoded map[string]any
+		err = json.Unmarshal(res.Body, &decoded)
+		assert.NoError(err)
+		count, ok := decoded["count"].(float64)
+		assert.True(ok)
+		assert.GreaterOrEqual(count, float64(1))
+		assert.LessOrEqual(count, float64(100))
 	})
 }

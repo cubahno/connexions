@@ -60,7 +60,7 @@ paths:
 		assert.Equal(t, `[{"id":"1","name":"Alice"},{"id":"2","name":"Bob"}]`, success.Content.StaticContent)
 
 		// Now test that the generator uses the static content
-		gen, err := generator.NewGenerator(nil)
+		gen, err := generator.NewGenerator(nil, nil)
 		assert.NoError(t, err)
 
 		// Create a response schema from the operation
@@ -70,7 +70,7 @@ paths:
 		}
 
 		// Generate response
-		respData := gen.Response(respSchema)
+		respData := gen.Response(respSchema, nil)
 
 		// Verify the response is the static content
 		assert.False(t, respData.IsError)
