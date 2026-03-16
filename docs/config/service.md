@@ -211,7 +211,7 @@ The replay key is a SHA-256 hash of: `METHOD:pattern_path|field1=value1|field2=v
 
 ### Upstream-Only Mode
 
-When `upstream-only: true`, only responses from upstream services are recorded. Generated and cached responses are passed through but not stored.
+When `upstream-only: true`, only responses from upstream services are recorded. If the response is not from upstream (e.g., generated or cached), the middleware returns a `502 Bad Gateway` error instead of passing the response through. This makes it explicit to the caller that the recording was skipped.
 
 ```yaml
 cache:
@@ -225,7 +225,7 @@ cache:
             - filters.category
 ```
 
-This is useful when you want to capture real upstream responses for later replay without recording mock responses.
+This is useful when you want to capture real upstream responses for later replay and need a clear signal when the upstream is not available.
 
 ### Example: Full Configuration
 
