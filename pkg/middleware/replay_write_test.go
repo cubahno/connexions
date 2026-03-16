@@ -205,7 +205,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		assert.False(exists)
 	})
 
-	t.Run("upstream-only skips non-upstream responses", func(t *testing.T) {
+	t.Run("upstream-only returns error for non-upstream responses", func(t *testing.T) {
 		params := newTestParams(&config.ServiceConfig{
 			Name: "svc",
 			Cache: &config.CacheConfig{
@@ -230,10 +230,12 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
 
-		// Should write through
-		assert.Equal(`{"generated":true}`, w.Body.String())
+		// Should return 502 with error message
+		assert.Equal(http.StatusBadGateway, w.Code)
+		assert.Contains(w.Body.String(), "upstream-only is configured but response source is generated")
+		assert.Equal(ResponseHeaderSourceGenerated, w.Header().Get(ResponseHeaderSource))
 
-		// Should NOT be recorded (upstream-only and source is generated)
+		// Should NOT be recorded
 		body := []byte(`{"name":"Jane"}`)
 		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
 		_, exists := params.DB().Table("replay").Get(context.TODO(), key)
