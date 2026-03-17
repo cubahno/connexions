@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"compress/gzip"
 	"context"
 	"io"
 	"net/http"
@@ -90,6 +91,65 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		data := params.DB().History().Data(context.Background())
 		rec := data["GET:/test/foo"]
 		assert.Equal("application/json; charset=utf-8", rec.Response.ContentType)
+	})
+
+	t.Run("gzip upstream response is decompressed", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Content-Type", "application/json")
+			gz := gzip.NewWriter(w)
+			_, _ = gz.Write([]byte(`{"compressed": true}`))
+			_ = gz.Close()
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/gzip", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"compressed": true}`, string(w.buf))
+	})
+
+	t.Run("configured upstream headers are applied", func(t *testing.T) {
+		var receivedHeaders http.Header
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedHeaders = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/headers", nil)
+		req.Header.Set("Authorization", "Bearer original")
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				Headers: map[string]string{
+					"Authorization": "Bearer configured",
+					"X-Custom":      "custom-value",
+				},
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"ok":true}`, string(w.buf))
+		assert.Equal("Bearer configured", receivedHeaders.Get("Authorization"))
+		assert.Equal("custom-value", receivedHeaders.Get("X-Custom"))
 	})
 
 	t.Run("sets X-Cxs-Source header to upstream", func(t *testing.T) {
