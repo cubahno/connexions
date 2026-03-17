@@ -190,7 +190,15 @@ func getUpstreamResponse(params *Params, req *http.Request) (*upstreamResponse, 
 			upReq.Header.Add(name, value)
 		}
 	}
+
+	// Remove Accept-Encoding so Go's http.Transport handles decompression
+	// transparently. When set explicitly, Transport skips auto-decompression
+	// and io.ReadAll returns raw compressed bytes (e.g. gzip).
+	upReq.Header.Del("Accept-Encoding")
 	upReq.Header.Set("User-Agent", "Connexions/2.0")
+	for name, value := range cfg.Headers {
+		upReq.Header.Set(name, value)
+	}
 
 	slog.Info("Upstream request", "method", upReq.Method, "url", upReq.URL.String())
 
