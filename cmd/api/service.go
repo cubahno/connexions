@@ -182,6 +182,14 @@ func GenerateService(opts ServiceOptions) error {
 
 	// Resolve overlay paths to be absolute (relative to setup directory)
 	if cfg.Overlay != nil && len(cfg.Overlay.Sources) > 0 {
+		// Save original filenames for go:embed directives in generated code
+		if cfg.UserContext == nil {
+			cfg.UserContext = make(map[string]any)
+		}
+		overlayFiles := make([]string, len(cfg.Overlay.Sources))
+		copy(overlayFiles, cfg.Overlay.Sources)
+		cfg.UserContext["OverlayFiles"] = overlayFiles
+
 		for i, src := range cfg.Overlay.Sources {
 			if !filepath.IsAbs(src) && !files.IsURL(src) {
 				cfg.Overlay.Sources[i] = filepath.Join(setupDir, src)
@@ -258,6 +266,13 @@ func GenerateService(opts ServiceOptions) error {
 		codegen.AdditionalImport{Alias: "oapicodegen", Package: "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"},
 		codegen.AdditionalImport{Alias: "yamlv4", Package: "go.yaml.in/yaml/v4"},
 	)
+
+	// Add libopenapi import for runtime overlay application
+	if cfg.Overlay != nil && len(cfg.Overlay.Sources) > 0 {
+		cfg.AdditionalImports = append(cfg.AdditionalImports,
+			codegen.AdditionalImport{Package: "github.com/pb33f/libopenapi"},
+		)
+	}
 
 	// Step 1: Generate code with oapi-codegen
 	generatedCode, err := codegen.Generate(specContents, cfg)
