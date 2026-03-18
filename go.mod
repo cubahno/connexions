@@ -3,9 +3,9 @@ module github.com/cubahno/connexions/v2
 go 1.25.5
 
 require (
-	github.com/alicebob/miniredis/v2 v2.36.1
-	github.com/caarlos0/env/v11 v11.3.1
-	github.com/doordash-oss/oapi-codegen-dd/v3 v3.72.8
+	github.com/alicebob/miniredis/v2 v2.37.0
+	github.com/caarlos0/env/v11 v11.4.0
+	github.com/doordash-oss/oapi-codegen-dd/v3 v3.72.13
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-playground/validator/v10 v10.30.1
@@ -13,7 +13,7 @@ require (
 	github.com/jaswdr/faker/v2 v2.9.1
 	github.com/joho/godotenv v1.5.1
 	github.com/lmittmann/tint v1.1.3
-	github.com/pb33f/libopenapi v0.33.11
+	github.com/pb33f/libopenapi v0.34.3
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/sony/gobreaker/v2 v2.4.0
 	github.com/stretchr/testify v1.11.1
@@ -40,7 +40,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
