@@ -83,11 +83,11 @@ func TestHTTPStatusConfig_Is(t *testing.T) {
 	})
 }
 
-func TestHttpStatusFailOnConfig_Is(t *testing.T) {
+func TestHTTPStatusMatchConfig_Is(t *testing.T) {
 	assert := assert2.New(t)
 
 	t.Run("single", func(t *testing.T) {
-		cfg := HttpStatusFailOnConfig{
+		cfg := HTTPStatusMatchConfig{
 			{400, ""},
 		}
 		assert.True(cfg.Is(400))
@@ -95,7 +95,7 @@ func TestHttpStatusFailOnConfig_Is(t *testing.T) {
 	})
 
 	t.Run("range", func(t *testing.T) {
-		cfg := HttpStatusFailOnConfig{
+		cfg := HTTPStatusMatchConfig{
 			{0, "400-404"},
 		}
 		assert.True(cfg.Is(400))
@@ -104,7 +104,7 @@ func TestHttpStatusFailOnConfig_Is(t *testing.T) {
 	})
 
 	t.Run("multiple", func(t *testing.T) {
-		cfg := HttpStatusFailOnConfig{
+		cfg := HTTPStatusMatchConfig{
 			{400, ""},
 			{0, "500-600"},
 		}
@@ -116,13 +116,13 @@ func TestHttpStatusFailOnConfig_Is(t *testing.T) {
 	})
 
 	t.Run("empty config", func(t *testing.T) {
-		cfg := HttpStatusFailOnConfig{}
+		cfg := HTTPStatusMatchConfig{}
 		assert.False(cfg.Is(400))
 		assert.False(cfg.Is(500))
 	})
 
 	t.Run("overlapping ranges", func(t *testing.T) {
-		cfg := HttpStatusFailOnConfig{
+		cfg := HTTPStatusMatchConfig{
 			{0, "400-450"},
 			{0, "440-500"},
 		}

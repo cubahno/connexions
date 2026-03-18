@@ -2,17 +2,31 @@ package middleware
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/sony/gobreaker/v2"
 )
+
+// upstreamHTTPError is returned when upstream responds with an error status code.
+// It carries the status code so the circuit breaker can decide whether to count it as a failure.
+type upstreamHTTPError struct {
+	StatusCode int
+	Body       string
+}
+
+func (e *upstreamHTTPError) Error() string {
+	return fmt.Sprintf("upstream response failed with status code %d, body: %s", e.StatusCode, e.Body)
+}
 
 // upstreamResponse holds the response data from an upstream service.
 type upstreamResponse struct {
@@ -31,8 +45,9 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 	// Circuit breaker is created at startup with the original config.
 	// It's tied to the upstream URL and shared across requests.
 	var cb circuitBreakerExecutor
-	if cfg := params.ServiceConfig.Upstream; cfg != nil && cfg.URL != "" {
-		cb = createCircuitBreaker(cfg.URL, cfg.CircuitBreaker, params.DB().CircuitBreakerStore(), params.StorageConfig)
+	if cfg := params.ServiceConfig.Upstream; cfg != nil && cfg.URL != "" && cfg.CircuitBreaker != nil {
+		settings := buildCircuitBreakerSettings(cfg.URL, cfg.CircuitBreaker, params.DB().Table("circuit-breaker"))
+		cb = createCircuitBreaker(settings, params.DB().CircuitBreakerStore(), params.StorageConfig)
 	}
 
 	return func(next http.Handler) http.Handler {
@@ -77,15 +92,8 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 	}
 }
 
-// createCircuitBreaker creates a circuit breaker based on the configuration.
-// Returns nil if circuit breaker is not configured.
-func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig, cbStore gobreaker.SharedDataStore, storageCfg *config.StorageConfig) circuitBreakerExecutor {
-	if cbCfg == nil {
-		return nil
-	}
-
-	settings := buildCircuitBreakerSettings(upstreamURL, cbCfg)
-
+// createCircuitBreaker creates a circuit breaker from pre-built settings.
+func createCircuitBreaker(settings gobreaker.Settings, cbStore gobreaker.SharedDataStore, storageCfg *config.StorageConfig) circuitBreakerExecutor {
 	// Create distributed circuit breaker if Redis storage is configured
 	if storageCfg != nil && storageCfg.Type == config.StorageTypeRedis {
 		return createDistributedCircuitBreaker(settings, cbStore)
@@ -95,10 +103,10 @@ func createCircuitBreaker(upstreamURL string, cbCfg *config.CircuitBreakerConfig
 }
 
 // buildCircuitBreakerSettings creates gobreaker.Settings from config.
-func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreakerConfig) gobreaker.Settings {
+func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreakerConfig, cbTable db.Table) gobreaker.Settings {
 	cfg := cbCfg.WithDefaults()
 
-	return gobreaker.Settings{
+	settings := gobreaker.Settings{
 		Name:        upstreamURL,
 		Timeout:     cfg.Timeout,
 		MaxRequests: cfg.MaxRequests,
@@ -123,6 +131,12 @@ func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreake
 					"failureRatio", ratio,
 				)
 			}
+
+			// Write current snapshot to observability table
+			ctx := context.Background()
+			state := newCBState("closed", counts)
+			cbTable.Set(ctx, cbKeyState, state, 0)
+
 			return isOpen
 		},
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
@@ -131,8 +145,34 @@ func buildCircuitBreakerSettings(upstreamURL string, cbCfg *config.CircuitBreake
 				"from", from.String(),
 				"to", to.String(),
 			)
+
+			// Write state snapshot and event to observability table
+			ctx := context.Background()
+			state := CBState{
+				State:       to.String(),
+				LastUpdated: time.Now().UTC().Format(time.RFC3339),
+			}
+			cbTable.Set(ctx, cbKeyState, state, 0)
+
+			appendCBEvent(ctx, cbTable, CBEvent{
+				From:      from.String(),
+				To:        to.String(),
+				Timestamp: time.Now().UTC().Format(time.RFC3339),
+			})
 		},
 	}
+
+	if len(cfg.TripOnStatus) > 0 {
+		settings.IsSuccessful = func(err error) bool {
+			var httpErr *upstreamHTTPError
+			if errors.As(err, &httpErr) {
+				return !cfg.TripOnStatus.Is(httpErr.StatusCode)
+			}
+			return false
+		}
+	}
+
+	return settings
 }
 
 // createDistributedCircuitBreaker creates a distributed circuit breaker using the provided store.
@@ -155,11 +195,9 @@ func createDistributedCircuitBreaker(settings gobreaker.Settings, store gobreake
 func getUpstreamResponse(params *Params, req *http.Request) (*upstreamResponse, error) {
 	cfg := params.ServiceConfig.Upstream
 
-	failOn := cfg.FailOn
-
 	timeout := config.DefaultUpstreamTimeout
-	if failOn != nil && failOn.TimeOut > 0 {
-		timeout = failOn.TimeOut
+	if cfg.Timeout > 0 {
+		timeout = cfg.Timeout
 	}
 
 	client := http.Client{
@@ -215,12 +253,8 @@ func getUpstreamResponse(params *Params, req *http.Request) (*upstreamResponse, 
 		return nil, fmt.Errorf("error reading response from upstream service %s: %s", upReq.URL, err)
 	}
 
-	if failOn != nil && failOn.HTTPStatus != nil && failOn.HTTPStatus.Is(statusCode) {
-		return nil, fmt.Errorf("failOn condition met for status code: %d", statusCode)
-	}
-
 	if statusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("upstream response failed with status code %d, body: %s", statusCode, string(body))
+		return nil, &upstreamHTTPError{StatusCode: statusCode, Body: string(body)}
 	}
 
 	slog.Info("received successful upstream response", "body", string(body))

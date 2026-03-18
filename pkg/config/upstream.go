@@ -8,8 +8,8 @@ import (
 
 type UpstreamConfig struct {
 	URL            string                `yaml:"url"`
+	Timeout        time.Duration         `yaml:"timeout"`
 	Headers        map[string]string     `yaml:"headers"`
-	FailOn         *UpstreamFailOnConfig `yaml:"fail-on"`
 	CircuitBreaker *CircuitBreakerConfig `yaml:"circuit-breaker"`
 }
 
@@ -43,6 +43,10 @@ type CircuitBreakerConfig struct {
 
 	// FailureRatio is the failure ratio threshold to trip the circuit breaker (0.0-1.0).
 	FailureRatio float64 `yaml:"failure-ratio"`
+
+	// TripOnStatus defines which HTTP status codes count as circuit breaker failures.
+	// If not set, all errors (>= 400) count as failures.
+	TripOnStatus HTTPStatusMatchConfig `yaml:"trip-on-status"`
 }
 
 // WithDefaults returns a copy with default values applied for zero fields.
@@ -96,9 +100,9 @@ func (s *HTTPStatusConfig) Is(status int) bool {
 	return false
 }
 
-type HttpStatusFailOnConfig []HTTPStatusConfig
+type HTTPStatusMatchConfig []HTTPStatusConfig
 
-func (ss HttpStatusFailOnConfig) Is(status int) bool {
+func (ss HTTPStatusMatchConfig) Is(status int) bool {
 	for _, s := range ss {
 		if s.Is(status) {
 			return true
@@ -106,9 +110,4 @@ func (ss HttpStatusFailOnConfig) Is(status int) bool {
 	}
 
 	return false
-}
-
-type UpstreamFailOnConfig struct {
-	TimeOut    time.Duration          `yaml:"timeout"`
-	HTTPStatus HttpStatusFailOnConfig `yaml:"http-status"`
 }
