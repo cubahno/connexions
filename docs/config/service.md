@@ -276,16 +276,16 @@ Forward requests to a real backend:
 ```yaml
 upstream:
   url: https://api.example.com
+  timeout: 5s               # Request timeout (default: 5s)
   headers:
     X-Custom-Header: value
-  fail-on:
-    timeout: 5s           # Request timeout (default: 5s)
-    http-status:
-      - exact: 301
+  circuit-breaker:
+    trip-on-status:          # Only these statuses count as CB failures
       - range: "500-599"
 ```
 
-When configured, requests are proxied to the upstream server. If the upstream fails (timeout or matching status code), Connexions falls back to generating mock responses.
+When configured, requests are proxied to the upstream server. 
+If the upstream fails (timeout or status >= 400), Connexions falls back to generating mock responses.
 
 ### Circuit Breaker
 

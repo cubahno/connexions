@@ -148,9 +148,7 @@ Forward requests to a real backend service with circuit breaker protection.
 # config.yml
 upstream:
   url: https://api.example.com
-  fail-on:
-    timeout: 5s
-    http-status: "5xx"
+  timeout: 5s
 ```
 
 ### How It Works
