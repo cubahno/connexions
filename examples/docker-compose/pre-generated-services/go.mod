@@ -1,6 +1,6 @@
 module example
 
-go 1.25.5
+go 1.25.3
 
 require (
 	github.com/cubahno/connexions/v2 v2.0.0

@@ -1,6 +1,6 @@
 module github.com/cubahno/connexions/v2/examples
 
-go 1.25.5
+go 1.25.3
 
 replace github.com/cubahno/connexions/v2 => ../
 
