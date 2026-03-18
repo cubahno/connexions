@@ -1,6 +1,6 @@
 module github.com/cubahno/connexions/v2
 
-go 1.25.5
+go 1.25.3
 
 require (
 	github.com/alicebob/miniredis/v2 v2.37.0
