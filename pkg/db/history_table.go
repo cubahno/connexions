@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 // HistoryTable provides typed access to request/response history.
@@ -29,10 +30,11 @@ type HistoryTable interface {
 // Response is the response if present
 // Request is the http request
 type HistoryEntry struct {
-	Resource string
-	Body     []byte
-	Response *HistoryResponse
-	Request  *http.Request
+	Resource  string
+	Body      []byte
+	Response  *HistoryResponse
+	Request   *http.Request
+	CreatedAt time.Time
 }
 
 // HistoryResponse represents the response that was generated or received from the server.

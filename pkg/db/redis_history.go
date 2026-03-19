@@ -24,9 +24,10 @@ type redisHistoryTable struct {
 
 // redisHistoryRecord is the serializable form of HistoryEntry for Redis storage.
 type redisHistoryRecord struct {
-	Resource string           `json:"resource"`
-	Body     []byte           `json:"body"`
-	Response *HistoryResponse `json:"response,omitempty"`
+	Resource  string           `json:"resource"`
+	Body      []byte           `json:"body"`
+	Response  *HistoryResponse `json:"response,omitempty"`
+	CreatedAt time.Time        `json:"createdAt"`
 }
 
 // newRedisHistoryTable creates a new Redis-backed history table.
@@ -56,10 +57,11 @@ func (h *redisHistoryTable) Get(ctx context.Context, req *http.Request) (*Histor
 	}
 
 	return &HistoryEntry{
-		Resource: record.Resource,
-		Body:     record.Body,
-		Response: record.Response,
-		Request:  req,
+		Resource:  record.Resource,
+		Body:      record.Body,
+		Response:  record.Response,
+		Request:   req,
+		CreatedAt: record.CreatedAt,
 	}, true
 }
 
@@ -91,10 +93,12 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 		body = existingBody
 	}
 
+	now := time.Now().UTC()
 	record := redisHistoryRecord{
-		Resource: resource,
-		Body:     body,
-		Response: response,
+		Resource:  resource,
+		Body:      body,
+		Response:  response,
+		CreatedAt: now,
 	}
 
 	data, err := json.Marshal(record)
@@ -106,10 +110,11 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 	h.client.Set(ctx, key, data, h.ttl)
 
 	return &HistoryEntry{
-		Resource: resource,
-		Body:     body,
-		Request:  req,
-		Response: response,
+		Resource:  resource,
+		Body:      body,
+		Request:   req,
+		Response:  response,
+		CreatedAt: now,
 	}
 }
 
@@ -168,9 +173,10 @@ func (h *redisHistoryTable) Data(ctx context.Context) map[string]*HistoryEntry {
 		}
 
 		result[key] = &HistoryEntry{
-			Resource: record.Resource,
-			Body:     record.Body,
-			Response: record.Response,
+			Resource:  record.Resource,
+			Body:      record.Body,
+			Response:  record.Response,
+			CreatedAt: record.CreatedAt,
 		}
 	}
 

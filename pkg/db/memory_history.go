@@ -74,10 +74,11 @@ func (h *memoryHistoryTable) Set(ctx context.Context, resource string, req *http
 	}
 
 	result := &HistoryEntry{
-		Resource: resource,
-		Body:     body,
-		Request:  req,
-		Response: response,
+		Resource:  resource,
+		Body:      body,
+		Request:   req,
+		Response:  response,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	h.table.Set(ctx, key, result, 0)

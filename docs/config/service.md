@@ -47,9 +47,23 @@ This allows multiple APIs to coexist on the same server without route conflicts.
 2. Otherwise → inferred from directory name (e.g., `openapi/stripe/` → `stripe`)
 3. For flat specs → inferred from filename (e.g., `openapi/petstore.yml` → `petstore`)
 
+### History
+
+```yaml
+# Record request/response history (default: true)
+history: false
+```
+
+When enabled (default), incoming requests and their responses are recorded in the service's history table. This data is available via the DB Explorer UI or the history API.
+
+Set to `false` for UI services or other endpoints where request tracking is not needed.
+
 ### Latency
 
 ```yaml
+# Record request/response history (default: true)
+history: true
+
 # Simulated latency for responses
 latency: 100ms
 

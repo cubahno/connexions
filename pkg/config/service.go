@@ -33,6 +33,7 @@ type ServiceConfig struct {
 	Latencies       map[string]time.Duration `yaml:"latencies,omitempty"`
 	Errors          map[string]int           `yaml:"errors,omitempty"`
 	Cache           *CacheConfig             `yaml:"cache,omitempty"`
+	History         *bool                    `yaml:"history,omitempty"`
 	ResourcesPrefix string                   `yaml:"resources-prefix,omitempty"`
 	SpecOptions     *SpecOptions             `yaml:"spec,omitempty"`
 	Extra           map[string]any           `yaml:"extra,omitempty"`
@@ -211,6 +212,12 @@ func (s *ServiceConfig) GetError() int {
 	}
 
 	return 0
+}
+
+// HistoryEnabled returns whether request history recording is enabled.
+// Defaults to true when not explicitly set.
+func (s *ServiceConfig) HistoryEnabled() bool {
+	return s.History == nil || *s.History
 }
 
 func (s *ServiceConfig) parseLatencies() []*KeyValue[int, time.Duration] {
