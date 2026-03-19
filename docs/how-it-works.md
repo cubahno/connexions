@@ -156,7 +156,10 @@ upstream:
 1. Request arrives at Connexions
 2. Upstream middleware forwards request to `https://api.example.com`
 3. If successful → return upstream response
-4. If failed → proceed to mock handler (fallback)
+4. If failed and status matches `fail-on` → return upstream error directly
+5. If failed otherwise → proceed to mock handler (fallback)
+
+By default, `400 Bad Request` is returned directly (configurable via `fail-on`).
 
 ### Circuit Breaker
 

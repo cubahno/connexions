@@ -310,7 +310,34 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal("Hello, from local!", string(w.buf))
 	})
 
-	t.Run("4xx falls back to generator", func(t *testing.T) {
+	t.Run("400 returns upstream error by default (fail-on 400)", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(`{"message": "Bad Request"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"message": "Bad Request"}`, string(w.buf))
+		assert.Equal(http.StatusBadRequest, w.statusCode)
+		assert.Equal("application/json", w.header.Get("Content-Type"))
+		assert.Equal(ResponseHeaderSourceUpstream, w.header.Get(ResponseHeaderSource))
+	})
+
+	t.Run("non-400 4xx falls back to generator by default", func(t *testing.T) {
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte(`{"message": "Unauthorized"}`))
@@ -331,6 +358,81 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		f(handler).ServeHTTP(w, req)
 
 		assert.Equal("Hello, from local!", string(w.buf))
+	})
+
+	t.Run("4xx falls back to generator when fail-on is empty", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`{"message": "Unauthorized"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL:    upstreamServer.URL,
+				FailOn: &config.HTTPStatusMatchConfig{},
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal("Hello, from local!", string(w.buf))
+	})
+
+	t.Run("5xx falls back to generator by default", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(`{"message": "Bad Gateway"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal("Hello, from local!", string(w.buf))
+	})
+
+	t.Run("custom fail-on includes 5xx", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(`{"message": "Bad Gateway"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				FailOn: &config.HTTPStatusMatchConfig{
+					{Range: "400-599"},
+				},
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+
+		assert.Equal(`{"message": "Bad Gateway"}`, string(w.buf))
+		assert.Equal(http.StatusBadGateway, w.statusCode)
 	})
 
 	t.Run("non-trip-on 4xx does not trip circuit breaker", func(t *testing.T) {

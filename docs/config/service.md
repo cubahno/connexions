@@ -279,13 +279,36 @@ upstream:
   timeout: 5s               # Request timeout (default: 5s)
   headers:
     X-Custom-Header: value
+  fail-on:                   # Return these statuses directly (default: 400)
+    - exact: 400
   circuit-breaker:
     trip-on-status:          # Only these statuses count as CB failures
       - range: "500-599"
 ```
 
-When configured, requests are proxied to the upstream server. 
-If the upstream fails (timeout or status >= 400), Connexions falls back to generating mock responses.
+When configured, requests are proxied to the upstream server.
+If the upstream fails (timeout, network error, or error status), Connexions falls back to generating mock responses.
+
+### Fail-On
+
+Control which upstream error status codes are returned directly to the client instead of falling back to the generator:
+
+```yaml
+upstream:
+  url: https://api.example.com
+  fail-on:                     # Return these statuses directly (no generator fallback)
+    - exact: 400
+    - range: "401-403"
+```
+
+| Configuration | Behavior |
+|---|---|
+| Not set (omitted) | Default: only `400` is returned directly |
+| `fail-on: []` | Disabled — all errors fall back to the generator |
+| `fail-on: [{range: "400-499"}]` | All 4xx returned directly |
+
+`fail-on` and `trip-on-status` are independent — `fail-on` controls what the client sees,
+`trip-on-status` controls what counts toward circuit breaker failures.
 
 ### Circuit Breaker
 

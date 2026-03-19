@@ -17,10 +17,12 @@ import (
 )
 
 // upstreamHTTPError is returned when upstream responds with an error status code.
-// It carries the status code so the circuit breaker can decide whether to count it as a failure.
+// It carries the status code so the circuit breaker can decide whether to count it as a failure,
+// and the body/content-type so fail-on can forward the response to the client.
 type upstreamHTTPError struct {
-	StatusCode int
-	Body       string
+	StatusCode  int
+	Body        string
+	ContentType string
 }
 
 func (e *upstreamHTTPError) Error() string {
@@ -85,6 +87,27 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 			if err != nil {
 				log.Error("Error fetching upstream service", "url", cfg.URL, "error", err)
+
+				// Check fail-on: return upstream error directly without generator fallback.
+				// nil (omitted) = default (400); pointer to empty list = disabled.
+				failOn := cfg.FailOn
+				if failOn == nil {
+					failOn = &config.DefaultFailOnStatus
+				}
+				var httpErr *upstreamHTTPError
+				if len(*failOn) > 0 && errors.As(err, &httpErr) && failOn.Is(httpErr.StatusCode) {
+					log.Info("Upstream error matches fail-on, returning directly",
+						"status", httpErr.StatusCode,
+					)
+					SetDurationHeader(w, req)
+					w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceUpstream)
+					if httpErr.ContentType != "" {
+						w.Header().Set("Content-Type", httpErr.ContentType)
+					}
+					w.WriteHeader(httpErr.StatusCode)
+					_, _ = w.Write([]byte(httpErr.Body))
+					return
+				}
 			}
 
 			// Proceed to the next handler if no upstream service matched
@@ -255,7 +278,11 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 	}
 
 	if statusCode >= http.StatusBadRequest {
-		return nil, &upstreamHTTPError{StatusCode: statusCode, Body: string(body)}
+		return nil, &upstreamHTTPError{
+			StatusCode:  statusCode,
+			Body:        string(body),
+			ContentType: resp.Header.Get("Content-Type"),
+		}
 	}
 
 	log.Info("Received successful upstream response", "body", string(body))
