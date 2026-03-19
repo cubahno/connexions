@@ -435,6 +435,44 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(http.StatusBadGateway, w.statusCode)
 	})
 
+	t.Run("successful requests do not trip circuit breaker with trip-on-status", func(t *testing.T) {
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message": "OK"}`))
+		}))
+		defer upstreamServer.Close()
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
+					TripOnStatus: config.HTTPStatusMatchConfig{
+						{Range: "500-599"},
+					},
+				},
+			},
+		}, nil)
+
+		middleware := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := middleware(handler)
+
+		// Make 5 successful requests — should NOT trip circuit breaker.
+		for i := 1; i <= 5; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+			assert.Equal(`{"message": "OK"}`, string(w.buf))
+		}
+
+		// All 5 should have hit upstream (CB never opened)
+		assert.Equal(5, callCount, "successful requests should not trip circuit breaker")
+	})
+
 	t.Run("non-trip-on 4xx does not trip circuit breaker", func(t *testing.T) {
 		callCount := 0
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -521,6 +559,66 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 		// Verify upstream was NOT called on 4th request (still 3 calls)
 		assert.Equal(3, callCount, "upstream should not be called when circuit breaker is open")
+	})
+
+	t.Run("circuit breaker state preserves counts and error on transition", func(t *testing.T) {
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(`{"message": "Bad Gateway"}`))
+		}))
+		defer upstreamServer.Close()
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
+				},
+			},
+		}, nil)
+
+		mw := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := mw(handler)
+
+		// Make 3 requests to trip the circuit breaker
+		for i := 1; i <= 3; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+		}
+
+		assert.Equal(3, callCount)
+
+		// Verify state has counts preserved
+		cbTable := params.DB().Table("circuit-breaker")
+		ctx := context.Background()
+
+		state, ok := GetCBState(ctx, cbTable)
+		assert.True(ok)
+		assert.Equal("open", state.State)
+		assert.Equal(uint32(3), state.Requests, "state should preserve request count")
+		assert.Equal(uint32(3), state.TotalFailures, "state should preserve failure count")
+		assert.Equal(float64(1), state.FailureRatio, "state should preserve failure ratio")
+		assert.NotEmpty(state.LastError, "state should contain the last error")
+		assert.Contains(state.LastError, "502")
+
+		// Verify event has error
+		events := GetCBEvents(ctx, cbTable)
+		assert.NotEmpty(events)
+		var openEvent *CBEvent
+		for i := range events {
+			if events[i].From == "closed" && events[i].To == "open" {
+				openEvent = &events[i]
+				break
+			}
+		}
+		assert.NotNil(openEvent, "should have closed->open event")
+		assert.NotEmpty(openEvent.Error, "event should contain the error")
+		assert.Contains(openEvent.Error, "502")
 	})
 
 	t.Run("circuit breaker writes state and events to table", func(t *testing.T) {

@@ -25,6 +25,7 @@ type CBState struct {
 	ConsecutiveFailures  uint32  `json:"consecutiveFailures"`
 	FailureRatio         float64 `json:"failureRatio"`
 	LastUpdated          string  `json:"lastUpdated"`
+	LastError            string  `json:"lastError,omitempty"`
 }
 
 // CBEvent records a circuit breaker state transition.
@@ -32,6 +33,7 @@ type CBEvent struct {
 	From      string `json:"from"`
 	To        string `json:"to"`
 	Timestamp string `json:"timestamp"`
+	Error     string `json:"error,omitempty"`
 }
 
 // GetCBState reads the current CBState from the table.
