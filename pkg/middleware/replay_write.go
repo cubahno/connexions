@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bytes"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -16,6 +15,8 @@ import (
 // Responses sourced from cache or replay are never recorded. When upstream-only is set,
 // only upstream responses are recorded.
 func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler {
+	log := params.Logger("replay-write")
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			cfg := params.ServiceConfig
@@ -106,7 +107,7 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 			}
 
 			table.Set(ctx, key, rec, ttl)
-			slog.Info("Replay recorded", "method", req.Method, "path", req.URL.Path)
+			log.Info("Replay recorded", "method", req.Method, "path", req.URL.Path)
 
 			writeThrough(w, rw)
 		})
