@@ -37,7 +37,7 @@ func TestLoggerMiddleware(t *testing.T) {
 		})
 
 		w := NewBufferedResponseWriter()
-		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/smartum/oauth2/token", nil)
 		req.Header.Set("Authorization", "Bearer 123")
 		req.Header.Set("X-Test", "test")
 
@@ -48,10 +48,37 @@ func TestLoggerMiddleware(t *testing.T) {
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
 		assert.Equal("OK", w.Header().Get("X-Res"))
 
-		// Verify slog was called
+		// Verify slog was called with service field
 		logOutput := buf.String()
 		assert.True(strings.Contains(logOutput, "Incoming HTTP request"), "Expected log output to contain 'incoming HTTP request'")
 		assert.True(strings.Contains(logOutput, "GET"), "Expected log output to contain method 'GET'")
+		assert.True(strings.Contains(logOutput, "service=smartum"), "Expected log output to contain service name")
+	})
+
+	t.Run("skips-healthz", func(t *testing.T) {
+		current := os.Getenv("DISABLE_LOGGER")
+		defer func() {
+			_ = os.Setenv("DISABLE_LOGGER", current)
+		}()
+		_ = os.Setenv("DISABLE_LOGGER", "false")
+
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+		oldLogger := slog.Default()
+		slog.SetDefault(logger)
+		defer slog.SetDefault(oldLogger)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+
+		f := LoggerMiddleware(handler)
+		f.ServeHTTP(w, req)
+
+		assert.Equal("", buf.String(), "Expected no log output for /healthz")
 	})
 
 	t.Run("off", func(t *testing.T) {
