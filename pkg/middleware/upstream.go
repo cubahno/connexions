@@ -130,6 +130,11 @@ func createCircuitBreaker(log *slog.Logger, settings gobreaker.Settings, cbStore
 func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *config.CircuitBreakerConfig, cbTable db.Table) gobreaker.Settings {
 	cfg := cbCfg.WithDefaults()
 
+	// lastCounts captures the counts from ReadyToTrip so OnStateChange can persist them.
+	var lastCounts gobreaker.Counts
+	// lastError captures the most recent upstream error for observability.
+	var lastError string
+
 	settings := gobreaker.Settings{
 		Name:        upstreamURL,
 		Timeout:     cfg.Timeout,
@@ -138,12 +143,14 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			log.Debug("Circuit breaker check",
 				"url", upstreamURL,
-				"requests", counts.Requests,
-				"totalSuccesses", counts.TotalSuccesses,
-				"totalFailures", counts.TotalFailures,
-				"consecutiveSuccesses", counts.ConsecutiveSuccesses,
-				"consecutiveFailures", counts.ConsecutiveFailures,
+				"cb.requests", counts.Requests,
+				"cb.totalSuccesses", counts.TotalSuccesses,
+				"cb.totalFailures", counts.TotalFailures,
+				"cb.consecutiveSuccesses", counts.ConsecutiveSuccesses,
+				"cb.consecutiveFailures", counts.ConsecutiveFailures,
 			)
+			lastCounts = counts
+
 			if counts.Requests < cfg.MinRequests {
 				return false
 			}
@@ -152,13 +159,14 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 			if isOpen {
 				log.Info("Circuit breaker is open",
 					"url", upstreamURL,
-					"failureRatio", ratio,
+					"cb.failureRatio", ratio,
 				)
 			}
 
 			// Write current snapshot to observability table
 			ctx := context.Background()
 			state := newCBState("closed", counts)
+			state.LastError = lastError
 			cbTable.Set(ctx, cbKeyState, state, 0)
 
 			return isOpen
@@ -166,34 +174,41 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
 			log.Info("Circuit breaker state changed",
 				"name", name,
-				"from", from.String(),
-				"to", to.String(),
+				"cb.from", from.String(),
+				"cb.to", to.String(),
+				"cb.lastError", lastError,
 			)
 
-			// Write state snapshot and event to observability table
+			// Write state snapshot (with counts from last ReadyToTrip) and event
 			ctx := context.Background()
-			state := CBState{
-				State:       to.String(),
-				LastUpdated: time.Now().UTC().Format(time.RFC3339),
-			}
+			state := newCBState(to.String(), lastCounts)
+			state.LastError = lastError
 			cbTable.Set(ctx, cbKeyState, state, 0)
 
 			appendCBEvent(ctx, cbTable, CBEvent{
 				From:      from.String(),
 				To:        to.String(),
 				Timestamp: time.Now().UTC().Format(time.RFC3339),
+				Error:     lastError,
 			})
 		},
-	}
-
-	if len(cfg.TripOnStatus) > 0 {
-		settings.IsSuccessful = func(err error) bool {
-			var httpErr *upstreamHTTPError
-			if errors.As(err, &httpErr) {
-				return !cfg.TripOnStatus.Is(httpErr.StatusCode)
+		IsSuccessful: func(err error) bool {
+			if err == nil {
+				return true
+			}
+			lastError = err.Error()
+			log.Warn("Upstream error",
+				"url", upstreamURL,
+				"error", err,
+			)
+			if len(cfg.TripOnStatus) > 0 {
+				var httpErr *upstreamHTTPError
+				if errors.As(err, &httpErr) {
+					return !cfg.TripOnStatus.Is(httpErr.StatusCode)
+				}
 			}
 			return false
-		}
+		},
 	}
 
 	return settings
