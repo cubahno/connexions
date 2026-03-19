@@ -11,6 +11,18 @@ type UpstreamConfig struct {
 	Timeout        time.Duration         `yaml:"timeout"`
 	Headers        map[string]string     `yaml:"headers"`
 	CircuitBreaker *CircuitBreakerConfig `yaml:"circuit-breaker"`
+
+	// FailOn defines which upstream HTTP status codes should be returned immediately
+	// to the client without falling back to the generator.
+	// nil (omitted): uses default (400). Set to empty list (fail-on: []) to disable.
+	FailOn *HTTPStatusMatchConfig `yaml:"fail-on"`
+}
+
+// DefaultFailOnStatus is the default fail-on config applied when FailOn is nil.
+// 400 Bad Request indicates a problem with the request itself, so falling back
+// to the generator would not help.
+var DefaultFailOnStatus = HTTPStatusMatchConfig{
+	{Exact: 400},
 }
 
 // DefaultUpstreamTimeout defaults.
