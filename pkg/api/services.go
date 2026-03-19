@@ -157,8 +157,9 @@ func (rs RouteDescriptions) Sort() {
 // ServiceItem represents a service with its handler.
 // Service can hold multiple OpenAPI specs.
 type ServiceItem struct {
-	Name    string  `json:"name"`
-	Handler Handler `json:"-"`
+	Name    string                `json:"name"`
+	Handler Handler               `json:"-"`
+	Config  *config.ServiceConfig `json:"-"`
 }
 
 type ServiceItemResponse struct {

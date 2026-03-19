@@ -127,6 +127,7 @@ func (r *Router) RegisterService(
 	r.services[cfg.Name] = &ServiceItem{
 		Name:    cfg.Name,
 		Handler: handler,
+		Config:  cfg,
 	}
 	r.databases[cfg.Name] = serviceDB
 }
@@ -195,6 +196,7 @@ func (r *Router) RegisterHTTPHandler(
 	r.services[cfg.Name] = &ServiceItem{
 		Name:    cfg.Name,
 		Handler: handler,
+		Config:  cfg,
 	}
 	r.databases[cfg.Name] = serviceDB
 }
