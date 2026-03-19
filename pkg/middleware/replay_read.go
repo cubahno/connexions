@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"fmt"
-	"log/slog"
 	"net/http"
 )
 
@@ -12,6 +10,8 @@ import (
 // On hit, it returns the stored response with X-Cxs-Source: replay.
 // On miss, it passes through to the next handler.
 func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler {
+	log := params.Logger("replay-read")
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			cfg := params.ServiceConfig
@@ -42,7 +42,7 @@ func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler 
 				return
 			}
 
-			slog.Info(fmt.Sprintf("Replay hit for %s %s", req.Method, req.URL.Path))
+			log.Info("Replay hit", "method", req.Method, "path", req.URL.Path)
 
 			// Restore recorded headers
 			for k, v := range rec.Headers {

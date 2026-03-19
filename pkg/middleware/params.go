@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"log/slog"
 	"net/http"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
@@ -24,6 +25,7 @@ type Params struct {
 	ServiceConfig *config.ServiceConfig
 	StorageConfig *config.StorageConfig
 	database      db.DB
+	log           *slog.Logger
 }
 
 // NewParams creates a new Params instance with the given configuration and database.
@@ -32,12 +34,21 @@ func NewParams(serviceConfig *config.ServiceConfig, storageConfig *config.Storag
 		ServiceConfig: serviceConfig,
 		StorageConfig: storageConfig,
 		database:      database,
+		log:           slog.With("service", serviceConfig.Name),
 	}
 }
 
 // DB returns the per-service database instance.
 func (p *Params) DB() db.DB {
 	return p.database
+}
+
+// Logger returns a logger with the given middleware name added to the service context.
+func (p *Params) Logger(middlewareName string) *slog.Logger {
+	if p.log != nil {
+		return p.log.With("middleware", middlewareName)
+	}
+	return slog.With("middleware", middlewareName)
 }
 
 // responseWriter is a custom response writer that captures the response body
