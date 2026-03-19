@@ -13,7 +13,7 @@ import (
 )
 
 // skipPaths are path segments that should skip logging.
-var skipPaths = []string{"/assets/", "/static/", "/favicon"}
+var skipPaths = []string{"/assets/", "/static/", "/favicon", "/healthz"}
 
 // skipExtensions are file extensions that should skip logging.
 var skipExtensions = []string{
@@ -74,11 +74,18 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 			headers[name] = strings.Join(values, ",")
 		}
 
+		// Extract service name from the first path segment (services are registered at /{name}).
+		service := ""
+		if parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/"), "/", 2); len(parts) > 0 {
+			service = parts[0]
+		}
+
 		slog.Info(fmt.Sprintf("Incoming HTTP request: %s", r.URL.String()),
+			slog.String("service", service),
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 			slog.String("duration", duration.String()),
-			slog.String("body", string(requestBody)),
+			slog.String("payload", string(requestBody)),
 		)
 	})
 }
