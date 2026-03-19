@@ -7,6 +7,11 @@
       "type": "string",
       "description": "Service name."
     },
+    "history": {
+      "type": "boolean",
+      "description": "Record request/response history. Defaults to true.",
+      "default": true
+    },
     "latency": {
       "type": "string",
       "description": "Fixed latency (e.g., '100ms')."
