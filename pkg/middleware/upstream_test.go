@@ -58,7 +58,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		// Check history
 		data := params.DB().History().Data(context.Background())
 		assert.Equal(1, len(data))
-		rec := data["GET:/test/foo"]
+		rec := data[0]
 		assert.Equal(200, rec.Response.StatusCode)
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
 	})
@@ -89,7 +89,8 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 
 		// Check history has content-type
 		data := params.DB().History().Data(context.Background())
-		rec := data["GET:/test/foo"]
+		assert.Equal(1, len(data))
+		rec := data[0]
 		assert.Equal("application/json; charset=utf-8", rec.Response.ContentType)
 	})
 
@@ -215,10 +216,11 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(`{"message": "Hello, from remote!"}`, string(w.buf))
 		assert.Equal(`{"foo": "bar"}`, rcvdBody)
 
-		// Check history
+		// Check history — 2 entries: the seeded one + the new upstream result
 		data := params.DB().History().Data(context.Background())
-		assert.Equal(1, len(data))
-		rec := data["POST:/foo/resource"]
+		assert.Equal(2, len(data))
+		// Latest entry should have the upstream response
+		rec := data[len(data)-1]
 		assert.Equal(200, rec.Response.StatusCode)
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
 	})

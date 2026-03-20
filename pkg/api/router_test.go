@@ -374,9 +374,7 @@ cache:
 		data := database.History().Data(context.Background())
 		assert.NotEmpty(t, data, "History should contain the request")
 
-		// Verify the stored response (key format is METHOD:URL)
-		rec, exists := data["POST:/test-service/test"]
-		assert.True(t, exists, "Should have POST:/test-service/test in history")
+		rec := data[len(data)-1]
 		assert.NotNil(t, rec)
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)
 		assert.Equal(t, []byte("Created"), rec.Response.Data)
@@ -418,9 +416,9 @@ cache:
 		assert.NotNil(t, database, "Database should exist for test-service")
 
 		data := database.History().Data(context.Background())
-		rec, exists := data["POST:/test-service/test"]
+		assert.NotEmpty(t, data)
 
-		assert.True(t, exists)
+		rec := data[len(data)-1]
 		assert.Equal(t, []byte(expectedBody), rec.Body, "History should contain the request body")
 	})
 
@@ -500,9 +498,10 @@ cache:
 
 		data := database.History().Data(context.Background())
 		// History might have the request but not a successful response
-		if rec, exists := data["GET:/test-service/test"]; exists {
-			// If it exists, it should not have a successful status
-			assert.NotEqual(t, http.StatusOK, rec.Response.StatusCode)
+		for _, rec := range data {
+			if rec.Request != nil && rec.Request.Method == "GET" && rec.Request.URL.Path == "/test-service/test" {
+				assert.NotEqual(t, http.StatusOK, rec.Response.StatusCode)
+			}
 		}
 	})
 
@@ -536,9 +535,9 @@ cache:
 		assert.NotNil(t, database, "Database should exist for test-service")
 
 		data := database.History().Data(context.Background())
-		rec, exists := data["POST:/test-service/create"]
+		assert.NotEmpty(t, data)
 
-		assert.True(t, exists)
+		rec := data[len(data)-1]
 		assert.Equal(t, []byte(reqBody), rec.Body)
 	})
 
@@ -858,8 +857,8 @@ cache:
 		database := router.GetDB("test-service")
 		assert.NotNil(t, database, "Database should exist for test-service")
 		data := database.History().Data(context.Background())
-		rec, exists := data["POST:/test-service/test"]
-		assert.True(t, exists, "Response should be stored in history")
+		assert.NotEmpty(t, data, "Response should be stored in history")
+		rec := data[len(data)-1]
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)
 		assert.Equal(t, []byte("Created"), rec.Response.Data)
 	})

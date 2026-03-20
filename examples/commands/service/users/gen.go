@@ -153,6 +153,9 @@ func (a *HTTPAdapter) ListUsers(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ListUsers(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -196,6 +199,9 @@ func (a *HTTPAdapter) GetUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUser(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -239,6 +245,9 @@ func (a *HTTPAdapter) GetUserAvatar(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserAvatar(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -283,6 +292,9 @@ func (a *HTTPAdapter) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserProfile(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -318,6 +330,9 @@ func (a *HTTPAdapter) ExportUsers(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ExportUsers(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -362,6 +377,9 @@ func (a *HTTPAdapter) GetUserConfig(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserConfig(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -406,6 +424,9 @@ func (a *HTTPAdapter) GetUserAPIData(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserAPIData(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -449,6 +470,9 @@ func (a *HTTPAdapter) GetUserHal(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserHal(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -492,6 +516,9 @@ func (a *HTTPAdapter) GetUserProblem(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserProblem(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -527,6 +554,9 @@ func (a *HTTPAdapter) StreamUsers(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.StreamUsers(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -571,6 +601,9 @@ func (a *HTTPAdapter) GetUserPdf(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserPdf(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}

@@ -239,6 +239,9 @@ func (a *HTTPAdapter) UpdatePet(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.UpdatePet(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -289,6 +292,9 @@ func (a *HTTPAdapter) AddPet(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.AddPet(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -336,6 +342,9 @@ func (a *HTTPAdapter) FindPetsByStatus(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.FindPetsByStatus(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -382,6 +391,9 @@ func (a *HTTPAdapter) FindPetsByTags(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.FindPetsByTags(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -437,6 +449,9 @@ func (a *HTTPAdapter) GetPetByID(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetPetByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -504,6 +519,9 @@ func (a *HTTPAdapter) UpdatePetWithForm(w http.ResponseWriter, r *http.Request) 
 	resp, err := a.svc.UpdatePetWithForm(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -568,6 +586,9 @@ func (a *HTTPAdapter) DeletePet(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.DeletePet(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -627,6 +648,9 @@ func (a *HTTPAdapter) UploadFile(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.UploadFile(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -662,6 +686,9 @@ func (a *HTTPAdapter) GetInventory(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetInventory(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -712,6 +739,9 @@ func (a *HTTPAdapter) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.PlaceOrder(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -767,6 +797,9 @@ func (a *HTTPAdapter) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetOrderByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -822,6 +855,9 @@ func (a *HTTPAdapter) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.DeleteOrder(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -866,6 +902,9 @@ func (a *HTTPAdapter) CreateUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.CreateUser(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -916,6 +955,9 @@ func (a *HTTPAdapter) CreateUsersWithListInput(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.CreateUsersWithListInput(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -966,6 +1008,9 @@ func (a *HTTPAdapter) LoginUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.LoginUser(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -1001,6 +1046,9 @@ func (a *HTTPAdapter) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.LogoutUser(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -1038,6 +1086,9 @@ func (a *HTTPAdapter) GetUserByName(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetUserByName(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -1093,6 +1144,9 @@ func (a *HTTPAdapter) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.UpdateUser(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -1130,6 +1184,9 @@ func (a *HTTPAdapter) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.DeleteUser(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
