@@ -1732,6 +1732,9 @@ func (a *HTTPAdapter) SearchRecipes(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.SearchRecipes(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -1844,6 +1847,9 @@ func (a *HTTPAdapter) SearchRecipesByIngredients(w http.ResponseWriter, r *http.
 	resp, err := a.svc.SearchRecipesByIngredients(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -2950,6 +2956,9 @@ func (a *HTTPAdapter) SearchRecipesByNutrients(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.SearchRecipesByNutrients(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3023,6 +3032,9 @@ func (a *HTTPAdapter) GetRecipeInformation(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.GetRecipeInformation(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3083,6 +3095,9 @@ func (a *HTTPAdapter) GetRecipeInformationBulk(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.GetRecipeInformationBulk(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3170,6 +3185,9 @@ func (a *HTTPAdapter) GetSimilarRecipes(w http.ResponseWriter, r *http.Request) 
 	resp, err := a.svc.GetSimilarRecipes(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3254,6 +3272,9 @@ func (a *HTTPAdapter) GetRandomRecipes(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetRandomRecipes(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3324,6 +3345,9 @@ func (a *HTTPAdapter) AutocompleteRecipeSearch(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.AutocompleteRecipeSearch(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3397,6 +3421,9 @@ func (a *HTTPAdapter) GetRecipeTasteByID(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.GetRecipeTasteByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3484,6 +3511,9 @@ func (a *HTTPAdapter) RecipeTasteByIDImage(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.RecipeTasteByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3540,6 +3570,9 @@ func (a *HTTPAdapter) GetRecipeEquipmentByID(w http.ResponseWriter, r *http.Requ
 	resp, err := a.svc.GetRecipeEquipmentByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3595,6 +3628,9 @@ func (a *HTTPAdapter) EquipmentByIDImage(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.EquipmentByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3651,6 +3687,9 @@ func (a *HTTPAdapter) GetRecipePriceBreakdownByID(w http.ResponseWriter, r *http
 	resp, err := a.svc.GetRecipePriceBreakdownByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3706,6 +3745,9 @@ func (a *HTTPAdapter) PriceBreakdownByIDImage(w http.ResponseWriter, r *http.Req
 	resp, err := a.svc.PriceBreakdownByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3762,6 +3804,9 @@ func (a *HTTPAdapter) GetRecipeIngredientsByID(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.GetRecipeIngredientsByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3826,6 +3871,9 @@ func (a *HTTPAdapter) IngredientsByIDImage(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.IngredientsByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3882,6 +3930,9 @@ func (a *HTTPAdapter) GetRecipeNutritionWidgetByID(w http.ResponseWriter, r *htt
 	resp, err := a.svc.GetRecipeNutritionWidgetByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -3937,6 +3988,9 @@ func (a *HTTPAdapter) RecipeNutritionByIDImage(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.RecipeNutritionByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4053,6 +4107,9 @@ func (a *HTTPAdapter) RecipeNutritionLabelWidget(w http.ResponseWriter, r *http.
 	resp, err := a.svc.RecipeNutritionLabelWidget(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4154,6 +4211,9 @@ func (a *HTTPAdapter) RecipeNutritionLabelImage(w http.ResponseWriter, r *http.R
 	resp, err := a.svc.RecipeNutritionLabelImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4228,6 +4288,9 @@ func (a *HTTPAdapter) GetAnalyzedRecipeInstructions(w http.ResponseWriter, r *ht
 	resp, err := a.svc.GetAnalyzedRecipeInstructions(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4330,6 +4393,9 @@ func (a *HTTPAdapter) ExtractRecipeFromWebsite(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.ExtractRecipeFromWebsite(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4408,6 +4474,9 @@ func (a *HTTPAdapter) VisualizeRecipeIngredientsByID(w http.ResponseWriter, r *h
 	resp, err := a.svc.VisualizeRecipeIngredientsByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4495,6 +4564,9 @@ func (a *HTTPAdapter) VisualizeRecipeTasteByID(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.VisualizeRecipeTasteByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4568,6 +4640,9 @@ func (a *HTTPAdapter) VisualizeRecipeEquipmentByID(w http.ResponseWriter, r *htt
 	resp, err := a.svc.VisualizeRecipeEquipmentByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4641,6 +4716,9 @@ func (a *HTTPAdapter) VisualizeRecipePriceBreakdownByID(w http.ResponseWriter, r
 	resp, err := a.svc.VisualizeRecipePriceBreakdownByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4788,6 +4866,9 @@ func (a *HTTPAdapter) VisualizeRecipeTaste(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.VisualizeRecipeTaste(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -4907,6 +4988,9 @@ func (a *HTTPAdapter) VisualizeRecipeNutrition(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.VisualizeRecipeNutrition(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5026,6 +5110,9 @@ func (a *HTTPAdapter) VisualizePriceBreakdown(w http.ResponseWriter, r *http.Req
 	resp, err := a.svc.VisualizePriceBreakdown(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5126,6 +5213,9 @@ func (a *HTTPAdapter) VisualizeEquipment(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.VisualizeEquipment(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5202,6 +5292,9 @@ func (a *HTTPAdapter) AnalyzeRecipe(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.AnalyzeRecipe(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5257,6 +5350,9 @@ func (a *HTTPAdapter) SummarizeRecipe(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.SummarizeRecipe(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5332,6 +5428,9 @@ func (a *HTTPAdapter) CreateRecipeCardGet(w http.ResponseWriter, r *http.Request
 	resp, err := a.svc.CreateRecipeCardGet(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5387,7 +5486,7 @@ func (a *HTTPAdapter) CreateRecipeCard(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	// Limit request body size to prevent memory exhaustion (gosec G120)
 	r.Body = http.MaxBytesReader(w, r.Body, 32<<20)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	if err := r.ParseMultipartForm(32 << 20); err != nil { // #nosec G120 -- body is bounded by MaxBytesReader above
 		a.errHandler.HandleError(w, r, http.StatusBadRequest, OapiHandlerError{
 			Kind:        OapiErrorKindDecode,
 			OperationID: "CreateRecipeCard",
@@ -5402,6 +5501,9 @@ func (a *HTTPAdapter) CreateRecipeCard(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.CreateRecipeCard(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5488,6 +5590,9 @@ func (a *HTTPAdapter) AnalyzeRecipeInstructions(w http.ResponseWriter, r *http.R
 	resp, err := a.svc.AnalyzeRecipeInstructions(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5574,6 +5679,9 @@ func (a *HTTPAdapter) ClassifyCuisine(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ClassifyCuisine(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5620,6 +5728,9 @@ func (a *HTTPAdapter) AnalyzeARecipeSearchQuery(w http.ResponseWriter, r *http.R
 	resp, err := a.svc.AnalyzeARecipeSearchQuery(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5688,6 +5799,9 @@ func (a *HTTPAdapter) ConvertAmounts(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ConvertAmounts(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5793,6 +5907,9 @@ func (a *HTTPAdapter) ParseIngredients(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ParseIngredients(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -5885,6 +6002,9 @@ func (a *HTTPAdapter) VisualizeRecipeNutritionByID(w http.ResponseWriter, r *htt
 	resp, err := a.svc.VisualizeRecipeNutritionByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6004,6 +6124,9 @@ func (a *HTTPAdapter) VisualizeIngredients(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.VisualizeIngredients(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6050,6 +6173,9 @@ func (a *HTTPAdapter) GuessNutritionByDishName(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.GuessNutritionByDishName(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6127,6 +6253,9 @@ func (a *HTTPAdapter) GetIngredientInformation(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.GetIngredientInformation(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6208,6 +6337,9 @@ func (a *HTTPAdapter) ComputeIngredientAmount(w http.ResponseWriter, r *http.Req
 	resp, err := a.svc.ComputeIngredientAmount(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6276,6 +6408,9 @@ func (a *HTTPAdapter) ComputeGlycemicLoad(w http.ResponseWriter, r *http.Request
 	resp, err := a.svc.ComputeGlycemicLoad(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6378,6 +6513,9 @@ func (a *HTTPAdapter) AutocompleteIngredientSearch(w http.ResponseWriter, r *htt
 	resp, err := a.svc.AutocompleteIngredientSearch(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6600,6 +6738,9 @@ func (a *HTTPAdapter) IngredientSearch(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.IngredientSearch(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6646,6 +6787,9 @@ func (a *HTTPAdapter) GetIngredientSubstitutes(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.GetIngredientSubstitutes(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6701,6 +6845,9 @@ func (a *HTTPAdapter) GetIngredientSubstitutesByID(w http.ResponseWriter, r *htt
 	resp, err := a.svc.GetIngredientSubstitutesByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6911,6 +7058,9 @@ func (a *HTTPAdapter) SearchGroceryProducts(w http.ResponseWriter, r *http.Reque
 	resp, err := a.svc.SearchGroceryProducts(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -6966,6 +7116,9 @@ func (a *HTTPAdapter) SearchGroceryProductsByUPC(w http.ResponseWriter, r *http.
 	resp, err := a.svc.SearchGroceryProductsByUPC(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7058,6 +7211,9 @@ func (a *HTTPAdapter) SearchCustomFoods(w http.ResponseWriter, r *http.Request) 
 	resp, err := a.svc.SearchCustomFoods(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7113,6 +7269,9 @@ func (a *HTTPAdapter) GetProductInformation(w http.ResponseWriter, r *http.Reque
 	resp, err := a.svc.GetProductInformation(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7168,6 +7327,9 @@ func (a *HTTPAdapter) GetComparableProducts(w http.ResponseWriter, r *http.Reque
 	resp, err := a.svc.GetComparableProducts(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7228,6 +7390,9 @@ func (a *HTTPAdapter) AutocompleteProductSearch(w http.ResponseWriter, r *http.R
 	resp, err := a.svc.AutocompleteProductSearch(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7320,6 +7485,9 @@ func (a *HTTPAdapter) VisualizeProductNutritionByID(w http.ResponseWriter, r *ht
 	resp, err := a.svc.VisualizeProductNutritionByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7375,6 +7543,9 @@ func (a *HTTPAdapter) ProductNutritionByIDImage(w http.ResponseWriter, r *http.R
 	resp, err := a.svc.ProductNutritionByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7491,6 +7662,9 @@ func (a *HTTPAdapter) ProductNutritionLabelWidget(w http.ResponseWriter, r *http
 	resp, err := a.svc.ProductNutritionLabelWidget(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7592,6 +7766,9 @@ func (a *HTTPAdapter) ProductNutritionLabelImage(w http.ResponseWriter, r *http.
 	resp, err := a.svc.ProductNutritionLabelImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7652,6 +7829,9 @@ func (a *HTTPAdapter) ClassifyGroceryProduct(w http.ResponseWriter, r *http.Requ
 	resp, err := a.svc.ClassifyGroceryProduct(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7710,6 +7890,9 @@ func (a *HTTPAdapter) ClassifyGroceryProductBulk(w http.ResponseWriter, r *http.
 	resp, err := a.svc.ClassifyGroceryProductBulk(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7760,6 +7943,9 @@ func (a *HTTPAdapter) MapIngredientsToGroceryProducts(w http.ResponseWriter, r *
 	resp, err := a.svc.MapIngredientsToGroceryProducts(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -7820,6 +8006,9 @@ func (a *HTTPAdapter) AutocompleteMenuItemSearch(w http.ResponseWriter, r *http.
 	resp, err := a.svc.AutocompleteMenuItemSearch(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8030,6 +8219,9 @@ func (a *HTTPAdapter) SearchMenuItems(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.SearchMenuItems(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8085,6 +8277,9 @@ func (a *HTTPAdapter) GetMenuItemInformation(w http.ResponseWriter, r *http.Requ
 	resp, err := a.svc.GetMenuItemInformation(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8177,6 +8372,9 @@ func (a *HTTPAdapter) VisualizeMenuItemNutritionByID(w http.ResponseWriter, r *h
 	resp, err := a.svc.VisualizeMenuItemNutritionByID(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8232,6 +8430,9 @@ func (a *HTTPAdapter) MenuItemNutritionByIDImage(w http.ResponseWriter, r *http.
 	resp, err := a.svc.MenuItemNutritionByIDImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8348,6 +8549,9 @@ func (a *HTTPAdapter) MenuItemNutritionLabelWidget(w http.ResponseWriter, r *htt
 	resp, err := a.svc.MenuItemNutritionLabelWidget(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8449,6 +8653,9 @@ func (a *HTTPAdapter) MenuItemNutritionLabelImage(w http.ResponseWriter, r *http
 	resp, err := a.svc.MenuItemNutritionLabelImage(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8518,6 +8725,9 @@ func (a *HTTPAdapter) GenerateMealPlan(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GenerateMealPlan(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8581,6 +8791,9 @@ func (a *HTTPAdapter) GetMealPlanWeek(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetMealPlanWeek(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8646,6 +8859,9 @@ func (a *HTTPAdapter) ClearMealPlanDay(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ClearMealPlanDay(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8709,6 +8925,9 @@ func (a *HTTPAdapter) AddToMealPlan(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.AddToMealPlan(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8786,6 +9005,9 @@ func (a *HTTPAdapter) DeleteFromMealPlan(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.DeleteFromMealPlan(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8847,6 +9069,9 @@ func (a *HTTPAdapter) GetMealPlanTemplates(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.GetMealPlanTemplates(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8900,6 +9125,9 @@ func (a *HTTPAdapter) AddMealPlanTemplate(w http.ResponseWriter, r *http.Request
 	resp, err := a.svc.AddMealPlanTemplate(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -8975,6 +9203,9 @@ func (a *HTTPAdapter) GetMealPlanTemplate(w http.ResponseWriter, r *http.Request
 	resp, err := a.svc.GetMealPlanTemplate(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9042,6 +9273,9 @@ func (a *HTTPAdapter) DeleteMealPlanTemplate(w http.ResponseWriter, r *http.Requ
 	resp, err := a.svc.DeleteMealPlanTemplate(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9103,6 +9337,9 @@ func (a *HTTPAdapter) GetShoppingList(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetShoppingList(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9170,6 +9407,9 @@ func (a *HTTPAdapter) GenerateShoppingList(w http.ResponseWriter, r *http.Reques
 	resp, err := a.svc.GenerateShoppingList(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9210,6 +9450,9 @@ func (a *HTTPAdapter) ConnectUser(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.ConnectUser(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9273,6 +9516,9 @@ func (a *HTTPAdapter) AddToShoppingList(w http.ResponseWriter, r *http.Request) 
 	resp, err := a.svc.AddToShoppingList(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9350,6 +9596,9 @@ func (a *HTTPAdapter) DeleteFromShoppingList(w http.ResponseWriter, r *http.Requ
 	resp, err := a.svc.DeleteFromShoppingList(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9502,6 +9751,9 @@ func (a *HTTPAdapter) SearchRestaurants(w http.ResponseWriter, r *http.Request) 
 	resp, err := a.svc.SearchRestaurants(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9548,6 +9800,9 @@ func (a *HTTPAdapter) GetDishPairingForWine(w http.ResponseWriter, r *http.Reque
 	resp, err := a.svc.GetDishPairingForWine(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9608,6 +9863,9 @@ func (a *HTTPAdapter) GetWinePairing(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.GetWinePairing(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9654,6 +9912,9 @@ func (a *HTTPAdapter) GetWineDescription(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.GetWineDescription(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9742,6 +10003,9 @@ func (a *HTTPAdapter) GetWineRecommendation(w http.ResponseWriter, r *http.Reque
 	resp, err := a.svc.GetWineRecommendation(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9788,6 +10052,9 @@ func (a *HTTPAdapter) ImageClassificationByURL(w http.ResponseWriter, r *http.Re
 	resp, err := a.svc.ImageClassificationByURL(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9834,6 +10101,9 @@ func (a *HTTPAdapter) ImageAnalysisByURL(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.ImageAnalysisByURL(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9880,6 +10150,9 @@ func (a *HTTPAdapter) QuickAnswer(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.QuickAnswer(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -9966,6 +10239,9 @@ func (a *HTTPAdapter) DetectFoodInText(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.DetectFoodInText(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10012,6 +10288,9 @@ func (a *HTTPAdapter) SearchSiteContent(w http.ResponseWriter, r *http.Request) 
 	resp, err := a.svc.SearchSiteContent(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10086,6 +10365,9 @@ func (a *HTTPAdapter) SearchAllFood(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.SearchAllFood(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10218,6 +10500,9 @@ func (a *HTTPAdapter) SearchFoodVideos(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.SearchFoodVideos(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10253,6 +10538,9 @@ func (a *HTTPAdapter) GetARandomFoodJoke(w http.ResponseWriter, r *http.Request)
 	resp, err := a.svc.GetARandomFoodJoke(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10288,6 +10576,9 @@ func (a *HTTPAdapter) GetRandomFoodTrivia(w http.ResponseWriter, r *http.Request
 	resp, err := a.svc.GetRandomFoodTrivia(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10338,6 +10629,9 @@ func (a *HTTPAdapter) TalkToChatbot(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.TalkToChatbot(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
@@ -10398,6 +10692,9 @@ func (a *HTTPAdapter) GetConversationSuggests(w http.ResponseWriter, r *http.Req
 	resp, err := a.svc.GetConversationSuggests(ctx, opts)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}

@@ -51,6 +51,18 @@ func TestMemoryHistoryTable_Get(t *testing.T) {
 		assert.False(ok)
 		assert.Nil(resource)
 	})
+
+	t.Run("get returns latest entry", func(t *testing.T) {
+		h := newTestHistoryTable(0)
+		req, _ := http.NewRequest("GET", "/foo/1", nil)
+
+		h.Set(ctx, "First", req, nil)
+		h.Set(ctx, "Second", req, nil)
+
+		resource, ok := h.Get(ctx, req)
+		assert.True(ok)
+		assert.Equal("Second", resource.Resource)
+	})
 }
 
 func TestMemoryHistoryTable_Set(t *testing.T) {
@@ -65,6 +77,7 @@ func TestMemoryHistoryTable_Set(t *testing.T) {
 
 		assert.Equal("/foo/{id}", result.Resource)
 		assert.Equal(`{"name":"test"}`, string(result.Body))
+		assert.NotEmpty(result.ID)
 	})
 
 	t.Run("set with response", func(t *testing.T) {
@@ -77,20 +90,6 @@ func TestMemoryHistoryTable_Set(t *testing.T) {
 		assert.Equal(response, result.Response)
 	})
 
-	t.Run("reuse body from existing record", func(t *testing.T) {
-		h := newTestHistoryTable(0)
-
-		// First request with body
-		req1, _ := http.NewRequest("POST", "/foo/1", bytes.NewBufferString(`{"name":"test"}`))
-		h.Set(ctx, "/foo/{id}", req1, nil)
-
-		// Second request without body (same key)
-		req2, _ := http.NewRequest("POST", "/foo/1", nil)
-		result := h.Set(ctx, "/foo/{id}", req2, nil)
-
-		assert.Equal(`{"name":"test"}`, string(result.Body))
-	})
-
 	t.Run("set with error reading body", func(t *testing.T) {
 		h := newTestHistoryTable(0)
 
@@ -98,6 +97,19 @@ func TestMemoryHistoryTable_Set(t *testing.T) {
 		result := h.Set(ctx, "/foo/{id}", req, nil)
 
 		assert.Equal([]byte{}, result.Body)
+	})
+
+	t.Run("multiple sets to same endpoint create unique entries", func(t *testing.T) {
+		h := newTestHistoryTable(0)
+
+		req1, _ := http.NewRequest("POST", "/foo/1", bytes.NewBufferString(`{"a":"1"}`))
+		req2, _ := http.NewRequest("POST", "/foo/1", bytes.NewBufferString(`{"a":"2"}`))
+
+		e1 := h.Set(ctx, "/foo/{id}", req1, nil)
+		e2 := h.Set(ctx, "/foo/{id}", req2, nil)
+
+		assert.NotEqual(e1.ID, e2.ID)
+		assert.Len(h.Data(ctx), 2)
 	})
 }
 
@@ -128,16 +140,21 @@ func TestMemoryHistoryTable_SetResponse(t *testing.T) {
 		h.SetResponse(ctx, req, response)
 	})
 
-	t.Run("set response for invalid record type", func(t *testing.T) {
+	t.Run("set response updates latest entry only", func(t *testing.T) {
 		h := newTestHistoryTable(0)
 
 		req, _ := http.NewRequest("GET", "/foo/1", nil)
-		// Inject a non-HistoryEntry value directly into the table
-		h.table.Set(ctx, "GET:/foo/1", "not a history entry", 0)
+		h.Set(ctx, "/foo/{id}", req, &HistoryResponse{StatusCode: 100})
+		h.Set(ctx, "/foo/{id}", req, nil)
 
-		response := &HistoryResponse{Data: []byte("response"), StatusCode: 200}
-		// Should not panic, just return early
-		h.SetResponse(ctx, req, response)
+		h.SetResponse(ctx, req, &HistoryResponse{StatusCode: 200})
+
+		entries := h.Data(ctx)
+		assert.Len(entries, 2)
+		// First entry should keep its original response
+		assert.Equal(100, entries[0].Response.StatusCode)
+		// Second (latest) entry should have the updated response
+		assert.Equal(200, entries[1].Response.StatusCode)
 	})
 }
 
@@ -153,7 +170,23 @@ func TestMemoryHistoryTable_Data(t *testing.T) {
 	data := h.Data(ctx)
 
 	assert.Len(data, 1)
-	assert.Contains(data, "GET:/foo/1")
+	assert.Equal("/foo/{id}", data[0].Resource)
+	assert.NotEmpty(data[0].ID)
+}
+
+func TestMemoryHistoryTable_Len(t *testing.T) {
+	assert := assert2.New(t)
+	ctx := context.Background()
+
+	h := newTestHistoryTable(0)
+	assert.Equal(0, h.Len(ctx))
+
+	req, _ := http.NewRequest("GET", "/foo/1", nil)
+	h.Set(ctx, "/foo/{id}", req, nil)
+	assert.Equal(1, h.Len(ctx))
+
+	h.Set(ctx, "/foo/{id}", req, nil)
+	assert.Equal(2, h.Len(ctx))
 }
 
 func TestMemoryHistoryTable_Clear(t *testing.T) {
@@ -168,6 +201,7 @@ func TestMemoryHistoryTable_Clear(t *testing.T) {
 	h.Clear(ctx)
 
 	assert.Empty(h.Data(ctx))
+	assert.Equal(0, h.Len(ctx))
 }
 
 func TestMemoryHistoryTable_AutoClear(t *testing.T) {
@@ -180,7 +214,7 @@ func TestMemoryHistoryTable_AutoClear(t *testing.T) {
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/foo/1"}}
 	h.Set(ctx, "/foo/{id}", req, nil)
 
-	assert.Len(h.Data(ctx), 1)
+	assert.Equal(1, h.Len(ctx))
 
 	// Wait for auto-clear
 	time.Sleep(100 * time.Millisecond)
@@ -204,5 +238,5 @@ func TestMemoryHistoryTable_Cancel(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Data should still be there since ticker was cancelled
-	assert.Len(h.Data(ctx), 1)
+	assert.Equal(1, h.Len(ctx))
 }

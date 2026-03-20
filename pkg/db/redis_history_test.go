@@ -36,6 +36,7 @@ func TestRedisHistory_Get(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, "/users/123", entry.Resource)
 		assert.Equal(t, 200, entry.Response.StatusCode)
+		assert.NotEmpty(t, entry.ID)
 	})
 
 	t.Run("get non-existing entry", func(t *testing.T) {
@@ -47,14 +48,17 @@ func TestRedisHistory_Get(t *testing.T) {
 		assert.Nil(t, entry)
 	})
 
-	t.Run("get with invalid json returns false", func(t *testing.T) {
-		history, mr := newTestRedisHistory(t)
-		_ = mr.Set("test:history:GET:/bad", "not-valid-json{")
+	t.Run("get returns latest entry", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+		req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
 
-		req := &http.Request{Method: "GET", URL: &url.URL{Path: "/bad"}}
+		history.Set(ctx, "first", req, &HistoryResponse{StatusCode: 100})
+		history.Set(ctx, "second", req, &HistoryResponse{StatusCode: 200})
+
 		entry, ok := history.Get(ctx, req)
-		assert.False(t, ok)
-		assert.Nil(t, entry)
+		assert.True(t, ok)
+		assert.Equal(t, "second", entry.Resource)
+		assert.Equal(t, 200, entry.Response.StatusCode)
 	})
 }
 
@@ -75,6 +79,7 @@ func TestRedisHistory_Set(t *testing.T) {
 		assert.Equal(t, "/users", entry.Resource)
 		assert.Equal(t, []byte(body), entry.Body)
 		assert.Equal(t, 201, entry.Response.StatusCode)
+		assert.NotEmpty(t, entry.ID)
 	})
 
 	t.Run("set without body", func(t *testing.T) {
@@ -87,21 +92,15 @@ func TestRedisHistory_Set(t *testing.T) {
 		assert.Empty(t, entry.Body)
 	})
 
-	t.Run("body reuse from existing entry", func(t *testing.T) {
+	t.Run("multiple sets create unique entries", func(t *testing.T) {
 		history, _ := newTestRedisHistory(t)
-		body := `{"foo":"bar"}`
-		req := &http.Request{
-			Method: "POST",
-			URL:    &url.URL{Path: "/data"},
-			Body:   io.NopCloser(strings.NewReader(body)),
-		}
-		history.Set(ctx, "/data", req, nil)
+		req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
 
-		// Second call with no body should reuse existing
-		req2 := &http.Request{Method: "POST", URL: &url.URL{Path: "/data"}}
-		entry := history.Set(ctx, "/data", req2, &HistoryResponse{StatusCode: 200})
+		e1 := history.Set(ctx, "/test", req, nil)
+		e2 := history.Set(ctx, "/test", req, nil)
 
-		assert.Equal(t, []byte(body), entry.Body)
+		assert.NotEqual(t, e1.ID, e2.ID)
+		assert.Len(t, history.Data(ctx), 2)
 	})
 }
 
@@ -151,8 +150,6 @@ func TestRedisHistory_Data(t *testing.T) {
 		data := history.Data(ctx)
 
 		assert.Len(t, data, 2)
-		assert.Equal(t, "/a", data["GET:/a"].Resource)
-		assert.Equal(t, "/b", data["POST:/b"].Resource)
 	})
 
 	t.Run("empty history", func(t *testing.T) {
@@ -168,14 +165,31 @@ func TestRedisHistory_Data(t *testing.T) {
 		req := &http.Request{Method: "GET", URL: &url.URL{Path: "/valid"}}
 		history.Set(ctx, "/valid", req, &HistoryResponse{StatusCode: 200})
 
-		// Inject invalid JSON directly
-		_ = mr.Set("test:history:GET:/invalid", "not-valid-json{")
+		// Inject invalid JSON directly into an entry key
+		_ = mr.Set("test:history:entry:bad", "not-valid-json{")
 
 		data := history.Data(ctx)
 
 		// Should only contain the valid entry
 		assert.Len(t, data, 1)
-		assert.Equal(t, "/valid", data["GET:/valid"].Resource)
+	})
+}
+
+func TestRedisHistory_Len(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("empty", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+		assert.Equal(t, 0, history.Len(ctx))
+	})
+
+	t.Run("counts entries", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+		req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
+		history.Set(ctx, "/test", req, nil)
+		history.Set(ctx, "/test", req, nil)
+
+		assert.Equal(t, 2, history.Len(ctx))
 	})
 }
 
@@ -193,6 +207,7 @@ func TestRedisHistory_Clear(t *testing.T) {
 
 		data := history.Data(ctx)
 		assert.Empty(t, data)
+		assert.Equal(t, 0, history.Len(ctx))
 	})
 
 	t.Run("clear empty history", func(t *testing.T) {

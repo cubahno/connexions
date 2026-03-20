@@ -248,13 +248,7 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 	resourcePrefix := "/" + params.ServiceConfig.Name
 	recordHistory := params.ServiceConfig.HistoryEnabled()
 
-	var bodyBytes []byte
-	if recordHistory {
-		rec := history.Set(ctx, req.URL.Path, req, nil)
-		bodyBytes = rec.Body
-	} else {
-		bodyBytes = readAndRestoreBody(req)
-	}
+	bodyBytes := readAndRestoreBody(req)
 
 	outURL := fmt.Sprintf("%s/%s",
 		strings.TrimSuffix(cfg.URL, "/"),
@@ -311,13 +305,12 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 	contentType := resp.Header.Get("Content-Type")
 
 	if recordHistory {
-		historyResponse := &db.HistoryResponse{
+		history.Set(ctx, req.URL.Path, req, &db.HistoryResponse{
 			Data:           body,
 			StatusCode:     statusCode,
 			ContentType:    contentType,
 			IsFromUpstream: true,
-		}
-		history.Set(ctx, req.URL.Path, req, historyResponse)
+		})
 	}
 
 	return &upstreamResponse{

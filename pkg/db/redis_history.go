@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -24,10 +25,12 @@ type redisHistoryTable struct {
 
 // redisHistoryRecord is the serializable form of HistoryEntry for Redis storage.
 type redisHistoryRecord struct {
-	Resource  string           `json:"resource"`
-	Body      []byte           `json:"body"`
-	Response  *HistoryResponse `json:"response,omitempty"`
-	CreatedAt time.Time        `json:"createdAt"`
+	ID         string           `json:"id"`
+	Resource   string           `json:"resource"`
+	Body       []byte           `json:"body"`
+	Response   *HistoryResponse `json:"response,omitempty"`
+	RemoteAddr string           `json:"remoteAddr,omitempty"`
+	CreatedAt  time.Time        `json:"createdAt"`
 }
 
 // newRedisHistoryTable creates a new Redis-backed history table.
@@ -39,15 +42,15 @@ func newRedisHistoryTable(client *redis.Client, namespace string, ttl time.Durat
 	}
 }
 
-// Get retrieves a request record by the HTTP request.
+// Get retrieves the latest request record matching the HTTP request's method and URL.
 func (h *redisHistoryTable) Get(ctx context.Context, req *http.Request) (*HistoryEntry, bool) {
-	key := h.fullKey(h.getKey(req))
-
-	data, err := h.client.Get(ctx, key).Bytes()
-	if errors.Is(err, redis.Nil) {
+	id, err := h.client.Get(ctx, h.latestKey(req)).Result()
+	if errors.Is(err, redis.Nil) || err != nil {
 		return nil, false
 	}
-	if err != nil {
+
+	data, err := h.client.Get(ctx, h.entryKey(id)).Bytes()
+	if errors.Is(err, redis.Nil) || err != nil {
 		return nil, false
 	}
 
@@ -57,26 +60,19 @@ func (h *redisHistoryTable) Get(ctx context.Context, req *http.Request) (*Histor
 	}
 
 	return &HistoryEntry{
-		Resource:  record.Resource,
-		Body:      record.Body,
-		Response:  record.Response,
-		Request:   req,
-		CreatedAt: record.CreatedAt,
+		ID:         record.ID,
+		Resource:   record.Resource,
+		Body:       record.Body,
+		Response:   record.Response,
+		Request:    req,
+		RemoteAddr: record.RemoteAddr,
+		CreatedAt:  record.CreatedAt,
 	}, true
 }
 
-// Set stores a request record.
+// Set stores a request record with a unique ID.
 func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.Request, response *HistoryResponse) *HistoryEntry {
-	key := h.fullKey(h.getKey(req))
-
-	// Try to get existing record for body reuse
-	var existingBody []byte
-	if existing, err := h.client.Get(ctx, key).Bytes(); err == nil {
-		var existingRecord redisHistoryRecord
-		if json.Unmarshal(existing, &existingRecord) == nil {
-			existingBody = existingRecord.Body
-		}
-	}
+	id := fmt.Sprintf("%d", h.client.Incr(ctx, h.namespace+":counter").Val())
 
 	// Extract the body from the request
 	var body []byte
@@ -89,16 +85,16 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 		}
 		// Restore the body so it can be read by subsequent handlers
 		req.Body = io.NopCloser(bytes.NewBuffer(body))
-	} else if len(existingBody) > 0 {
-		body = existingBody
 	}
 
 	now := time.Now().UTC()
 	record := redisHistoryRecord{
-		Resource:  resource,
-		Body:      body,
-		Response:  response,
-		CreatedAt: now,
+		ID:         id,
+		Resource:   resource,
+		Body:       body,
+		Response:   response,
+		RemoteAddr: req.RemoteAddr,
+		CreatedAt:  now,
 	}
 
 	data, err := json.Marshal(record)
@@ -107,26 +103,34 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 		return nil
 	}
 
-	h.client.Set(ctx, key, data, h.ttl)
+	h.client.Set(ctx, h.entryKey(id), data, h.ttl)
+	h.client.Set(ctx, h.latestKey(req), id, h.ttl)
 
 	return &HistoryEntry{
-		Resource:  resource,
-		Body:      body,
-		Request:   req,
-		Response:  response,
-		CreatedAt: now,
+		ID:         id,
+		Resource:   resource,
+		Body:       body,
+		Request:    req,
+		Response:   response,
+		RemoteAddr: req.RemoteAddr,
+		CreatedAt:  now,
 	}
 }
 
-// SetResponse updates the response for an existing request record.
+// SetResponse updates the response for the latest request record matching the HTTP request.
 func (h *redisHistoryTable) SetResponse(ctx context.Context, req *http.Request, response *HistoryResponse) {
-	key := h.fullKey(h.getKey(req))
-
-	data, err := h.client.Get(ctx, key).Bytes()
+	id, err := h.client.Get(ctx, h.latestKey(req)).Result()
 	if errors.Is(err, redis.Nil) {
 		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", req.URL.String()))
 		return
 	}
+	if err != nil {
+		slog.Error("Error getting latest ID", "error", err)
+		return
+	}
+
+	entryKey := h.entryKey(id)
+	data, err := h.client.Get(ctx, entryKey).Bytes()
 	if err != nil {
 		slog.Error("Error getting history record", "error", err)
 		return
@@ -146,21 +150,18 @@ func (h *redisHistoryTable) SetResponse(ctx context.Context, req *http.Request, 
 		return
 	}
 
-	h.client.Set(ctx, key, newData, h.ttl)
+	h.client.Set(ctx, entryKey, newData, h.ttl)
 }
 
-// Data returns all request records.
-// Note: This scans all keys with the namespace prefix, which can be slow for large datasets.
-func (h *redisHistoryTable) Data(ctx context.Context) map[string]*HistoryEntry {
-	pattern := h.namespace + ":*"
+// Data returns all request records as an ordered log.
+func (h *redisHistoryTable) Data(ctx context.Context) []*HistoryEntry {
+	pattern := h.namespace + ":entry:*"
 
-	result := make(map[string]*HistoryEntry)
+	var entries []*HistoryEntry
 	iter := h.client.Scan(ctx, 0, pattern, 0).Iterator()
 
 	for iter.Next(ctx) {
 		fullKey := iter.Val()
-		// Extract the key part after the namespace
-		key := strings.TrimPrefix(fullKey, h.namespace+":")
 
 		data, err := h.client.Get(ctx, fullKey).Bytes()
 		if err != nil {
@@ -172,15 +173,33 @@ func (h *redisHistoryTable) Data(ctx context.Context) map[string]*HistoryEntry {
 			continue
 		}
 
-		result[key] = &HistoryEntry{
-			Resource:  record.Resource,
-			Body:      record.Body,
-			Response:  record.Response,
-			CreatedAt: record.CreatedAt,
-		}
+		entries = append(entries, &HistoryEntry{
+			ID:         record.ID,
+			Resource:   record.Resource,
+			Body:       record.Body,
+			Response:   record.Response,
+			RemoteAddr: record.RemoteAddr,
+			CreatedAt:  record.CreatedAt,
+		})
 	}
 
-	return result
+	// Sort by CreatedAt for stable ordering
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].CreatedAt.Before(entries[j].CreatedAt)
+	})
+
+	return entries
+}
+
+// Len returns the number of history entries.
+func (h *redisHistoryTable) Len(ctx context.Context) int {
+	pattern := h.namespace + ":entry:*"
+	var count int
+	iter := h.client.Scan(ctx, 0, pattern, 0).Iterator()
+	for iter.Next(ctx) {
+		count++
+	}
+	return count
 }
 
 // Clear removes all history records.
@@ -199,10 +218,10 @@ func (h *redisHistoryTable) Clear(ctx context.Context) {
 	}
 }
 
-func (h *redisHistoryTable) fullKey(key string) string {
-	return h.namespace + ":" + key
+func (h *redisHistoryTable) entryKey(id string) string {
+	return h.namespace + ":entry:" + id
 }
 
-func (h *redisHistoryTable) getKey(req *http.Request) string {
-	return strings.Join([]string{req.Method, req.URL.String()}, ":")
+func (h *redisHistoryTable) latestKey(req *http.Request) string {
+	return h.namespace + ":latest:" + strings.Join([]string{req.Method, req.URL.String()}, ":")
 }

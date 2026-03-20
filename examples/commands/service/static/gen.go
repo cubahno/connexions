@@ -132,6 +132,9 @@ func (a *HTTPAdapter) PostFooBar(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.svc.PostFooBar(ctx)
 	if err != nil {
 		code := http.StatusInternalServerError
+		if resp != nil && resp.Status != 0 {
+			code = resp.Status
+		}
 		a.errHandler.HandleError(w, r, code, err)
 		return
 	}
