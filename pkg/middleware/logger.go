@@ -9,11 +9,27 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 )
 
 // skipPaths are path segments that should skip logging.
 var skipPaths = []string{"/assets/", "/static/", "/favicon", "/healthz"}
+
+// skipPrefixes are path prefixes that should skip logging (e.g. "/db-explorer-ui").
+// Protected by skipMu for concurrent access.
+var (
+	skipPrefixes []string
+	skipMu       sync.RWMutex
+)
+
+// AddSkipPrefix adds a path prefix to the logger skip list.
+// Requests whose path starts with this prefix will not be logged.
+func AddSkipPrefix(prefix string) {
+	skipMu.Lock()
+	defer skipMu.Unlock()
+	skipPrefixes = append(skipPrefixes, prefix)
+}
 
 // skipExtensions are file extensions that should skip logging.
 var skipExtensions = []string{
@@ -28,6 +44,16 @@ func shouldSkipLogging(urlPath string) bool {
 			return true
 		}
 	}
+
+	// Check dynamic prefixes
+	skipMu.RLock()
+	for _, prefix := range skipPrefixes {
+		if strings.HasPrefix(urlPath, prefix) {
+			skipMu.RUnlock()
+			return true
+		}
+	}
+	skipMu.RUnlock()
 
 	// Check file extensions
 	ext := strings.ToLower(path.Ext(urlPath))

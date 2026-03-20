@@ -207,6 +207,27 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		assert.Equal(`{"generated": true}`, string(w2.buf))
 	})
 
+	t.Run("records every request even for same URL", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+		}, nil)
+
+		mw := CreateCacheWriteMiddleware(params)
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		})
+
+		for i := 0; i < 3; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
+			mw(handler).ServeHTTP(w, req)
+		}
+
+		entries := params.DB().History().Data(context.Background())
+		assert.Equal(3, len(entries), "Each request should create a separate history entry")
+	})
+
 	t.Run("sets custom response headers", func(t *testing.T) {
 		params := newTestParams(&config.ServiceConfig{
 			Name: "test-service",

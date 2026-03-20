@@ -17,10 +17,7 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 			history := params.DB().History()
 
 			if recordHistory {
-				_, ok := history.Get(ctx, req)
-				if !ok {
-					_ = history.Set(ctx, req.URL.Path, req, nil)
-				}
+				_ = history.Set(ctx, req.URL.Path, req, nil)
 			}
 
 			// Create a responseWriter to capture the response.

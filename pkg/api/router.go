@@ -121,6 +121,11 @@ func (r *Router) RegisterService(
 		handler.RegisterRoutes(subRouter)
 	})
 
+	// Skip logging for services with history disabled
+	if cfg.Name != "" && !cfg.HistoryEnabled() {
+		middleware.AddSkipPrefix("/" + cfg.Name)
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -189,6 +194,11 @@ func (r *Router) RegisterHTTPHandler(
 		// Register the handler's routes
 		handler.RegisterRoutes(subRouter)
 	})
+
+	// Skip logging for services with history disabled
+	if cfg.Name != "" && !cfg.HistoryEnabled() {
+		middleware.AddSkipPrefix("/" + cfg.Name)
+	}
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
