@@ -19,15 +19,15 @@ func TestParseReplayHeader(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		expected []string
+		expected *config.ReplayMatch
 	}{
 		{"empty string", "", nil},
-		{"single field", "data.name", []string{"data.name"}},
-		{"multiple fields", "data.name,data.zip", []string{"data.name", "data.zip"}},
-		{"fields with spaces", " data.name , data.zip ", []string{"data.name", "data.zip"}},
-		{"trailing comma", "data.name,", []string{"data.name"}},
-		{"only commas", ",,", []string{}},
-		{"only spaces", "  ,  ,  ", []string{}},
+		{"single field", "data.name", &config.ReplayMatch{Body: []string{"data.name"}}},
+		{"multiple fields", "data.name,data.zip", &config.ReplayMatch{Body: []string{"data.name", "data.zip"}}},
+		{"fields with spaces", " data.name , data.zip ", &config.ReplayMatch{Body: []string{"data.name", "data.zip"}}},
+		{"trailing comma", "data.name,", &config.ReplayMatch{Body: []string{"data.name"}}},
+		{"only commas", ",,", nil},
+		{"only spaces", "  ,  ,  ", nil},
 	}
 
 	for _, tt := range tests {
@@ -47,15 +47,15 @@ func TestResolveReplayParams(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
 		}
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Nil(fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Nil(match)
 		assert.Empty(pattern)
 	})
 
@@ -65,7 +65,7 @@ func TestResolveReplayParams(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -73,8 +73,8 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "age,city")
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Equal([]string{"age", "city"}, fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Body: []string{"age", "city"}}, match)
 		assert.Equal("/foo", pattern) // uses config pattern
 	})
 
@@ -84,7 +84,7 @@ func TestResolveReplayParams(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name", "zip"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name", "zip"}}}},
 					},
 				},
 			},
@@ -92,8 +92,8 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "")
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Equal([]string{"name", "zip"}, fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Body: []string{"name", "zip"}}, match)
 		assert.Equal("/foo", pattern)
 	})
 
@@ -102,8 +102,8 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo/123", nil)
 		req.Header.Set(headerReplayMatch, "name")
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Equal([]string{"name"}, fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Body: []string{"name"}}, match)
 		assert.Equal("/foo/123", pattern) // actual path, no config pattern
 	})
 
@@ -112,8 +112,8 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "")
 
-		fields, _ := resolveReplayParams(req, cfg)
-		assert.Nil(fields)
+		match, _ := resolveReplayParams(req, cfg)
+		assert.Nil(match)
 	})
 
 	t.Run("auto-replay activates for configured endpoint", func(t *testing.T) {
@@ -123,15 +123,15 @@ func TestResolveReplayParams(t *testing.T) {
 				Replay: &config.ReplayConfig{
 					AutoReplay: true,
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
 		}
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Equal([]string{"name"}, fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Body: []string{"name"}}, match)
 		assert.Equal("/foo", pattern)
 	})
 
@@ -142,15 +142,15 @@ func TestResolveReplayParams(t *testing.T) {
 				Replay: &config.ReplayConfig{
 					AutoReplay: true,
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
 		}
 		req := httptest.NewRequest(http.MethodPost, "/svc/bar", nil)
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Nil(fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Nil(match)
 		assert.Empty(pattern)
 	})
 
@@ -161,7 +161,7 @@ func TestResolveReplayParams(t *testing.T) {
 				Replay: &config.ReplayConfig{
 					AutoReplay: true,
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -169,8 +169,8 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "age")
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Equal([]string{"age"}, fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Body: []string{"age"}}, match)
 		assert.Equal("/foo", pattern) // still uses config pattern
 	})
 
@@ -180,7 +180,7 @@ func TestResolveReplayParams(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo/{id}/bar": {"POST": {Match: []string{"name"}}},
+						"/foo/{id}/bar": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -188,8 +188,8 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo/123/bar", nil)
 		req.Header.Set(headerReplayMatch, "")
 
-		fields, pattern := resolveReplayParams(req, cfg)
-		assert.Equal([]string{"name"}, fields)
+		match, pattern := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Body: []string{"name"}}, match)
 		assert.Equal("/foo/{id}/bar", pattern)
 	})
 }
@@ -199,58 +199,93 @@ func TestBuildReplayKey(t *testing.T) {
 
 	t.Run("deterministic for same input", func(t *testing.T) {
 		body := []byte(`{"name":"Jane","zip":"12345"}`)
-		key1 := buildReplayKey("POST", "/foo", []string{"name", "zip"}, body)
-		key2 := buildReplayKey("POST", "/foo", []string{"name", "zip"}, body)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
+		key2 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
 		assert.Equal(key1, key2)
 	})
 
 	t.Run("fields are sorted for determinism", func(t *testing.T) {
 		body := []byte(`{"name":"Jane","zip":"12345"}`)
-		key1 := buildReplayKey("POST", "/foo", []string{"name", "zip"}, body)
-		key2 := buildReplayKey("POST", "/foo", []string{"zip", "name"}, body)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
+		key2 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"zip", "name"}}, body)
 		assert.Equal(key1, key2)
 	})
 
 	t.Run("different methods produce different keys", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
-		key1 := buildReplayKey("POST", "/foo", []string{"name"}, body)
-		key2 := buildReplayKey("PUT", "/foo", []string{"name"}, body)
+		req1 := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		req2 := httptest.NewRequest(http.MethodPut, "/foo", nil)
+		key1 := buildReplayKey(req1, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key2 := buildReplayKey(req2, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		assert.NotEqual(key1, key2)
 	})
 
 	t.Run("different paths produce different keys", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
-		key1 := buildReplayKey("POST", "/foo", []string{"name"}, body)
-		key2 := buildReplayKey("POST", "/bar", []string{"name"}, body)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key2 := buildReplayKey(req, "/bar", &config.ReplayMatch{Body: []string{"name"}}, body)
 		assert.NotEqual(key1, key2)
 	})
 
 	t.Run("different values produce different keys", func(t *testing.T) {
 		body1 := []byte(`{"name":"Jane"}`)
 		body2 := []byte(`{"name":"John"}`)
-		key1 := buildReplayKey("POST", "/foo", []string{"name"}, body1)
-		key2 := buildReplayKey("POST", "/foo", []string{"name"}, body2)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body1)
+		key2 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body2)
 		assert.NotEqual(key1, key2)
 	})
 
 	t.Run("missing field produces nil value in key", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey("POST", "/foo", []string{"missing"}, body)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"missing"}}, body)
 		assert.NotEmpty(key)
 		assert.Len(key, 64) // SHA-256 hex is 64 chars
 	})
 
 	t.Run("nil body", func(t *testing.T) {
-		key := buildReplayKey("POST", "/foo", []string{"name"}, nil)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, nil)
 		assert.NotEmpty(key)
 		assert.Len(key, 64)
 	})
 
 	t.Run("empty fields", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey("POST", "/foo", []string{}, body)
+		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
+		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{}}, body)
 		assert.NotEmpty(key)
 		assert.Len(key, 64)
+	})
+
+	t.Run("form-encoded body", func(t *testing.T) {
+		body := []byte("amount=50&biller=BLR0001&reference=REF123")
+		req := httptest.NewRequest(http.MethodPost, "/pay", nil)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		key1 := buildReplayKey(req, "/pay", &config.ReplayMatch{Body: []string{"biller", "reference"}}, body)
+		key2 := buildReplayKey(req, "/pay", &config.ReplayMatch{Body: []string{"reference", "biller"}}, body)
+		assert.Equal(key1, key2)
+
+		// Different biller produces different key
+		body2 := []byte("amount=50&biller=BLR0002&reference=REF123")
+		key3 := buildReplayKey(req, "/pay", &config.ReplayMatch{Body: []string{"biller", "reference"}}, body2)
+		assert.NotEqual(key1, key3)
+	})
+
+	t.Run("query string parameters", func(t *testing.T) {
+		req1 := httptest.NewRequest(http.MethodGet, "/pay?amount=50&biller=BLR0001", nil)
+		key1 := buildReplayKey(req1, "/pay", &config.ReplayMatch{Query: []string{"amount", "biller"}}, nil)
+		key2 := buildReplayKey(req1, "/pay", &config.ReplayMatch{Query: []string{"biller", "amount"}}, nil)
+		assert.Equal(key1, key2)
+
+		// Different query value produces different key
+		req2 := httptest.NewRequest(http.MethodGet, "/pay?amount=100&biller=BLR0001", nil)
+		key3 := buildReplayKey(req2, "/pay", &config.ReplayMatch{Query: []string{"amount", "biller"}}, nil)
+		assert.NotEqual(key1, key3)
 	})
 }
 
@@ -341,7 +376,7 @@ func TestDeserializeReplayRecord(t *testing.T) {
 			"contentType":    "application/json",
 			"isFromUpstream": true,
 			"headers":        map[string]any{"X-Custom": "val"},
-			"matchValues":    map[string]any{"name": "Jane"},
+			"matchValues":    map[string]any{"body:name": "Jane"},
 			"createdAt":      "2024-01-01T00:00:00Z",
 		}
 
@@ -365,7 +400,7 @@ func TestDeserializeReplayRecord(t *testing.T) {
 			ContentType:    "application/json",
 			IsFromUpstream: false,
 			RequestBody:    []byte(`{"name":"Jane"}`),
-			MatchValues:    map[string]any{"name": "Jane"},
+			MatchValues:    map[string]any{"body:name": "Jane"},
 			CreatedAt:      time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 		}
 

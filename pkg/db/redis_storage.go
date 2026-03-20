@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"sync"
 	"time"
@@ -29,11 +30,17 @@ func newRedisStorage(cfg *config.RedisConfig) (*redisStorage, error) {
 		return nil, fmt.Errorf("redis config is nil")
 	}
 
-	client := redis.NewClient(&redis.Options{
-		Addr:     cfg.Address,
+	opts := &redis.Options{
+		Addr:     cfg.GetAddress(),
+		Username: cfg.Username,
 		Password: cfg.Password,
 		DB:       cfg.DB,
-	})
+	}
+	if cfg.TLS {
+		opts.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
+	client := redis.NewClient(opts)
 
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

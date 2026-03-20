@@ -285,26 +285,57 @@ const DefaultReplayTTL = 24 * time.Hour
 //	      /foo/{f-id}/bar/{b-id}:
 //	        POST:
 //	          match:
-//	            - data.name
-//	            - data.address.zip
+//	            body:
+//	              - data.name
+//	              - data.address.zip
 type ReplayConfig struct {
 	// TTL is how long recordings are kept. Default: 24h.
 	TTL time.Duration `yaml:"ttl"`
+
 	// UpstreamOnly when true only records responses from upstream services.
 	UpstreamOnly bool `yaml:"upstream-only"`
+
 	// AutoReplay when true activates replay for configured endpoints without requiring
 	// the X-Cxs-Replay header. When false (default), the header must be present.
 	AutoReplay bool `yaml:"auto-replay"`
-	// Endpoints maps path patterns (e.g. "/foo/{id}/bar") to HTTP methods
-	// and their match configurations.
+
+	// Endpoints maps path patterns to their match configurations.
+	// Two forms are supported:
+	//
+	//   With method (matches only that method):
+	//     /pay:
+	//       POST:
+	//         match: [reference]
+	//
+	//   Without method (matches any request method):
+	//     /pay:
+	//       match: [reference]
 	Endpoints map[string]map[string]*ReplayEndpoint `yaml:"endpoints"`
 }
 
 // ReplayEndpoint defines the match configuration for a specific endpoint and HTTP method.
 type ReplayEndpoint struct {
-	// Match is a list of dotted paths into the request body whose values
-	// form the replay key. Example: ["data.name", "data.address.zip"].
-	Match []string `yaml:"match"`
+	// Match specifies which request fields form the replay key.
+	Match *ReplayMatch `yaml:"match"`
+}
+
+// ReplayMatch specifies where to extract match field values from.
+type ReplayMatch struct {
+	// Body fields are extracted from the request body (JSON dotted paths or form-encoded flat keys).
+	Body []string `yaml:"body"`
+	// Query fields are extracted from the URL query string.
+	Query []string `yaml:"query"`
+}
+
+// AllFields returns all match field names (body + query) for key building.
+func (rm *ReplayMatch) AllFields() []string {
+	if rm == nil {
+		return nil
+	}
+	fields := make([]string, 0, len(rm.Body)+len(rm.Query))
+	fields = append(fields, rm.Body...)
+	fields = append(fields, rm.Query...)
+	return fields
 }
 
 // WithDefaults fills zero-valued fields with defaults.
@@ -317,6 +348,12 @@ func (rc *ReplayConfig) WithDefaults() *ReplayConfig {
 
 // GetEndpoint finds the matching endpoint config for a request path and method.
 // Returns the pattern path (for key building) and the endpoint config.
+//
+// Three config forms are supported:
+//   - Path only ("/pay:") — matches any method, no match fields
+//   - Path + method ("/pay: POST:") — matches that method, no match fields
+//   - Path + method + match ("/pay: POST: match: [...]") — full config
+//
 // Returns "", nil if no match is found.
 func (rc *ReplayConfig) GetEndpoint(requestPath, method string) (string, *ReplayEndpoint) {
 	if rc == nil || rc.Endpoints == nil {
@@ -324,11 +361,28 @@ func (rc *ReplayConfig) GetEndpoint(requestPath, method string) (string, *Replay
 	}
 
 	for pattern, methods := range rc.Endpoints {
-		if matchesPattern(requestPath, pattern) {
-			if ep, ok := methods[method]; ok {
-				return pattern, ep
-			}
+		if !matchesPattern(requestPath, pattern) {
+			continue
 		}
+
+		// Form 1: path only, no methods map — matches any method
+		if methods == nil {
+			return pattern, &ReplayEndpoint{}
+		}
+
+		// Form 2 & 3: method must match
+		ep, ok := methods[method]
+		if !ok {
+			continue
+		}
+
+		// Form 2: method present but endpoint is nil — no match fields
+		if ep == nil {
+			return pattern, &ReplayEndpoint{}
+		}
+
+		// Form 3: full config
+		return pattern, ep
 	}
 	return "", nil
 }

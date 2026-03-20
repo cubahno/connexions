@@ -89,7 +89,8 @@ cache:
       /path/{id}:
         POST:
           match:
-            - data.name
+            body:
+              - data.name
 
 # OpenAPI spec simplification
 spec:
@@ -141,132 +142,19 @@ Cached responses are returned for identical GET requests, improving performance.
 
 ## Replay
 
-Record API responses and replay them on subsequent requests that match specific request body fields. Works like VCR — record once, replay on match.
+Record and replay API responses based on request fields. See [Replay](../replay.md) for full documentation.
 
 ```yaml
 cache:
   replay:
-    ttl: 24h              # How long recordings are kept (default: 24h)
-    upstream-only: false   # Only record upstream responses (default: false)
-    auto-replay: false     # Activate without header (default: false)
-    endpoints:
-      /foo/{f-id}/bar/{b-id}:
-        POST:
-          match:
-            - data.name
-            - data.address.zip
-```
-
-### How It Works
-
-1. A request comes in with the `X-Cxs-Replay` header (or to an `auto-replay` endpoint)
-2. Specified fields are extracted from the request body using dotted paths
-3. A content-addressed key is built from the method, path pattern, and extracted values
-4. If a recording exists for that key → return it immediately with `X-Cxs-Source: replay`
-5. If no recording exists → forward to downstream, capture the response, store it, and return it
-
-### Activation
-
-Replay activates in two ways:
-
-**Header-based (default):** Send the `X-Cxs-Replay` header to activate replay for any request.
-
-```bash
-# Empty header — uses match fields from config
-curl -X POST /svc/foo/123/bar/456 \
-  -H "X-Cxs-Replay:" \
-  -d '{"data": {"name": "Jane", "address": {"zip": "12345"}}}'
-
-# Header with fields — overrides config match fields
-curl -X POST /svc/foo/123/bar/456 \
-  -H "X-Cxs-Replay: data.name,data.address.zip" \
-  -d '{"data": {"name": "Jane", "address": {"zip": "12345"}}}'
-```
-
-**Auto-replay:** Set `auto-replay: true` in config to activate for configured endpoints without requiring the header.
-
-```yaml
-cache:
-  replay:
-    auto-replay: true
-    endpoints:
-      /users:
-        POST:
-          match:
-            - email
-```
-
-### Match Fields
-
-Match fields are dotted paths into the JSON request body. Supported formats:
-
-| Format | Example | Description |
-|--------|---------|-------------|
-| Simple | `data.name` | Traverse nested objects |
-| Array index | `data.items[0].name` | Access specific array element |
-| Array wildcard | `data.items.name` | Search each array element, return first match |
-
-### Key Design
-
-The replay key is a SHA-256 hash of: `METHOD:pattern_path|field1=value1|field2=value2|...`
-
-- **Pattern path** is used (e.g., `/foo/{id}/bar`), not the actual URL — so different path parameter values share recordings
-- **Fields are sorted** alphabetically for determinism
-- Only the matched body fields matter — other body content is ignored
-
-### Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `ttl` | duration | `24h` | How long recordings are kept |
-| `upstream-only` | bool | `false` | Only record responses from upstream services |
-| `auto-replay` | bool | `false` | Activate for configured endpoints without requiring the header |
-| `endpoints` | map | — | Path patterns → methods → match fields |
-
-### Upstream-Only Mode
-
-When `upstream-only: true`, only responses from upstream services are recorded. If the response is not from upstream (e.g., generated or cached), the middleware returns a `502 Bad Gateway` error instead of passing the response through. This makes it explicit to the caller that the recording was skipped.
-
-```yaml
-cache:
-  replay:
-    upstream-only: true
-    endpoints:
-      /external-api/search:
-        POST:
-          match:
-            - query
-            - filters.category
-```
-
-This is useful when you want to capture real upstream responses for later replay and need a clear signal when the upstream is not available.
-
-### Example: Full Configuration
-
-```yaml
-name: my-service
-upstream:
-  url: https://api.example.com
-cache:
-  requests: true
-  replay:
-    ttl: 12h
-    upstream-only: true
+    ttl: 24h
     auto-replay: false
     endpoints:
       /search:
         POST:
           match:
-            - query
-            - filters.category
-      /users/{user-id}/orders:
-        POST:
-          match:
-            - items[0].product_id
-            - shipping.method
-        PUT:
-          match:
-            - order_id
+            body:
+              - query
 ```
 
 ## Spec Simplification

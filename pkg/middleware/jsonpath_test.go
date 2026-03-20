@@ -100,6 +100,40 @@ func TestParseDottedPath(t *testing.T) {
 	})
 }
 
+func TestExtractBodyValue(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("JSON body extraction", func(t *testing.T) {
+		body := []byte(`{"data":{"name":"Jane"}}`)
+		val := extractBodyValue(body, "application/json", "data.name")
+		assert.Equal("Jane", val)
+	})
+
+	t.Run("form-encoded body extraction", func(t *testing.T) {
+		body := []byte("amount=50&biller=BLR0001&reference=REF123")
+		val := extractBodyValue(body, "application/x-www-form-urlencoded", "biller")
+		assert.Equal("BLR0001", val)
+	})
+
+	t.Run("form-encoded with charset", func(t *testing.T) {
+		body := []byte("name=Jane&zip=12345")
+		val := extractBodyValue(body, "application/x-www-form-urlencoded; charset=UTF-8", "zip")
+		assert.Equal("12345", val)
+	})
+
+	t.Run("missing field everywhere returns nil", func(t *testing.T) {
+		body := []byte(`{"other":"value"}`)
+		val := extractBodyValue(body, "application/json", "missing")
+		assert.Nil(val)
+	})
+
+	t.Run("form-encoded empty value is returned", func(t *testing.T) {
+		body := []byte("name=&zip=12345")
+		val := extractBodyValue(body, "application/x-www-form-urlencoded", "name")
+		assert.Equal("", val)
+	})
+}
+
 func TestFormatValue(t *testing.T) {
 	assert := assert2.New(t)
 
