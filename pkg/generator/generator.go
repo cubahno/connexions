@@ -59,7 +59,7 @@ func (g *ResponseGenerator) Request(req *api.GenerateRequest, op *schema.Operati
 	}
 
 	if op.Headers != nil {
-		state := replacer.NewReplaceState(replacer.WithWriteOnly())
+		state := replacer.NewReplaceState(replacer.WithWriteOnly(), replacer.WithHeader())
 		headers := generateContentFromSchema(op.Headers, valueReplacer, state)
 		if headers != nil {
 			res["headers"] = headers

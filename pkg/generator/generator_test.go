@@ -724,6 +724,85 @@ func TestGenerator_Request(t *testing.T) {
 		assert.Equal("from-user", decoded["status"])
 	})
 
+	t.Run("in-header context replaces request headers", func(t *testing.T) {
+		serviceCtx := []map[string]any{
+			{
+				"in-header": map[string]any{
+					"X-Merchant": "WLT0001",
+					"X-Type":     "JSON",
+				},
+			},
+		}
+		gen, err := NewGenerator(serviceCtx, nil)
+		assert.NoError(err)
+
+		req := &api.GenerateRequest{
+			Path:   "/payment/execute",
+			Method: "POST",
+		}
+		op := &schema.Operation{
+			Path:   "/payment/execute",
+			Method: "POST",
+			Headers: &schema.Schema{
+				Type: "object",
+				Properties: map[string]*schema.Schema{
+					"X-Merchant": {Type: "string"},
+					"X-Type":     {Type: "string"},
+				},
+			},
+		}
+
+		result := gen.Request(req, op, nil)
+		assert.NotNil(result)
+
+		var decoded map[string]any
+		err = json.Unmarshal(result, &decoded)
+		assert.NoError(err)
+		assert.Contains(decoded, "headers")
+
+		headers := decoded["headers"].(map[string]any)
+		assert.Equal("WLT0001", headers["X-Merchant"])
+		assert.Equal("JSON", headers["X-Type"])
+	})
+
+	t.Run("in-request-header context replaces request headers", func(t *testing.T) {
+		serviceCtx := []map[string]any{
+			{
+				"in-request-header": map[string]any{
+					"X-Api-Key": "secret-key",
+				},
+			},
+		}
+		gen, err := NewGenerator(serviceCtx, nil)
+		assert.NoError(err)
+
+		req := &api.GenerateRequest{
+			Path:   "/api/data",
+			Method: "GET",
+		}
+		op := &schema.Operation{
+			Path:   "/api/data",
+			Method: "GET",
+			Headers: &schema.Schema{
+				Type: "object",
+				Properties: map[string]*schema.Schema{
+					"X-Api-Key": {Type: "string"},
+				},
+			},
+		}
+
+		result := gen.Request(req, op, nil)
+		assert.NotNil(result)
+
+		var decoded map[string]any
+		err = json.Unmarshal(result, &decoded)
+		assert.NoError(err)
+		assert.Contains(decoded, "headers")
+
+		headers := decoded["headers"].(map[string]any)
+		assert.Equal("secret-key", headers["X-Api-Key"])
+	})
+
 	t.Run("user context with func prefix is resolved", func(t *testing.T) {
 		gen, err := NewGenerator(nil, nil)
 		assert.NoError(err)
