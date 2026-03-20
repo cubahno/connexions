@@ -99,6 +99,16 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 					log.Info("Upstream error matches fail-on, returning directly",
 						"status", httpErr.StatusCode,
 					)
+
+					if params.ServiceConfig.HistoryEnabled() {
+						params.DB().History().Set(req.Context(), req.URL.Path, req, &db.HistoryResponse{
+							Data:           []byte(httpErr.Body),
+							StatusCode:     httpErr.StatusCode,
+							ContentType:    httpErr.ContentType,
+							IsFromUpstream: true,
+						})
+					}
+
 					SetDurationHeader(w, req)
 					w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceUpstream)
 					if httpErr.ContentType != "" {
