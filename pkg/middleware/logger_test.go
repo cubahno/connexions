@@ -81,6 +81,34 @@ func TestLoggerMiddleware(t *testing.T) {
 		assert.Equal("", buf.String(), "Expected no log output for /healthz")
 	})
 
+	t.Run("skips-dynamic-prefix", func(t *testing.T) {
+		current := os.Getenv("DISABLE_LOGGER")
+		defer func() {
+			_ = os.Setenv("DISABLE_LOGGER", current)
+		}()
+		_ = os.Setenv("DISABLE_LOGGER", "false")
+
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+		oldLogger := slog.Default()
+		slog.SetDefault(logger)
+		defer slog.SetDefault(oldLogger)
+
+		AddSkipPrefix("/db-explorer-ui")
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/db-explorer-ui/data?table=history", nil)
+
+		f := LoggerMiddleware(handler)
+		f.ServeHTTP(w, req)
+
+		assert.Equal("", buf.String(), "Expected no log output for skipped prefix")
+	})
+
 	t.Run("off", func(t *testing.T) {
 		current := os.Getenv("DISABLE_LOGGER")
 		defer func() {
