@@ -73,6 +73,7 @@ nav:
       - App Config: 'config/app.md'
       - Service Config: 'config/service.md'
       - Codegen Config: 'config/codegen.md'
+  - Replay: 'replay.md'
   - Storage: 'storage.md'
   - Middleware: 'middleware.md'
   - Contexts:

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -56,12 +57,26 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 }
 
 // NewAppConfigFromBytes creates an AppConfig from YAML bytes, filling missing values with defaults.
+// Environment variables override YAML values when set (via `env` struct tags).
 func NewAppConfigFromBytes(bts []byte, baseDir string) (*AppConfig, error) {
 	cfg := NewDefaultAppConfig(baseDir)
 	if err := yaml.Unmarshal(bts, cfg); err != nil {
 		return nil, fmt.Errorf("unmarshalling app config: %w", err)
 	}
 	cfg.Paths = NewPaths(baseDir)
+
+	// Ensure nested structs exist so env.Parse can populate them.
+	if cfg.Storage == nil {
+		cfg.Storage = &StorageConfig{}
+	}
+	if cfg.Storage.Redis == nil {
+		cfg.Storage.Redis = &RedisConfig{}
+	}
+
+	if err := env.Parse(cfg); err != nil {
+		return nil, fmt.Errorf("applying env overrides: %w", err)
+	}
+
 	return cfg, nil
 }
 
@@ -83,14 +98,26 @@ const (
 
 // StorageConfig configures shared storage for distributed features.
 type StorageConfig struct {
-	Type  StorageType  `yaml:"type"`
+	Type  StorageType  `yaml:"type" env:"STORAGE_TYPE"`
 	Redis *RedisConfig `yaml:"redis"`
 }
 
 // RedisConfig configures Redis connection.
 type RedisConfig struct {
-	// host:port
+	// host:port address. When Host is set via env, Address is built from Host:Port.
 	Address  string `yaml:"address"`
-	Password string `yaml:"password"`
-	DB       int    `yaml:"db"`
+	Host     string `yaml:"host" env:"REDIS_HOST"`
+	Port     string `yaml:"port" env:"REDIS_PORT" envDefault:"6379"`
+	Username string `yaml:"username" env:"REDIS_USERNAME"`
+	Password string `yaml:"password" env:"REDIS_PASSWORD"`
+	DB       int    `yaml:"db" env:"REDIS_DB"`
+	TLS      bool   `yaml:"tls" env:"REDIS_TLS"`
+}
+
+// GetAddress returns the Redis address. If Host is set, it takes precedence over Address.
+func (r *RedisConfig) GetAddress() string {
+	if r.Host != "" {
+		return r.Host + ":" + r.Port
+	}
+	return r.Address
 }

@@ -3,6 +3,7 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -100,6 +101,22 @@ func navigatePath(current any, segments []pathSegment) any {
 	}
 
 	return current
+}
+
+// extractBodyValue extracts a field value from the request body.
+// For form-encoded content type, parses as URL-encoded form data.
+// Otherwise, parses as JSON using dotted path notation.
+func extractBodyValue(body []byte, contentType string, field string) any {
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		params, err := url.ParseQuery(string(body))
+		if err == nil {
+			if v := params.Get(field); v != "" || params.Has(field) {
+				return v
+			}
+		}
+		return nil
+	}
+	return extractJSONPath(body, field)
 }
 
 // formatValue converts a value to a stable string representation for key building.

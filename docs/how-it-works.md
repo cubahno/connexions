@@ -38,7 +38,7 @@ This is useful for testing, debugging, or handling special cases without modifyi
 | `X-Cxs-Cache-Requests` | `true` / `false` | Enable/disable request caching |
 | `X-Cxs-Latency` | Duration (e.g., `100ms`, `1s`) | Override latency |
 | `X-Cxs-Upstream-Url` | URL or empty string | Override upstream URL (empty disables upstream) |
-| `X-Cxs-Replay` | Comma-separated dotted paths (or empty) | Activate replay; optionally override match fields |
+| `X-Cxs-Replay` | `body:f1,f2;query:f3` or `f1,f2` (or empty) | Activate replay; optionally override match fields |
 
 ### Response Headers
 
@@ -254,7 +254,8 @@ paths:
 
 ## Replay
 
-Record API responses and replay them on subsequent requests that match specific request body fields. See [Service Config - Replay](config/service.md#replay) for full configuration reference.
+Record API responses and replay them on subsequent requests that match specific request fields. 
+See [Replay](replay.md) for full documentation.
 
 ### How It Works
 
@@ -289,7 +290,8 @@ cache:
       /search:
         POST:
           match:
-            - query
+            body:
+              - query
 ```
 
 This configuration:

@@ -25,7 +25,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -60,7 +60,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		// Store using actual endpoint path (no config pattern)
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"no-config"}`),
 			StatusCode:  http.StatusOK,
@@ -86,7 +86,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -107,7 +107,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -115,7 +115,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		// Pre-store a replay record using config pattern path
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"stored"}`),
 			Headers:     map[string]string{"X-Custom": "value"},
@@ -144,7 +144,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 			Cache: &config.CacheConfig{
 				Replay: &config.ReplayConfig{
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
@@ -152,7 +152,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		// Store with override fields but using config pattern path
 		body := []byte(`{"name":"Jane","age":30}`)
-		key := buildReplayKey("POST", "/foo", []string{"age"}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"age"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"header-override"}`),
 			StatusCode:  http.StatusOK,
@@ -191,14 +191,14 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 				Replay: &config.ReplayConfig{
 					AutoReplay: true,
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},
 		}, nil)
 
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey("POST", "/foo", []string{"name"}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"auto"}`),
 			StatusCode:  http.StatusOK,
@@ -225,7 +225,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 				Replay: &config.ReplayConfig{
 					AutoReplay: true,
 					Endpoints: map[string]map[string]*config.ReplayEndpoint{
-						"/foo": {"POST": {Match: []string{"name"}}},
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
 					},
 				},
 			},

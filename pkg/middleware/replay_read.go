@@ -20,14 +20,14 @@ func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler 
 				return
 			}
 
-			matchFields, patternPath := resolveReplayParams(req, cfg)
-			if len(matchFields) == 0 {
+			match, patternPath := resolveReplayParams(req, cfg)
+			if match == nil && patternPath == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
 
 			body := readAndRestoreBody(req)
-			key := buildReplayKey(req.Method, patternPath, matchFields, body)
+			key := buildReplayKey(req, patternPath, match, body)
 
 			table := params.DB().Table("replay")
 			val, exists := table.Get(req.Context(), key)

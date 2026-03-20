@@ -880,10 +880,10 @@ func TestReplayConfig_GetEndpoint(t *testing.T) {
 	rc := &ReplayConfig{
 		Endpoints: map[string]map[string]*ReplayEndpoint{
 			"/foo/{f-id}/bar/{b-id}": {
-				"POST": {Match: []string{"data.name"}},
+				"POST": {Match: &ReplayMatch{Body: []string{"data.name"}}},
 			},
 			"/simple": {
-				"GET": {Match: []string{"q"}},
+				"GET": {Match: &ReplayMatch{Query: []string{"q"}}},
 			},
 		},
 	}
@@ -892,7 +892,7 @@ func TestReplayConfig_GetEndpoint(t *testing.T) {
 		pattern, ep := rc.GetEndpoint("/foo/123/bar/456", "POST")
 		assert.Equal(t, "/foo/{f-id}/bar/{b-id}", pattern)
 		assert.NotNil(t, ep)
-		assert.Equal(t, []string{"data.name"}, ep.Match)
+		assert.Equal(t, []string{"data.name"}, ep.Match.Body)
 	})
 
 	t.Run("matches simple path", func(t *testing.T) {
@@ -924,6 +924,56 @@ func TestReplayConfig_GetEndpoint(t *testing.T) {
 		rc := &ReplayConfig{}
 		pattern, ep := rc.GetEndpoint("/foo", "GET")
 		assert.Equal(t, "", pattern)
+		assert.Nil(t, ep)
+	})
+
+	t.Run("path only matches any method with no match fields", func(t *testing.T) {
+		rc := &ReplayConfig{
+			Endpoints: map[string]map[string]*ReplayEndpoint{
+				"/pay": nil,
+			},
+		}
+		pattern, ep := rc.GetEndpoint("/pay", "POST")
+		assert.Equal(t, "/pay", pattern)
+		assert.NotNil(t, ep)
+		assert.Nil(t, ep.Match)
+
+		pattern, ep = rc.GetEndpoint("/pay", "GET")
+		assert.Equal(t, "/pay", pattern)
+		assert.NotNil(t, ep)
+	})
+
+	t.Run("path with method but no match fields", func(t *testing.T) {
+		rc := &ReplayConfig{
+			Endpoints: map[string]map[string]*ReplayEndpoint{
+				"/pay": {"POST": nil},
+			},
+		}
+		pattern, ep := rc.GetEndpoint("/pay", "POST")
+		assert.Equal(t, "/pay", pattern)
+		assert.NotNil(t, ep)
+		assert.Nil(t, ep.Match)
+
+		_, ep = rc.GetEndpoint("/pay", "GET")
+		assert.Nil(t, ep)
+	})
+
+	t.Run("multiple methods require exact match", func(t *testing.T) {
+		rc := &ReplayConfig{
+			Endpoints: map[string]map[string]*ReplayEndpoint{
+				"/pay": {
+					"POST": {Match: &ReplayMatch{Body: []string{"reference", "amount"}}},
+					"GET":  {Match: &ReplayMatch{Query: []string{"reference"}}},
+				},
+			},
+		}
+		_, ep := rc.GetEndpoint("/pay", "POST")
+		assert.Equal(t, []string{"reference", "amount"}, ep.Match.Body)
+
+		_, ep = rc.GetEndpoint("/pay", "GET")
+		assert.Equal(t, []string{"reference"}, ep.Match.Query)
+
+		_, ep = rc.GetEndpoint("/pay", "PUT")
 		assert.Nil(t, ep)
 	})
 }
@@ -964,8 +1014,9 @@ cache:
       /foo/{f-id}/bar/{b-id}:
         POST:
           match:
-            - data.name
-            - data.address.zip
+            body:
+              - data.name
+              - data.address.zip
 `)
 		cfg, err := NewServiceConfigFromBytes(yamlData)
 		assert.NoError(t, err)
@@ -978,7 +1029,27 @@ cache:
 		methods := cfg.Cache.Replay.Endpoints["/foo/{f-id}/bar/{b-id}"]
 		assert.NotNil(t, methods)
 		assert.NotNil(t, methods["POST"])
-		assert.Equal(t, []string{"data.name", "data.address.zip"}, methods["POST"].Match)
+		assert.Equal(t, []string{"data.name", "data.address.zip"}, methods["POST"].Match.Body)
+	})
+
+	t.Run("parses replay config with query match", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  replay:
+    endpoints:
+      /search:
+        GET:
+          match:
+            query:
+              - q
+              - page
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		ep := cfg.Cache.Replay.Endpoints["/search"]["GET"]
+		assert.NotNil(t, ep)
+		assert.Equal(t, []string{"q", "page"}, ep.Match.Query)
+		assert.Empty(t, ep.Match.Body)
 	})
 
 	t.Run("parses replay config without optional fields", func(t *testing.T) {
@@ -989,8 +1060,6 @@ cache:
     endpoints:
       /test:
         GET:
-          match:
-            - q
 `)
 		cfg, err := NewServiceConfigFromBytes(yamlData)
 		assert.NoError(t, err)
@@ -1018,7 +1087,8 @@ cache:
       /foo:
         POST:
           match:
-            - name
+            body:
+              - name
 `)
 		cfg, err := NewServiceConfigFromBytes(yamlData)
 		assert.NoError(t, err)
@@ -1033,7 +1103,8 @@ cache:
       /foo:
         POST:
           match:
-            - name
+            body:
+              - name
 `)
 		cfg, err := NewServiceConfigFromBytes(yamlData)
 		assert.NoError(t, err)

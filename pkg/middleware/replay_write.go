@@ -25,14 +25,14 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 				return
 			}
 
-			matchFields, patternPath := resolveReplayParams(req, cfg)
-			if len(matchFields) == 0 {
+			match, patternPath := resolveReplayParams(req, cfg)
+			if match == nil && patternPath == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
 
 			body := readAndRestoreBody(req)
-			key := buildReplayKey(req.Method, patternPath, matchFields, body)
+			key := buildReplayKey(req, patternPath, match, body)
 
 			table := params.DB().Table("replay")
 			ctx := req.Context()
@@ -80,9 +80,16 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 			}
 
 			// Extract match values for debugging
-			matchValues := make(map[string]any, len(matchFields))
-			for _, field := range matchFields {
-				matchValues[field] = extractJSONPath(body, field)
+			matchValues := make(map[string]any)
+			if match != nil {
+				contentType := req.Header.Get("Content-Type")
+				query := req.URL.Query()
+				for _, field := range match.Body {
+					matchValues["body:"+field] = extractBodyValue(body, contentType, field)
+				}
+				for _, field := range match.Query {
+					matchValues["query:"+field] = query.Get(field)
+				}
 			}
 
 			// Capture response headers

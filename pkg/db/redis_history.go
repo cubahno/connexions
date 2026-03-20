@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ type redisHistoryTable struct {
 type redisHistoryRecord struct {
 	ID         string           `json:"id"`
 	Resource   string           `json:"resource"`
+	Method     string           `json:"method"`
+	URL        string           `json:"url"`
 	Body       []byte           `json:"body"`
 	Response   *HistoryResponse `json:"response,omitempty"`
 	RemoteAddr string           `json:"remoteAddr,omitempty"`
@@ -91,6 +94,8 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 	record := redisHistoryRecord{
 		ID:         id,
 		Resource:   resource,
+		Method:     req.Method,
+		URL:        req.URL.String(),
 		Body:       body,
 		Response:   response,
 		RemoteAddr: req.RemoteAddr,
@@ -173,14 +178,24 @@ func (h *redisHistoryTable) Data(ctx context.Context) []*HistoryEntry {
 			continue
 		}
 
-		entries = append(entries, &HistoryEntry{
+		entry := &HistoryEntry{
 			ID:         record.ID,
 			Resource:   record.Resource,
 			Body:       record.Body,
 			Response:   record.Response,
 			RemoteAddr: record.RemoteAddr,
 			CreatedAt:  record.CreatedAt,
-		})
+		}
+
+		if record.Method != "" || record.URL != "" {
+			parsedURL, _ := url.Parse(record.URL)
+			entry.Request = &http.Request{
+				Method: record.Method,
+				URL:    parsedURL,
+			}
+		}
+
+		entries = append(entries, entry)
 	}
 
 	// Sort by CreatedAt for stable ordering

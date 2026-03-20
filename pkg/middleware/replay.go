@@ -16,9 +16,13 @@ import (
 
 // headerReplayMatch is the HTTP header that activates replay.
 // When present (even with empty value), replay middleware is activated.
-// If the header contains comma-separated dotted paths, those override configured match fields.
+// If the header contains match fields, those override configured match fields.
+// Format: "body:field1,field2;query:field3,field4" — unqualified fields are treated as body.
 //
-// Example: X-Cxs-Replay: data.name,data.address.zip
+// Examples:
+//
+//	X-Cxs-Replay: data.name,data.address.zip
+//	X-Cxs-Replay: body:biller,reference;query:channel
 const headerReplayMatch = "X-Cxs-Replay"
 
 // ReplayRecord holds a recorded response along with request metadata for debugging.
@@ -42,15 +46,55 @@ type ReplayRecord struct {
 	CreatedAt      time.Time         `json:"createdAt"`
 }
 
-// parseReplayHeader parses the X-Cxs-Replay header value into match fields.
+// parseReplayHeader parses the X-Cxs-Replay header value into a ReplayMatch.
+// Format: "body:field1,field2;query:field3,field4"
+// Unqualified fields (no "body:" or "query:" prefix) are treated as body fields.
 // Returns nil if the header value is empty.
-func parseReplayHeader(headerValue string) []string {
+func parseReplayHeader(headerValue string) *config.ReplayMatch {
 	if headerValue == "" {
 		return nil
 	}
-	fields := strings.Split(headerValue, ",")
-	result := make([]string, 0, len(fields))
-	for _, f := range fields {
+
+	match := &config.ReplayMatch{}
+	sections := strings.Split(headerValue, ";")
+
+	for _, section := range sections {
+		section = strings.TrimSpace(section)
+		if section == "" {
+			continue
+		}
+
+		var source string
+		var fieldsPart string
+
+		if idx := strings.Index(section, ":"); idx != -1 {
+			source = strings.TrimSpace(section[:idx])
+			fieldsPart = section[idx+1:]
+		} else {
+			source = "body"
+			fieldsPart = section
+		}
+
+		fields := splitFields(fieldsPart)
+		switch source {
+		case "query":
+			match.Query = append(match.Query, fields...)
+		default:
+			match.Body = append(match.Body, fields...)
+		}
+	}
+
+	if len(match.Body) == 0 && len(match.Query) == 0 {
+		return nil
+	}
+	return match
+}
+
+// splitFields splits a comma-separated string into trimmed, non-empty fields.
+func splitFields(s string) []string {
+	parts := strings.Split(s, ",")
+	result := make([]string, 0, len(parts))
+	for _, f := range parts {
 		f = strings.TrimSpace(f)
 		if f != "" {
 			result = append(result, f)
@@ -59,12 +103,12 @@ func parseReplayHeader(headerValue string) []string {
 	return result
 }
 
-// resolveReplayParams resolves the match fields and pattern path for a replay request.
+// resolveReplayParams resolves the match config and pattern path for a replay request.
 // Activation rules:
 //   - If X-Cxs-Replay header is present → always activate (header value overrides config match fields)
 //   - If auto-replay is true in config → activate for configured endpoints without header
 //   - Otherwise → skip
-func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (matchFields []string, patternPath string) {
+func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *config.ReplayMatch, patternPath string) {
 	// Check header presence (not just value — empty header is valid)
 	headerValues, headerPresent := req.Header[http.CanonicalHeaderKey(headerReplayMatch)]
 
@@ -83,18 +127,20 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (matchFie
 
 	endpointPath := getEndpointPath(req, cfg.Name)
 
-	// Try to get pattern path and config match fields from replay config
-	var configMatch []string
+	// Try to get pattern path and config match from replay config
+	var configMatch *config.ReplayMatch
+	endpointConfigured := false
 	if cfg.Cache != nil && cfg.Cache.Replay != nil {
 		pattern, ep := cfg.Cache.Replay.GetEndpoint(endpointPath, req.Method)
 		if ep != nil {
 			patternPath = pattern
 			configMatch = ep.Match
+			endpointConfigured = true
 		}
 	}
 
 	// auto-replay without header requires a configured endpoint
-	if !headerPresent && len(configMatch) == 0 {
+	if !headerPresent && !endpointConfigured {
 		return nil, ""
 	}
 
@@ -104,32 +150,46 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (matchFie
 	}
 
 	// Header value overrides config match fields
-	if fields := parseReplayHeader(headerValue); len(fields) > 0 {
-		return fields, patternPath
+	if headerMatch := parseReplayHeader(headerValue); headerMatch != nil {
+		return headerMatch, patternPath
 	}
 
 	// Header present but empty value, or auto-replay → fall back to config
 	return configMatch, patternPath
 }
 
-// buildReplayKey builds a deterministic key from method, pattern path, match fields, and request body.
+// buildReplayKey builds a deterministic key from the request, pattern path, match config, and body.
 // Returns a SHA-256 hex digest.
-func buildReplayKey(method, patternPath string, matchFields []string, body []byte) string {
-	sorted := make([]string, len(matchFields))
-	copy(sorted, matchFields)
-	sort.Strings(sorted)
+func buildReplayKey(req *http.Request, patternPath string, match *config.ReplayMatch, body []byte) string {
+	contentType := req.Header.Get("Content-Type")
+	query := req.URL.Query()
+
+	// Collect all field=value pairs, prefixed with source for determinism
+	var pairs []string
+	if match != nil {
+		for _, field := range match.Body {
+			val := extractBodyValue(body, contentType, field)
+			pairs = append(pairs, "body:"+field+"="+formatValue(val))
+		}
+		for _, field := range match.Query {
+			val := query.Get(field)
+			if val == "" && !query.Has(field) {
+				pairs = append(pairs, "query:"+field+"="+formatValue(nil))
+			} else {
+				pairs = append(pairs, "query:"+field+"="+val)
+			}
+		}
+	}
+	sort.Strings(pairs)
 
 	var sb strings.Builder
-	sb.WriteString(method)
+	sb.WriteString(req.Method)
 	sb.WriteString(":")
 	sb.WriteString(patternPath)
 
-	for _, field := range sorted {
-		val := extractJSONPath(body, field)
+	for _, pair := range pairs {
 		sb.WriteString("|")
-		sb.WriteString(field)
-		sb.WriteString("=")
-		sb.WriteString(formatValue(val))
+		sb.WriteString(pair)
 	}
 
 	hash := sha256.Sum256([]byte(sb.String()))
