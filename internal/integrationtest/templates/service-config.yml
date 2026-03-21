@@ -17,3 +17,7 @@ spec:
   # Disable lazy loading - we test all endpoints, so eager parsing is more efficient
   lazyLoad: false
   # Simplify is set dynamically based on spec size (see simplify-threshold-mb)
+  # Limit optional properties to 5 for integration tests (default is all)
+  optional-properties:
+    min: 5
+    max: 5

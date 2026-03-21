@@ -8,9 +8,10 @@ cache:
   requests: true
 spec:
   simplify: false
-  optional-properties:
-    number: 5
-    # range: "1-6"
+  # optional-properties not set = keep all optional properties
+  # optional-properties:
+  #   min: 5
+  #   max: 5
 #upstream:
 #  url: https://api.example.com
 #  timeout: 5s
