@@ -77,7 +77,7 @@ status: ["active", "inactive"]  # Matches any field named "status" regardless of
 email: "fake:internet.email"    # Matches any field named "email" at any level
 ```
 
-**Nested objects** use suffix matching — they only match when the response path ends with the context path:
+**Nested objects** use suffix matching - they only match when the response path ends with the context path:
 
 ```yaml
 data:
@@ -110,7 +110,7 @@ ownerPerson:
   name: "Jane Doe"
 ```
 
-**Note:** Context keys must match your schema property names exactly — there is no automatic case conversion. If your OpenAPI schema uses `camelCase`, your context keys should also be `camelCase`.
+**Note:** Context keys must match your schema property names exactly - there is no automatic case conversion. If your OpenAPI schema uses `camelCase`, your context keys should also be `camelCase`.
 
 ### Arrays
 
@@ -352,11 +352,11 @@ Replacement is applied in the order of definition. If no configuration is provid
 
 When generating values, contexts are checked in the following order. The first match wins:
 
-1. **User context** — provided via the UI editor or `X-Cxs-Context` HTTP header (base64-encoded JSON)
-2. **Service context** — from the service's `context.yml` file
-3. **Common context** — built-in patterns like `(_id|Id)$`, `email`, etc.
-4. **Fake context** — faker library generators
-5. **Words context** — common nouns, adjectives, verbs for fallback data
+1. **User context** - provided via the UI editor or `X-Cxs-Context` HTTP header (base64-encoded JSON)
+2. **Service context** - from the service's `context.yml` file
+3. **Common context** - built-in patterns like `(_id|Id)$`, `email`, etc.
+4. **Fake context** - faker library generators
+5. **Words context** - common nouns, adjectives, verbs for fallback data
 
 User context overrides service context, which overrides defaults. This applies to both request and response generation.
 
@@ -373,7 +373,7 @@ This is useful for:
 - CI pipelines testing specific values
 - Programmatic response generation with custom data
 
-All context functions (`func:`, `fake:`, `alias:`, `botify:`, `join:`) are supported in the header value — they are processed the same way as context YAML files.
+All context functions (`func:`, `fake:`, `alias:`, `botify:`, `join:`) are supported in the header value - they are processed the same way as context YAML files.
 
 ## Using in Fixed Responses
 

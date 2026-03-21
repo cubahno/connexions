@@ -862,6 +862,29 @@ max: 10
 	})
 }
 
+func TestExtractPathValues(t *testing.T) {
+	tests := []struct {
+		name     string
+		request  string
+		pattern  string
+		expected map[string]string
+	}{
+		{"single variable", "/pay/credit-card", "/pay/{paymentMethodName}", map[string]string{"paymentMethodName": "credit-card"}},
+		{"multiple variables", "/pay/credit-card/tx/123", "/pay/{paymentMethodName}/tx/{txId}", map[string]string{"paymentMethodName": "credit-card", "txId": "123"}},
+		{"no variables", "/foo/bar", "/foo/bar", map[string]string{}},
+		{"all variables", "/a/b/c", "/{x}/{y}/{z}", map[string]string{"x": "a", "y": "b", "z": "c"}},
+		{"length mismatch", "/foo/bar/baz", "/foo/{id}", nil},
+		{"segment mismatch", "/foo/bar", "/baz/{id}", nil},
+		{"trailing slash", "/pay/credit-card/", "/pay/{paymentMethodName}", map[string]string{"paymentMethodName": "credit-card"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, ExtractPathValues(tt.request, tt.pattern))
+		})
+	}
+}
+
 func TestReplayConfig_WithDefaults(t *testing.T) {
 	t.Run("sets TTL to default when zero", func(t *testing.T) {
 		rc := &ReplayConfig{}
@@ -1093,6 +1116,27 @@ cache:
 		cfg, err := NewServiceConfigFromBytes(yamlData)
 		assert.NoError(t, err)
 		assert.True(t, cfg.Cache.Replay.AutoReplay)
+	})
+
+	t.Run("parses replay config with path match", func(t *testing.T) {
+		yamlData := []byte(`
+cache:
+  replay:
+    endpoints:
+      /pay/{paymentMethodName}/tx/{txId}:
+        POST:
+          match:
+            path:
+              - paymentMethodName
+            body:
+              - reference
+`)
+		cfg, err := NewServiceConfigFromBytes(yamlData)
+		assert.NoError(t, err)
+		ep := cfg.Cache.Replay.Endpoints["/pay/{paymentMethodName}/tx/{txId}"]["POST"]
+		assert.NotNil(t, ep)
+		assert.Equal(t, []string{"paymentMethodName"}, ep.Match.Path)
+		assert.Equal(t, []string{"reference"}, ep.Match.Body)
 	})
 
 	t.Run("auto-replay defaults to false", func(t *testing.T) {

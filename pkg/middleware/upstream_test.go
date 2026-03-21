@@ -216,7 +216,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(`{"message": "Hello, from remote!"}`, string(w.buf))
 		assert.Equal(`{"foo": "bar"}`, rcvdBody)
 
-		// Check history — 2 entries: the seeded one + the new upstream result
+		// Check history - 2 entries: the seeded one + the new upstream result
 		data := params.DB().History().Data(context.Background())
 		assert.Equal(2, len(data))
 		// Latest entry should have the upstream response
@@ -463,7 +463,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		middleware := CreateUpstreamRequestMiddleware(params)
 		wrappedHandler := middleware(handler)
 
-		// Make 5 successful requests — should NOT trip circuit breaker.
+		// Make 5 successful requests - should NOT trip circuit breaker.
 		for i := 1; i <= 5; i++ {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
@@ -501,7 +501,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		middleware := CreateUpstreamRequestMiddleware(params)
 		wrappedHandler := middleware(handler)
 
-		// Make 5 requests — all return 401, which is outside trip-on-status range.
+		// Make 5 requests - all return 401, which is outside trip-on-status range.
 		// Circuit breaker should NOT open because these are not counted as failures.
 		for i := 1; i <= 5; i++ {
 			w := NewBufferedResponseWriter()

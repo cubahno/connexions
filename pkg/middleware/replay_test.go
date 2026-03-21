@@ -28,6 +28,10 @@ func TestParseReplayHeader(t *testing.T) {
 		{"trailing comma", "data.name,", &config.ReplayMatch{Body: []string{"data.name"}}},
 		{"only commas", ",,", nil},
 		{"only spaces", "  ,  ,  ", nil},
+		{"path source", "path:paymentMethodName", &config.ReplayMatch{Path: []string{"paymentMethodName"}}},
+		{"path and body", "path:paymentMethodName;body:reference", &config.ReplayMatch{Path: []string{"paymentMethodName"}, Body: []string{"reference"}}},
+		{"path body query", "path:id;body:name;query:channel", &config.ReplayMatch{Path: []string{"id"}, Body: []string{"name"}, Query: []string{"channel"}}},
+		{"empty sections", ";;name;;", &config.ReplayMatch{Body: []string{"name"}}},
 	}
 
 	for _, tt := range tests {
@@ -54,7 +58,7 @@ func TestResolveReplayParams(t *testing.T) {
 		}
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Nil(match)
 		assert.Empty(pattern)
 	})
@@ -73,7 +77,7 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "age,city")
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Equal(&config.ReplayMatch{Body: []string{"age", "city"}}, match)
 		assert.Equal("/foo", pattern) // uses config pattern
 	})
@@ -92,7 +96,7 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "")
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Equal(&config.ReplayMatch{Body: []string{"name", "zip"}}, match)
 		assert.Equal("/foo", pattern)
 	})
@@ -102,7 +106,7 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo/123", nil)
 		req.Header.Set(headerReplayMatch, "name")
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Equal(&config.ReplayMatch{Body: []string{"name"}}, match)
 		assert.Equal("/foo/123", pattern) // actual path, no config pattern
 	})
@@ -112,7 +116,7 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "")
 
-		match, _ := resolveReplayParams(req, cfg)
+		match, _, _ := resolveReplayParams(req, cfg)
 		assert.Nil(match)
 	})
 
@@ -130,7 +134,7 @@ func TestResolveReplayParams(t *testing.T) {
 		}
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Equal(&config.ReplayMatch{Body: []string{"name"}}, match)
 		assert.Equal("/foo", pattern)
 	})
@@ -149,7 +153,7 @@ func TestResolveReplayParams(t *testing.T) {
 		}
 		req := httptest.NewRequest(http.MethodPost, "/svc/bar", nil)
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Nil(match)
 		assert.Empty(pattern)
 	})
@@ -169,7 +173,7 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", nil)
 		req.Header.Set(headerReplayMatch, "age")
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Equal(&config.ReplayMatch{Body: []string{"age"}}, match)
 		assert.Equal("/foo", pattern) // still uses config pattern
 	})
@@ -188,9 +192,29 @@ func TestResolveReplayParams(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo/123/bar", nil)
 		req.Header.Set(headerReplayMatch, "")
 
-		match, pattern := resolveReplayParams(req, cfg)
+		match, pattern, _ := resolveReplayParams(req, cfg)
 		assert.Equal(&config.ReplayMatch{Body: []string{"name"}}, match)
 		assert.Equal("/foo/{id}/bar", pattern)
+	})
+
+	t.Run("returns endpoint path for path variable extraction", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/pay/{paymentMethod}/tx/{txId}": {"POST": {Match: &config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodPost, "/svc/pay/credit-card/tx/123", nil)
+		req.Header.Set(headerReplayMatch, "")
+
+		match, pattern, endpointPath := resolveReplayParams(req, cfg)
+		assert.Equal(&config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}, match)
+		assert.Equal("/pay/{paymentMethod}/tx/{txId}", pattern)
+		assert.Equal("/pay/credit-card/tx/123", endpointPath)
 	})
 }
 
@@ -200,16 +224,16 @@ func TestBuildReplayKey(t *testing.T) {
 	t.Run("deterministic for same input", func(t *testing.T) {
 		body := []byte(`{"name":"Jane","zip":"12345"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
-		key2 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
+		key1 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
+		key2 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
 		assert.Equal(key1, key2)
 	})
 
 	t.Run("fields are sorted for determinism", func(t *testing.T) {
 		body := []byte(`{"name":"Jane","zip":"12345"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
-		key2 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"zip", "name"}}, body)
+		key1 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name", "zip"}}, body)
+		key2 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"zip", "name"}}, body)
 		assert.Equal(key1, key2)
 	})
 
@@ -217,16 +241,16 @@ func TestBuildReplayKey(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
 		req1 := httptest.NewRequest(http.MethodPost, "/foo", nil)
 		req2 := httptest.NewRequest(http.MethodPut, "/foo", nil)
-		key1 := buildReplayKey(req1, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
-		key2 := buildReplayKey(req2, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key1 := buildReplayKey(req1, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key2 := buildReplayKey(req2, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		assert.NotEqual(key1, key2)
 	})
 
 	t.Run("different paths produce different keys", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
-		key2 := buildReplayKey(req, "/bar", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key1 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key2 := buildReplayKey(req, "/bar", "/bar", &config.ReplayMatch{Body: []string{"name"}}, body)
 		assert.NotEqual(key1, key2)
 	})
 
@@ -234,22 +258,34 @@ func TestBuildReplayKey(t *testing.T) {
 		body1 := []byte(`{"name":"Jane"}`)
 		body2 := []byte(`{"name":"John"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key1 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body1)
-		key2 := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, body2)
+		key1 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body1)
+		key2 := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body2)
 		assert.NotEqual(key1, key2)
 	})
 
-	t.Run("missing field produces nil value in key", func(t *testing.T) {
+	t.Run("missing body field returns empty key", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"missing"}}, body)
-		assert.NotEmpty(key)
-		assert.Len(key, 64) // SHA-256 hex is 64 chars
+		key := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"missing"}}, body)
+		assert.Empty(key)
 	})
 
-	t.Run("nil body", func(t *testing.T) {
+	t.Run("nil body with body match returns empty key", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, nil)
+		key := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, nil)
+		assert.Empty(key)
+	})
+
+	t.Run("missing query field returns empty key", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/foo?other=1", nil)
+		key := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Query: []string{"missing"}}, nil)
+		assert.Empty(key)
+	})
+
+	t.Run("present fields still produce valid key", func(t *testing.T) {
+		body := []byte(`{"name":"Jane"}`)
+		req := httptest.NewRequest(http.MethodPost, "/foo?channel=web", nil)
+		key := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}, Query: []string{"channel"}}, body)
 		assert.NotEmpty(key)
 		assert.Len(key, 64)
 	})
@@ -257,7 +293,7 @@ func TestBuildReplayKey(t *testing.T) {
 	t.Run("empty fields", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
-		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{}}, body)
+		key := buildReplayKey(req, "/foo", "/foo", &config.ReplayMatch{Body: []string{}}, body)
 		assert.NotEmpty(key)
 		assert.Len(key, 64)
 	})
@@ -266,26 +302,54 @@ func TestBuildReplayKey(t *testing.T) {
 		body := []byte("amount=50&biller=BLR0001&reference=REF123")
 		req := httptest.NewRequest(http.MethodPost, "/pay", nil)
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		key1 := buildReplayKey(req, "/pay", &config.ReplayMatch{Body: []string{"biller", "reference"}}, body)
-		key2 := buildReplayKey(req, "/pay", &config.ReplayMatch{Body: []string{"reference", "biller"}}, body)
+		key1 := buildReplayKey(req, "/pay", "/pay", &config.ReplayMatch{Body: []string{"biller", "reference"}}, body)
+		key2 := buildReplayKey(req, "/pay", "/pay", &config.ReplayMatch{Body: []string{"reference", "biller"}}, body)
 		assert.Equal(key1, key2)
 
 		// Different biller produces different key
 		body2 := []byte("amount=50&biller=BLR0002&reference=REF123")
-		key3 := buildReplayKey(req, "/pay", &config.ReplayMatch{Body: []string{"biller", "reference"}}, body2)
+		key3 := buildReplayKey(req, "/pay", "/pay", &config.ReplayMatch{Body: []string{"biller", "reference"}}, body2)
 		assert.NotEqual(key1, key3)
 	})
 
 	t.Run("query string parameters", func(t *testing.T) {
 		req1 := httptest.NewRequest(http.MethodGet, "/pay?amount=50&biller=BLR0001", nil)
-		key1 := buildReplayKey(req1, "/pay", &config.ReplayMatch{Query: []string{"amount", "biller"}}, nil)
-		key2 := buildReplayKey(req1, "/pay", &config.ReplayMatch{Query: []string{"biller", "amount"}}, nil)
+		key1 := buildReplayKey(req1, "/pay", "/pay", &config.ReplayMatch{Query: []string{"amount", "biller"}}, nil)
+		key2 := buildReplayKey(req1, "/pay", "/pay", &config.ReplayMatch{Query: []string{"biller", "amount"}}, nil)
 		assert.Equal(key1, key2)
 
 		// Different query value produces different key
 		req2 := httptest.NewRequest(http.MethodGet, "/pay?amount=100&biller=BLR0001", nil)
-		key3 := buildReplayKey(req2, "/pay", &config.ReplayMatch{Query: []string{"amount", "biller"}}, nil)
+		key3 := buildReplayKey(req2, "/pay", "/pay", &config.ReplayMatch{Query: []string{"amount", "biller"}}, nil)
 		assert.NotEqual(key1, key3)
+	})
+
+	t.Run("path variables produce different keys for different values", func(t *testing.T) {
+		body := []byte(`{"ref":"REF123"}`)
+		req := httptest.NewRequest(http.MethodPost, "/pay/credit-card/tx/123", nil)
+		match := &config.ReplayMatch{Path: []string{"paymentMethodName"}, Body: []string{"ref"}}
+		key1 := buildReplayKey(req, "/pay/{paymentMethodName}/tx/{txId}", "/pay/credit-card/tx/123", match, body)
+		key2 := buildReplayKey(req, "/pay/{paymentMethodName}/tx/{txId}", "/pay/bank-transfer/tx/123", match, body)
+		assert.NotEmpty(key1)
+		assert.NotEmpty(key2)
+		assert.NotEqual(key1, key2)
+	})
+
+	t.Run("path variables are sorted with other fields", func(t *testing.T) {
+		body := []byte(`{"ref":"REF123"}`)
+		req := httptest.NewRequest(http.MethodPost, "/pay/credit-card/tx/123", nil)
+		match1 := &config.ReplayMatch{Path: []string{"paymentMethodName"}, Body: []string{"ref"}}
+		match2 := &config.ReplayMatch{Body: []string{"ref"}, Path: []string{"paymentMethodName"}}
+		key1 := buildReplayKey(req, "/pay/{paymentMethodName}/tx/{txId}", "/pay/credit-card/tx/123", match1, body)
+		key2 := buildReplayKey(req, "/pay/{paymentMethodName}/tx/{txId}", "/pay/credit-card/tx/123", match2, body)
+		assert.Equal(key1, key2)
+	})
+
+	t.Run("missing path variable returns empty key", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/pay/credit-card", nil)
+		match := &config.ReplayMatch{Path: []string{"nonExistent"}}
+		key := buildReplayKey(req, "/pay/{paymentMethodName}", "/pay/credit-card", match, nil)
+		assert.Empty(key)
 	})
 }
 

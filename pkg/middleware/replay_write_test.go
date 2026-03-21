@@ -90,7 +90,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		assert.Equal(`{"id":1}`, w.Body.String())
 
 		// Verify recorded
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
 		val, exists := params.DB().Table("replay").Get(context.TODO(), key)
 		assert.True(exists)
 
@@ -121,7 +121,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		mw(handler).ServeHTTP(w, req)
 
 		// Verify recorded with actual path
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
 		_, exists := params.DB().Table("replay").Get(context.TODO(), key)
 		assert.True(exists)
 	})
@@ -139,7 +139,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		}, nil)
 
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 
 		// Pre-store
 		existing := &ReplayRecord{
@@ -200,7 +200,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 
 		// Should NOT be recorded
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		_, exists := params.DB().Table("replay").Get(context.TODO(), key)
 		assert.False(exists)
 	})
@@ -237,7 +237,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 
 		// Should NOT be recorded
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		_, exists := params.DB().Table("replay").Get(context.TODO(), key)
 		assert.False(exists)
 	})
@@ -271,7 +271,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		mw(handler).ServeHTTP(w, req)
 
 		// Should be recorded
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
 		val, exists := params.DB().Table("replay").Get(context.TODO(), key)
 		assert.True(exists)
 
@@ -306,7 +306,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
 
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
 
 		// Should exist immediately
 		_, exists := params.DB().Table("replay").Get(context.TODO(), key)
@@ -343,17 +343,120 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 		body := `{"name":"Jane"}`
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
-		// No header — auto-replay should activate
+		// No header - auto-replay should activate
 		mw(handler).ServeHTTP(w, req)
 
 		assert.Equal(`{"auto":true}`, w.Body.String())
 
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
 		val, exists := params.DB().Table("replay").Get(context.TODO(), key)
 		assert.True(exists)
 
 		rec := val.(*ReplayRecord)
 		assert.Equal([]byte(`{"auto":true}`), rec.Data)
+	})
+
+	t.Run("missing match field skips recording", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name", "missing_field"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		})
+		mw := CreateReplayWriteMiddleware(params)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req.Header.Set(headerReplayMatch, "") // empty → config
+		mw(handler).ServeHTTP(w, req)
+
+		// Response should be written through
+		assert.Equal(`{"ok":true}`, w.Body.String())
+
+		// Nothing recorded
+		data := params.DB().Table("replay").Data(context.TODO())
+		assert.Empty(data)
+	})
+
+	t.Run("records with path variable match values", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					TTL: 1 * time.Hour,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/pay/{paymentMethod}": {"POST": {Match: &config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		})
+		mw := CreateReplayWriteMiddleware(params)
+
+		w := httptest.NewRecorder()
+		body := `{"ref":"REF123"}`
+		req := httptest.NewRequest(http.MethodPost, "/svc/pay/credit-card", strings.NewReader(body))
+		req.Header.Set(headerReplayMatch, "")
+		mw(handler).ServeHTTP(w, req)
+
+		// Verify recorded with path variable in key
+		match := &config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/pay/credit-card", nil), "/pay/{paymentMethod}", "/pay/credit-card", match, []byte(body))
+		val, exists := params.DB().Table("replay").Get(context.TODO(), key)
+		assert.True(exists)
+
+		rec := val.(*ReplayRecord)
+		assert.Equal(map[string]any{"path:paymentMethod": "credit-card", "body:ref": "REF123"}, rec.MatchValues)
+	})
+
+	t.Run("records with query match values", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					TTL: 1 * time.Hour,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/search": {"GET": {Match: &config.ReplayMatch{Query: []string{"q"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"results":[]}`))
+		})
+		mw := CreateReplayWriteMiddleware(params)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/svc/search?q=test", nil)
+		req.Header.Set(headerReplayMatch, "")
+		mw(handler).ServeHTTP(w, req)
+
+		key := buildReplayKey(httptest.NewRequest(http.MethodGet, "/search?q=test", nil), "/search", "/search", &config.ReplayMatch{Query: []string{"q"}}, nil)
+		val, exists := params.DB().Table("replay").Get(context.TODO(), key)
+		assert.True(exists)
+
+		rec := val.(*ReplayRecord)
+		assert.Equal(map[string]any{"query:q": "test"}, rec.MatchValues)
 	})
 
 	t.Run("auto-replay skips non-configured endpoints", func(t *testing.T) {

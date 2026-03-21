@@ -1,6 +1,6 @@
 # Replay
 
-Record API responses and replay them on subsequent requests that match specific request fields. Works like VCR — record once, replay on match.
+Record API responses and replay them on subsequent requests that match specific request fields. Works like VCR - record once, replay on match.
 
 ```yaml
 cache:
@@ -12,6 +12,8 @@ cache:
       /foo/{f-id}/bar/{b-id}:
         POST:
           match:
+            path:
+              - f-id
             body:
               - data.name
               - data.address.zip
@@ -22,8 +24,8 @@ cache:
 1. A request comes in with the `X-Cxs-Replay` header (or to an `auto-replay` endpoint)
 2. Specified fields are extracted from the request body and/or query string
 3. A content-addressed key is built from the method, path pattern, and extracted values
-4. If a recording exists for that key — return it immediately with `X-Cxs-Source: replay`
-5. If no recording exists — forward to downstream, capture the response, store it, and return it
+4. If a recording exists for that key - return it immediately with `X-Cxs-Source: replay`
+5. If no recording exists - forward to downstream, capture the response, store it, and return it
 
 ## Activation
 
@@ -32,12 +34,12 @@ Replay activates in two ways:
 **Header-based (default):** Send the `X-Cxs-Replay` header to activate replay for any request.
 
 ```bash
-# Empty header — uses match fields from config
+# Empty header - uses match fields from config
 curl -X POST /svc/foo/123/bar/456 \
   -H "X-Cxs-Replay:" \
   -d '{"data": {"name": "Jane", "address": {"zip": "12345"}}}'
 
-# Header with body fields — overrides config
+# Header with body fields - overrides config
 curl -X POST /svc/foo/123/bar/456 \
   -H "X-Cxs-Replay: data.name,data.address.zip" \
   -d '{"data": {"name": "Jane", "address": {"zip": "12345"}}}'
@@ -48,7 +50,16 @@ curl -X POST /svc/pay?channel=web \
   -d 'biller=BLR0001&reference=REF123'
 ```
 
-Unqualified fields in the header (without `body:` or `query:` prefix) are treated as body fields.
+Fields can also include path variables using the `path:` prefix:
+
+```bash
+# Header with path, body, and query fields
+curl -X POST /svc/pay/credit-card/tx/123 \
+  -H "X-Cxs-Replay: path:paymentMethodName;body:reference;query:channel" \
+  -d 'reference=REF123'
+```
+
+Unqualified fields in the header (without `path:`, `body:`, or `query:` prefix) are treated as body fields.
 
 **Auto-replay:** Set `auto-replay: true` in config to activate for configured endpoints without requiring the header.
 
@@ -66,29 +77,29 @@ cache:
 
 ## Endpoint Configuration
 
-The method level is optional. Three forms are supported:
+The HTTP method level is optional. Three forms are supported:
 
 ```yaml
 endpoints:
-  # Path only — matches any HTTP method, no match fields
+  # Path only - matches any HTTP method, no match fields
   /health:
 
-  # Path + method — matches only POST, no match fields (key is method + path only)
+  # Path + HTTP method - matches only POST, no match fields (key is HTTP method + path only)
   /notify:
     POST:
 
-  # Path + method + match — full config
+  # Path + HTTP method + match - full config
   /search:
     POST:
       match:
         body:
-          - query
+          - term
           - filters.category
 ```
 
-When the method is omitted, the request's actual method is used for key building.
+When the HTTP method is omitted, the request's actual HTTP method is used for key building.
 
-When multiple methods are configured for the same path, the request method must match exactly:
+When multiple HTTP methods are configured for the same path, the request method must match exactly:
 
 ```yaml
 endpoints:
@@ -106,10 +117,12 @@ endpoints:
 
 ## Match Fields
 
-Match fields specify which request values form the replay key. Each field is explicitly sourced from either the request body or the query string.
+Match fields specify which request values form the replay key. Each field is explicitly sourced from path variables, the request body, or the query string.
 
 ```yaml
 match:
+  path:           # extracted from URL path variables
+    - paymentMethodName
   body:           # extracted from request body
     - biller
     - reference
@@ -117,11 +130,37 @@ match:
     - channel
 ```
 
+### Path fields
+
+Path fields include specific path variable values in the replay key. By default, path variables are ignored - all path variable values produce the same key (e.g., `/pay/credit-card` and `/pay/bank-transfer` share recordings). Adding path variables to the match config makes them produce different keys.
+
+```yaml
+endpoints:
+  /pay/{paymentMethodName}/tx/{txId}:
+    POST:
+      match:
+        path:
+          - paymentMethodName    # include in key - different payment methods get different recordings
+        body:                    # txId is NOT listed - all txIds share recordings
+          - reference
+```
+
+```bash
+# credit-card and bank-transfer produce different recordings
+curl -X POST /svc/pay/credit-card/tx/123 \
+  -H "X-Cxs-Replay:" \
+  -d 'reference=REF123'
+
+curl -X POST /svc/pay/bank-transfer/tx/456 \
+  -H "X-Cxs-Replay:" \
+  -d 'reference=REF123'
+```
+
 ### Body fields
 
 Body fields are extracted based on the request's `Content-Type`:
 
-**JSON body** — dotted paths for nested structures:
+**JSON body** - dotted paths for nested structures:
 
 ```yaml
 match:
@@ -129,6 +168,7 @@ match:
     - data.name                # simple nested path
     - data.items[0].name       # array index
     - data.items.name          # array wildcard (first match)
+    - "[0].name"               # top-level array index
 ```
 
 ```bash
@@ -138,7 +178,23 @@ curl -X POST /svc/search \
   -d '{"data": {"name": "Jane"}}'
 ```
 
-**Form-encoded body** — flat keys matching form field names:
+**JSON array body** - when the root is an array, use `[index]` or wildcard:
+
+```yaml
+match:
+  body:
+    - "[0].name"               # first element's name
+    - name                     # wildcard - searches all elements, returns first match
+```
+
+```bash
+curl -X POST /svc/pets \
+  -H "Content-Type: application/json" \
+  -H "X-Cxs-Replay:" \
+  -d '[{"name": "doggie", "tag": "fundamental-window"}]'
+```
+
+**Form-encoded body** - flat keys matching form field names:
 
 ```yaml
 match:
@@ -194,12 +250,13 @@ Here `biller` and `reference` come from the form body, `channel` comes from the 
 
 ## Key Design
 
-The replay key is a SHA-256 hash of: `METHOD:pattern_path|body:field1=value1|query:field2=value2|...`
+The replay key is a SHA-256 hash of: `METHOD:pattern_path|body:field1=value1|path:var1=value1|query:field2=value2|...`
 
-- **Pattern path** is used (e.g., `/foo/{id}/bar`), not the actual URL — so different path parameter values share recordings
+- **Pattern path** is used (e.g., `/foo/{id}/bar`), not the actual URL - so different path parameter values share recordings unless explicitly included via `path` match fields
 - **Fields are sorted** alphabetically for determinism
-- Each field is prefixed with its source (`body:` or `query:`) in the key
-- Only the matched fields matter — other body/query content is ignored
+- Each field is prefixed with its source (`path:`, `body:`, or `query:`) in the key
+- Only the matched fields matter - other body/query/path content is ignored
+- If any configured match field is missing from the request (path variable not found, body field not found, query parameter absent), replay is skipped entirely - no recording or matching is attempted
 
 ## Configuration Options
 
@@ -208,7 +265,7 @@ The replay key is a SHA-256 hash of: `METHOD:pattern_path|body:field1=value1|que
 | `ttl` | duration | `24h` | How long recordings are kept |
 | `upstream-only` | bool | `false` | Only record responses from upstream services |
 | `auto-replay` | bool | `false` | Activate for configured endpoints without the header |
-| `endpoints` | map | — | Path patterns with optional methods and match fields |
+| `endpoints` | map | - | Path patterns with optional methods and match fields |
 
 ## Upstream-Only Mode
 
@@ -223,7 +280,7 @@ cache:
         POST:
           match:
             body:
-              - query
+              - term
               - filters.category
 ```
 
@@ -245,7 +302,7 @@ cache:
         POST:
           match:
             body:
-              - query
+              - term
               - filters.category
       # Multiple methods with different match fields
       /users/{user-id}/orders:
@@ -258,10 +315,12 @@ cache:
           match:
             body:
               - order_id
-      # Form-encoded body + query string
-      /pay:
+      # Path variable + body match
+      /pay/{paymentMethodName}:
         POST:
           match:
+            path:
+              - paymentMethodName
             body:
               - biller
               - reference
@@ -274,6 +333,6 @@ cache:
             query:
               - account_id
               - type
-      # Path only — match by method + path, any HTTP method
+      # Path only - match by method + path, any HTTP method
       /health:
 ```
