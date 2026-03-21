@@ -239,17 +239,29 @@ func TestBuildReplayKey(t *testing.T) {
 		assert.NotEqual(key1, key2)
 	})
 
-	t.Run("missing field produces nil value in key", func(t *testing.T) {
+	t.Run("missing body field returns empty key", func(t *testing.T) {
 		body := []byte(`{"name":"Jane"}`)
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
 		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"missing"}}, body)
-		assert.NotEmpty(key)
-		assert.Len(key, 64) // SHA-256 hex is 64 chars
+		assert.Empty(key)
 	})
 
-	t.Run("nil body", func(t *testing.T) {
+	t.Run("nil body with body match returns empty key", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/foo", nil)
 		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}}, nil)
+		assert.Empty(key)
+	})
+
+	t.Run("missing query field returns empty key", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/foo?other=1", nil)
+		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Query: []string{"missing"}}, nil)
+		assert.Empty(key)
+	})
+
+	t.Run("present fields still produce valid key", func(t *testing.T) {
+		body := []byte(`{"name":"Jane"}`)
+		req := httptest.NewRequest(http.MethodPost, "/foo?channel=web", nil)
+		key := buildReplayKey(req, "/foo", &config.ReplayMatch{Body: []string{"name"}, Query: []string{"channel"}}, body)
 		assert.NotEmpty(key)
 		assert.Len(key, 64)
 	})

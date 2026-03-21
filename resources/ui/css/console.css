@@ -278,16 +278,20 @@ button:hover { background: var(--primary-dark); }
 .config-override-row input[type="checkbox"] {
     width: auto;
     flex-shrink: 0;
+    cursor: pointer;
 }
 .config-override-row label {
     min-width: 100px;
     font-size: 13px;
     flex-shrink: 0;
+    cursor: pointer;
 }
 .config-override-row input[type="text"],
 .config-override-row select {
     flex: 1;
     min-width: 0;
+    color: var(--text);
+    background: var(--bg);
 }
 
 /* Code blocks */

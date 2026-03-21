@@ -206,10 +206,10 @@ upstream:
 | Configuration | Behavior |
 |---|---|
 | Not set (omitted) | Default: only `400` is returned directly |
-| `fail-on: []` | Disabled — all errors fall back to the generator |
+| `fail-on: []` | Disabled - all errors fall back to the generator |
 | `fail-on: [{range: "400-499"}]` | All 4xx returned directly |
 
-`fail-on` and `trip-on-status` are independent — `fail-on` controls what the client sees,
+`fail-on` and `trip-on-status` are independent - `fail-on` controls what the client sees,
 `trip-on-status` controls what counts toward circuit breaker failures.
 
 ### Circuit Breaker

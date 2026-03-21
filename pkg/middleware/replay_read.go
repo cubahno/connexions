@@ -28,6 +28,11 @@ func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler 
 
 			body := readAndRestoreBody(req)
 			key := buildReplayKey(req, patternPath, match, body)
+			if key == "" {
+				log.Info("Replay skipped: missing match fields", "method", req.Method, "path", req.URL.Path)
+				next.ServeHTTP(w, req)
+				return
+			}
 
 			table := params.DB().Table("replay")
 			val, exists := table.Get(req.Context(), key)

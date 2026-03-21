@@ -211,11 +211,32 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
-		// No header — auto-replay should activate
+		// No header - auto-replay should activate
 		mw(handler).ServeHTTP(w, req)
 
 		assert.Equal(`{"result":"auto"}`, string(w.buf))
 		assert.Equal(ResponseHeaderSourceReplay, w.header.Get(ResponseHeaderSource))
+	})
+
+	t.Run("missing match field passes through", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name", "missing_field"}}}},
+					},
+				},
+			},
+		}, nil)
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req.Header.Set(headerReplayMatch, "") // empty → fall back to config
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
 	})
 
 	t.Run("auto-replay skips non-configured endpoints", func(t *testing.T) {

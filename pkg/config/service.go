@@ -350,9 +350,9 @@ func (rc *ReplayConfig) WithDefaults() *ReplayConfig {
 // Returns the pattern path (for key building) and the endpoint config.
 //
 // Three config forms are supported:
-//   - Path only ("/pay:") — matches any method, no match fields
-//   - Path + method ("/pay: POST:") — matches that method, no match fields
-//   - Path + method + match ("/pay: POST: match: [...]") — full config
+//   - Path only ("/pay:") - matches any method, no match fields
+//   - Path + method ("/pay: POST:") - matches that method, no match fields
+//   - Path + method + match ("/pay: POST: match: [...]") - full config
 //
 // Returns "", nil if no match is found.
 func (rc *ReplayConfig) GetEndpoint(requestPath, method string) (string, *ReplayEndpoint) {
@@ -365,7 +365,7 @@ func (rc *ReplayConfig) GetEndpoint(requestPath, method string) (string, *Replay
 			continue
 		}
 
-		// Form 1: path only, no methods map — matches any method
+		// Form 1: path only, no methods map - matches any method
 		if methods == nil {
 			return pattern, &ReplayEndpoint{}
 		}
@@ -376,7 +376,7 @@ func (rc *ReplayConfig) GetEndpoint(requestPath, method string) (string, *Replay
 			continue
 		}
 
-		// Form 2: method present but endpoint is nil — no match fields
+		// Form 2: method present but endpoint is nil - no match fields
 		if ep == nil {
 			return pattern, &ReplayEndpoint{}
 		}

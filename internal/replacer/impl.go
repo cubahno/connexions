@@ -385,7 +385,7 @@ func replaceValueWithMapContext[T any](path []string, contextData map[string]T) 
 	}
 
 	// Phase 2: Root-level field name match (least specific).
-	// Skip map values — those are namespaces for nested matching, not leaf values.
+	// Skip map values - those are namespaces for nested matching, not leaf values.
 	if value, exists := contextData[fieldName]; exists {
 		if !isMapValue(value) {
 			return replaceValueWithContext(nil, value)

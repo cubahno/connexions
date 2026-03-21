@@ -343,7 +343,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 		body := `{"name":"Jane"}`
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
-		// No header — auto-replay should activate
+		// No header - auto-replay should activate
 		mw(handler).ServeHTTP(w, req)
 
 		assert.Equal(`{"auto":true}`, w.Body.String())
@@ -354,6 +354,38 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 
 		rec := val.(*ReplayRecord)
 		assert.Equal([]byte(`{"auto":true}`), rec.Data)
+	})
+
+	t.Run("missing match field skips recording", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name", "missing_field"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		})
+		mw := CreateReplayWriteMiddleware(params)
+
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req.Header.Set(headerReplayMatch, "") // empty → config
+		mw(handler).ServeHTTP(w, req)
+
+		// Response should be written through
+		assert.Equal(`{"ok":true}`, w.Body.String())
+
+		// Nothing recorded
+		data := params.DB().Table("replay").Data(context.TODO())
+		assert.Empty(data)
 	})
 
 	t.Run("auto-replay skips non-configured endpoints", func(t *testing.T) {

@@ -17,9 +17,9 @@ type pathSegment struct {
 
 // extractJSONPath extracts a value from JSON bytes using a dotted path.
 // Supports:
-//   - Simple: "data.name" — traverse nested objects
-//   - Array index: "data.items[0].name" — specific element
-//   - Array wildcard: "data.items.name" — when items is an array, search each element
+//   - Simple: "data.name" - traverse nested objects
+//   - Array index: "data.items[0].name" - specific element
+//   - Array wildcard: "data.items.name" - when items is an array, search each element
 func extractJSONPath(data []byte, path string) any {
 	var parsed any
 	if err := json.Unmarshal(data, &parsed); err != nil {
@@ -81,7 +81,7 @@ func navigatePath(current any, segments []pathSegment) any {
 				}
 				current = arr[seg.index]
 			} else {
-				// Check if val is an array and we have more segments — wildcard search
+				// Check if val is an array and we have more segments - wildcard search
 				if arr, ok := val.([]any); ok && i+1 < len(segments) {
 					remaining := segments[i+1:]
 					for _, elem := range arr {

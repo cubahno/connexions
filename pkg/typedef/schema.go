@@ -769,7 +769,7 @@ func schemaCacheKey(s *codegen.GoSchema) string {
 		return s.RefType
 	}
 
-	// Skip primitives — don't cache
+	// Skip primitives - don't cache
 	// Primitives should not be cached because they may have different constraints
 	// (e.g., two int32 fields with different min/max values)
 	switch s.GoType {
@@ -779,7 +779,7 @@ func schemaCacheKey(s *codegen.GoSchema) string {
 		return ""
 	}
 
-	// Skip external refs (e.g., uuid.UUID, time.Time) — don't cache
+	// Skip external refs (e.g., uuid.UUID, time.Time) - don't cache
 	// External refs may have different readOnly/writeOnly constraints in different contexts
 	// Check both RefType and GoType for external package references (contains ".")
 	if s.IsExternalRef() || strings.Contains(s.GoType, ".") {

@@ -34,6 +34,14 @@ const getConfigOverrideHeaders = () => {
         }
     }
 
+    // Replay override
+    const replayEnabled = document.getElementById('override-replay-enabled');
+    if (replayEnabled && replayEnabled.checked) {
+        const replayValue = document.getElementById('override-replay-value');
+        // Always send the header when checked (empty value uses match fields from config)
+        headers['X-Cxs-Replay'] = replayValue ? replayValue.value : '';
+    }
+
     return headers;
 };
 

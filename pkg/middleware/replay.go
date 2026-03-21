@@ -17,7 +17,7 @@ import (
 // headerReplayMatch is the HTTP header that activates replay.
 // When present (even with empty value), replay middleware is activated.
 // If the header contains match fields, those override configured match fields.
-// Format: "body:field1,field2;query:field3,field4" — unqualified fields are treated as body.
+// Format: "body:field1,field2;query:field3,field4" - unqualified fields are treated as body.
 //
 // Examples:
 //
@@ -109,7 +109,7 @@ func splitFields(s string) []string {
 //   - If auto-replay is true in config → activate for configured endpoints without header
 //   - Otherwise → skip
 func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *config.ReplayMatch, patternPath string) {
-	// Check header presence (not just value — empty header is valid)
+	// Check header presence (not just value - empty header is valid)
 	headerValues, headerPresent := req.Header[http.CanonicalHeaderKey(headerReplayMatch)]
 
 	var headerValue string
@@ -159,7 +159,7 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *c
 }
 
 // buildReplayKey builds a deterministic key from the request, pattern path, match config, and body.
-// Returns a SHA-256 hex digest.
+// Returns a SHA-256 hex digest, or empty string if any configured match field is missing from the request.
 func buildReplayKey(req *http.Request, patternPath string, match *config.ReplayMatch, body []byte) string {
 	contentType := req.Header.Get("Content-Type")
 	query := req.URL.Query()
@@ -169,15 +169,16 @@ func buildReplayKey(req *http.Request, patternPath string, match *config.ReplayM
 	if match != nil {
 		for _, field := range match.Body {
 			val := extractBodyValue(body, contentType, field)
+			if val == nil {
+				return ""
+			}
 			pairs = append(pairs, "body:"+field+"="+formatValue(val))
 		}
 		for _, field := range match.Query {
-			val := query.Get(field)
-			if val == "" && !query.Has(field) {
-				pairs = append(pairs, "query:"+field+"="+formatValue(nil))
-			} else {
-				pairs = append(pairs, "query:"+field+"="+val)
+			if !query.Has(field) {
+				return ""
 			}
+			pairs = append(pairs, "query:"+field+"="+query.Get(field))
 		}
 	}
 	sort.Strings(pairs)
@@ -226,12 +227,12 @@ func deserializeReplayRecord(val any) *ReplayRecord {
 		return nil
 	}
 
-	// Direct type — memory backend stores it as-is
+	// Direct type - memory backend stores it as-is
 	if rec, ok := val.(*ReplayRecord); ok {
 		return rec
 	}
 
-	// Redis backend returns map[string]any — re-serialize and parse
+	// Redis backend returns map[string]any - re-serialize and parse
 	data, err := json.Marshal(val)
 	if err != nil {
 		return nil

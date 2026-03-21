@@ -1,6 +1,6 @@
 # Replay
 
-Record API responses and replay them on subsequent requests that match specific request fields. Works like VCR — record once, replay on match.
+Record API responses and replay them on subsequent requests that match specific request fields. Works like VCR - record once, replay on match.
 
 ```yaml
 cache:
@@ -22,8 +22,8 @@ cache:
 1. A request comes in with the `X-Cxs-Replay` header (or to an `auto-replay` endpoint)
 2. Specified fields are extracted from the request body and/or query string
 3. A content-addressed key is built from the method, path pattern, and extracted values
-4. If a recording exists for that key — return it immediately with `X-Cxs-Source: replay`
-5. If no recording exists — forward to downstream, capture the response, store it, and return it
+4. If a recording exists for that key - return it immediately with `X-Cxs-Source: replay`
+5. If no recording exists - forward to downstream, capture the response, store it, and return it
 
 ## Activation
 
@@ -32,12 +32,12 @@ Replay activates in two ways:
 **Header-based (default):** Send the `X-Cxs-Replay` header to activate replay for any request.
 
 ```bash
-# Empty header — uses match fields from config
+# Empty header - uses match fields from config
 curl -X POST /svc/foo/123/bar/456 \
   -H "X-Cxs-Replay:" \
   -d '{"data": {"name": "Jane", "address": {"zip": "12345"}}}'
 
-# Header with body fields — overrides config
+# Header with body fields - overrides config
 curl -X POST /svc/foo/123/bar/456 \
   -H "X-Cxs-Replay: data.name,data.address.zip" \
   -d '{"data": {"name": "Jane", "address": {"zip": "12345"}}}'
@@ -70,14 +70,14 @@ The method level is optional. Three forms are supported:
 
 ```yaml
 endpoints:
-  # Path only — matches any HTTP method, no match fields
+  # Path only - matches any HTTP method, no match fields
   /health:
 
-  # Path + method — matches only POST, no match fields (key is method + path only)
+  # Path + method - matches only POST, no match fields (key is method + path only)
   /notify:
     POST:
 
-  # Path + method + match — full config
+  # Path + method + match - full config
   /search:
     POST:
       match:
@@ -121,7 +121,7 @@ match:
 
 Body fields are extracted based on the request's `Content-Type`:
 
-**JSON body** — dotted paths for nested structures:
+**JSON body** - dotted paths for nested structures:
 
 ```yaml
 match:
@@ -138,7 +138,7 @@ curl -X POST /svc/search \
   -d '{"data": {"name": "Jane"}}'
 ```
 
-**Form-encoded body** — flat keys matching form field names:
+**Form-encoded body** - flat keys matching form field names:
 
 ```yaml
 match:
@@ -196,10 +196,12 @@ Here `biller` and `reference` come from the form body, `channel` comes from the 
 
 The replay key is a SHA-256 hash of: `METHOD:pattern_path|body:field1=value1|query:field2=value2|...`
 
-- **Pattern path** is used (e.g., `/foo/{id}/bar`), not the actual URL — so different path parameter values share recordings
+- **Pattern path** is used (e.g., `/foo/{id}/bar`), not the actual URL - so different path parameter values share recordings
 - **Fields are sorted** alphabetically for determinism
 - Each field is prefixed with its source (`body:` or `query:`) in the key
-- Only the matched fields matter — other body/query content is ignored
+- Only the matched fields matter - other body/query content is ignored
+- If any configured match field is missing from the request (body field not found, query parameter absent), 
+  replay is skipped entirely - no recording or matching is attempted
 
 ## Configuration Options
 
@@ -208,7 +210,7 @@ The replay key is a SHA-256 hash of: `METHOD:pattern_path|body:field1=value1|que
 | `ttl` | duration | `24h` | How long recordings are kept |
 | `upstream-only` | bool | `false` | Only record responses from upstream services |
 | `auto-replay` | bool | `false` | Activate for configured endpoints without the header |
-| `endpoints` | map | — | Path patterns with optional methods and match fields |
+| `endpoints` | map | - | Path patterns with optional methods and match fields |
 
 ## Upstream-Only Mode
 
@@ -274,6 +276,6 @@ cache:
             query:
               - account_id
               - type
-      # Path only — match by method + path, any HTTP method
+      # Path only - match by method + path, any HTTP method
       /health:
 ```

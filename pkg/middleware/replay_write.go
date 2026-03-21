@@ -33,6 +33,11 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 
 			body := readAndRestoreBody(req)
 			key := buildReplayKey(req, patternPath, match, body)
+			if key == "" {
+				log.Info("Replay skipped: missing match fields", "method", req.Method, "path", req.URL.Path)
+				next.ServeHTTP(w, req)
+				return
+			}
 
 			table := params.DB().Table("replay")
 			ctx := req.Context()
@@ -56,7 +61,7 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 			respStatusCode := rw.statusCode
 			respContentType := rw.Header().Get("Content-Type")
 
-			// Check source — don't record cache or replay responses
+			// Check source - don't record cache or replay responses
 			source := rw.Header().Get(ResponseHeaderSource)
 			if source == ResponseHeaderSourceCache || source == ResponseHeaderSourceReplay {
 				writeThrough(w, rw)
