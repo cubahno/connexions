@@ -19,7 +19,7 @@ func CreateParseContext(docContents []byte, cfg codegen.Configuration, specOptio
 
 	// Build model - optionally simplify it before parsing
 	var optConfig *OptionalPropertyConfig
-	if specOptions.Simplify {
+	if specOptions.Simplify && specOptions.OptionalProperties != nil {
 		props := specOptions.OptionalProperties
 		optConfig = &OptionalPropertyConfig{
 			Min: props.Min,

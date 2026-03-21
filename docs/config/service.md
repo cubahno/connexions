@@ -95,8 +95,10 @@ cache:
 # OpenAPI spec simplification
 spec:
   simplify: false
-  optional-properties:
-    number: 5     # Keep max 5 optional properties
+  # optional-properties not set = keep all optional properties
+  # optional-properties:
+  #   min: 5
+  #   max: 5
 ```
 
 ## Latency Simulation
@@ -163,12 +165,16 @@ Reduce complexity of large OpenAPI specs:
 
 ```yaml
 spec:
-  simplify: false  # Enable/disable simplification
+  simplify: true   # Enable/disable simplification
   optional-properties:
-    number: 5      # Keep max N optional properties per schema
-    # range: "1-6" # Or random range
+    min: 5         # Keep exactly 5 optional properties (when min == max)
+    max: 5
+    # OR
+    # min: 2       # Keep random number between 2-8 optional properties
+    # max: 8
 ```
 
+When `optional-properties` is not set, all optional properties are kept.
 This helps with specs that have schemas with many optional fields.
 
 ## Upstream Proxy

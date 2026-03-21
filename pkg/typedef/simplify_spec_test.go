@@ -839,6 +839,86 @@ components:
 	assert.Len(t, optUnion.AnyOf, 2)
 }
 
+func TestBuildModel_NilOptionalConfig_KeepsAllOptional(t *testing.T) {
+	spec := `
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        optional1:
+          type: string
+        optional2:
+          type: string
+        optional3:
+          type: string
+        optional4:
+          type: string
+        optional5:
+          type: string
+`
+	doc, err := libopenapi.NewDocument([]byte(spec))
+	assert.NoError(t, err)
+
+	// nil config means keep all optional properties
+	model, err := BuildModel(doc, true, nil)
+	assert.NoError(t, err)
+
+	userSchema := model.Components.Schemas.GetOrZero("User").Schema()
+	assert.NotNil(t, userSchema)
+	assert.Equal(t, 6, userSchema.Properties.Len(), "All 6 properties (1 required + 5 optional) should be kept")
+}
+
+func TestBuildModel_ZeroOptionalConfig_RemovesAllOptional(t *testing.T) {
+	spec := `
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        optional1:
+          type: string
+        optional2:
+          type: string
+        optional3:
+          type: string
+`
+	doc, err := libopenapi.NewDocument([]byte(spec))
+	assert.NoError(t, err)
+
+	// {0, 0} removes all optional properties
+	config := &OptionalPropertyConfig{
+		Min:  0,
+		Max:  0,
+		Seed: 42,
+	}
+	model, err := BuildModel(doc, true, config)
+	assert.NoError(t, err)
+
+	userSchema := model.Components.Schemas.GetOrZero("User").Schema()
+	assert.NotNil(t, userSchema)
+	assert.Equal(t, 1, userSchema.Properties.Len(), "Only required property should remain")
+	assert.NotNil(t, userSchema.Properties.GetOrZero("name"))
+}
+
 func TestBuildModel_WithOptionalConfigSeed(t *testing.T) {
 	spec := `
 openapi: 3.0.0

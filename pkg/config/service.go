@@ -446,11 +446,14 @@ func NewCacheConfig() *CacheConfig {
 //
 // Simplifications include:
 //   - Removal of extra union elements (anyOf/oneOf/allOf)
-//   - Keeping only a reasonable number of optional properties instead of all
+//   - Optionally limiting the number of optional properties kept
 //
 // LazyLoad enables on-demand parsing of operations. When true, operations are
 // parsed only when first accessed and cached for subsequent requests. This
 // significantly speeds up server startup for large specs (e.g., Stripe with 500+ endpoints).
+//
+// OptionalProperties is nil by default, meaning all optional properties are kept.
+// Set it explicitly to limit the number of optional properties.
 //
 // Example usage in YAML:
 //
@@ -471,9 +474,8 @@ type SpecOptions struct {
 
 func NewSpecOptions() *SpecOptions {
 	return &SpecOptions{
-		LazyLoad:           true,
-		Simplify:           false,
-		OptionalProperties: NewDefaultOptionalProperties(),
+		LazyLoad: true,
+		Simplify: false,
 	}
 }
 
@@ -484,16 +486,8 @@ func NewSpecOptions() *SpecOptions {
 //   - If Min == Max, keeps exactly that many optional properties
 //   - If Min < Max, keeps a random number between Min and Max (inclusive)
 //
-// Default: Min=5, Max=5 (keeps exactly 5 optional properties)
+// When nil (not set in config), all optional properties are kept.
 type OptionalProperties struct {
 	Min int `yaml:"min"`
 	Max int `yaml:"max"`
-}
-
-// NewDefaultOptionalProperties creates a new OptionalProperties with default values.
-func NewDefaultOptionalProperties() *OptionalProperties {
-	return &OptionalProperties{
-		Min: 5,
-		Max: 5,
-	}
 }

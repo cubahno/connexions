@@ -164,14 +164,15 @@
             },
             "optional-properties": {
               "type": "object",
+              "description": "Controls how many optional properties to keep. When not set, all optional properties are kept.",
               "properties": {
-                "number": {
+                "min": {
                   "type": "integer",
-                  "description": "Max number of optional properties to keep."
+                  "description": "Minimum number of optional properties to keep."
                 },
-                "range": {
-                  "type": "string",
-                  "description": "Random range for optional properties (e.g., '1-6')."
+                "max": {
+                  "type": "integer",
+                  "description": "Maximum number of optional properties to keep."
                 }
               }
             }
