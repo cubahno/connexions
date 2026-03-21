@@ -3,6 +3,7 @@ import * as commons from './commons.js';
 import * as validators from './validators.js';
 import * as navi from "./navi.js";
 import * as services from "./services.js";
+import * as presets from "./presets.js";
 
 // Collect enabled config override headers from the UI
 const getConfigOverrideHeaders = () => {
@@ -158,6 +159,8 @@ export const generateResult = (service, ix, path, method) => {
         config.resourceRefreshBtn.style.display = 'inline';
     }
     commons.hideMessage();
+    presets.initIfNeeded();
+
     let replacements = null;
     const replacementsEditor = commons.getCodeEditor(`context-replacements`, `yaml`);
     const yamlContent = replacementsEditor.getValue();
