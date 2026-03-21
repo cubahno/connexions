@@ -423,6 +423,37 @@ pre, .code {
 .footer a { color: var(--text-muted); }
 .footer a:hover { color: var(--primary); }
 
+/* Response headers table */
+.response-headers-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: 'Monaco', 'Menlo', monospace;
+}
+.response-headers-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 6px 10px;
+    border-bottom: 2px solid var(--border);
+}
+.response-headers-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+    word-break: break-all;
+}
+.response-headers-table td:first-child {
+    white-space: nowrap;
+    font-weight: 600;
+    color: var(--primary);
+    width: 1%;
+    padding-right: 20px;
+}
+.response-headers-table tr:last-child td { border-bottom: none; }
+
 /* Theme toggle */
 .theme-toggle {
     cursor: pointer;

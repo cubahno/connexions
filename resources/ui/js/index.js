@@ -36,12 +36,28 @@ async function onLoad() {
         commons.updateAllEditorThemes();
     });
 
+    const ACCORDION_STORAGE_KEY = 'accordion-states';
+    const getAccordionStates = () => {
+        try { return JSON.parse(localStorage.getItem(ACCORDION_STORAGE_KEY)) || {}; }
+        catch { return {}; }
+    };
+
     const accordionHeaders = document.querySelectorAll('.accordion-header');
+    const savedStates = getAccordionStates();
+
     accordionHeaders.forEach(accordionHeader => {
+        const key = accordionHeader.textContent.trim();
+        const accordionContent = accordionHeader.closest('.accordion').querySelector('.accordion-content');
+
+        if (key in savedStates) {
+            accordionContent.classList.toggle('active', savedStates[key]);
+        }
+
         accordionHeader.addEventListener('click', () => {
-            const accordion = accordionHeader.closest('.accordion');
-            const accordionContent = accordion.querySelector('.accordion-content');
             accordionContent.classList.toggle('active');
+            const states = getAccordionStates();
+            states[key] = accordionContent.classList.contains('active');
+            localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(states));
         });
     });
 }

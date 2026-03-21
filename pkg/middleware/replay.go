@@ -15,8 +15,9 @@ import (
 )
 
 // headerReplayMatch is the HTTP header that activates replay.
-// When present (even with empty value), replay middleware is activated.
-// If the header contains match fields, those override configured match fields.
+// With an explicit value, replay activates for any method - match fields are taken from the header.
+// With an empty value, replay activates only when the endpoint is configured for the request method -
+// the config provides the pattern path (needed for placeholders) and match fields.
 // Format: "body:field1,field2;query:field3,field4" - unqualified fields are treated as body.
 //
 // Examples:
@@ -107,9 +108,12 @@ func splitFields(s string) []string {
 
 // resolveReplayParams resolves the match config, pattern path, and endpoint path for a replay request.
 // Activation rules:
-//   - If X-Cxs-Replay header is present → always activate (header value overrides config match fields)
-//   - If auto-replay is true in config → activate for configured endpoints without header
-//   - Otherwise → skip
+//   - Explicit header value (e.g. "body:field1;query:id") - activates for any method, even without
+//     a configured endpoint. The caller provides match fields directly.
+//   - Empty header value ("") - activates only when the endpoint is configured for this method.
+//     Without config there is no pattern path for placeholders and no match fields to fall back to.
+//   - Auto-replay (no header) - activates only for configured endpoints.
+//   - Otherwise - skip.
 //
 // Returns the match config, the pattern path (for key building), and the actual endpoint path
 // (for extracting path variable values).
@@ -146,6 +150,11 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *c
 
 	// auto-replay without header requires a configured endpoint
 	if !headerPresent && !endpointConfigured {
+		return nil, "", ""
+	}
+
+	// Empty header means "use config" - skip if no config for this method
+	if headerPresent && headerValue == "" && !endpointConfigured {
 		return nil, "", ""
 	}
 
