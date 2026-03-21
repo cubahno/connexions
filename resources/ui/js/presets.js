@@ -9,8 +9,6 @@ const AUTO_SAVE_DELAY = 500;
 let initialized = false;
 let autoSaveTimer = null;
 
-// -- localStorage helpers --
-
 const getPresets = () => {
     try {
         const raw = localStorage.getItem(STORAGE_KEY_PRESETS);
@@ -31,8 +29,6 @@ const getActivePresetName = () => {
 const setActivePresetName = (name) => {
     localStorage.setItem(STORAGE_KEY_ACTIVE, name);
 };
-
-// -- State collection / application --
 
 const getDefaultState = () => ({
     contextReplacements: '',
@@ -100,8 +96,6 @@ const applyState = (state) => {
     setOverride('override-replay-enabled', 'override-replay-value', ov.replay);
 };
 
-// -- Dropdown --
-
 const populateDropdown = () => {
     const select = document.getElementById('preset-select');
     if (!select) return;
@@ -130,8 +124,6 @@ const populateDropdown = () => {
 
     select.value = active;
 };
-
-// -- Auto-save --
 
 const scheduleAutoSave = () => {
     clearTimeout(autoSaveTimer);
@@ -170,8 +162,6 @@ const setupAutoSave = () => {
         }
     }
 };
-
-// -- Actions --
 
 const onDropdownChange = () => {
     const select = document.getElementById('preset-select');
@@ -220,8 +210,6 @@ const onDelete = () => {
     populateDropdown();
     applyState(getDefaultState());
 };
-
-// -- Public init --
 
 export const initIfNeeded = () => {
     if (initialized) return;
