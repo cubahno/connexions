@@ -11,7 +11,8 @@ historyDuration: 5m
 
 editor:
   theme: chrome
-  fontSize: 16
+  darkTheme: cobalt
+  fontSize: 14
 
 # Uncomment to enable Redis storage for distributed features
 # storage:

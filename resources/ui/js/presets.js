@@ -1,4 +1,5 @@
 import * as commons from './commons.js';
+import { addCustomHeaderRow } from './resources.js';
 
 const STORAGE_KEY_PRESETS = 'cxs-presets';
 const STORAGE_KEY_ACTIVE = 'cxs-active-preset';
@@ -32,7 +33,7 @@ const setActivePresetName = (name) => {
 
 const getDefaultState = () => ({
     contextReplacements: '',
-    customHeaders: '',
+    customHeaders: [],
     overrides: {
         upstream: { enabled: false, value: '' },
         cache: { enabled: false, value: 'true' },
@@ -43,11 +44,24 @@ const getDefaultState = () => ({
 
 const getCurrentState = () => {
     const replacementsEditor = commons.getCodeEditor('context-replacements', 'yaml');
-    const headersEditor = commons.getCodeEditor('custom-headers', 'yaml');
+
+    const customHeaders = [];
+    const rows = document.querySelectorAll('#custom-headers-rows .custom-header-row');
+    for (const row of rows) {
+        const cb = row.querySelector('input[type="checkbox"]');
+        const nameInput = row.querySelector('.custom-header-name');
+        const valueInput = row.querySelector('.custom-header-value');
+        customHeaders.push({
+            enabled: cb ? cb.checked : true,
+            name: nameInput ? nameInput.value : '',
+            value: valueInput ? valueInput.value : '',
+            visible: valueInput ? valueInput.type === 'text' : true,
+        });
+    }
 
     return {
         contextReplacements: replacementsEditor.getValue(),
-        customHeaders: headersEditor.getValue(),
+        customHeaders,
         overrides: {
             upstream: {
                 enabled: document.getElementById('override-upstream-enabled').checked,
@@ -77,9 +91,15 @@ const applyState = (state) => {
     replacementsEditor.setValue(s.contextReplacements || '');
     replacementsEditor.clearSelection();
 
-    const headersEditor = commons.getCodeEditor('custom-headers', 'yaml');
-    headersEditor.setValue(s.customHeaders || '');
-    headersEditor.clearSelection();
+    const container = document.getElementById('custom-headers-rows');
+    container.innerHTML = '';
+    let headers = s.customHeaders;
+    if (typeof headers === 'string') headers = [];
+    if (Array.isArray(headers)) {
+        for (const h of headers) {
+            addCustomHeaderRow(h.enabled !== false, h.name || '', h.value || '', h.visible !== false);
+        }
+    }
 
     const ov = s.overrides || {};
 
@@ -139,10 +159,12 @@ const scheduleAutoSave = () => {
 
 const setupAutoSave = () => {
     const replacementsEditor = commons.getCodeEditor('context-replacements', 'yaml');
-    const headersEditor = commons.getCodeEditor('custom-headers', 'yaml');
-
     replacementsEditor.session.on('change', scheduleAutoSave);
-    headersEditor.session.on('change', scheduleAutoSave);
+
+    const headersContainer = document.getElementById('custom-headers-rows');
+    headersContainer.addEventListener('input', scheduleAutoSave);
+    headersContainer.addEventListener('change', scheduleAutoSave);
+    headersContainer.addEventListener('click', scheduleAutoSave);
 
     // Config override fields
     const ids = [
