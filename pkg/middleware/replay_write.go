@@ -25,14 +25,14 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 				return
 			}
 
-			match, patternPath := resolveReplayParams(req, cfg)
+			match, patternPath, endpointPath := resolveReplayParams(req, cfg)
 			if match == nil && patternPath == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
 
 			body := readAndRestoreBody(req)
-			key := buildReplayKey(req, patternPath, match, body)
+			key := buildReplayKey(req, patternPath, endpointPath, match, body)
 			if key == "" {
 				log.Info("Replay skipped: missing match fields", "method", req.Method, "path", req.URL.Path)
 				next.ServeHTTP(w, req)
@@ -87,6 +87,13 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 			// Extract match values for debugging
 			matchValues := make(map[string]any)
 			if match != nil {
+				if len(match.Path) > 0 {
+					pathValues := config.ExtractPathValues(endpointPath, patternPath)
+					for _, field := range match.Path {
+						matchValues["path:"+field] = pathValues[field]
+					}
+				}
+
 				contentType := req.Header.Get("Content-Type")
 				query := req.URL.Query()
 				for _, field := range match.Body {

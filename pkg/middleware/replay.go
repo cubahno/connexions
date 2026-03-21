@@ -77,6 +77,8 @@ func parseReplayHeader(headerValue string) *config.ReplayMatch {
 
 		fields := splitFields(fieldsPart)
 		switch source {
+		case "path":
+			match.Path = append(match.Path, fields...)
 		case "query":
 			match.Query = append(match.Query, fields...)
 		default:
@@ -84,7 +86,7 @@ func parseReplayHeader(headerValue string) *config.ReplayMatch {
 		}
 	}
 
-	if len(match.Body) == 0 && len(match.Query) == 0 {
+	if len(match.Path) == 0 && len(match.Body) == 0 && len(match.Query) == 0 {
 		return nil
 	}
 	return match
@@ -103,12 +105,15 @@ func splitFields(s string) []string {
 	return result
 }
 
-// resolveReplayParams resolves the match config and pattern path for a replay request.
+// resolveReplayParams resolves the match config, pattern path, and endpoint path for a replay request.
 // Activation rules:
 //   - If X-Cxs-Replay header is present → always activate (header value overrides config match fields)
 //   - If auto-replay is true in config → activate for configured endpoints without header
 //   - Otherwise → skip
-func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *config.ReplayMatch, patternPath string) {
+//
+// Returns the match config, the pattern path (for key building), and the actual endpoint path
+// (for extracting path variable values).
+func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *config.ReplayMatch, patternPath, endpointPath string) {
 	// Check header presence (not just value - empty header is valid)
 	headerValues, headerPresent := req.Header[http.CanonicalHeaderKey(headerReplayMatch)]
 
@@ -122,10 +127,10 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *c
 
 	// No header and no auto-replay → skip
 	if !headerPresent && !autoReplay {
-		return nil, ""
+		return nil, "", ""
 	}
 
-	endpointPath := getEndpointPath(req, cfg.Name)
+	endpointPath = getEndpointPath(req, cfg.Name)
 
 	// Try to get pattern path and config match from replay config
 	var configMatch *config.ReplayMatch
@@ -141,7 +146,7 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *c
 
 	// auto-replay without header requires a configured endpoint
 	if !headerPresent && !endpointConfigured {
-		return nil, ""
+		return nil, "", ""
 	}
 
 	// If no pattern matched, use the actual endpoint path
@@ -151,22 +156,32 @@ func resolveReplayParams(req *http.Request, cfg *config.ServiceConfig) (match *c
 
 	// Header value overrides config match fields
 	if headerMatch := parseReplayHeader(headerValue); headerMatch != nil {
-		return headerMatch, patternPath
+		return headerMatch, patternPath, endpointPath
 	}
 
 	// Header present but empty value, or auto-replay → fall back to config
-	return configMatch, patternPath
+	return configMatch, patternPath, endpointPath
 }
 
-// buildReplayKey builds a deterministic key from the request, pattern path, match config, and body.
+// buildReplayKey builds a deterministic key from the request, pattern path, endpoint path, match config, and body.
 // Returns a SHA-256 hex digest, or empty string if any configured match field is missing from the request.
-func buildReplayKey(req *http.Request, patternPath string, match *config.ReplayMatch, body []byte) string {
+func buildReplayKey(req *http.Request, patternPath, endpointPath string, match *config.ReplayMatch, body []byte) string {
 	contentType := req.Header.Get("Content-Type")
 	query := req.URL.Query()
 
 	// Collect all field=value pairs, prefixed with source for determinism
 	var pairs []string
 	if match != nil {
+		if len(match.Path) > 0 {
+			pathValues := config.ExtractPathValues(endpointPath, patternPath)
+			for _, field := range match.Path {
+				val, ok := pathValues[field]
+				if !ok {
+					return ""
+				}
+				pairs = append(pairs, "path:"+field+"="+val)
+			}
+		}
 		for _, field := range match.Body {
 			val := extractBodyValue(body, contentType, field)
 			if val == nil {

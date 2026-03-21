@@ -60,7 +60,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		// Store using actual endpoint path (no config pattern)
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"no-config"}`),
 			StatusCode:  http.StatusOK,
@@ -115,7 +115,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		// Pre-store a replay record using config pattern path
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"stored"}`),
 			Headers:     map[string]string{"X-Custom": "value"},
@@ -152,7 +152,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 
 		// Store with override fields but using config pattern path
 		body := []byte(`{"name":"Jane","age":30}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"age"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"age"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"header-override"}`),
 			StatusCode:  http.StatusOK,
@@ -198,7 +198,7 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 		}, nil)
 
 		body := []byte(`{"name":"Jane"}`)
-		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
 		rec := &ReplayRecord{
 			Data:        []byte(`{"result":"auto"}`),
 			StatusCode:  http.StatusOK,
@@ -237,6 +237,81 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 		mw(handler).ServeHTTP(w, req)
 
 		assert.Equal("fresh", string(w.buf))
+	})
+
+	t.Run("corrupted record passes through", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		// Store a non-deserializable value
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		params.DB().Table("replay").Set(context.TODO(), key, "not a record", 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req.Header.Set(headerReplayMatch, "")
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("fresh", string(w.buf))
+	})
+
+	t.Run("path variable matching produces different recordings", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					AutoReplay: true,
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/pay/{paymentMethod}": {"POST": {Match: &config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		// Store recording for credit-card
+		body := []byte(`{"ref":"REF123"}`)
+		match := &config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}
+		keyCreditCard := buildReplayKey(httptest.NewRequest(http.MethodPost, "/pay/credit-card", nil), "/pay/{paymentMethod}", "/pay/credit-card", match, body)
+		params.DB().Table("replay").Set(context.TODO(), keyCreditCard, &ReplayRecord{
+			Data:        []byte(`{"result":"credit-card"}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}, 0)
+
+		// Store recording for bank-transfer
+		keyBankTransfer := buildReplayKey(httptest.NewRequest(http.MethodPost, "/pay/bank-transfer", nil), "/pay/{paymentMethod}", "/pay/bank-transfer", match, body)
+		params.DB().Table("replay").Set(context.TODO(), keyBankTransfer, &ReplayRecord{
+			Data:        []byte(`{"result":"bank-transfer"}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}, 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		// Request credit-card - should get credit-card recording
+		w1 := NewBufferedResponseWriter()
+		req1 := httptest.NewRequest(http.MethodPost, "/svc/pay/credit-card", strings.NewReader(`{"ref":"REF123"}`))
+		mw(handler).ServeHTTP(w1, req1)
+		assert.Equal(`{"result":"credit-card"}`, string(w1.buf))
+
+		// Request bank-transfer - should get bank-transfer recording
+		w2 := NewBufferedResponseWriter()
+		req2 := httptest.NewRequest(http.MethodPost, "/svc/pay/bank-transfer", strings.NewReader(`{"ref":"REF123"}`))
+		mw(handler).ServeHTTP(w2, req2)
+		assert.Equal(`{"result":"bank-transfer"}`, string(w2.buf))
 	})
 
 	t.Run("auto-replay skips non-configured endpoints", func(t *testing.T) {

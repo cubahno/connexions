@@ -64,6 +64,52 @@ func TestExtractJSONPath(t *testing.T) {
 		})
 	}
 
+	t.Run("top-level array index", func(t *testing.T) {
+		arrBody := []byte(`[{"name":"doggie","tag":"fundamental-window","id":9134332231560706000}]`)
+		result := extractJSONPath(arrBody, "[0].name")
+		assert.Equal("doggie", result)
+	})
+
+	t.Run("top-level array nested field", func(t *testing.T) {
+		arrBody := []byte(`[{"name":"doggie","tag":"fundamental-window","id":9134332231560706000},{"name":"kitty","tag":"other","id":2}]`)
+		result := extractJSONPath(arrBody, "[1].name")
+		assert.Equal("kitty", result)
+	})
+
+	t.Run("top-level array out of bounds", func(t *testing.T) {
+		arrBody := []byte(`[{"name":"doggie"}]`)
+		result := extractJSONPath(arrBody, "[5].name")
+		assert.Nil(result)
+	})
+
+	t.Run("top-level array wildcard", func(t *testing.T) {
+		arrBody := []byte(`[{"name":"doggie"},{"name":"kitty"}]`)
+		result := extractJSONPath(arrBody, "name")
+		assert.Equal("doggie", result)
+	})
+
+	t.Run("top-level array wildcard no match", func(t *testing.T) {
+		arrBody := []byte(`[{"name":"doggie"},{"name":"kitty"}]`)
+		result := extractJSONPath(arrBody, "missing")
+		assert.Nil(result)
+	})
+
+	t.Run("nested array wildcard no match", func(t *testing.T) {
+		result := extractJSONPath(body, "data.items.missing")
+		assert.Nil(result)
+	})
+
+	t.Run("path through scalar value", func(t *testing.T) {
+		result := extractJSONPath(body, "data.name.deeper")
+		assert.Nil(result)
+	})
+
+	t.Run("path through null value", func(t *testing.T) {
+		nullBody := []byte(`{"data":null}`)
+		result := extractJSONPath(nullBody, "data.name")
+		assert.Nil(result)
+	})
+
 	t.Run("invalid JSON returns nil", func(t *testing.T) {
 		result := extractJSONPath([]byte("not json"), "data.name")
 		assert.Nil(result)
@@ -92,6 +138,23 @@ func TestParseDottedPath(t *testing.T) {
 		assert.Equal("items", segments[1].key)
 		assert.Equal(0, segments[1].index)
 		assert.True(segments[1].isArr)
+	})
+
+	t.Run("invalid array index treated as key", func(t *testing.T) {
+		segments := parseDottedPath("data.items[abc].name")
+		assert.Len(segments, 3)
+		assert.Equal("items[abc]", segments[1].key)
+		assert.Equal(-1, segments[1].index)
+		assert.False(segments[1].isArr)
+	})
+
+	t.Run("bare array index", func(t *testing.T) {
+		segments := parseDottedPath("[0].name")
+		assert.Len(segments, 2)
+		assert.Equal("", segments[0].key)
+		assert.Equal(0, segments[0].index)
+		assert.True(segments[0].isArr)
+		assert.Equal("name", segments[1].key)
 	})
 
 	t.Run("empty path", func(t *testing.T) {
@@ -127,6 +190,12 @@ func TestExtractBodyValue(t *testing.T) {
 		assert.Nil(val)
 	})
 
+	t.Run("form-encoded missing field returns nil", func(t *testing.T) {
+		body := []byte("name=Jane&zip=12345")
+		val := extractBodyValue(body, "application/x-www-form-urlencoded", "missing")
+		assert.Nil(val)
+	})
+
 	t.Run("form-encoded empty value is returned", func(t *testing.T) {
 		body := []byte("name=&zip=12345")
 		val := extractBodyValue(body, "application/x-www-form-urlencoded", "name")
@@ -148,6 +217,7 @@ func TestFormatValue(t *testing.T) {
 		{"bool true", true, "true"},
 		{"bool false", false, "false"},
 		{"nil", nil, "<nil>"},
+		{"slice", []int{1, 2}, "[1 2]"},
 	}
 
 	for _, tt := range tests {

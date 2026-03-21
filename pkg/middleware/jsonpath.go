@@ -20,6 +20,7 @@ type pathSegment struct {
 //   - Simple: "data.name" - traverse nested objects
 //   - Array index: "data.items[0].name" - specific element
 //   - Array wildcard: "data.items.name" - when items is an array, search each element
+//   - Top-level array: "[0].name" - index into a root-level array
 func extractJSONPath(data []byte, path string) any {
 	var parsed any
 	if err := json.Unmarshal(data, &parsed); err != nil {
@@ -32,6 +33,7 @@ func extractJSONPath(data []byte, path string) any {
 
 // parseDottedPath splits a dotted path into segments.
 // "data.items[0].name" → [{key:"data"}, {key:"items", index:0, isArr:true}, {key:"name"}]
+// "[0].name"           → [{key:"", index:0, isArr:true}, {key:"name"}]
 func parseDottedPath(path string) []pathSegment {
 	parts := strings.Split(path, ".")
 	segments := make([]pathSegment, 0, len(parts))
@@ -63,6 +65,27 @@ func parseDottedPath(path string) []pathSegment {
 func navigatePath(current any, segments []pathSegment) any {
 	for i, seg := range segments {
 		if current == nil {
+			return nil
+		}
+
+		// Handle array at current level (top-level or bare index after traversal)
+		if arr, ok := current.([]any); ok {
+			if seg.isArr && seg.key == "" {
+				// Bare index like [0] - index directly into the current array
+				if seg.index < 0 || seg.index >= len(arr) {
+					return nil
+				}
+				current = arr[seg.index]
+				continue
+			}
+			// Array wildcard - search each element with remaining segments
+			remaining := segments[i:]
+			for _, elem := range arr {
+				result := navigatePath(elem, remaining)
+				if result != nil {
+					return result
+				}
+			}
 			return nil
 		}
 

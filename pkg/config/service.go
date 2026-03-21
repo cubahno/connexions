@@ -321,18 +321,21 @@ type ReplayEndpoint struct {
 
 // ReplayMatch specifies where to extract match field values from.
 type ReplayMatch struct {
+	// Path fields are path variable names to include in the replay key.
+	Path []string `yaml:"path"`
 	// Body fields are extracted from the request body (JSON dotted paths or form-encoded flat keys).
 	Body []string `yaml:"body"`
 	// Query fields are extracted from the URL query string.
 	Query []string `yaml:"query"`
 }
 
-// AllFields returns all match field names (body + query) for key building.
+// AllFields returns all match field names (path + body + query) for key building.
 func (rm *ReplayMatch) AllFields() []string {
 	if rm == nil {
 		return nil
 	}
-	fields := make([]string, 0, len(rm.Body)+len(rm.Query))
+	fields := make([]string, 0, len(rm.Path)+len(rm.Body)+len(rm.Query))
+	fields = append(fields, rm.Path...)
 	fields = append(fields, rm.Body...)
 	fields = append(fields, rm.Query...)
 	return fields
@@ -406,6 +409,28 @@ func matchesPattern(requestPath, pattern string) bool {
 		}
 	}
 	return true
+}
+
+// ExtractPathValues aligns segments of a request path against a pattern and returns
+// a map of path variable names to their actual values. Returns nil if paths don't align.
+func ExtractPathValues(requestPath, pattern string) map[string]string {
+	reqParts := strings.Split(strings.Trim(requestPath, "/"), "/")
+	patParts := strings.Split(strings.Trim(pattern, "/"), "/")
+
+	if len(reqParts) != len(patParts) {
+		return nil
+	}
+
+	values := make(map[string]string)
+	for i, pat := range patParts {
+		if strings.HasPrefix(pat, "{") && strings.HasSuffix(pat, "}") {
+			name := pat[1 : len(pat)-1]
+			values[name] = reqParts[i]
+		} else if pat != reqParts[i] {
+			return nil
+		}
+	}
+	return values
 }
 
 // NewCacheConfig creates a new CacheConfig with default values.

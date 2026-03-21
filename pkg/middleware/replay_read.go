@@ -20,14 +20,14 @@ func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler 
 				return
 			}
 
-			match, patternPath := resolveReplayParams(req, cfg)
+			match, patternPath, endpointPath := resolveReplayParams(req, cfg)
 			if match == nil && patternPath == "" {
 				next.ServeHTTP(w, req)
 				return
 			}
 
 			body := readAndRestoreBody(req)
-			key := buildReplayKey(req, patternPath, match, body)
+			key := buildReplayKey(req, patternPath, endpointPath, match, body)
 			if key == "" {
 				log.Info("Replay skipped: missing match fields", "method", req.Method, "path", req.URL.Path)
 				next.ServeHTTP(w, req)
