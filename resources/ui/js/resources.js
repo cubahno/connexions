@@ -166,6 +166,20 @@ export const generateResult = (service, ix, path, method) => {
         const jsonContent = JSON.stringify(yamlObject, null, 2);
         replacements = validators.fixAndValidateJSON(jsonContent);
     }
+    let customHeaders = null;
+    const customHeadersEditor = commons.getCodeEditor(`custom-headers`, `yaml`);
+    const customHeadersYaml = customHeadersEditor.getValue();
+    if (customHeadersYaml) {
+        try {
+            const parsed = jsyaml.load(customHeadersYaml);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                customHeaders = parsed;
+            }
+        } catch (e) {
+            console.error('Failed to parse custom headers YAML:', e);
+        }
+    }
+
     document.getElementById(`resource-edit-container`).style.display = 'none';
 
     // Use .root as-is for the generate endpoint (backend will convert it)
@@ -255,6 +269,13 @@ export const generateResult = (service, ix, path, method) => {
                 curlBlock.textContent += ` \\\n--header '${headerName}: ${headerValue}'`;
             }
 
+            // Add custom headers to cURL
+            if (customHeaders) {
+                for (const [headerName, headerValue] of Object.entries(customHeaders)) {
+                    curlBlock.textContent += ` \\\n--header '${headerName}: ${headerValue}'`;
+                }
+            }
+
             // Add request body to cURL
             if (reqBodyString && method.toLowerCase() !== 'get') {
                 curlBlock.textContent += ` \\\n--data '${reqBodyString.replace(/'/g, "\\'")}'`;
@@ -293,6 +314,13 @@ export const generateResult = (service, ix, path, method) => {
                 // Apply config overrides from UI
                 const overrideHeaders = getConfigOverrideHeaders();
                 Object.assign(fetchOptions.headers, overrideHeaders);
+
+                // Apply custom headers from YAML editor
+                if (customHeaders) {
+                    for (const [headerName, headerValue] of Object.entries(customHeaders)) {
+                        fetchOptions.headers[headerName] = String(headerValue);
+                    }
+                }
 
                 // Pass context replacements via header for response generation
                 if (replacements) {
