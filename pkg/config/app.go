@@ -48,8 +48,9 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 		ContextAreaPrefix: "in-",
 		Paths:             NewPaths(baseDir),
 		Editor: &EditorConfig{
-			Theme:    "chrome",
-			FontSize: 16,
+			Theme:     "chrome",
+			DarkTheme: "monokai",
+			FontSize:  14,
 		},
 		HistoryDuration: 5 * time.Minute,
 		Extra:           make(map[string]any),
@@ -81,8 +82,9 @@ func NewAppConfigFromBytes(bts []byte, baseDir string) (*AppConfig, error) {
 }
 
 type EditorConfig struct {
-	Theme    string `yaml:"theme"`
-	FontSize int    `yaml:"fontSize"`
+	Theme     string `yaml:"theme"`
+	DarkTheme string `yaml:"darkTheme"`
+	FontSize  int    `yaml:"fontSize"`
 }
 
 // StorageType defines the type of storage backend.

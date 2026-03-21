@@ -33,6 +33,7 @@ async function onLoad() {
             localStorage.setItem('theme', 'dark');
             themeToggle.textContent = '☀️';
         }
+        commons.updateAllEditorThemes();
     });
 
     const accordionHeaders = document.querySelectorAll('.accordion-header');

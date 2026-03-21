@@ -30,7 +30,7 @@ func TestNewDefaultAppConfig(t *testing.T) {
 		// Check editor config
 		assert.NotNil(cfg.Editor)
 		assert.Equal("chrome", cfg.Editor.Theme)
-		assert.Equal(16, cfg.Editor.FontSize)
+		assert.Equal(14, cfg.Editor.FontSize)
 	})
 }
 

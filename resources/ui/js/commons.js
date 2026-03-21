@@ -1,5 +1,19 @@
 import * as config from './config.js';
 
+export const getEditorTheme = () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return isDark ? config.editor.darkTheme : config.editor.theme;
+}
+
+export const updateAllEditorThemes = () => {
+    const theme = `ace/theme/${getEditorTheme()}`;
+    for (const editor of activeEditors) {
+        editor.setTheme(theme);
+    }
+}
+
+const activeEditors = new Set();
+
 export const showSuccess = text => {
     showMessage(text, 'success')
 }
@@ -27,25 +41,23 @@ export const hideMessage = () => {
     config.messageCont.style.display = 'none';
 }
 
-export const getCodeEditor = (htmlID, mode) => {
-    // Get the code editor container element
+export const getCodeEditor = (htmlID, mode, opts) => {
     const codeEditorContainer = document.getElementById(htmlID);
-
-    // Create the Ace Editor instance
     const editor = ace.edit(codeEditorContainer);
 
-    // Set the editor options
-    editor.setOptions({
-        // Enable line numbers
+    const options = {
         showLineNumbers: true,
         mode: `ace/mode/${mode}`,
         showPrintMargin: false,
-    });
+        ...opts,
+    };
+    editor.setOptions(options);
 
-    editor.setTheme(`ace/theme/${config.editor.theme}`);
+    editor.setTheme(`ace/theme/${getEditorTheme()}`);
     editor.setFontSize(`${config.editor.fontSize}px`);
     editor.resize();
 
+    activeEditors.add(editor);
     return editor;
 }
 

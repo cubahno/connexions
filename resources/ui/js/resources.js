@@ -5,6 +5,66 @@ import * as navi from "./navi.js";
 import * as services from "./services.js";
 import * as presets from "./presets.js";
 
+export const addCustomHeaderRow = (enabled = true, name = '', value = '', visible = true) => {
+    const container = document.getElementById('custom-headers-rows');
+    const row = document.createElement('div');
+    row.className = 'config-override-row custom-header-row';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = enabled;
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'custom-header-name';
+    nameInput.placeholder = 'Header name';
+    nameInput.value = name;
+
+    const valueInput = document.createElement('input');
+    valueInput.type = visible ? 'text' : 'password';
+    valueInput.className = 'custom-header-value';
+    valueInput.placeholder = 'Header value';
+    valueInput.value = value;
+
+    const eyeBtn = document.createElement('button');
+    eyeBtn.type = 'button';
+    eyeBtn.className = 'btn-eye';
+    eyeBtn.innerHTML = visible
+        ? '<i class="fa-solid fa-eye"></i>'
+        : '<i class="fa-solid fa-eye-slash"></i>';
+    eyeBtn.title = 'Toggle visibility';
+    eyeBtn.addEventListener('click', () => {
+        const isVisible = valueInput.type === 'text';
+        valueInput.type = isVisible ? 'password' : 'text';
+        eyeBtn.innerHTML = isVisible
+            ? '<i class="fa-solid fa-eye-slash"></i>'
+            : '<i class="fa-solid fa-eye"></i>';
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove';
+    removeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+    removeBtn.title = 'Remove header';
+    removeBtn.addEventListener('click', () => row.remove());
+
+    row.append(cb, nameInput, valueInput, eyeBtn, removeBtn);
+    container.appendChild(row);
+};
+
+export const getCustomHeaders = () => {
+    const headers = {};
+    const rows = document.querySelectorAll('#custom-headers-rows .custom-header-row');
+    for (const row of rows) {
+        const cb = row.querySelector('input[type="checkbox"]');
+        if (!cb || !cb.checked) continue;
+        const name = row.querySelector('.custom-header-name').value.trim();
+        const value = row.querySelector('.custom-header-value').value;
+        if (name) headers[name] = value;
+    }
+    return headers;
+};
+
 // Collect enabled config override headers from the UI
 const getConfigOverrideHeaders = () => {
     const headers = {};
@@ -169,19 +229,8 @@ export const generateResult = (service, ix, path, method) => {
         const jsonContent = JSON.stringify(yamlObject, null, 2);
         replacements = validators.fixAndValidateJSON(jsonContent);
     }
-    let customHeaders = null;
-    const customHeadersEditor = commons.getCodeEditor(`custom-headers`, `yaml`);
-    const customHeadersYaml = customHeadersEditor.getValue();
-    if (customHeadersYaml) {
-        try {
-            const parsed = jsyaml.load(customHeadersYaml);
-            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                customHeaders = parsed;
-            }
-        } catch (e) {
-            console.error('Failed to parse custom headers YAML:', e);
-        }
-    }
+    const customHeaders = getCustomHeaders();
+    const hasCustomHeaders = Object.keys(customHeaders).length > 0;
 
     document.getElementById(`resource-edit-container`).style.display = 'none';
 
@@ -250,7 +299,7 @@ export const generateResult = (service, ix, path, method) => {
                 document.getElementById('request-body-container').style.display = 'block';
                 // Use 'text' mode for non-JSON content types
                 const editorMode = reqContentType === 'application/json' ? 'json' : 'text';
-                const reqView = commons.getCodeEditor(`request-body`, editorMode);
+                const reqView = commons.getCodeEditor(`request-body`, editorMode, {maxLines: Infinity});
                 reqView.setValue(formattedBody);
                 reqView.clearSelection();
                 reqView.setReadOnly(true);
@@ -273,7 +322,7 @@ export const generateResult = (service, ix, path, method) => {
             }
 
             // Add custom headers to cURL
-            if (customHeaders) {
+            if (hasCustomHeaders) {
                 for (const [headerName, headerValue] of Object.entries(customHeaders)) {
                     curlBlock.textContent += ` \\\n--header '${headerName}: ${headerValue}'`;
                 }
@@ -318,8 +367,8 @@ export const generateResult = (service, ix, path, method) => {
                 const overrideHeaders = getConfigOverrideHeaders();
                 Object.assign(fetchOptions.headers, overrideHeaders);
 
-                // Apply custom headers from YAML editor
-                if (customHeaders) {
+                // Apply custom headers
+                if (hasCustomHeaders) {
                     for (const [headerName, headerValue] of Object.entries(customHeaders)) {
                         fetchOptions.headers[headerName] = String(headerValue);
                     }
@@ -365,14 +414,14 @@ export const generateResult = (service, ix, path, method) => {
                     }
 
                     document.getElementById('response-body-container').style.display = 'block';
-                    const responseView = commons.getCodeEditor(`response-body`, `json`);
+                    const responseView = commons.getCodeEditor(`response-body`, `json`, {maxLines: Infinity});
                     responseView.setValue(formattedResponse);
                     responseView.clearSelection();
                     responseView.setReadOnly(true);
                 })
                 .catch(error => {
                     console.error('API call failed:', error);
-                    const responseView = commons.getCodeEditor(`response-body`, `json`);
+                    const responseView = commons.getCodeEditor(`response-body`, `json`, {maxLines: Infinity});
                     responseView.setValue(`Error: ${error.message}`);
                     responseView.clearSelection();
                     responseView.setReadOnly(true);
@@ -381,3 +430,6 @@ export const generateResult = (service, ix, path, method) => {
 
         }).then(onDone);
 }
+
+document.getElementById('custom-header-add')
+    .addEventListener('click', () => addCustomHeaderRow(true, '', '', true));
