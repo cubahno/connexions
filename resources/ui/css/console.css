@@ -118,15 +118,15 @@ a:hover { color: var(--primary-dark); }
     padding: 6px 16px;
     border-bottom: 1px solid var(--border);
 }
-#service-table th:first-child { width: 16px; text-align: center; padding: 6px 0 6px 10px; }
+#service-table th:first-child { width: 1%; text-align: center; padding: 6px 0 6px 10px; }
 #service-table td:first-child { padding: 8px 0 8px 10px; }
 #service-table th:nth-child(2) { padding-left: 4px; }
-#service-table th:last-child { text-align: right; padding-right: 16px; }
+#service-table th:last-child { width: 1%; white-space: nowrap; text-align: right; padding-right: 8px; }
 
 #service-table td { padding: 8px 16px; border-bottom: 1px solid var(--border); }
 #service-table td:first-child { text-align: center; }
 #service-table td:nth-child(2) { padding-left: 4px; }
-#service-table td:last-child { text-align: right; }
+#service-table td:last-child { width: 1%; white-space: nowrap; text-align: right; padding-right: 8px; }
 #service-table tr:hover { background: var(--hover-bg); }
 #service-table tr.selected-service { background: var(--selected-bg); }
 #service-table tr.selected-service td { font-weight: 600; color: var(--primary); }
