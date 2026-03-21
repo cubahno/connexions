@@ -268,6 +268,7 @@ export const generateResult = (service, ix, path, method) => {
             document.getElementById('request-path-container').style.display = 'none';
             document.getElementById('request-body-container').style.display = 'none';
             document.getElementById('response-body-container').style.display = 'none';
+            document.getElementById('response-headers-container').style.display = 'none';
 
             let reqPath = res["path"];
             if (!reqPath) {
@@ -390,9 +391,14 @@ export const generateResult = (service, ix, path, method) => {
                 fetch(apiUrl, fetchOptions)
                 .then(response => {
                     const responseContentType = response.headers.get('Content-Type');
+                    const headers = {};
+                    response.headers.forEach((value, name) => {
+                        headers[name] = value;
+                    });
                     return response.text().then(text => ({
                         status: response.status,
                         contentType: responseContentType,
+                        headers: headers,
                         body: text
                     }));
                 })
@@ -418,6 +424,22 @@ export const generateResult = (service, ix, path, method) => {
                     responseView.setValue(formattedResponse);
                     responseView.clearSelection();
                     responseView.setReadOnly(true);
+
+                    const headerEntries = Object.entries(responseData.headers || {});
+                    if (headerEntries.length > 0) {
+                        const tbody = document.getElementById('response-headers-body');
+                        tbody.innerHTML = '';
+                        for (const [name, value] of headerEntries) {
+                            const row = document.createElement('tr');
+                            const nameCell = document.createElement('td');
+                            nameCell.textContent = name;
+                            const valueCell = document.createElement('td');
+                            valueCell.textContent = value;
+                            row.append(nameCell, valueCell);
+                            tbody.appendChild(row);
+                        }
+                        document.getElementById('response-headers-container').style.display = 'block';
+                    }
                 })
                 .catch(error => {
                     console.error('API call failed:', error);

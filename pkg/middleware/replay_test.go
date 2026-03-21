@@ -120,6 +120,25 @@ func TestResolveReplayParams(t *testing.T) {
 		assert.Nil(match)
 	})
 
+	t.Run("empty header skips when method not configured", func(t *testing.T) {
+		cfg := &config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo/{id}/bar": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
+					},
+				},
+			},
+		}
+		req := httptest.NewRequest(http.MethodGet, "/svc/foo/123/bar", nil)
+		req.Header.Set(headerReplayMatch, "")
+
+		match, pattern, _ := resolveReplayParams(req, cfg)
+		assert.Nil(match)
+		assert.Empty(pattern)
+	})
+
 	t.Run("auto-replay activates for configured endpoint", func(t *testing.T) {
 		cfg := &config.ServiceConfig{
 			Name: "svc",
