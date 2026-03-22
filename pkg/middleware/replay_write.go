@@ -78,11 +78,7 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 				return
 			}
 
-			// Resolve TTL
-			ttl := config.DefaultReplayTTL
-			if replayCfg && cfg.Cache.Replay.TTL > 0 {
-				ttl = cfg.Cache.Replay.TTL
-			}
+			ttl := replayTTL(cfg)
 
 			// Extract match values for debugging
 			matchValues := make(map[string]any)
