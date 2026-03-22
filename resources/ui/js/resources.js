@@ -107,8 +107,6 @@ const getConfigOverrideHeaders = () => {
 };
 
 export const show = match => {
-    services.show();
-
     const {name} = match.params;
     const service = name;
 
@@ -137,7 +135,7 @@ export const show = match => {
         const row = document.getElementById(`resource-${ix}`);
         if (row) {
             // Extract path and method from the table row
-            const pathCell = row.querySelector('.fixed-resource-path a');
+            const pathCell = row.querySelector('.fixed-resource-path span');
             const methodCell = row.querySelector('.fixed-resource-method');
 
             if (pathCell && methodCell) {
@@ -153,6 +151,7 @@ export const show = match => {
     }
 
     navi.resetContents();
+    services.show();
 
     fetch(serviceResourcesUrl)
         .then(res => res.json())
@@ -337,22 +336,6 @@ export const generateResult = (service, ix, path, method) => {
             if (exampleCurl) {
                 curlBlock.textContent += ` \\\n${exampleCurl}`;
             }
-
-            const copyCodeElement = document.querySelector(".copy-code");
-            const originalCopyIcon = `<i class="fa-solid fa-copy"></i> Copy`;
-            copyCodeElement.addEventListener("click", () => {
-                const codeText = curlBlock.textContent;
-                navigator.clipboard.writeText(codeText).then(() => {
-                    console.log("Code copied to clipboard!");
-
-                    copyCodeElement.innerHTML = `<i class="fas fa-check"></i> Copied!`;
-                    setTimeout(() => {
-                        copyCodeElement.innerHTML = originalCopyIcon;
-                    }, 2000);
-                }).catch((error) => {
-                    console.error("Failed to copy code:", error);
-                });
-            });
 
             // Make actual API call to get response
             if (reqPath) {

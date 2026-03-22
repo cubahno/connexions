@@ -30,8 +30,8 @@ const toggleStar = (name) => {
 };
 
 const renderServices = (services, selected) => {
-    const tbody = document.getElementById('table-body');
-    tbody.innerHTML = '';
+    const list = config.serviceList;
+    list.innerHTML = '';
 
     const starred = getStarred();
 
@@ -42,16 +42,13 @@ const renderServices = (services, selected) => {
         return a.name.localeCompare(b.name);
     });
 
-    let i = 0;
     for (let { name, type, resourceNumber } of sorted) {
-        const num = i + 1;
-        const row = document.createElement('tr');
-        row.id = `service-${name}`;
+        const li = document.createElement('li');
+        li.id = `service-${name}`;
 
         const originalName = name;
         const isStarred = starred.includes(originalName);
 
-        const starCell = document.createElement('td');
         const star = document.createElement('span');
         star.className = 'star-toggle' + (isStarred ? ' starred' : '');
         star.innerHTML = isStarred
@@ -62,12 +59,11 @@ const renderServices = (services, selected) => {
             e.stopPropagation();
             e.preventDefault();
             toggleStar(originalName);
-            const current = document.querySelector('#service-table tr.selected-service');
+            const current = config.serviceList.querySelector('li.selected-service');
             const currentId = current ? current.id.replace('service-', '') : '';
             renderServices(services, currentId);
         });
-        starCell.appendChild(star);
-        row.appendChild(starCell);
+        li.appendChild(star);
 
         let nameLink = name;
         if (name === ``) {
@@ -75,33 +71,39 @@ const renderServices = (services, selected) => {
             nameLink = `.root`
         }
 
-        const svcNameCell = document.createElement('td');
-        svcNameCell.innerHTML = `<a href="#/services/${nameLink}">${name}</a>`;
-        row.appendChild(svcNameCell);
+        const svcName = document.createElement('a');
+        svcName.href = `#/services/${nameLink}`;
+        svcName.className = 'service-name';
+        svcName.textContent = name;
+        li.appendChild(svcName);
 
-        const numResCell = document.createElement('td');
-        numResCell.innerHTML = resourceNumber;
-        numResCell.title = `Number of resources`;
+        const count = document.createElement('span');
+        count.className = 'service-count';
+        count.textContent = resourceNumber;
+        count.title = 'Number of resources';
+        li.appendChild(count);
 
-        row.appendChild(numResCell);
+        li.addEventListener('click', () => { window.location.hash = `#/services/${nameLink}`; });
 
-        tbody.appendChild(row);
-        i += 1;
+        list.appendChild(li);
     }
 
-    config.serviceTable.style.display = 'block';
+    document.getElementById('service-list-header').style.display = 'flex';
+    config.serviceList.style.display = 'block';
     if (selected !== ``) {
         navi.applySelection(`service-${selected}`, 'selected-service');
     }
 };
 
 export const show = (selected = '') => {
-    config.servicesLink.className = `menu-link active`;
-
-    const tbody = document.getElementById('table-body');
-    tbody.innerHTML = '';
+    if (cachedServices) {
+        renderServices(cachedServices, selected);
+        return;
+    }
 
     console.log("loading service list");
+
+    config.serviceList.innerHTML = '';
 
     fetch(config.serviceUrl)
         .then(res => res.json())

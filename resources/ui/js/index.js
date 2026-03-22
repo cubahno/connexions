@@ -36,6 +36,66 @@ async function onLoad() {
         commons.updateAllEditorThemes();
     });
 
+    // Panel resizer
+    const RESIZER_STORAGE_KEY = 'panel-split';
+    const contentPanels = document.querySelector('.content-panels');
+    const resizer = document.querySelector('.panel-resizer');
+
+    const savedSplit = localStorage.getItem(RESIZER_STORAGE_KEY);
+    if (savedSplit) {
+        contentPanels.style.setProperty('--resources-width', savedSplit + '%');
+    }
+
+    resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        resizer.classList.add('dragging');
+        contentPanels.classList.add('resizing');
+
+        const onMouseMove = (e) => {
+            const rect = contentPanels.getBoundingClientRect();
+            const pct = ((e.clientX - rect.left) / rect.width) * 100;
+            const clamped = Math.min(Math.max(pct, 20), 80);
+            contentPanels.style.setProperty('--resources-width', clamped + '%');
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            resizer.classList.remove('dragging');
+            contentPanels.classList.remove('resizing');
+            const leftPanel = document.querySelector('.panel-resources');
+            const pct = (leftPanel.offsetWidth / contentPanels.offsetWidth) * 100;
+            localStorage.setItem(RESIZER_STORAGE_KEY, pct.toFixed(1));
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+
+    // Copy buttons
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.copy-btn');
+        if (!btn) return;
+        e.stopPropagation();
+
+        const target = btn.dataset.copyTarget;
+        let text = '';
+        if (target === 'curl') {
+            text = document.getElementById('example-curl').textContent;
+        } else {
+            const el = document.getElementById(target);
+            if (el && el.env) {
+                text = el.env.editor.getValue();
+            }
+        }
+
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+        });
+    });
+
     const ACCORDION_STORAGE_KEY = 'accordion-states';
     const getAccordionStates = () => {
         try { return JSON.parse(localStorage.getItem(ACCORDION_STORAGE_KEY)) || {}; }
