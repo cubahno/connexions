@@ -175,10 +175,14 @@ func generateContentObject(schema *schema.Schema, valueReplacer replacer.ValueRe
 		}
 
 		f := faker.New()
-		for i := 1; i <= numAdditional; i++ {
+		startLen := len(res)
+		for attempts := 0; len(res)-startLen < numAdditional && attempts < numAdditional*3; attempts++ {
 			name := f.Music().Genre()
 			name = strings.ToLower(name)
 			name = strings.SplitN(name, " ", 2)[0]
+			if _, exists := res[name]; exists {
+				continue
+			}
 			s := state.NewFrom(state).WithOptions(replacer.WithName(name))
 			value := generateContentFromSchema(schema.AdditionalProperties, valueReplacer, s)
 			if value != nil {
