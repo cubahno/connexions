@@ -680,6 +680,95 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.True(found, "should have closed->open transition event")
 	})
 
+	t.Run("successful requests update stored state", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message": "OK"}`))
+		}))
+		defer upstreamServer.Close()
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  3,
+					FailureRatio: 0.6,
+				},
+			},
+		}, nil)
+
+		mw := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := mw(handler)
+
+		// Make 5 successful requests
+		for i := 1; i <= 5; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+			assert.Equal(`{"message": "OK"}`, string(w.buf))
+		}
+
+		// Verify stored state reflects all 5 requests
+		cbTable := params.DB().Table("circuit-breaker")
+		ctx := context.Background()
+
+		state, ok := GetCBState(ctx, cbTable)
+		assert.True(ok, "CB state should be written after successful requests")
+		assert.NotNil(state)
+		assert.Equal("closed", state.State)
+		assert.Equal(uint32(5), state.Requests, "state should count all requests including successes")
+		assert.Equal(uint32(5), state.TotalSuccesses, "state should track successful requests")
+		assert.Equal(uint32(0), state.TotalFailures)
+	})
+
+	t.Run("mixed success and failure requests update stored state", func(t *testing.T) {
+		callCount := 0
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			// First 2 requests succeed, 3rd fails
+			if callCount == 2 {
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"error": "fail"}`))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message": "OK"}`))
+		}))
+		defer upstreamServer.Close()
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+				CircuitBreaker: &config.CircuitBreakerConfig{
+					MinRequests:  5,
+					FailureRatio: 0.6,
+				},
+			},
+		}, nil)
+
+		mw := CreateUpstreamRequestMiddleware(params)
+		wrappedHandler := mw(handler)
+
+		// Make 3 requests: success, failure, success
+		for i := 0; i < 3; i++ {
+			w := NewBufferedResponseWriter()
+			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+			wrappedHandler.ServeHTTP(w, req)
+		}
+
+		// Verify stored state reflects all 3 requests
+		cbTable := params.DB().Table("circuit-breaker")
+		ctx := context.Background()
+
+		state, ok := GetCBState(ctx, cbTable)
+		assert.True(ok, "CB state should be present")
+		assert.Equal(uint32(3), state.Requests, "state should count all requests")
+		assert.Equal(uint32(2), state.TotalSuccesses)
+		assert.Equal(uint32(1), state.TotalFailures)
+	})
+
 	t.Run("no circuit breaker when not configured", func(t *testing.T) {
 		callCount := 0
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
