@@ -314,6 +314,54 @@ func TestCreateReplayReadMiddleware(t *testing.T) {
 		assert.Equal(`{"result":"bank-transfer"}`, string(w2.buf))
 	})
 
+	t.Run("hit increments hit count and last replayed time", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "svc",
+			Cache: &config.CacheConfig{
+				Replay: &config.ReplayConfig{
+					Endpoints: map[string]map[string]*config.ReplayEndpoint{
+						"/foo": {"POST": {Match: &config.ReplayMatch{Body: []string{"name"}}}},
+					},
+				},
+			},
+		}, nil)
+
+		body := []byte(`{"name":"Jane"}`)
+		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, body)
+		rec := &ReplayRecord{
+			Data:        []byte(`{"result":"stored"}`),
+			StatusCode:  http.StatusOK,
+			ContentType: "application/json",
+			CreatedAt:   time.Now(),
+		}
+		params.DB().Table("replay").Set(context.TODO(), key, rec, 0)
+
+		mw := CreateReplayReadMiddleware(params)
+
+		// First hit
+		w1 := NewBufferedResponseWriter()
+		req1 := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req1.Header.Set(headerReplayMatch, "")
+		mw(handler).ServeHTTP(w1, req1)
+
+		val, _ := params.DB().Table("replay").Get(context.TODO(), key)
+		updated := val.(*ReplayRecord)
+		assert.Equal(1, updated.HitCount)
+		assert.False(updated.LastReplayedAt.IsZero())
+		firstReplayedAt := updated.LastReplayedAt
+
+		// Second hit
+		w2 := NewBufferedResponseWriter()
+		req2 := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
+		req2.Header.Set(headerReplayMatch, "")
+		mw(handler).ServeHTTP(w2, req2)
+
+		val, _ = params.DB().Table("replay").Get(context.TODO(), key)
+		updated = val.(*ReplayRecord)
+		assert.Equal(2, updated.HitCount)
+		assert.True(updated.LastReplayedAt.Equal(firstReplayedAt) || updated.LastReplayedAt.After(firstReplayedAt))
+	})
+
 	t.Run("auto-replay skips non-configured endpoints", func(t *testing.T) {
 		params := newTestParams(&config.ServiceConfig{
 			Name: "svc",
