@@ -91,6 +91,7 @@ func (h *ServiceHandler) routes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	routes := svc.Handler.Routes()
+	routes.Sort()
 	res := &ServiceResourcesResponse{
 		Endpoints: routes,
 	}

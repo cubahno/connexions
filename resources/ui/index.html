@@ -36,23 +36,12 @@
 
     <div class="main">
         <aside class="sidebar">
-            <div class="sidebar-section">
-                <h3>
-                    <div id="services-link" class="menu-link active">
-                        <a href="#/services" title="View Services">Services</a>
-                    </div>
-                </h3>
+            <div id="services-link"></div>
+            <div id="service-list-header" class="service-list-header" style="display: none;">
+                <span>Service</span>
+                <span>#</span>
             </div>
-            <table id="service-table" style="display: none;">
-                <thead>
-                <tr>
-                    <th></th>
-                    <th>Service</th>
-                    <th>#</th>
-                </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
+            <ul id="service-list" class="service-list" style="display: none;"></ul>
         </aside>
 
         <div class="content">
@@ -78,6 +67,8 @@
                             </table>
                         </div>
                     </div>
+
+                    <div class="panel-resizer"><div class="panel-resizer-handle"></div></div>
 
                     <div class="panel panel-results">
                         <div class="panel-header">
@@ -183,9 +174,7 @@
                                 <div class="accordion">
                                     <div class="accordion-header">cURL</div>
                                     <div class="accordion-content">
-                                        <div class="copy-code">
-                                            <span class="copy-icon" id="copy-icon">📋 Copy</span>
-                                        </div>
+                                        <button class="copy-btn" data-copy-target="curl" title="Copy to clipboard">Copy</button>
                                         <pre class="code" id="example-curl"></pre>
                                     </div>
                                 </div>
@@ -200,6 +189,7 @@
                                 <div id="request-body-container" class="accordion">
                                     <div class="accordion-header">Request Payload</div>
                                     <div class="accordion-content active">
+                                        <button class="copy-btn" data-copy-target="request-body" title="Copy to clipboard">Copy</button>
                                         <div id="request-body" style="width:100%;"></div>
                                     </div>
                                 </div>
@@ -207,6 +197,7 @@
                                 <div id="response-body-container" class="accordion">
                                     <div class="accordion-header">Response</div>
                                     <div class="accordion-content active">
+                                        <button class="copy-btn" data-copy-target="response-body" title="Copy to clipboard">Copy</button>
                                         <div id="response-body" style="width:100%;"></div>
                                     </div>
                                 </div>
@@ -237,11 +228,11 @@
         </div>
     </div>
 
-    <footer class="footer">
+    {{if .Contents.Footer}}{{.Contents.Footer}}{{else}}<footer class="footer">
         <a href="https://github.com/cubahno/connexions" target="_blank">GitHub</a>
         <a href="https://cubahno.github.io/connexions/" target="_blank">Docs</a>
         <span>Version: <span id="app-version"></span></span>
-    </footer>
+    </footer>{{end}}
 </div>
 
 </body>

@@ -196,7 +196,7 @@ export const resetContents = () => {
 
     config.generatorCont.style.display = 'none';
 
-    config.serviceTable.style.display = 'none';
+    if (config.serviceList) config.serviceList.style.display = 'none';
 
     document.getElementById('fixed-service-table-body').innerHTML = '';
     document.getElementById('resource-result').innerHTML = '';

@@ -112,11 +112,19 @@ func createUIHandler(router *Router) http.HandlerFunc {
 			headerContents, _ = resources.UIFS.ReadFile("ui/header.html")
 		}
 
+		var footerContents []byte
+		if useFilesystem {
+			footerContents, _ = os.ReadFile(filepath.Join(uiPath, "footer.html"))
+		} else {
+			footerContents, _ = resources.UIFS.ReadFile("ui/footer.html")
+		}
+
 		data := &TemplateData{
 			AppConfig: cfg,
 			Contents: map[string]template.HTML{
 				"Home":   template.HTML(homeContents),
 				"Header": template.HTML(headerContents),
+				"Footer": template.HTML(footerContents),
 			},
 			Version: os.Getenv("APP_VERSION"),
 		}
