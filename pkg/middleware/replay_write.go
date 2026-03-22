@@ -114,7 +114,16 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 				headers[k] = rw.Header().Get(k)
 			}
 
+			// Resolve the config endpoint pattern (if any)
+			var resource string
+			if replayCfg {
+				resource, _ = cfg.Cache.Replay.GetEndpoint(endpointPath, req.Method)
+			}
+
 			rec := &ReplayRecord{
+				Method:         req.Method,
+				Path:           endpointPath,
+				Resource:       resource,
 				Data:           respContent,
 				Headers:        headers,
 				StatusCode:     respStatusCode,

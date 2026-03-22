@@ -28,6 +28,10 @@ const headerReplayMatch = "X-Cxs-Replay"
 
 // ReplayRecord holds a recorded response along with request metadata for debugging.
 //
+// Method is the HTTP method of the recorded request (e.g. GET, POST).
+// Path is the actual request path (e.g. /pay/credit-card).
+// Resource is the matched config endpoint pattern (e.g. /pay/{paymentMethod}).
+// Empty when no config endpoint matched (header-only mode).
 // Data is the response body bytes.
 // Headers are the response headers (excluding internal X-Cxs-* headers).
 // StatusCode is the HTTP status code of the response.
@@ -37,6 +41,9 @@ const headerReplayMatch = "X-Cxs-Replay"
 // MatchValues maps field paths to their extracted values (stored for debugging).
 // CreatedAt is when the recording was created.
 type ReplayRecord struct {
+	Method         string            `json:"method"`
+	Path           string            `json:"path"`
+	Resource       string            `json:"resource,omitempty"`
 	Data           []byte            `json:"data"`
 	Headers        map[string]string `json:"headers"`
 	StatusCode     int               `json:"statusCode"`
