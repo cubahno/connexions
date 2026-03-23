@@ -46,12 +46,12 @@ func TestExtractContextFromRequest(t *testing.T) {
 
 	t.Run("nested context decoded", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
-		encoded := base64.StdEncoding.EncodeToString([]byte(`{"in-path":{"id":"func:int8_between:2,10"}}`))
+		encoded := base64.StdEncoding.EncodeToString([]byte(`{"in-path":{"id":"func:int_between:2,10"}}`))
 		r.Header.Set(ContextHeaderName, encoded)
 		ctx := ExtractContextFromRequest(r)
 		inPath, ok := ctx["in-path"].(map[string]any)
 		assert.True(ok)
-		assert.Equal("func:int8_between:2,10", inPath["id"])
+		assert.Equal("func:int_between:2,10", inPath["id"])
 	})
 }
 

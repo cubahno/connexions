@@ -112,7 +112,7 @@ func TestGetFakeFuncFactoryWith2Strings(t *testing.T) {
 	assert.NotNil(funcs)
 
 	expectedKeys := []string{
-		"int8_between",
+		"int_between",
 	}
 	var keys []string
 	for key := range funcs {
@@ -121,28 +121,19 @@ func TestGetFakeFuncFactoryWith2Strings(t *testing.T) {
 
 	assert.ElementsMatch(expectedKeys, keys)
 
-	t.Run("int8_between valid range", func(t *testing.T) {
-		fn := funcs["int8_between"]("10", "20")
+	t.Run("int_between valid range", func(t *testing.T) {
+		fn := funcs["int_between"]("100", "50000")
 		for i := 0; i < 100; i++ {
 			val := fn().Get().(int64)
-			assert.GreaterOrEqual(val, int64(10))
-			assert.LessOrEqual(val, int64(20))
+			assert.GreaterOrEqual(val, int64(100))
+			assert.LessOrEqual(val, int64(50000))
 		}
 	})
 
-	t.Run("int8_between single value", func(t *testing.T) {
-		fn := funcs["int8_between"]("5", "5")
+	t.Run("int_between single value", func(t *testing.T) {
+		fn := funcs["int_between"]("42", "42")
 		val := fn().Get().(int64)
-		assert.Equal(int64(5), val)
-	})
-
-	t.Run("int8_between boundary values", func(t *testing.T) {
-		fn := funcs["int8_between"]("1", "10")
-		for i := 0; i < 100; i++ {
-			val := fn().Get().(int64)
-			assert.GreaterOrEqual(val, int64(1))
-			assert.LessOrEqual(val, int64(10))
-		}
+		assert.Equal(int64(42), val)
 	})
 }
 

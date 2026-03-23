@@ -371,7 +371,7 @@ func TestProcessFunctions(t *testing.T) {
 
 	t.Run("two args", func(t *testing.T) {
 		data := map[string]any{
-			"file.yml": "func:int8_between:2,2",
+			"file.yml": "func:int_between:2,2",
 		}
 		processFunctions(nil, data)
 		v, ok := data["file.yml"].(FakeFunc)
@@ -544,11 +544,11 @@ func TestParse_func(t *testing.T) {
 	})
 
 	t.Run("two-args", func(t *testing.T) {
-		_, result, err := parse([]byte("key1: func:int8_between:1,10"))
+		_, result, err := parse([]byte("key1: func:int_between:1,10"))
 		assert2.NoError(t, err)
 
 		// Functions are not parsed in parse() anymore, they're just strings
-		assert2.Equal(t, "func:int8_between:1,10", result["key1"])
+		assert2.Equal(t, "func:int_between:1,10", result["key1"])
 	})
 }
 
