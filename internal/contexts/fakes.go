@@ -71,11 +71,11 @@ func getFakeFuncFactoryWithString() map[string]FakeFuncFactoryWithString {
 func getFakeFuncFactoryWith2Strings() map[string]FakeFuncFactoryWith2Strings {
 	fake := faker.New()
 	return map[string]FakeFuncFactoryWith2Strings{
-		"int8_between": func(minStr, maxStr string) FakeFunc {
+		"int_between": func(minStr, maxStr string) FakeFunc {
 			return func() MixedValue {
-				mn, _ := strconv.Atoi(minStr)
-				mx, _ := strconv.Atoi(maxStr)
-				return IntValue(fake.Int8Between(int8(mn), int8(mx)))
+				mn, _ := strconv.ParseInt(minStr, 10, 64)
+				mx, _ := strconv.ParseInt(maxStr, 10, 64)
+				return IntValue(fake.Int64Between(mn, mx))
 			}
 		},
 	}

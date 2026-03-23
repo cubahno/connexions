@@ -189,15 +189,15 @@ Calls registered functions with optional arguments.
 
 **Available functions:**
 
-| Function | Arguments | Description |
-|----------|-----------|-------------|
-| `botify` | pattern | Generate string from pattern (see below) |
-| `echo` | value | Return the value as-is |
-| `int8_between` | min,max | Random int8 between min and max |
+| Function      | Arguments | Description |
+|---------------|-----------|-------------|
+| `botify`      | pattern | Generate string from pattern (see below) |
+| `echo`        | value | Return the value as-is |
+| `int_between` | min,max | Random int between min and max |
 
 **Example:**
 ```yaml
-totalItems: "func:int8_between:1,100"
+totalItems: "func:int_between:1,100"
 code: "func:echo:FIXED_CODE"
 ```
 
@@ -249,7 +249,7 @@ Since there is no automatic case conversion, use alternation patterns like `(_id
 Keys starting with `^` match properties that start with that pattern:
 
 ```yaml
-(^total_|^total[A-Z]): "func:int8_between:1,100"   # Matches: total_items, totalItems
+(^total_|^total[A-Z]): "func:int_between:1,100"   # Matches: total_items, totalItems
 ```
 
 ### Wildcard Matching

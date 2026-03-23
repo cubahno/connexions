@@ -817,7 +817,7 @@ func TestGenerator_Request(t *testing.T) {
 			},
 		}
 
-		userCtx := map[string]any{"count": "func:int8_between:1,100"}
+		userCtx := map[string]any{"count": "func:int_between:1,100"}
 		res := gen.Response(respSchema, userCtx)
 		assert.NotNil(res.Body)
 
