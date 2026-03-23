@@ -64,6 +64,33 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
 	})
 
+	t.Run("query parameters are forwarded to upstream", func(t *testing.T) {
+		var receivedURL string
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedURL = r.URL.String()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message": "OK"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/payment/charge?reference=abc-123&amount=1000", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal(`{"message": "OK"}`, string(w.buf))
+		assert.Equal("/payment/charge?reference=abc-123&amount=1000", receivedURL)
+	})
+
 	t.Run("upstream content-type header is forwarded", func(t *testing.T) {
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")

@@ -301,6 +301,10 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 		strings.TrimSuffix(cfg.URL, "/"),
 		strings.TrimPrefix(req.URL.Path[len(resourcePrefix):], "/"))
 
+	if req.URL.RawQuery != "" {
+		outURL += "?" + req.URL.RawQuery
+	}
+
 	log.Debug("Upstream request", "method", req.Method, "url", outURL)
 
 	upReq, err := http.NewRequest(req.Method, outURL, bytes.NewBuffer(bodyBytes))
@@ -366,6 +370,7 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 				StatusCode:     statusCode,
 				ContentType:    contentType,
 				IsFromUpstream: true,
+				UpstreamURL:    outURL,
 			})
 		}()
 	}
