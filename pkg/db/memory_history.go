@@ -1,13 +1,10 @@
 package db
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,53 +43,38 @@ func (h *memoryHistoryTable) Get(_ context.Context, req *http.Request) (*History
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	entry, ok := h.latestIndex[h.lookupKey(req)]
+	entry, ok := h.latestIndex[lookupKey(req.Method, req.URL.String())]
 	return entry, ok
 }
 
 // Set stores a request record with a unique ID.
-func (h *memoryHistoryTable) Set(_ context.Context, resource string, req *http.Request, response *HistoryResponse) *HistoryEntry {
+func (h *memoryHistoryTable) Set(_ context.Context, resource string, req *HistoryRequest, response *HistoryResponse) *HistoryEntry {
 	id := fmt.Sprintf("%d", h.counter.Add(1))
 
-	// Extract the body from the request
-	var body []byte
-	if req.Body != nil && req.Body != http.NoBody {
-		var err error
-		body, err = io.ReadAll(req.Body)
-		if err != nil {
-			slog.Error("Error reading request body", "error", err)
-			body = []byte{}
-		}
-		// Restore the body so it can be read by subsequent handlers
-		req.Body = io.NopCloser(bytes.NewBuffer(body))
-	}
-
 	entry := &HistoryEntry{
-		ID:         id,
-		Resource:   resource,
-		Body:       body,
-		Request:    req,
-		Response:   response,
-		RemoteAddr: req.RemoteAddr,
-		CreatedAt:  time.Now().UTC(),
+		ID:        id,
+		Resource:  resource,
+		Request:   req,
+		Response:  response,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	h.mu.Lock()
 	h.entries = append(h.entries, entry)
-	h.latestIndex[h.lookupKey(req)] = entry
+	h.latestIndex[lookupKey(req.Method, req.URL)] = entry
 	h.mu.Unlock()
 
 	return entry
 }
 
-// SetResponse updates the response for the latest request record matching the HTTP request.
-func (h *memoryHistoryTable) SetResponse(_ context.Context, req *http.Request, response *HistoryResponse) {
+// SetResponse updates the response for the latest request record matching the request's method and URL.
+func (h *memoryHistoryTable) SetResponse(_ context.Context, req *HistoryRequest, response *HistoryResponse) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	entry, ok := h.latestIndex[h.lookupKey(req)]
+	entry, ok := h.latestIndex[lookupKey(req.Method, req.URL)]
 	if !ok {
-		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", req.URL.String()))
+		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", req.URL))
 		return
 	}
 	entry.Response = response
@@ -143,8 +125,8 @@ func (h *memoryHistoryTable) cancel() {
 	}
 }
 
-func (h *memoryHistoryTable) lookupKey(req *http.Request) string {
-	return strings.Join([]string{req.Method, req.URL.String()}, ":")
+func lookupKey(method, url string) string {
+	return method + ":" + url
 }
 
 // startResetTicker starts a goroutine that clears the history periodically.

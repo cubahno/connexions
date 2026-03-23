@@ -163,17 +163,17 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 					)
 
 					if params.ServiceConfig.HistoryEnabled() {
-						urlCopy := *req.URL
+						histReq := &db.HistoryRequest{
+							Method:     req.Method,
+							URL:        req.URL.String(),
+							Headers:    db.FlattenHeaders(req.Header),
+							RemoteAddr: req.RemoteAddr,
+						}
 						go func() {
 							ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 							defer cancel()
-							params.DB().History().Set(ctx, req.URL.Path, &http.Request{
-								Method:     req.Method,
-								URL:        &urlCopy,
-								RemoteAddr: req.RemoteAddr,
-								Body:       http.NoBody,
-							}, &db.HistoryResponse{
-								Data:           []byte(httpErr.Body),
+							params.DB().History().Set(ctx, req.URL.Path, histReq, &db.HistoryResponse{
+								Body:           []byte(httpErr.Body),
 								StatusCode:     httpErr.StatusCode,
 								ContentType:    httpErr.ContentType,
 								IsFromUpstream: true,
@@ -356,21 +356,23 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 	contentType := resp.Header.Get("Content-Type")
 
 	if recordHistory {
-		urlCopy := *req.URL
+		histReq := &db.HistoryRequest{
+			Method:     req.Method,
+			URL:        req.URL.String(),
+			Body:       bodyBytes,
+			Headers:    db.FlattenHeaders(req.Header),
+			RemoteAddr: req.RemoteAddr,
+		}
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 			defer cancel()
-			history.Set(ctx, req.URL.Path, &http.Request{
-				Method:     req.Method,
-				URL:        &urlCopy,
-				RemoteAddr: req.RemoteAddr,
-				Body:       io.NopCloser(bytes.NewBuffer(bodyBytes)),
-			}, &db.HistoryResponse{
-				Data:           body,
+			history.Set(ctx, req.URL.Path, histReq, &db.HistoryResponse{
+				Body:           body,
 				StatusCode:     statusCode,
 				ContentType:    contentType,
 				IsFromUpstream: true,
 				UpstreamURL:    outURL,
+				Headers:        db.FlattenHeaders(resp.Header),
 			})
 		}()
 	}

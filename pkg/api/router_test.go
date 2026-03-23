@@ -385,7 +385,7 @@ cache:
 		rec := data[len(data)-1]
 		assert.NotNil(t, rec)
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)
-		assert.Equal(t, []byte("Created"), rec.Response.Data)
+		assert.Equal(t, []byte("Created"), rec.Response.Body)
 	})
 
 	t.Run("Request body is available to handler after middleware reads it", func(t *testing.T) {
@@ -428,7 +428,7 @@ cache:
 		assert.NotEmpty(t, data)
 
 		rec := data[len(data)-1]
-		assert.Equal(t, []byte(expectedBody), rec.Body, "History should contain the request body")
+		assert.Equal(t, []byte(expectedBody), rec.Request.Body, "History should contain the request body")
 	})
 
 	t.Run("Middleware order: Latency -> Error -> Cache -> Upstream -> Handler", func(t *testing.T) {
@@ -509,7 +509,7 @@ cache:
 		data := database.History().Data(context.Background())
 		// History might have the request but not a successful response
 		for _, rec := range data {
-			if rec.Request != nil && rec.Request.Method == "GET" && rec.Request.URL.Path == "/test-service/test" {
+			if rec.Request != nil && rec.Request.Method == "GET" && rec.Request.URL == "/test-service/test" {
 				assert.NotEqual(t, http.StatusOK, rec.Response.StatusCode)
 			}
 		}
@@ -549,7 +549,7 @@ cache:
 		assert.NotEmpty(t, data)
 
 		rec := data[len(data)-1]
-		assert.Equal(t, []byte(reqBody), rec.Body)
+		assert.Equal(t, []byte(reqBody), rec.Request.Body)
 	})
 
 	t.Run("Upstream middleware executes before handler", func(t *testing.T) {
@@ -872,7 +872,7 @@ cache:
 		assert.NotEmpty(t, data, "Response should be stored in history")
 		rec := data[len(data)-1]
 		assert.Equal(t, http.StatusCreated, rec.Response.StatusCode)
-		assert.Equal(t, []byte("Created"), rec.Response.Data)
+		assert.Equal(t, []byte("Created"), rec.Response.Body)
 	})
 }
 

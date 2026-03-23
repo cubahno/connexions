@@ -1,17 +1,13 @@
 package db
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -31,9 +27,26 @@ type redisHistoryRecord struct {
 	Method     string           `json:"method"`
 	URL        string           `json:"url"`
 	Body       []byte           `json:"body"`
+	Headers    []string         `json:"headers,omitempty"`
 	Response   *HistoryResponse `json:"response,omitempty"`
 	RemoteAddr string           `json:"remoteAddr,omitempty"`
 	CreatedAt  time.Time        `json:"createdAt"`
+}
+
+func (r *redisHistoryRecord) toEntry() *HistoryEntry {
+	return &HistoryEntry{
+		ID:       r.ID,
+		Resource: r.Resource,
+		Response: r.Response,
+		Request: &HistoryRequest{
+			Method:     r.Method,
+			URL:        r.URL,
+			Body:       r.Body,
+			Headers:    r.Headers,
+			RemoteAddr: r.RemoteAddr,
+		},
+		CreatedAt: r.CreatedAt,
+	}
 }
 
 // newRedisHistoryTable creates a new Redis-backed history table.
@@ -47,7 +60,7 @@ func newRedisHistoryTable(client *redis.Client, namespace string, ttl time.Durat
 
 // Get retrieves the latest request record matching the HTTP request's method and URL.
 func (h *redisHistoryTable) Get(ctx context.Context, req *http.Request) (*HistoryEntry, bool) {
-	id, err := h.client.Get(ctx, h.latestKey(req)).Result()
+	id, err := h.client.Get(ctx, h.latestKey(req.Method, req.URL.String())).Result()
 	if errors.Is(err, redis.Nil) || err != nil {
 		return nil, false
 	}
@@ -62,41 +75,21 @@ func (h *redisHistoryTable) Get(ctx context.Context, req *http.Request) (*Histor
 		return nil, false
 	}
 
-	return &HistoryEntry{
-		ID:         record.ID,
-		Resource:   record.Resource,
-		Body:       record.Body,
-		Response:   record.Response,
-		Request:    req,
-		RemoteAddr: record.RemoteAddr,
-		CreatedAt:  record.CreatedAt,
-	}, true
+	return record.toEntry(), true
 }
 
 // Set stores a request record with a unique ID.
-func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.Request, response *HistoryResponse) *HistoryEntry {
+func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *HistoryRequest, response *HistoryResponse) *HistoryEntry {
 	id := fmt.Sprintf("%d", h.client.Incr(ctx, h.namespace+":counter").Val())
-
-	// Extract the body from the request
-	var body []byte
-	if req.Body != nil && req.Body != http.NoBody {
-		var err error
-		body, err = io.ReadAll(req.Body)
-		if err != nil {
-			slog.Error("Error reading request body", "error", err)
-			body = []byte{}
-		}
-		// Restore the body so it can be read by subsequent handlers
-		req.Body = io.NopCloser(bytes.NewBuffer(body))
-	}
 
 	now := time.Now().UTC()
 	record := redisHistoryRecord{
 		ID:         id,
 		Resource:   resource,
 		Method:     req.Method,
-		URL:        req.URL.String(),
-		Body:       body,
+		URL:        req.URL,
+		Body:       req.Body,
+		Headers:    req.Headers,
 		Response:   response,
 		RemoteAddr: req.RemoteAddr,
 		CreatedAt:  now,
@@ -111,27 +104,25 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 	// Pipeline both SETs into a single round-trip.
 	pipe := h.client.Pipeline()
 	pipe.Set(ctx, h.entryKey(id), data, h.ttl)
-	pipe.Set(ctx, h.latestKey(req), id, h.ttl)
+	pipe.Set(ctx, h.latestKey(req.Method, req.URL), id, h.ttl)
 	if _, err := pipe.Exec(ctx); err != nil {
 		slog.Error("Error saving history record", "error", err)
 	}
 
 	return &HistoryEntry{
-		ID:         id,
-		Resource:   resource,
-		Body:       body,
-		Request:    req,
-		Response:   response,
-		RemoteAddr: req.RemoteAddr,
-		CreatedAt:  now,
+		ID:        id,
+		Resource:  resource,
+		Request:   req,
+		Response:  response,
+		CreatedAt: now,
 	}
 }
 
-// SetResponse updates the response for the latest request record matching the HTTP request.
-func (h *redisHistoryTable) SetResponse(ctx context.Context, req *http.Request, response *HistoryResponse) {
-	id, err := h.client.Get(ctx, h.latestKey(req)).Result()
+// SetResponse updates the response for the latest request record matching the request's method and URL.
+func (h *redisHistoryTable) SetResponse(ctx context.Context, req *HistoryRequest, response *HistoryResponse) {
+	id, err := h.client.Get(ctx, h.latestKey(req.Method, req.URL)).Result()
 	if errors.Is(err, redis.Nil) {
-		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", req.URL.String()))
+		slog.Info(fmt.Sprintf("Request for URL %s not found. Cannot set response", req.URL))
 		return
 	}
 	if err != nil {
@@ -175,24 +166,7 @@ func (h *redisHistoryTable) GetByID(ctx context.Context, id string) (*HistoryEnt
 		return nil, false
 	}
 
-	entry := &HistoryEntry{
-		ID:         record.ID,
-		Resource:   record.Resource,
-		Body:       record.Body,
-		Response:   record.Response,
-		RemoteAddr: record.RemoteAddr,
-		CreatedAt:  record.CreatedAt,
-	}
-
-	if record.Method != "" || record.URL != "" {
-		parsedURL, _ := url.Parse(record.URL)
-		entry.Request = &http.Request{
-			Method: record.Method,
-			URL:    parsedURL,
-		}
-	}
-
-	return entry, true
+	return record.toEntry(), true
 }
 
 // Data returns all request records as an ordered log.
@@ -227,24 +201,7 @@ func (h *redisHistoryTable) Data(ctx context.Context) []*HistoryEntry {
 			continue
 		}
 
-		entry := &HistoryEntry{
-			ID:         record.ID,
-			Resource:   record.Resource,
-			Body:       record.Body,
-			Response:   record.Response,
-			RemoteAddr: record.RemoteAddr,
-			CreatedAt:  record.CreatedAt,
-		}
-
-		if record.Method != "" || record.URL != "" {
-			parsedURL, _ := url.Parse(record.URL)
-			entry.Request = &http.Request{
-				Method: record.Method,
-				URL:    parsedURL,
-			}
-		}
-
-		entries = append(entries, entry)
+		entries = append(entries, record.toEntry())
 	}
 
 	// Sort by CreatedAt for stable ordering
@@ -286,6 +243,6 @@ func (h *redisHistoryTable) entryKey(id string) string {
 	return h.namespace + ":entry:" + id
 }
 
-func (h *redisHistoryTable) latestKey(req *http.Request) string {
-	return h.namespace + ":latest:" + strings.Join([]string{req.Method, req.URL.String()}, ":")
+func (h *redisHistoryTable) latestKey(method, url string) string {
+	return h.namespace + ":latest:" + method + ":" + url
 }
