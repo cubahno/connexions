@@ -90,7 +90,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 
 		t.Run("not-get", func(t *testing.T) {
 			w := NewBufferedResponseWriter()
-			req := httptest.NewRequest(http.MethodPost, "/foo/bar", nil)
+			req := httptest.NewRequest(http.MethodPost, "/foo/bar", bytes.NewReader([]byte(`{"key":"val"}`)))
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusCreated)
 				_, _ = w.Write([]byte("created"))

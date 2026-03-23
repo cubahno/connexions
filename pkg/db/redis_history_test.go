@@ -104,6 +104,27 @@ func TestRedisHistory_Set(t *testing.T) {
 	})
 }
 
+func TestRedisHistory_GetByID(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("returns entry by ID", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+		req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
+		entry := history.Set(ctx, "/test", req, &HistoryResponse{StatusCode: 200})
+
+		got, ok := history.GetByID(ctx, entry.ID)
+		assert.True(t, ok)
+		assert.Equal(t, entry.ID, got.ID)
+		assert.Equal(t, 200, got.Response.StatusCode)
+	})
+
+	t.Run("returns false for unknown ID", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+		_, ok := history.GetByID(ctx, "nonexistent")
+		assert.False(t, ok)
+	})
+}
+
 func TestRedisHistory_SetResponse(t *testing.T) {
 	ctx := context.Background()
 
