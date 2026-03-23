@@ -483,7 +483,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal(`{"message": "OK"}`, string(w.buf))
 		}
 
@@ -523,7 +523,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal("Hello, from local!", string(w.buf))
 		}
 
@@ -560,7 +560,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 
 			// Should fall back to local handler
 			assert.Equal("Hello, from local!", string(w.buf))
@@ -610,7 +610,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 		}
 
 		assert.Equal(3, callCount)
@@ -671,7 +671,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 		}
 
 		assert.Equal(3, callCount)
@@ -727,7 +727,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal(`{"message": "OK"}`, string(w.buf))
 		}
 
@@ -778,7 +778,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 		}
 
 		// Verify stored state reflects all 3 requests
@@ -817,7 +817,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal("Hello, from local!", string(w.buf))
 		}
 
@@ -856,7 +856,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal("Hello, from local!", string(w.buf))
 		}
 
@@ -907,7 +907,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal("Hello, from local!", string(w.buf))
 		}
 
@@ -956,7 +956,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 			w := NewBufferedResponseWriter()
 			req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
 			wrappedHandler.ServeHTTP(w, req)
-		waitForAsync()
+			waitForAsync()
 			assert.Equal("Hello, from local!", string(w.buf))
 		}
 
