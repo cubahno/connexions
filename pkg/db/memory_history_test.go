@@ -113,6 +113,27 @@ func TestMemoryHistoryTable_Set(t *testing.T) {
 	})
 }
 
+func TestMemoryHistoryTable_GetByID(t *testing.T) {
+	assert := assert2.New(t)
+	ctx := context.Background()
+
+	t.Run("returns entry by ID", func(t *testing.T) {
+		h := newTestHistoryTable(0)
+		req, _ := http.NewRequest("GET", "/foo", nil)
+		entry := h.Set(ctx, "/foo", req, &HistoryResponse{StatusCode: 200})
+
+		got, ok := h.GetByID(ctx, entry.ID)
+		assert.True(ok)
+		assert.Equal(entry.ID, got.ID)
+	})
+
+	t.Run("returns false for unknown ID", func(t *testing.T) {
+		h := newTestHistoryTable(0)
+		_, ok := h.GetByID(ctx, "nonexistent")
+		assert.False(ok)
+	})
+}
+
 func TestMemoryHistoryTable_SetResponse(t *testing.T) {
 	assert := assert2.New(t)
 	ctx := context.Background()

@@ -108,8 +108,13 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *http.
 		return nil
 	}
 
-	h.client.Set(ctx, h.entryKey(id), data, h.ttl)
-	h.client.Set(ctx, h.latestKey(req), id, h.ttl)
+	// Pipeline both SETs into a single round-trip.
+	pipe := h.client.Pipeline()
+	pipe.Set(ctx, h.entryKey(id), data, h.ttl)
+	pipe.Set(ctx, h.latestKey(req), id, h.ttl)
+	if _, err := pipe.Exec(ctx); err != nil {
+		slog.Error("Error saving history record", "error", err)
+	}
 
 	return &HistoryEntry{
 		ID:         id,
@@ -158,23 +163,67 @@ func (h *redisHistoryTable) SetResponse(ctx context.Context, req *http.Request, 
 	h.client.Set(ctx, entryKey, newData, h.ttl)
 }
 
+// GetByID retrieves a single history entry by its ID.
+func (h *redisHistoryTable) GetByID(ctx context.Context, id string) (*HistoryEntry, bool) {
+	data, err := h.client.Get(ctx, h.entryKey(id)).Bytes()
+	if err != nil {
+		return nil, false
+	}
+
+	var record redisHistoryRecord
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, false
+	}
+
+	entry := &HistoryEntry{
+		ID:         record.ID,
+		Resource:   record.Resource,
+		Body:       record.Body,
+		Response:   record.Response,
+		RemoteAddr: record.RemoteAddr,
+		CreatedAt:  record.CreatedAt,
+	}
+
+	if record.Method != "" || record.URL != "" {
+		parsedURL, _ := url.Parse(record.URL)
+		entry.Request = &http.Request{
+			Method: record.Method,
+			URL:    parsedURL,
+		}
+	}
+
+	return entry, true
+}
+
 // Data returns all request records as an ordered log.
 func (h *redisHistoryTable) Data(ctx context.Context) []*HistoryEntry {
 	pattern := h.namespace + ":entry:*"
 
-	var entries []*HistoryEntry
+	// Collect all keys first, then batch-fetch with MGET.
+	var keys []string
 	iter := h.client.Scan(ctx, 0, pattern, 0).Iterator()
-
 	for iter.Next(ctx) {
-		fullKey := iter.Val()
+		keys = append(keys, iter.Val())
+	}
 
-		data, err := h.client.Get(ctx, fullKey).Bytes()
-		if err != nil {
+	if len(keys) == 0 {
+		return nil
+	}
+
+	vals, err := h.client.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil
+	}
+
+	entries := make([]*HistoryEntry, 0, len(vals))
+	for _, val := range vals {
+		str, ok := val.(string)
+		if !ok || str == "" {
 			continue
 		}
 
 		var record redisHistoryRecord
-		if err := json.Unmarshal(data, &record); err != nil {
+		if err := json.Unmarshal([]byte(str), &record); err != nil {
 			continue
 		}
 

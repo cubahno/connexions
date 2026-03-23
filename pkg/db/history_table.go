@@ -17,6 +17,9 @@ type HistoryTable interface {
 	// SetResponse updates the response for the latest request record matching the HTTP request.
 	SetResponse(ctx context.Context, req *http.Request, response *HistoryResponse)
 
+	// GetByID retrieves a single history entry by its ID.
+	GetByID(ctx context.Context, id string) (*HistoryEntry, bool)
+
 	// Data returns all request records as an ordered log.
 	Data(ctx context.Context) []*HistoryEntry
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
+
+func waitForAsync() {
+	runtime.Gosched()
+	time.Sleep(10 * time.Millisecond)
+}
 
 // mockService implements Handler for testing
 type mockService struct {
@@ -333,6 +339,7 @@ cache:
 		req1 := httptest.NewRequest(http.MethodGet, "/test-service/test", nil)
 		w1 := httptest.NewRecorder()
 		router.ServeHTTP(w1, req1)
+		waitForAsync()
 		assert.Equal(t, 1, callCount)
 		assert.Equal(t, "Response", w1.Body.String())
 
@@ -366,6 +373,7 @@ cache:
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
+		waitForAsync()
 
 		// Check that response was stored in history
 		database := router.GetDB("test-service")
@@ -407,6 +415,7 @@ cache:
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
+		waitForAsync()
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, expectedBody, receivedBody, "Handler should receive the full request body")
@@ -487,6 +496,7 @@ cache:
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
+		waitForAsync()
 
 		// Error middleware executes first and stops the chain
 		assert.False(t, handlerCalled)
@@ -527,6 +537,7 @@ cache:
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
+		waitForAsync()
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
@@ -850,6 +861,7 @@ cache:
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
+		waitForAsync()
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 

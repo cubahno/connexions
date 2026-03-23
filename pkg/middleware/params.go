@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
 )
+
+// asyncWriteTimeout is the maximum time allowed for background DB writes.
+const asyncWriteTimeout = 5 * time.Second
 
 // ResponseHeaderSource is the response header indicating where the response came from.
 const ResponseHeaderSource = "X-Cxs-Source"
