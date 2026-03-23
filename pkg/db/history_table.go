@@ -38,13 +38,13 @@ type HistoryTable interface {
 // Request is the http request
 // RemoteAddr is the client IP address (from req.RemoteAddr)
 type HistoryEntry struct {
-	ID         string
-	Resource   string
-	Body       []byte
-	Response   *HistoryResponse
-	Request    *http.Request
-	RemoteAddr string
-	CreatedAt  time.Time
+	ID         string           `json:"id"`
+	Resource   string           `json:"resource"`
+	Body       []byte           `json:"body"`
+	Response   *HistoryResponse `json:"response,omitempty"`
+	Request    *http.Request    `json:"request,omitempty"`
+	RemoteAddr string           `json:"remoteAddr,omitempty"`
+	CreatedAt  time.Time        `json:"createdAt"`
 }
 
 // HistoryResponse represents the response that was generated or received from the server.
@@ -52,9 +52,11 @@ type HistoryEntry struct {
 // StatusCode is the HTTP status code returned
 // ContentType is the Content-Type header of the response
 // IsFromUpstream is true if the response was received from the upstream server
+// UpstreamURL is the URL that was actually sent to the upstream service
 type HistoryResponse struct {
-	Data           []byte
-	StatusCode     int
-	ContentType    string
-	IsFromUpstream bool
+	Data           []byte `json:"data"`
+	StatusCode     int    `json:"statusCode"`
+	ContentType    string `json:"contentType"`
+	IsFromUpstream bool   `json:"isFromUpstream"`
+	UpstreamURL    string `json:"upstreamURL"`
 }
