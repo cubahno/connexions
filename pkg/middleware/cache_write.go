@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"bytes"
+	"context"
+	"io"
 	"net/http"
 
 	"github.com/cubahno/connexions/v2/pkg/db"
@@ -13,11 +15,11 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := req.Context()
-			history := params.DB().History()
-
-			if recordHistory {
-				_ = history.Set(ctx, req.URL.Path, req, nil)
+			// Capture request body before downstream handlers consume it.
+			var requestBody []byte
+			if recordHistory && req.Body != nil && req.Body != http.NoBody {
+				requestBody, _ = io.ReadAll(req.Body)
+				req.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 			}
 
 			// Create a responseWriter to capture the response.
@@ -34,12 +36,23 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 			respStatusCode := rw.statusCode
 			respContentType := rw.Header().Get("Content-Type")
 
+			// Record request + response asynchronously - no need to block the response.
 			if recordHistory {
-				history.SetResponse(ctx, req, &db.HistoryResponse{
-					Data:        respContent,
-					StatusCode:  respStatusCode,
-					ContentType: respContentType,
-				})
+				urlCopy := *req.URL
+				go func() {
+					ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
+					defer cancel()
+					params.DB().History().Set(ctx, req.URL.Path, &http.Request{
+						Method:     req.Method,
+						URL:        &urlCopy,
+						Body:       io.NopCloser(bytes.NewBuffer(requestBody)),
+						RemoteAddr: req.RemoteAddr,
+					}, &db.HistoryResponse{
+						Data:        respContent,
+						StatusCode:  respStatusCode,
+						ContentType: respContentType,
+					})
+				}()
 			}
 
 			// Set our custom headers before writing

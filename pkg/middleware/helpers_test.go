@@ -49,3 +49,8 @@ func newTestParams(serviceCfg *config.ServiceConfig, storageCfg *config.StorageC
 	database := storage.NewDB(serviceCfg.Name, 100*time.Second)
 	return NewParams(serviceCfg, storageCfg, database)
 }
+
+// waitForAsync gives background goroutines time to complete.
+func waitForAsync() {
+	time.Sleep(10 * time.Millisecond)
+}

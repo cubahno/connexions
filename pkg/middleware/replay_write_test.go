@@ -84,6 +84,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
 		req.Header.Set(headerReplayMatch, "") // empty → fall back to config
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Verify write-through
 		assert.Equal(http.StatusCreated, w.Code)
@@ -119,6 +120,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
 		req.Header.Set(headerReplayMatch, "name")
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Verify recorded with actual path
 		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
@@ -161,6 +163,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Handler should still be called (pass through)
 		assert.True(handlerCalled)
@@ -194,6 +197,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
 		req.Header.Set(headerReplayMatch, "name")
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Should write through
 		assert.Equal(`{"cached":true}`, w.Body.String())
@@ -229,6 +233,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Should return 502 with error message
 		assert.Equal(http.StatusBadGateway, w.Code)
@@ -269,6 +274,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Should be recorded
 		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
@@ -305,6 +311,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		key := buildReplayKey(httptest.NewRequest(http.MethodPost, "/foo", nil), "/foo", "/foo", &config.ReplayMatch{Body: []string{"name"}}, []byte(body))
 
@@ -345,6 +352,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(body))
 		// No header - auto-replay should activate
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		assert.Equal(`{"auto":true}`, w.Body.String())
 
@@ -379,6 +387,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/foo", strings.NewReader(`{"name":"Jane"}`))
 		req.Header.Set(headerReplayMatch, "") // empty → config
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Response should be written through
 		assert.Equal(`{"ok":true}`, w.Body.String())
@@ -414,6 +423,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/pay/credit-card", strings.NewReader(body))
 		req.Header.Set(headerReplayMatch, "")
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		// Verify recorded with path variable in key
 		match := &config.ReplayMatch{Path: []string{"paymentMethod"}, Body: []string{"ref"}}
@@ -450,6 +460,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/svc/search?q=test", nil)
 		req.Header.Set(headerReplayMatch, "")
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		key := buildReplayKey(httptest.NewRequest(http.MethodGet, "/search?q=test", nil), "/search", "/search", &config.ReplayMatch{Query: []string{"q"}}, nil)
 		val, exists := params.DB().Table("replay").Get(context.TODO(), key)
@@ -482,6 +493,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/svc/bar", strings.NewReader(`{"name":"Jane"}`))
 		// No header, /bar not configured → pass through, no recording
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 
 		data := params.DB().Table("replay").Data(context.TODO())
 		assert.Empty(data)

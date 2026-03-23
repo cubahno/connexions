@@ -67,24 +67,37 @@ func (t *redisTable) Delete(ctx context.Context, key string) {
 // Note: This scans all keys with the namespace prefix, which can be slow for large datasets.
 func (t *redisTable) Data(ctx context.Context) map[string]any {
 	pattern := t.namespace + ":*"
+	prefix := t.namespace + ":"
 
-	result := make(map[string]any)
+	// Collect all keys first, then batch-fetch with MGET.
+	var keys []string
 	iter := t.client.Scan(ctx, 0, pattern, 0).Iterator()
-
 	for iter.Next(ctx) {
-		fullKey := iter.Val()
-		// Extract the key part after the namespace
-		key := strings.TrimPrefix(fullKey, t.namespace+":")
+		keys = append(keys, iter.Val())
+	}
 
-		data, err := t.client.Get(ctx, fullKey).Bytes()
-		if err != nil {
+	if len(keys) == 0 {
+		return make(map[string]any)
+	}
+
+	vals, err := t.client.MGet(ctx, keys...).Result()
+	if err != nil {
+		return make(map[string]any)
+	}
+
+	result := make(map[string]any, len(keys))
+	for i, val := range vals {
+		str, ok := val.(string)
+		if !ok || str == "" {
 			continue
 		}
 
 		var value any
-		if err := json.Unmarshal(data, &value); err != nil {
+		if err := json.Unmarshal([]byte(str), &value); err != nil {
 			continue
 		}
+
+		key := strings.TrimPrefix(keys[i], prefix)
 		result[key] = value
 	}
 

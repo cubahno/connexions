@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"time"
 
@@ -130,8 +131,12 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 				CreatedAt:      time.Now(),
 			}
 
-			table.Set(ctx, key, rec, ttl)
-			log.Info("Replay recorded", "method", req.Method, "path", req.URL.Path)
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
+				defer cancel()
+				table.Set(ctx, key, rec, ttl)
+				log.Info("Replay recorded", "method", req.Method, "path", req.URL.Path)
+			}()
 
 			writeThrough(w, rw)
 		})

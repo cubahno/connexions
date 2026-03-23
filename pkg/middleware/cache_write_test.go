@@ -96,6 +96,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 				_, _ = w.Write([]byte("created"))
 			})
 			mw(handler).ServeHTTP(w, req)
+			waitForAsync()
 			assert.Equal("created", string(w.buf))
 
 			rec, exists := params.DB().History().Get(context.Background(), req)
@@ -112,6 +113,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 				_, _ = w.Write([]byte("fresh"))
 			})
 			mw(handler).ServeHTTP(w, req)
+			waitForAsync()
 			assert.Equal("fresh", string(w.buf))
 
 			rec, exists := params.DB().History().Get(context.Background(), req)
@@ -151,6 +153,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			_, _ = w.Write([]byte("fresh"))
 		})
 		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
 		assert.Equal("fresh", string(w.buf))
 
 		rec, exists := params.DB().History().Get(context.Background(), req)
@@ -183,6 +186,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		w1 := NewBufferedResponseWriter()
 		req1 := httptest.NewRequest(http.MethodGet, "/api/test", nil)
 		writeMw(generateHandler).ServeHTTP(w1, req1)
+		waitForAsync()
 		assert.Equal(`{"generated": true}`, string(w1.buf))
 
 		// Verify response was cached
@@ -223,6 +227,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
 			mw(handler).ServeHTTP(w, req)
 		}
+		waitForAsync()
 
 		entries := params.DB().History().Data(context.Background())
 		assert.Equal(3, len(entries), "Each request should create a separate history entry")

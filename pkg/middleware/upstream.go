@@ -59,10 +59,13 @@ func (o *observableCircuitBreaker) Execute(req func() (*upstreamResponse, error)
 	// or when a state transition occurred (OnStateChange handles that with
 	// the pre-clear counts snapshot).
 	if !errors.Is(err, gobreaker.ErrOpenState) && !errors.Is(err, gobreaker.ErrTooManyRequests) && o.cb.State() == prevState {
-		ctx := context.Background()
 		state := newCBState(o.cb.State().String(), o.cb.Counts())
 		state.LastError = *o.lastError
-		o.cbTable.Set(ctx, cbKeyState, state, 0)
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
+			defer cancel()
+			o.cbTable.Set(ctx, cbKeyState, state, 0)
+		}()
 	}
 
 	return resp, err
@@ -160,12 +163,22 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 					)
 
 					if params.ServiceConfig.HistoryEnabled() {
-						params.DB().History().Set(req.Context(), req.URL.Path, req, &db.HistoryResponse{
-							Data:           []byte(httpErr.Body),
-							StatusCode:     httpErr.StatusCode,
-							ContentType:    httpErr.ContentType,
-							IsFromUpstream: true,
-						})
+						urlCopy := *req.URL
+						go func() {
+							ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
+							defer cancel()
+							params.DB().History().Set(ctx, req.URL.Path, &http.Request{
+								Method:     req.Method,
+								URL:        &urlCopy,
+								RemoteAddr: req.RemoteAddr,
+								Body:       http.NoBody,
+							}, &db.HistoryResponse{
+								Data:           []byte(httpErr.Body),
+								StatusCode:     httpErr.StatusCode,
+								ContentType:    httpErr.ContentType,
+								IsFromUpstream: true,
+							})
+						}()
 					}
 
 					SetDurationHeader(w, req)
@@ -278,7 +291,6 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 		Timeout: timeout,
 	}
 
-	ctx := req.Context()
 	history := params.DB().History()
 	resourcePrefix := "/" + params.ServiceConfig.Name
 	recordHistory := params.ServiceConfig.HistoryEnabled()
@@ -340,12 +352,22 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 	contentType := resp.Header.Get("Content-Type")
 
 	if recordHistory {
-		history.Set(ctx, req.URL.Path, req, &db.HistoryResponse{
-			Data:           body,
-			StatusCode:     statusCode,
-			ContentType:    contentType,
-			IsFromUpstream: true,
-		})
+		urlCopy := *req.URL
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
+			defer cancel()
+			history.Set(ctx, req.URL.Path, &http.Request{
+				Method:     req.Method,
+				URL:        &urlCopy,
+				RemoteAddr: req.RemoteAddr,
+				Body:       io.NopCloser(bytes.NewBuffer(bodyBytes)),
+			}, &db.HistoryResponse{
+				Data:           body,
+				StatusCode:     statusCode,
+				ContentType:    contentType,
+				IsFromUpstream: true,
+			})
+		}()
 	}
 
 	return &upstreamResponse{

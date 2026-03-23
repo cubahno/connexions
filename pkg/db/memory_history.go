@@ -98,6 +98,19 @@ func (h *memoryHistoryTable) SetResponse(_ context.Context, req *http.Request, r
 	entry.Response = response
 }
 
+// GetByID retrieves a single history entry by its ID.
+func (h *memoryHistoryTable) GetByID(_ context.Context, id string) (*HistoryEntry, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for _, entry := range h.entries {
+		if entry.ID == id {
+			return entry, true
+		}
+	}
+	return nil, false
+}
+
 // Data returns all request records as an ordered log.
 func (h *memoryHistoryTable) Data(_ context.Context) []*HistoryEntry {
 	h.mu.RLock()
