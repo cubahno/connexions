@@ -37,7 +37,7 @@ func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
 				w.Header().Set("Content-Type", response.ContentType)
 			}
 			w.WriteHeader(response.StatusCode)
-			_, _ = w.Write(response.Data)
+			_, _ = w.Write(response.Body)
 		})
 	}
 }

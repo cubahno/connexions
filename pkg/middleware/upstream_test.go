@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -61,7 +60,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(1, len(data))
 		rec := data[0]
 		assert.Equal(200, rec.Response.StatusCode)
-		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
+		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Body)
 	})
 
 	t.Run("query parameters are forwarded to upstream", func(t *testing.T) {
@@ -230,17 +229,16 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		}, nil)
 
 		resp := &db.HistoryResponse{
-			Data:           []byte("cached"),
+			Body:           []byte("cached"),
 			StatusCode:     http.StatusOK,
 			ContentType:    "application/json",
 			IsFromUpstream: true,
 		}
-		histReq := &http.Request{
-			URL:    &url.URL{Path: "/foo/resource"},
+		params.DB().History().Set(context.Background(), "/foo/resource", &db.HistoryRequest{
 			Method: http.MethodPost,
-			Body:   io.NopCloser(strings.NewReader(`{"bar": "car"}`)),
-		}
-		params.DB().History().Set(context.Background(), "/foo/resource", histReq, resp)
+			URL:    "/foo/resource",
+			Body:   []byte(`{"bar": "car"}`),
+		}, resp)
 
 		f := CreateUpstreamRequestMiddleware(params)
 		f(handler).ServeHTTP(w, req)
@@ -255,7 +253,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		// Latest entry should have the upstream response
 		rec := data[len(data)-1]
 		assert.Equal(200, rec.Response.StatusCode)
-		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Data)
+		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Body)
 	})
 
 	t.Run("not called if url is empty", func(t *testing.T) {

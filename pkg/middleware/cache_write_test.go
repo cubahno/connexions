@@ -5,7 +5,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -76,14 +75,13 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		}, nil)
 
 		resp := &db.HistoryResponse{
-			Data:       []byte("cached"),
+			Body:       []byte("cached"),
 			StatusCode: http.StatusOK,
 		}
-		histReq := &http.Request{
-			URL:    &url.URL{Path: "/foo/bar"},
+		params.DB().History().Set(context.Background(), "/foo/bar", &db.HistoryRequest{
 			Method: http.MethodGet,
-		}
-		params.DB().History().Set(context.Background(), "/foo/bar", histReq, resp)
+			URL:    "/foo/bar",
+		}, resp)
 
 		mw := CreateCacheWriteMiddleware(params)
 		assert.NotNil(mw)
@@ -102,7 +100,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			rec, exists := params.DB().History().Get(context.Background(), req)
 			assert.True(exists)
 			assert.Equal(http.StatusCreated, rec.Response.StatusCode)
-			assert.Equal([]byte("created"), rec.Response.Data)
+			assert.Equal([]byte("created"), rec.Response.Body)
 		})
 
 		t.Run("get", func(t *testing.T) {
@@ -119,7 +117,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 			rec, exists := params.DB().History().Get(context.Background(), req)
 			assert.True(exists)
 			assert.Equal(http.StatusOK, rec.Response.StatusCode)
-			assert.Equal([]byte("fresh"), rec.Response.Data)
+			assert.Equal([]byte("fresh"), rec.Response.Body)
 		})
 	})
 
@@ -132,15 +130,14 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		}, nil)
 
 		resp := &db.HistoryResponse{
-			Data:        []byte("cached"),
+			Body:        []byte("cached"),
 			StatusCode:  http.StatusOK,
 			ContentType: "text/plain",
 		}
-		histReq := &http.Request{
-			URL:    &url.URL{Path: "/foo/bar"},
+		params.DB().History().Set(context.Background(), "/foo/bar", &db.HistoryRequest{
 			Method: http.MethodGet,
-		}
-		params.DB().History().Set(context.Background(), "/foo/bar", histReq, resp)
+			URL:    "/foo/bar",
+		}, resp)
 
 		mw := CreateCacheWriteMiddleware(params)
 		assert.NotNil(mw)
@@ -159,7 +156,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		rec, exists := params.DB().History().Get(context.Background(), req)
 		assert.True(exists)
 		assert.Equal(http.StatusOK, rec.Response.StatusCode)
-		assert.Equal([]byte("fresh"), rec.Response.Data)
+		assert.Equal([]byte("fresh"), rec.Response.Body)
 		assert.Equal("application/json", rec.Response.ContentType)
 	})
 
@@ -194,7 +191,7 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		assert.True(exists)
 		assert.NotNil(rec.Response, "Response should be set after cache_write")
 		assert.Equal(http.StatusOK, rec.Response.StatusCode)
-		assert.Equal([]byte(`{"generated": true}`), rec.Response.Data)
+		assert.Equal([]byte(`{"generated": true}`), rec.Response.Body)
 
 		// Second request - should be served from cache by cache_read
 		handlerCalled := false

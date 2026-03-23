@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -12,10 +14,10 @@ type HistoryTable interface {
 	Get(ctx context.Context, req *http.Request) (*HistoryEntry, bool)
 
 	// Set stores a request record with a unique ID.
-	Set(ctx context.Context, resource string, req *http.Request, response *HistoryResponse) *HistoryEntry
+	Set(ctx context.Context, resource string, req *HistoryRequest, response *HistoryResponse) *HistoryEntry
 
-	// SetResponse updates the response for the latest request record matching the HTTP request.
-	SetResponse(ctx context.Context, req *http.Request, response *HistoryResponse)
+	// SetResponse updates the response for the latest request record matching the request's method and URL.
+	SetResponse(ctx context.Context, req *HistoryRequest, response *HistoryResponse)
 
 	// GetByID retrieves a single history entry by its ID.
 	GetByID(ctx context.Context, id string) (*HistoryEntry, bool)
@@ -30,33 +32,57 @@ type HistoryTable interface {
 	Clear(ctx context.Context)
 }
 
+// HistoryRequest represents the HTTP request stored in a history entry.
+type HistoryRequest struct {
+	Method     string   `json:"method"`
+	URL        string   `json:"url"`
+	Body       []byte   `json:"body,omitempty"`
+	Headers    []string `json:"headers,omitempty"`
+	RemoteAddr string   `json:"remoteAddr,omitempty"`
+}
+
 // HistoryEntry represents a recorded request in the history.
 // ID is a unique identifier for this entry
 // Resource is the openapi resource path, i.e. /pets, /pets/{id}
-// Body is the request body if method is not GET
 // Response is the response if present
-// Request is the http request
-// RemoteAddr is the client IP address (from req.RemoteAddr)
+// Request is the method, URL, body, headers, and remote address of the original request
 type HistoryEntry struct {
-	ID         string           `json:"id"`
-	Resource   string           `json:"resource"`
-	Body       []byte           `json:"body"`
-	Response   *HistoryResponse `json:"response,omitempty"`
-	Request    *http.Request    `json:"request,omitempty"`
-	RemoteAddr string           `json:"remoteAddr,omitempty"`
-	CreatedAt  time.Time        `json:"createdAt"`
+	ID        string           `json:"id"`
+	Resource  string           `json:"resource"`
+	Response  *HistoryResponse `json:"response,omitempty"`
+	Request   *HistoryRequest  `json:"request,omitempty"`
+	CreatedAt time.Time        `json:"createdAt"`
 }
 
 // HistoryResponse represents the response that was generated or received from the server.
-// Data is the response body
+// Body is the response body
 // StatusCode is the HTTP status code returned
 // ContentType is the Content-Type header of the response
 // IsFromUpstream is true if the response was received from the upstream server
 // UpstreamURL is the URL that was actually sent to the upstream service
 type HistoryResponse struct {
-	Data           []byte `json:"data"`
-	StatusCode     int    `json:"statusCode"`
-	ContentType    string `json:"contentType"`
-	IsFromUpstream bool   `json:"isFromUpstream"`
-	UpstreamURL    string `json:"upstreamURL"`
+	Body           []byte   `json:"body"`
+	StatusCode     int      `json:"statusCode"`
+	ContentType    string   `json:"contentType"`
+	IsFromUpstream bool     `json:"isFromUpstream"`
+	UpstreamURL    string   `json:"upstreamURL"`
+	Headers        []string `json:"headers,omitempty"`
+}
+
+// FlattenHeaders converts http.Header to a sorted slice of "Key: value" strings.
+func FlattenHeaders(h http.Header) []string {
+	if len(h) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(h))
+	for k := range h {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	result := make([]string, 0, len(h))
+	for _, k := range keys {
+		result = append(result, k+": "+strings.Join(h.Values(k), ", "))
+	}
+	return result
 }

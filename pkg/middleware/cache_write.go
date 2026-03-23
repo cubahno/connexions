@@ -38,19 +38,22 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 
 			// Record request + response asynchronously - no need to block the response.
 			if recordHistory {
-				urlCopy := *req.URL
+				histReq := &db.HistoryRequest{
+					Method:     req.Method,
+					URL:        req.URL.String(),
+					Body:       requestBody,
+					Headers:    db.FlattenHeaders(req.Header),
+					RemoteAddr: req.RemoteAddr,
+				}
+				respHeaders := db.FlattenHeaders(rw.Header())
 				go func() {
 					ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 					defer cancel()
-					params.DB().History().Set(ctx, req.URL.Path, &http.Request{
-						Method:     req.Method,
-						URL:        &urlCopy,
-						Body:       io.NopCloser(bytes.NewBuffer(requestBody)),
-						RemoteAddr: req.RemoteAddr,
-					}, &db.HistoryResponse{
-						Data:        respContent,
+					params.DB().History().Set(ctx, req.URL.Path, histReq, &db.HistoryResponse{
+						Body:        respContent,
 						StatusCode:  respStatusCode,
 						ContentType: respContentType,
+						Headers:     respHeaders,
 					})
 				}()
 			}

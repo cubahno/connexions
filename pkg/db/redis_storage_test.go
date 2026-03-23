@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
@@ -121,8 +119,7 @@ func TestRedisStorage_History(t *testing.T) {
 
 	assert.NotNil(t, history)
 
-	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
-	result := history.Set(ctx, "/test", req, nil)
+	result := history.Set(ctx, "/test", &HistoryRequest{Method: "GET", URL: "/test"}, nil)
 
 	assert.Equal(t, "/test", result.Resource)
 }

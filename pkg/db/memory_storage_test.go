@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
@@ -86,8 +84,7 @@ func TestMemoryStorage_History(t *testing.T) {
 
 	assert.NotNil(t, history)
 
-	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
-	result := history.Set(ctx, "/test", req, nil)
+	result := history.Set(ctx, "/test", &HistoryRequest{Method: "GET", URL: "/test"}, nil)
 
 	assert.Equal(t, "/test", result.Resource)
 }
@@ -101,9 +98,9 @@ func TestMemoryStorage_Close(t *testing.T) {
 	db2 := storage.NewDB("service2", 50*time.Millisecond)
 
 	// Add some data
-	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/test"}}
-	db1.History().Set(ctx, "/test1", req, nil)
-	db2.History().Set(ctx, "/test2", req, nil)
+	histReq := &HistoryRequest{Method: "GET", URL: "/test"}
+	db1.History().Set(ctx, "/test1", histReq, nil)
+	db2.History().Set(ctx, "/test2", histReq, nil)
 
 	// Close individual service DBs
 	db1.Close()
