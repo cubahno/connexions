@@ -70,6 +70,7 @@ type HistoryResponse struct {
 	UpstreamURL    string        `json:"upstreamURL"`
 	Headers        []string      `json:"headers,omitempty"`
 	Duration       time.Duration `json:"duration,omitempty"`
+	UpstreamError  string        `json:"upstreamError,omitempty"`
 }
 
 // FlattenHeaders converts http.Header to a sorted slice of "Key: value" strings.

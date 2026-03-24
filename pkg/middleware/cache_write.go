@@ -54,11 +54,12 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 					ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 					defer cancel()
 					params.DB().History().Set(ctx, resourcePath, histReq, &db.HistoryResponse{
-						Body:        respContent,
-						StatusCode:  respStatusCode,
-						ContentType: respContentType,
-						Headers:     respHeaders,
-						Duration:    duration,
+						Body:          respContent,
+						StatusCode:    respStatusCode,
+						ContentType:   respContentType,
+						Headers:       respHeaders,
+						Duration:      duration,
+						UpstreamError: GetUpstreamError(req),
 					})
 				}()
 			}
