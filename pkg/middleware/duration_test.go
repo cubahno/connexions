@@ -59,3 +59,24 @@ func TestSetDurationHeader(t *testing.T) {
 		assert.Empty(duration)
 	})
 }
+
+func TestGetDuration(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("returns elapsed time when start time exists", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		ctx := context.WithValue(req.Context(), startTimeKey, time.Now().Add(-100*time.Millisecond))
+		req = req.WithContext(ctx)
+
+		d := GetDuration(req)
+		assert.GreaterOrEqual(d, 100*time.Millisecond)
+		assert.Less(d, 200*time.Millisecond)
+	})
+
+	t.Run("returns zero when start time missing", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+
+		d := GetDuration(req)
+		assert.Equal(time.Duration(0), d)
+	})
+}

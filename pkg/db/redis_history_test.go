@@ -89,6 +89,40 @@ func TestRedisHistory_Set(t *testing.T) {
 		assert.Empty(t, entry.Request.Body)
 	})
 
+	t.Run("set with request ID round-trips", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+
+		entry := history.Set(ctx, "/users", &HistoryRequest{
+			Method:    "POST",
+			URL:       "/users",
+			RequestID: "redis-req-id-42",
+		}, &HistoryResponse{StatusCode: 201})
+
+		assert.Equal(t, "redis-req-id-42", entry.Request.RequestID)
+
+		got, ok := history.GetByID(ctx, entry.ID)
+		assert.True(t, ok)
+		assert.Equal(t, "redis-req-id-42", got.Request.RequestID)
+	})
+
+	t.Run("set with duration round-trips", func(t *testing.T) {
+		history, _ := newTestRedisHistory(t)
+
+		entry := history.Set(ctx, "/test", &HistoryRequest{
+			Method: "GET",
+			URL:    "/test",
+		}, &HistoryResponse{
+			StatusCode: 200,
+			Duration:   55 * time.Millisecond,
+		})
+
+		assert.Equal(t, 55*time.Millisecond, entry.Response.Duration)
+
+		got, ok := history.GetByID(ctx, entry.ID)
+		assert.True(t, ok)
+		assert.Equal(t, 55*time.Millisecond, got.Response.Duration)
+	})
+
 	t.Run("multiple sets create unique entries", func(t *testing.T) {
 		history, _ := newTestRedisHistory(t)
 		histReq := &HistoryRequest{Method: "GET", URL: "/test"}

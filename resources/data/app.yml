@@ -7,7 +7,7 @@ homeURL: /.ui
 serviceURL: /.services
 contextAreaPrefix: in-
 disableUI: false
-historyDuration: 5m
+historyDuration: 24h
 
 editor:
   theme: chrome

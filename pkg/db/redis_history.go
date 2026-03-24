@@ -30,6 +30,7 @@ type redisHistoryRecord struct {
 	Headers    []string         `json:"headers,omitempty"`
 	Response   *HistoryResponse `json:"response,omitempty"`
 	RemoteAddr string           `json:"remoteAddr,omitempty"`
+	RequestID  string           `json:"requestId,omitempty"`
 	CreatedAt  time.Time        `json:"createdAt"`
 }
 
@@ -44,6 +45,7 @@ func (r *redisHistoryRecord) toEntry() *HistoryEntry {
 			Body:       r.Body,
 			Headers:    r.Headers,
 			RemoteAddr: r.RemoteAddr,
+			RequestID:  r.RequestID,
 		},
 		CreatedAt: r.CreatedAt,
 	}
@@ -92,6 +94,7 @@ func (h *redisHistoryTable) Set(ctx context.Context, resource string, req *Histo
 		Headers:    req.Headers,
 		Response:   response,
 		RemoteAddr: req.RemoteAddr,
+		RequestID:  req.RequestID,
 		CreatedAt:  now,
 	}
 

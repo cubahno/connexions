@@ -10,6 +10,7 @@ import (
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
+	chiMw "github.com/go-chi/chi/v5/middleware"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -257,6 +258,55 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		assert.Equal("application/json", w.Header().Get("Content-Type"))
 		assert.Equal(http.StatusCreated, w.Code)
 		assert.Equal(`{"id": 1}`, w.Body.String())
+	})
+
+	t.Run("records request ID and duration in history", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+		}, nil)
+
+		mw := CreateCacheWriteMiddleware(params)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		})
+
+		req := httptest.NewRequest(http.MethodPost, "/api/test", nil)
+		ctx := context.WithValue(req.Context(), startTimeKey, time.Now().Add(-25*time.Millisecond))
+		ctx = context.WithValue(ctx, chiMw.RequestIDKey, "test-req-id-001")
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		rec, exists := params.DB().History().Get(context.Background(), req)
+		assert.True(exists)
+		assert.Equal("test-req-id-001", rec.Request.RequestID)
+		assert.GreaterOrEqual(rec.Response.Duration, 25*time.Millisecond)
+	})
+
+	t.Run("sets X-Cxs-Request-Id response header", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+		}, nil)
+
+		mw := CreateCacheWriteMiddleware(params)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+		ctx := context.WithValue(req.Context(), chiMw.RequestIDKey, "resp-header-id")
+		req = req.WithContext(ctx)
+
+		w := httptest.NewRecorder()
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("resp-header-id", w.Header().Get(ResponseHeaderRequestID))
 	})
 
 	t.Run("handler WriteHeader does not send headers immediately", func(t *testing.T) {

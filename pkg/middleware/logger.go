@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	chiMw "github.com/go-chi/chi/v5/middleware"
 )
 
 // skipPaths are path segments that should skip logging.
@@ -107,6 +109,7 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 		}
 
 		slog.Info(fmt.Sprintf("Incoming HTTP request: %s", r.URL.String()),
+			slog.String("requestId", chiMw.GetReqID(r.Context())),
 			slog.String("service", service),
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),

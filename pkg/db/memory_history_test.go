@@ -113,6 +113,42 @@ func TestMemoryHistoryTable_GetByID(t *testing.T) {
 	})
 }
 
+func TestMemoryHistoryTable_Set_RequestID(t *testing.T) {
+	assert := assert2.New(t)
+	ctx := context.Background()
+
+	h := newTestHistoryTable(0)
+
+	entry := h.Set(ctx, "/foo/{id}", &HistoryRequest{
+		Method:    "POST",
+		URL:       "/foo/1",
+		RequestID: "req-123-abc",
+	}, nil)
+
+	assert.Equal("req-123-abc", entry.Request.RequestID)
+
+	got, ok := h.GetByID(ctx, entry.ID)
+	assert.True(ok)
+	assert.Equal("req-123-abc", got.Request.RequestID)
+}
+
+func TestMemoryHistoryTable_Set_Duration(t *testing.T) {
+	assert := assert2.New(t)
+	ctx := context.Background()
+
+	h := newTestHistoryTable(0)
+
+	entry := h.Set(ctx, "/foo/{id}", &HistoryRequest{
+		Method: "GET",
+		URL:    "/foo/1",
+	}, &HistoryResponse{
+		StatusCode: 200,
+		Duration:   42 * time.Millisecond,
+	})
+
+	assert.Equal(42*time.Millisecond, entry.Response.Duration)
+}
+
 func TestMemoryHistoryTable_SetResponse(t *testing.T) {
 	assert := assert2.New(t)
 	ctx := context.Background()

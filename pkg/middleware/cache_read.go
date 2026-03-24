@@ -28,9 +28,10 @@ func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
 				return
 			}
 
-			log.Info("Cache hit", "path", req.URL.Path)
+			RequestLog(log, req).Info("Cache hit", "path", req.URL.Path)
 
 			response := res.Response
+			SetRequestIDHeader(w, req)
 			SetDurationHeader(w, req)
 			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceCache)
 			if response.ContentType != "" {

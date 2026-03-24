@@ -48,7 +48,7 @@ func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler 
 				return
 			}
 
-			log.Info("Replay hit", "method", req.Method, "path", req.URL.Path)
+			RequestLog(log, req).Info("Replay hit", "method", req.Method, "path", req.URL.Path)
 
 			// Update hit stats
 			rec.HitCount++
@@ -60,6 +60,7 @@ func CreateReplayReadMiddleware(params *Params) func(http.Handler) http.Handler 
 				w.Header().Set(k, v)
 			}
 
+			SetRequestIDHeader(w, req)
 			SetDurationHeader(w, req)
 			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceReplay)
 			if rec.ContentType != "" {
