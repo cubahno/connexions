@@ -3,8 +3,8 @@ package typedef
 import (
 	"fmt"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 )
 
 func CreateParseContext(docContents []byte, cfg codegen.Configuration, specOptions *config.SpecOptions) (*codegen.ParseContext, []error) {

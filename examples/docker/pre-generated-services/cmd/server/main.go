@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/loader"
+	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/loader"
 
 	// Import services to trigger their init() registration
 	_ "example/services/petstore"

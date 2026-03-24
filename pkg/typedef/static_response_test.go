@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/pkg/generator"
-	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/pkg/generator"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 	"github.com/stretchr/testify/assert"
 )
 

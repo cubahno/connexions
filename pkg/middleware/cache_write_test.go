@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/db"
 	chiMw "github.com/go-chi/chi/v5/middleware"
+	"github.com/mockzilla/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/db"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

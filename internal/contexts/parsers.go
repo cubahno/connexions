@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/internal/types"
+	"github.com/mockzilla/connexions/v2/internal/types"
 	"go.yaml.in/yaml/v4"
 )
 

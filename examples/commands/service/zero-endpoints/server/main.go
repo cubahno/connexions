@@ -12,8 +12,8 @@ import (
 	"os"
 	"time"
 
-	handler "github.com/cubahno/connexions/v2/examples/commands/service/zero-endpoints"
-	"github.com/cubahno/connexions/v2/pkg/api"
+	handler "github.com/mockzilla/connexions/v2/examples/commands/service/zero-endpoints"
+	"github.com/mockzilla/connexions/v2/pkg/api"
 )
 
 func main() {

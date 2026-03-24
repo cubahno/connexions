@@ -28,4 +28,4 @@ Test your services:
 curl http://localhost:2200/petstore/pets
 ```
 
-See the [mounted-services example](https://github.com/cubahno/connexions/tree/master/examples/docker/mounted-services) for a complete working example.
+See the [mounted-services example](https://github.com/mockzilla/connexions/tree/master/examples/docker/mounted-services) for a complete working example.

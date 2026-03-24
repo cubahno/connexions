@@ -6,9 +6,9 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/cubahno/connexions/v2/internal/types"
-	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/internal/types"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 )
 
 type schemaContext struct {

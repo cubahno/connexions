@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

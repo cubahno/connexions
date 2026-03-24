@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/v2/internal/integrationtest"
+	"github.com/mockzilla/connexions/v2/internal/integrationtest"
 )
 
 //go:embed testdata/specs

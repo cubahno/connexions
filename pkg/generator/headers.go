@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/internal/replacer"
-	"github.com/cubahno/connexions/v2/pkg/schema"
+	"github.com/mockzilla/connexions/v2/internal/replacer"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 )
 
 // skipHeaders contains headers that should not be generated from the spec.

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/mockzilla/connexions/v2/pkg/db"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

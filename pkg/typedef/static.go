@@ -3,8 +3,8 @@ package typedef
 import (
 	"fmt"
 
-	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 )
 
 // StaticRoute represents a static route with its content.

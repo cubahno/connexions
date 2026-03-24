@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/cubahno/connexions/v2/cmd/gen/templatehelpers"
-	"github.com/cubahno/connexions/v2/internal/files"
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/typedef"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/cmd/gen/templatehelpers"
+	"github.com/mockzilla/connexions/v2/internal/files"
+	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/typedef"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -255,14 +255,14 @@ func GenerateService(opts ServiceOptions) error {
 	// Add imports required by connexions generator code
 	cfg.AdditionalImports = append(cfg.AdditionalImports,
 		codegen.AdditionalImport{Package: "sync"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/api"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/config"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/db"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/factory"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/schema"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/generator"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/loader"},
-		codegen.AdditionalImport{Package: "github.com/cubahno/connexions/v2/pkg/typedef"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/api"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/config"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/db"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/factory"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/schema"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/generator"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/loader"},
+		codegen.AdditionalImport{Package: "github.com/mockzilla/connexions/v2/pkg/typedef"},
 		codegen.AdditionalImport{Alias: "oapicodegen", Package: "github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"},
 		codegen.AdditionalImport{Alias: "yamlv4", Package: "go.yaml.in/yaml/v4"},
 	)

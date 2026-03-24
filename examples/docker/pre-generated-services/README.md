@@ -42,7 +42,7 @@ module myproject
 
 go 1.23
 
-require github.com/cubahno/connexions/v2 v2.x.x
+require github.com/mockzilla/connexions/v2 v2.x.x
 ```
 
 2. Create `cmd/server/main.go`:
@@ -51,8 +51,8 @@ require github.com/cubahno/connexions/v2 v2.x.x
 package main
 
 import (
-    "github.com/cubahno/connexions/v2/pkg/api"
-    "github.com/cubahno/connexions/v2/pkg/loader"
+    "github.com/mockzilla/connexions/v2/pkg/api"
+    "github.com/mockzilla/connexions/v2/pkg/loader"
 
     _ "myproject/services/myapi"  // Import to register
 )
@@ -67,7 +67,7 @@ func main() {
 3. Generate services:
 
 ```bash
-go run github.com/cubahno/connexions/v2/cmd/gen/service \
+go run github.com/mockzilla/connexions/v2/cmd/gen/service \
     -name myapi https://example.com/openapi.json
 ```
 

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/mockzilla/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/db"
 	"github.com/sony/gobreaker/v2"
 )
 

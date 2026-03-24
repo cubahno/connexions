@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	cmdapi "github.com/cubahno/connexions/v2/cmd/api"
+	cmdapi "github.com/mockzilla/connexions/v2/cmd/api"
 )
 
 func main() {

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/db"
 	"github.com/go-chi/chi/v5"
+	"github.com/mockzilla/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/db"
 )
 
 // asyncWriteTimeout is the maximum time allowed for background DB writes.

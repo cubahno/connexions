@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http/httptest"
 
-	"github.com/cubahno/connexions/v2/pkg/factory"
+	"github.com/mockzilla/connexions/v2/pkg/factory"
 )
 
 //go:embed openapi.yml

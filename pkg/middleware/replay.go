@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 )
 
 // headerReplayMatch is the HTTP header that activates replay.

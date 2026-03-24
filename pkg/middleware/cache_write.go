@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/mockzilla/connexions/v2/pkg/db"
 )
 
 // CreateCacheWriteMiddleware is a method on the Router to create a middleware

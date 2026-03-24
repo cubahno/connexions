@@ -1,5 +1,5 @@
 site_name: "Connexions Documentation"
-repo_url: https://github.com/cubahno/connexions
+repo_url: https://github.com/mockzilla/connexions
 
 theme:
   custom_dir: resources/docs

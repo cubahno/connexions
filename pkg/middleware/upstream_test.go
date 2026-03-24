@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/mockzilla/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/db"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

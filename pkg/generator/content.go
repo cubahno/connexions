@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/internal/replacer"
-	"github.com/cubahno/connexions/v2/internal/types"
-	"github.com/cubahno/connexions/v2/pkg/schema"
 	"github.com/jaswdr/faker/v2"
+	"github.com/mockzilla/connexions/v2/internal/replacer"
+	"github.com/mockzilla/connexions/v2/internal/types"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 )
 
 // generateContentFromSchema generates content from the given schema.

@@ -1,4 +1,4 @@
-module github.com/cubahno/connexions/v2
+module github.com/mockzilla/connexions/v2
 
 go 1.25.3
 

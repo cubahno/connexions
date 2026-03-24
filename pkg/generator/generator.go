@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/internal/contexts"
-	"github.com/cubahno/connexions/v2/internal/replacer"
-	"github.com/cubahno/connexions/v2/internal/types"
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/schema"
+	"github.com/mockzilla/connexions/v2/internal/contexts"
+	"github.com/mockzilla/connexions/v2/internal/replacer"
+	"github.com/mockzilla/connexions/v2/internal/types"
+	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 	"go.yaml.in/yaml/v4"
 )
 

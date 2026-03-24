@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/cubahno/connexions/v2/internal/types"
 	"github.com/jaswdr/faker/v2"
+	"github.com/mockzilla/connexions/v2/internal/types"
 )
 
 // FakeFunc is a function that returns a MixedValue.

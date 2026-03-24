@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 )
 
 // CreateReplayWriteMiddleware returns middleware that records responses for replay.

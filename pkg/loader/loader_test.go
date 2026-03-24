@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/api"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 	"go.yaml.in/yaml/v4"
 )
 

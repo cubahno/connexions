@@ -3,9 +3,9 @@ package replacer
 import (
 	"reflect"
 
-	"github.com/cubahno/connexions/v2/internal/contexts"
-	"github.com/cubahno/connexions/v2/internal/types"
 	"github.com/jaswdr/faker/v2"
+	"github.com/mockzilla/connexions/v2/internal/contexts"
+	"github.com/mockzilla/connexions/v2/internal/types"
 )
 
 // ValueReplacer is a function that replaces value in schema or content.

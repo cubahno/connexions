@@ -2,12 +2,12 @@
 
 Generates a complete mock service from an OpenAPI spec or static files.
 
-See the [full documentation](https://cubahno.github.io/connexions/commands/service/).
+See the [full documentation](https://mockzilla.github.io/connexions/commands/service/).
 
 ## Quick Start
 
 ```bash
-go run github.com/cubahno/connexions/v2/cmd/gen/service@latest \
+go run github.com/mockzilla/connexions/v2/cmd/gen/service@latest \
   -name petstore \
   https://petstore3.swagger.io/api/v3/openapi.json
 ```

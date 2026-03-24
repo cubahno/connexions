@@ -14,11 +14,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/config"
-	"github.com/cubahno/connexions/v2/pkg/loader"
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
+	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/loader"
 
 	// Imports to ensure it's vendored for generated code
 	_ "github.com/go-playground/validator/v10"

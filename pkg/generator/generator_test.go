@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/internal/replacer"
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/schema"
+	"github.com/mockzilla/connexions/v2/internal/replacer"
+	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

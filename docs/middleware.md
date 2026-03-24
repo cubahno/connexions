@@ -23,7 +23,7 @@ package petstore
 
 import (
     "net/http"
-    "github.com/cubahno/connexions/v2/pkg/middleware"
+    "github.com/mockzilla/connexions/v2/pkg/middleware"
 )
 
 func getMiddleware() []func(*middleware.Params) func(http.Handler) http.Handler {

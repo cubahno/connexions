@@ -3,8 +3,8 @@ package typedef
 import (
 	"testing"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 	"github.com/stretchr/testify/assert"
 )
 

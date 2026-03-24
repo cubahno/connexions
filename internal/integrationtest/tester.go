@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cubahno/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/api"
 )
 
 var (

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/internal/replacer"
-	"github.com/cubahno/connexions/v2/pkg/schema"
-	"github.com/cubahno/connexions/v2/pkg/typedef"
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
+	"github.com/mockzilla/connexions/v2/internal/replacer"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
+	"github.com/mockzilla/connexions/v2/pkg/typedef"
 	assert2 "github.com/stretchr/testify/assert"
 	"go.yaml.in/yaml/v4"
 )

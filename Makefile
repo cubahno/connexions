@@ -3,7 +3,7 @@ IMAGE_NAME ?= "cubahno/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 GO_VERSION := $(shell awk '/^go / {print $$2}' go.mod)
-PACKAGE := github.com/cubahno/connexions/v2
+PACKAGE := github.com/mockzilla/connexions/v2
 GO_BUILD_FLAGS ?=
 
 MIN_COVERAGE = 90

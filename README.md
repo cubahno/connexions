@@ -1,16 +1,16 @@
 <div style="text-align: center; width:450px;">
-    <img src="https://raw.githubusercontent.com/cubahno/connexions/master/resources/docs/images/gotham.svg">
+    <img src="https://raw.githubusercontent.com/mockzilla/connexions/master/resources/docs/images/gotham.svg">
 </div>
 
 ## Connexions
 
-[![CI](https://github.com/cubahno/connexions/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/cubahno/connexions/actions/workflows/ci.yml?query=branch%3Amaster)
-[![Endpoint Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Fcubahno%2F4110782af3ec09dd1ebabc3304756f1f%2Fraw%2Fcovbadge.json&labelColor=%23058FF3&color=%2306C53B)](https://github.com/cubahno/connexions/actions/workflows/ci.yml?query=event%3Apush+branch%3Amaster+workflow%3ACI)
+[![CI](https://github.com/mockzilla/connexions/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/mockzilla/connexions/actions/workflows/ci.yml?query=branch%3Amaster)
+[![Endpoint Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Fmockzilla%2F4110782af3ec09dd1ebabc3304756f1f%2Fraw%2Fcovbadge.json&labelColor=%23058FF3&color=%2306C53B)](https://github.com/mockzilla/connexions/actions/workflows/ci.yml?query=event%3Apush+branch%3Amaster+workflow%3ACI)
 [![codecov](https://codecov.io/gh/cubahno/connexions/graph/badge.svg?token=XGCEHYUDH0)](https://codecov.io/gh/cubahno/connexions)
 [![GoReportCard](https://goreportcard.com/badge/github.com/cubahno/connexions)](https://goreportcard.com/report/github.com/cubahno/connexions)
 [![GoDoc](https://godoc.org/github.com/cubahno/connexions?status.svg)](https://godoc.org/github.com/cubahno/connexions)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cubahno/connexions.svg)](https://pkg.go.dev/github.com/cubahno/connexions)
-[![License](https://img.shields.io/github/license/cubahno/connexions)](https://github.com/cubahno/connexions/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/mockzilla/connexions)](https://github.com/cubahno/connexions/blob/master/LICENSE)
 
 
 **Connexions** is a mock server generator for OpenAPI specifications.<br/>
@@ -49,12 +49,12 @@ docker run -it --rm \
 
 ``` 
 
-Read full documentation at [cubahno.github.io/connexions](https://cubahno.github.io/connexions/).
+Read full documentation at [mockzilla.github.io/connexions](https://mockzilla.github.io/connexions/).
 
-[OpenAPI Specification](https://editor.swagger.io/?url=https://raw.githubusercontent.com/cubahno/connexions/master/resources/openapi.yml)
+[OpenAPI Specification](https://editor.swagger.io/?url=https://raw.githubusercontent.com/mockzilla/connexions/master/resources/openapi.yml)
 
 License
 ===================
 Copyright (c) 2023-present
 
-Licensed under the [MIT License](https://github.com/cubahno/connexions/blob/master/LICENSE)
+Licensed under the [MIT License](https://github.com/mockzilla/connexions/blob/master/LICENSE)

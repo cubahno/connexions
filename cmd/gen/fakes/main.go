@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/internal/contexts"
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/internal/contexts"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 )
 
 // main generates resources/contexts/fake.yml from available fake functions.

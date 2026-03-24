@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	cmdapi "github.com/cubahno/connexions/v2/cmd/api"
-	"github.com/cubahno/connexions/v2/pkg/api"
-	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/fsnotify/fsnotify"
+	cmdapi "github.com/mockzilla/connexions/v2/cmd/api"
+	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 )
 
 type fileEvent struct {

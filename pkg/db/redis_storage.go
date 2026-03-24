@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 	"github.com/redis/go-redis/v9"
 	"github.com/sony/gobreaker/v2"
 )

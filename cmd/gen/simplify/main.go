@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cubahno/connexions/v2/internal/files"
-	"github.com/cubahno/connexions/v2/pkg/typedef"
+	"github.com/mockzilla/connexions/v2/internal/files"
+	"github.com/mockzilla/connexions/v2/pkg/typedef"
 	"github.com/pb33f/libopenapi"
 	"github.com/pb33f/libopenapi/datamodel"
 )
@@ -19,7 +19,7 @@ var (
 	flagPrintUsage            bool
 )
 
-const cmdPath = "github.com/cubahno/connexions/v2/cmd/gen/simplify"
+const cmdPath = "github.com/mockzilla/connexions/v2/cmd/gen/simplify"
 
 func init() {
 	flag.Usage = func() {

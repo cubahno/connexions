@@ -14,7 +14,7 @@
       </ENTRIES>
     </EXTENSION>
     <kind value="DIRECTORY" />
-    <package value="github.com/cubahno/connexions" />
+    <package value="github.com/mockzilla/connexions" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />

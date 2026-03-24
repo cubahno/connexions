@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/internal/files"
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/internal/files"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 )
 
 // DiscoverOptions contains options for discovering services.

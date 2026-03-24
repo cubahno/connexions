@@ -4,7 +4,7 @@
 package zero
 
 import (
-	"github.com/cubahno/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/pkg/api"
 )
 
 // service implements the ServiceInterface with your business logic.

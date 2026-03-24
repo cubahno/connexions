@@ -73,8 +73,8 @@ No need to restart the container manually.
 
 ## Examples
 
-See the [mounted-services example](https://github.com/cubahno/connexions/tree/master/examples/docker/mounted-services) for a complete working example.
+See the [mounted-services example](https://github.com/mockzilla/connexions/tree/master/examples/docker/mounted-services) for a complete working example.
 
 ## Pre-generated Services
 
-If you need custom middleware or want to pre-generate Go services, see the [pre-generated-services example](https://github.com/cubahno/connexions/tree/master/examples/docker/pre-generated-services).
+If you need custom middleware or want to pre-generate Go services, see the [pre-generated-services example](https://github.com/mockzilla/connexions/tree/master/examples/docker/pre-generated-services).

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/cubahno/connexions/v2/internal/files"
-	"github.com/cubahno/connexions/v2/pkg/config"
+	"github.com/mockzilla/connexions/v2/internal/files"
+	"github.com/mockzilla/connexions/v2/pkg/config"
 	assert2 "github.com/stretchr/testify/assert"
 )
 

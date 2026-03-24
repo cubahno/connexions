@@ -72,7 +72,7 @@ For maximum control and performance. Generated Go code that you can customize:
 
 ```bash
 # Generate a service from spec
-go run github.com/cubahno/connexions/v2/cmd/gen/service@latest \
+go run github.com/mockzilla/connexions/v2/cmd/gen/service@latest \
   -name petstore \
   https://petstore3.swagger.io/api/v3/openapi.json
 

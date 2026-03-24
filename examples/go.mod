@@ -1,11 +1,11 @@
-module github.com/cubahno/connexions/v2/examples
+module github.com/mockzilla/connexions/v2/examples
 
 go 1.25.3
 
-replace github.com/cubahno/connexions/v2 => ../
+replace github.com/mockzilla/connexions/v2 => ../
 
 require (
-	github.com/cubahno/connexions/v2 v2.0.0
+	github.com/mockzilla/connexions/v2 v2.0.0
 	github.com/doordash-oss/oapi-codegen-dd/v3 v3.72.14
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-playground/validator/v10 v10.30.1

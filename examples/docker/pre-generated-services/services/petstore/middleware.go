@@ -6,7 +6,7 @@ package petstore
 import (
 	"net/http"
 
-	"github.com/cubahno/connexions/v2/pkg/middleware"
+	"github.com/mockzilla/connexions/v2/pkg/middleware"
 )
 
 // getMiddleware returns custom middleware for this service.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cubahno/connexions/v2/pkg/schema"
+	"github.com/mockzilla/connexions/v2/pkg/schema"
 )
 
 const schemaInit = "schema.Schema"
