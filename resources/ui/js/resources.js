@@ -347,6 +347,9 @@ export const generateResult = (service, ix, path, method) => {
                     headers: { ...reqHeaders }
                 };
 
+                // Mark request as coming from the UI
+                fetchOptions.headers['X-Cxs-Source'] = 'ui';
+
                 // Apply config overrides from UI
                 const overrideHeaders = getConfigOverrideHeaders();
                 Object.assign(fetchOptions.headers, overrideHeaders);
