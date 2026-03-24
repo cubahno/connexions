@@ -49,10 +49,11 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 				}
 				respHeaders := db.FlattenHeaders(rw.Header())
 				duration := GetDuration(req)
+				resourcePath := GetResourcePath(req)
 				go func() {
 					ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 					defer cancel()
-					params.DB().History().Set(ctx, req.URL.Path, histReq, &db.HistoryResponse{
+					params.DB().History().Set(ctx, resourcePath, histReq, &db.HistoryResponse{
 						Body:        respContent,
 						StatusCode:  respStatusCode,
 						ContentType: respContentType,

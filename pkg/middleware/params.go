@@ -8,6 +8,7 @@ import (
 
 	"github.com/cubahno/connexions/v2/pkg/config"
 	"github.com/cubahno/connexions/v2/pkg/db"
+	"github.com/go-chi/chi/v5"
 )
 
 // asyncWriteTimeout is the maximum time allowed for background DB writes.
@@ -30,6 +31,7 @@ type Params struct {
 	StorageConfig *config.StorageConfig
 	database      db.DB
 	log           *slog.Logger
+	router        chi.Routes
 }
 
 // NewParams creates a new Params instance with the given configuration and database.
@@ -40,6 +42,11 @@ func NewParams(serviceConfig *config.ServiceConfig, storageConfig *config.Storag
 		database:      database,
 		log:           slog.With("service", serviceConfig.Name),
 	}
+}
+
+// SetRouter stores the router for resource path resolution at request time.
+func (p *Params) SetRouter(r chi.Routes) {
+	p.router = r
 }
 
 // DB returns the per-service database instance.

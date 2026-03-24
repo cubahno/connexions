@@ -102,6 +102,9 @@ func (r *Router) RegisterService(
 	// Use cfg.Name as the route prefix (ensure it starts with /)
 	prefix := "/" + cfg.Name
 	r.Route(prefix, func(subRouter chi.Router) {
+		// Resource resolver (must be before other middleware that read the resource path)
+		subRouter.Use(middleware.CreateResourceResolverMiddleware(mwParams))
+
 		// Config override middleware (must be first to override config before other middlewares)
 		subRouter.Use(middleware.CreateConfigOverrideMiddleware(mwParams))
 
@@ -119,6 +122,7 @@ func (r *Router) RegisterService(
 		}
 
 		handler.RegisterRoutes(subRouter)
+		mwParams.SetRouter(subRouter)
 	})
 
 	// Skip logging for services with history disabled
@@ -175,6 +179,9 @@ func (r *Router) RegisterHTTPHandler(
 	// Use cfg.Name as the route prefix (ensure it starts with /)
 	prefix := "/" + cfg.Name
 	r.Route(prefix, func(subRouter chi.Router) {
+		// Resource resolver (must be before other middleware that read the resource path)
+		subRouter.Use(middleware.CreateResourceResolverMiddleware(mwParams))
+
 		// Config override middleware (must be first to override config before other middlewares)
 		subRouter.Use(middleware.CreateConfigOverrideMiddleware(mwParams))
 
@@ -193,6 +200,7 @@ func (r *Router) RegisterHTTPHandler(
 
 		// Register the handler's routes
 		handler.RegisterRoutes(subRouter)
+		mwParams.SetRouter(subRouter)
 	})
 
 	// Skip logging for services with history disabled
