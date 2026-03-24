@@ -287,7 +287,6 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 	return settings
 }
 
-
 func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*upstreamResponse, error) {
 	log = RequestLog(log, req)
 	cfg := params.ServiceConfig.Upstream
