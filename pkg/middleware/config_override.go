@@ -30,20 +30,42 @@ func CreateConfigOverrideMiddleware(params *Params) func(http.Handler) http.Hand
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			overrides := parseConfigOverrides(req.Header)
-			if len(overrides) == 0 {
-				next.ServeHTTP(w, req)
-				return
+
+			if len(overrides) > 0 {
+				// Save original config and restore after request
+				originalConfig := params.ServiceConfig
+				params.ServiceConfig = applyOverrides(originalConfig, overrides)
+				defer func() {
+					params.ServiceConfig = originalConfig
+				}()
 			}
 
-			// Save original config and restore after request
-			originalConfig := params.ServiceConfig
-			params.ServiceConfig = applyOverrides(originalConfig, overrides)
-			defer func() {
-				params.ServiceConfig = originalConfig
-			}()
-
+			cleanRequestHeaders(req)
 			next.ServeHTTP(w, req)
 		})
+	}
+}
+
+// cleanRequestHeaders removes internal X-Cxs-* headers from the request.
+// When X-Cxs-Upstream-Headers is present, only the listed headers are kept.
+func cleanRequestHeaders(req *http.Request) {
+	upstreamHeadersKey := headerPrefix + headerUpstreamHeaders
+	allowList := req.Header.Get(upstreamHeadersKey)
+
+	if allowList != "" {
+		allowed := parseUpstreamHeadersList(allowList)
+		for name := range req.Header {
+			if _, ok := allowed[http.CanonicalHeaderKey(name)]; !ok {
+				req.Header.Del(name)
+			}
+		}
+		return
+	}
+
+	for name := range req.Header {
+		if strings.HasPrefix(name, headerPrefix) {
+			req.Header.Del(name)
+		}
 	}
 }
 
@@ -51,6 +73,19 @@ func CreateConfigOverrideMiddleware(params *Params) func(http.Handler) http.Hand
 type configOverride struct {
 	key   string
 	value string
+}
+
+// parseUpstreamHeadersList parses a comma-separated list of header names
+// into a set of canonical header keys.
+func parseUpstreamHeadersList(value string) map[string]struct{} {
+	allowed := make(map[string]struct{})
+	for _, name := range strings.Split(value, ",") {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			allowed[http.CanonicalHeaderKey(name)] = struct{}{}
+		}
+	}
+	return allowed
 }
 
 // parseConfigOverrides extracts X-Cxs-* headers from the request.

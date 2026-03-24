@@ -496,6 +496,16 @@ pre, .code {
 }
 .footer a { color: var(--text-muted); }
 .footer a:hover { color: var(--primary); }
+.footer-theme { display: flex; align-items: center; gap: 6px; }
+.footer-theme select {
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: inherit;
+    text-transform: capitalize;
+}
 
 /* Response headers table */
 .response-headers-table {

@@ -33,8 +33,11 @@ async function onLoad() {
             localStorage.setItem('theme', 'dark');
             themeToggle.textContent = '☀️';
         }
+        commons.initAceThemeSelect();
         commons.updateAllEditorThemes();
     });
+
+    commons.initAceThemeSelect();
 
     // Panel resizer
     const RESIZER_STORAGE_KEY = 'panel-split';

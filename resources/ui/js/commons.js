@@ -1,8 +1,17 @@
 import * as config from './config.js';
 
+const aceThemes = {
+    Bright: ['chrome','clouds','crimson_editor','dawn','dreamweaver','eclipse','github','iplastic','katzenmilch','kuroir','solarized_light','sqlserver','textmate','tomorrow','xcode'],
+    Dark: ['ambiance','chaos','clouds_midnight','cobalt','dracula','gob','gruvbox','idle_fingers','kr_theme','merbivore','merbivore_soft','mono_industrial','monokai','pastel_on_dark','solarized_dark','terminal','tomorrow_night','tomorrow_night_blue','tomorrow_night_bright','tomorrow_night_eighties','vibrant_ink']
+};
+
+const isDarkMode = () => document.documentElement.getAttribute('data-theme') === 'dark';
+
 export const getEditorTheme = () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    return isDark ? config.editor.darkTheme : config.editor.theme;
+    const key = isDarkMode() ? 'ace-dark-theme' : 'ace-light-theme';
+    const saved = localStorage.getItem(key);
+    if (saved) return saved;
+    return isDarkMode() ? (config.editor.darkTheme || 'monokai') : (config.editor.theme || 'chrome');
 }
 
 export const updateAllEditorThemes = () => {
@@ -10,6 +19,25 @@ export const updateAllEditorThemes = () => {
     for (const editor of activeEditors) {
         editor.setTheme(theme);
     }
+}
+
+export const initAceThemeSelect = () => {
+    const sel = document.getElementById('ace-theme-select');
+    if (!sel) return;
+    const group = isDarkMode() ? 'Dark' : 'Bright';
+    sel.innerHTML = '';
+    aceThemes[group].forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t.replace(/_/g, ' ');
+        sel.appendChild(opt);
+    });
+    sel.value = getEditorTheme();
+    sel.onchange = () => {
+        const key = isDarkMode() ? 'ace-dark-theme' : 'ace-light-theme';
+        localStorage.setItem(key, sel.value);
+        updateAllEditorThemes();
+    };
 }
 
 const activeEditors = new Set();
