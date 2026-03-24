@@ -363,6 +363,12 @@ export const generateResult = (service, ix, path, method) => {
                     fetchOptions.headers['X-Cxs-Context'] = btoa(JSON.stringify(replacements));
                 }
 
+                // Tell upstream middleware which headers to forward (everything else is browser noise)
+                const upstreamHeaders = Object.keys({...reqHeaders, ...customHeaders});
+                if (upstreamHeaders.length > 0) {
+                    fetchOptions.headers['X-Cxs-Upstream-Headers'] = upstreamHeaders.join(',');
+                }
+
                 if (reqContentType) {
                     fetchOptions.headers['Content-Type'] = reqContentType;
                 }
@@ -403,7 +409,9 @@ export const generateResult = (service, ix, path, method) => {
                     }
 
                     document.getElementById('response-body-container').style.display = 'block';
-                    const responseView = commons.getCodeEditor(`response-body`, `json`, {maxLines: Infinity});
+                    const respContentType = responseData.contentType || '';
+                    const respEditorMode = respContentType.includes('application/json') ? 'json' : 'text';
+                    const responseView = commons.getCodeEditor(`response-body`, respEditorMode, {maxLines: Infinity});
                     responseView.setValue(formattedResponse);
                     responseView.clearSelection();
                     responseView.setReadOnly(true);
