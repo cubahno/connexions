@@ -174,10 +174,11 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 							RemoteAddr: req.RemoteAddr,
 							RequestID:  requestID,
 						}
+						resourcePath := GetResourcePath(req)
 						go func() {
 							ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 							defer cancel()
-							params.DB().History().Set(ctx, req.URL.Path, histReq, &db.HistoryResponse{
+							params.DB().History().Set(ctx, resourcePath, histReq, &db.HistoryResponse{
 								Body:           []byte(httpErr.Body),
 								StatusCode:     httpErr.StatusCode,
 								ContentType:    httpErr.ContentType,
@@ -373,10 +374,11 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 			RequestID:  GetRequestID(req),
 		}
 		duration := GetDuration(req)
+		resourcePath := GetResourcePath(req)
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 			defer cancel()
-			history.Set(ctx, req.URL.Path, histReq, &db.HistoryResponse{
+			history.Set(ctx, resourcePath, histReq, &db.HistoryResponse{
 				Body:           body,
 				StatusCode:     statusCode,
 				ContentType:    contentType,
