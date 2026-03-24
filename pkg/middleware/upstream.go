@@ -16,6 +16,16 @@ import (
 	"github.com/sony/gobreaker/v2"
 )
 
+const upstreamErrorKey ctxKey = "upstreamError"
+
+// GetUpstreamError returns the upstream error string stored in the request context, if any.
+func GetUpstreamError(req *http.Request) string {
+	if v, ok := req.Context().Value(upstreamErrorKey).(string); ok {
+		return v
+	}
+	return ""
+}
+
 // upstreamHTTPError is returned when upstream responds with an error status code.
 // It carries the status code so the circuit breaker can decide whether to count it as a failure,
 // and the body/content-type so fail-on can forward the response to the client.
@@ -201,6 +211,10 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 			}
 
 			// Proceed to the next handler if no upstream service matched
+			if err != nil {
+				ctx := context.WithValue(req.Context(), upstreamErrorKey, err.Error())
+				req = req.WithContext(ctx)
+			}
 			next.ServeHTTP(w, req)
 		})
 	}
