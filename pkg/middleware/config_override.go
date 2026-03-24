@@ -21,7 +21,34 @@ const (
 	headerLatency         = "Latency"
 	headerUpstreamURL     = "Upstream-Url"
 	headerUpstreamHeaders = "Upstream-Headers"
+	headerSource          = "Source"
 )
+
+const sourceUI = "ui"
+
+// browserHeaders are headers automatically added by browsers that add noise
+// to history and should not be forwarded upstream.
+var browserHeaders = map[string]bool{
+	"Origin":                            true,
+	"Referer":                           true,
+	"Cookie":                            true,
+	"Sec-Fetch-Mode":                    true,
+	"Sec-Fetch-Site":                    true,
+	"Sec-Fetch-Dest":                    true,
+	"Sec-Ch-Ua":                         true,
+	"Sec-Ch-Ua-Mobile":                  true,
+	"Sec-Ch-Ua-Platform":                true,
+	"Sec-Fetch-User":                    true,
+	"Upgrade-Insecure-Requests":         true,
+	"Dnt":                               true,
+	"Cache-Control":                     true,
+	"Pragma":                            true,
+	"Priority":                          true,
+	"Accept-Language":                   true,
+	"Sec-Gpc":                           true,
+	"Sec-Purpose":                       true,
+	"Service-Worker-Navigation-Preload": true,
+}
 
 // CreateConfigOverrideMiddleware creates a middleware that reads X-Cxs-* headers
 // and temporarily overrides ServiceConfig values for the current request.
@@ -40,30 +67,25 @@ func CreateConfigOverrideMiddleware(params *Params) func(http.Handler) http.Hand
 				}()
 			}
 
-			cleanRequestHeaders(req)
+			fromUI := req.Header.Get(headerPrefix+headerSource) == sourceUI
+			stripBrowserHeaders(req, fromUI)
 			next.ServeHTTP(w, req)
 		})
 	}
 }
 
-// cleanRequestHeaders removes internal X-Cxs-* headers from the request.
-// When X-Cxs-Upstream-Headers is present, only the listed headers are kept.
-func cleanRequestHeaders(req *http.Request) {
-	upstreamHeadersKey := headerPrefix + headerUpstreamHeaders
-	allowList := req.Header.Get(upstreamHeadersKey)
-
-	if allowList != "" {
-		allowed := parseUpstreamHeadersList(allowList)
-		for name := range req.Header {
-			if _, ok := allowed[http.CanonicalHeaderKey(name)]; !ok {
-				req.Header.Del(name)
-			}
-		}
-		return
-	}
-
+// stripBrowserHeaders removes known browser-injected headers from the request.
+// When the request originates from the UI (detected by the presence of X-Cxs-*
+// headers), Authorization is also stripped since it belongs to the UI session,
+// not to the target API.
+func stripBrowserHeaders(req *http.Request, fromUI bool) {
 	for name := range req.Header {
-		if strings.HasPrefix(name, headerPrefix) {
+		canonical := http.CanonicalHeaderKey(name)
+		if browserHeaders[canonical] {
+			req.Header.Del(name)
+			continue
+		}
+		if fromUI && canonical == "Authorization" {
 			req.Header.Del(name)
 		}
 	}
@@ -73,19 +95,6 @@ func cleanRequestHeaders(req *http.Request) {
 type configOverride struct {
 	key   string
 	value string
-}
-
-// parseUpstreamHeadersList parses a comma-separated list of header names
-// into a set of canonical header keys.
-func parseUpstreamHeadersList(value string) map[string]struct{} {
-	allowed := make(map[string]struct{})
-	for _, name := range strings.Split(value, ",") {
-		name = strings.TrimSpace(name)
-		if name != "" {
-			allowed[http.CanonicalHeaderKey(name)] = struct{}{}
-		}
-	}
-	return allowed
 }
 
 // parseConfigOverrides extracts X-Cxs-* headers from the request.

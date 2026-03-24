@@ -63,6 +63,72 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Body)
 	})
 
+	t.Run("X-Cxs headers are stripped before forwarding to upstream", func(t *testing.T) {
+		var receivedHeaders http.Header
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedHeaders = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+		req.Header.Set("Authorization", "Bearer 123")
+		req.Header.Set("X-Cxs-Latency", "200ms")
+		req.Header.Set("X-Cxs-Context", "eyJmb28iOiJiYXIifQ==")
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal("Bearer 123", receivedHeaders.Get("Authorization"))
+		assert.Empty(receivedHeaders.Get("X-Cxs-Latency"))
+		assert.Empty(receivedHeaders.Get("X-Cxs-Context"))
+	})
+
+	t.Run("X-Cxs-Upstream-Headers allowlist keeps only listed headers for upstream", func(t *testing.T) {
+		var receivedHeaders http.Header
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedHeaders = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ok":true}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+		req.Header.Set("Authorization", "Basic internal-creds")
+		req.Header.Set("Smartum-Version", "2020-04-02")
+		req.Header.Set("X-Custom", "keep-me")
+		req.Header.Set("Cookie", "session=abc")
+		req.Header.Set("X-Cxs-Upstream-Headers", "Smartum-Version,X-Custom")
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal("2020-04-02", receivedHeaders.Get("Smartum-Version"))
+		assert.Equal("keep-me", receivedHeaders.Get("X-Custom"))
+		assert.Empty(receivedHeaders.Get("Authorization"))
+		assert.Empty(receivedHeaders.Get("Cookie"))
+		assert.Empty(receivedHeaders.Get("X-Cxs-Upstream-Headers"))
+	})
+
 	t.Run("query parameters are forwarded to upstream", func(t *testing.T) {
 		var receivedURL string
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

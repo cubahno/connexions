@@ -234,7 +234,28 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 		assert.Same(original, params.ServiceConfig)
 	})
 
-	t.Run("X-Cxs headers are stripped from request", func(t *testing.T) {
+	t.Run("X-Cxs headers are preserved on request", func(t *testing.T) {
+		params := &Params{ServiceConfig: &config.ServiceConfig{Name: "test"}}
+
+		var capturedHeaders http.Header
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeaders = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.Header.Set("X-Cxs-Latency", "200ms")
+		req.Header.Set("X-Cxs-Context", "eyJmb28iOiJiYXIifQ==")
+		w := NewBufferedResponseWriter()
+
+		mw := CreateConfigOverrideMiddleware(params)
+		mw(handler).ServeHTTP(w, req)
+
+		assert.Equal("200ms", capturedHeaders.Get("X-Cxs-Latency"))
+		assert.Equal("eyJmb28iOiJiYXIifQ==", capturedHeaders.Get("X-Cxs-Context"))
+	})
+
+	t.Run("browser headers are stripped from request", func(t *testing.T) {
 		params := &Params{ServiceConfig: &config.ServiceConfig{Name: "test"}}
 
 		var capturedHeaders http.Header
@@ -245,19 +266,32 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Set("Authorization", "Bearer 123")
-		req.Header.Set("X-Cxs-Latency", "200ms")
-		req.Header.Set("X-Cxs-Context", "eyJmb28iOiJiYXIifQ==")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Origin", "http://localhost:2200")
+		req.Header.Set("Referer", "http://localhost:2200/ui")
+		req.Header.Set("Cookie", "session=abc")
+		req.Header.Set("Sec-Fetch-Mode", "cors")
+		req.Header.Set("Sec-Fetch-Site", "same-origin")
+		req.Header.Set("Sec-Ch-Ua", "\"Chromium\";v=\"130\"")
+		req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 		w := NewBufferedResponseWriter()
 
 		mw := CreateConfigOverrideMiddleware(params)
 		mw(handler).ServeHTTP(w, req)
 
+		// Authorization is preserved when request is not from UI
 		assert.Equal("Bearer 123", capturedHeaders.Get("Authorization"))
-		assert.Empty(capturedHeaders.Get("X-Cxs-Latency"))
-		assert.Empty(capturedHeaders.Get("X-Cxs-Context"))
+		assert.Equal("application/json", capturedHeaders.Get("Content-Type"))
+		assert.Empty(capturedHeaders.Get("Origin"))
+		assert.Empty(capturedHeaders.Get("Referer"))
+		assert.Empty(capturedHeaders.Get("Cookie"))
+		assert.Empty(capturedHeaders.Get("Sec-Fetch-Mode"))
+		assert.Empty(capturedHeaders.Get("Sec-Fetch-Site"))
+		assert.Empty(capturedHeaders.Get("Sec-Ch-Ua"))
+		assert.Empty(capturedHeaders.Get("Accept-Language"))
 	})
 
-	t.Run("X-Cxs-Upstream-Headers allowlist keeps only listed headers", func(t *testing.T) {
+	t.Run("Authorization is stripped when request comes from UI", func(t *testing.T) {
 		params := &Params{ServiceConfig: &config.ServiceConfig{Name: "test"}}
 
 		var capturedHeaders http.Header
@@ -267,25 +301,19 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
-		req.Header.Set("Authorization", "Basic internal-creds")
-		req.Header.Set("Smartum-Version", "2020-04-02")
-		req.Header.Set("X-Custom", "keep-me")
-		req.Header.Set("Cookie", "session=abc")
+		req.Header.Set("Authorization", "Basic ui-session-creds")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Cxs-Source", "ui")
 		req.Header.Set("Origin", "http://localhost:2200")
-		req.Header.Set("Sec-Fetch-Mode", "cors")
-		req.Header.Set("X-Cxs-Upstream-Headers", "Smartum-Version,X-Custom")
 		w := NewBufferedResponseWriter()
 
 		mw := CreateConfigOverrideMiddleware(params)
 		mw(handler).ServeHTTP(w, req)
 
-		assert.Equal("2020-04-02", capturedHeaders.Get("Smartum-Version"))
-		assert.Equal("keep-me", capturedHeaders.Get("X-Custom"))
 		assert.Empty(capturedHeaders.Get("Authorization"))
-		assert.Empty(capturedHeaders.Get("Cookie"))
 		assert.Empty(capturedHeaders.Get("Origin"))
-		assert.Empty(capturedHeaders.Get("Sec-Fetch-Mode"))
-		assert.Empty(capturedHeaders.Get("X-Cxs-Upstream-Headers"))
+		assert.Equal("application/json", capturedHeaders.Get("Content-Type"))
+		assert.Equal("ui", capturedHeaders.Get("X-Cxs-Source"))
 	})
 
 	t.Run("multiple overrides applied", func(t *testing.T) {
