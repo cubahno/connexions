@@ -35,7 +35,7 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 			body := readAndRestoreBody(req)
 			key := buildReplayKey(req, patternPath, endpointPath, match, body)
 			if key == "" {
-				log.Info("Replay skipped: missing match fields", "method", req.Method, "path", req.URL.Path)
+				RequestLog(log, req).Info("Replay skipped: missing match fields", "method", req.Method, "path", req.URL.Path)
 				next.ServeHTTP(w, req)
 				return
 			}
@@ -135,7 +135,7 @@ func CreateReplayWriteMiddleware(params *Params) func(http.Handler) http.Handler
 				ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 				defer cancel()
 				table.Set(ctx, key, rec, ttl)
-				log.Info("Replay recorded", "method", req.Method, "path", req.URL.Path)
+				RequestLog(log, req).Info("Replay recorded", "method", req.Method, "path", req.URL.Path)
 			}()
 
 			writeThrough(w, rw)

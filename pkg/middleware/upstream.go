@@ -123,7 +123,8 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 				return
 			}
 
-			log.Debug("Service has upstream service defined")
+			reqLog := RequestLog(log, req)
+			reqLog.Debug("Service has upstream service defined")
 
 			var resp *upstreamResponse
 			var err error
@@ -138,6 +139,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 			// If an upstream service returns a successful response, write it and return immediately
 			if err == nil && resp != nil {
+				SetRequestIDHeader(w, req)
 				SetDurationHeader(w, req)
 				w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceUpstream)
 				if resp.ContentType != "" {
@@ -148,7 +150,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 			}
 
 			if err != nil {
-				log.Error("Error fetching upstream service", "url", cfg.URL, "error", err)
+				reqLog.Error("Error fetching upstream service", "url", cfg.URL, "error", err)
 
 				// Check fail-on: return upstream error directly without generator fallback.
 				// nil (omitted) = default (400); pointer to empty list = disabled.
@@ -158,16 +160,19 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 				}
 				var httpErr *upstreamHTTPError
 				if len(*failOn) > 0 && errors.As(err, &httpErr) && failOn.Is(httpErr.StatusCode) {
-					log.Info("Upstream error matches fail-on, returning directly",
+					reqLog.Info("Upstream error matches fail-on, returning directly",
 						"status", httpErr.StatusCode,
 					)
 
+					requestID := GetRequestID(req)
+					duration := GetDuration(req)
 					if params.ServiceConfig.HistoryEnabled() {
 						histReq := &db.HistoryRequest{
 							Method:     req.Method,
 							URL:        req.URL.String(),
 							Headers:    db.FlattenHeaders(req.Header),
 							RemoteAddr: req.RemoteAddr,
+							RequestID:  requestID,
 						}
 						go func() {
 							ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
@@ -177,10 +182,12 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 								StatusCode:     httpErr.StatusCode,
 								ContentType:    httpErr.ContentType,
 								IsFromUpstream: true,
+								Duration:       duration,
 							})
 						}()
 					}
 
+					SetRequestIDHeader(w, req)
 					SetDurationHeader(w, req)
 					w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceUpstream)
 					if httpErr.ContentType != "" {
@@ -280,6 +287,7 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 }
 
 func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*upstreamResponse, error) {
+	log = RequestLog(log, req)
 	cfg := params.ServiceConfig.Upstream
 
 	timeout := config.DefaultUpstreamTimeout
@@ -362,7 +370,9 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 			Body:       bodyBytes,
 			Headers:    db.FlattenHeaders(req.Header),
 			RemoteAddr: req.RemoteAddr,
+			RequestID:  GetRequestID(req),
 		}
+		duration := GetDuration(req)
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 			defer cancel()
@@ -373,6 +383,7 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 				IsFromUpstream: true,
 				UpstreamURL:    outURL,
 				Headers:        db.FlattenHeaders(resp.Header),
+				Duration:       duration,
 			})
 		}()
 	}

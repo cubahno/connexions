@@ -10,16 +10,18 @@ func CreateLatencyAndErrorMiddleware(params *Params) func(http.Handler) http.Han
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			reqLog := RequestLog(log, req)
 			cfg := params.ServiceConfig
 			latency := cfg.GetLatency()
 			if latency > 0 {
-				log.Info("Latency", "delay", latency)
+				reqLog.Info("Latency", "delay", latency)
 				time.Sleep(latency)
 			}
 
 			errorCode := cfg.GetError()
 			if errorCode > 0 {
-				log.Info("Simulated error", "code", errorCode)
+				reqLog.Info("Simulated error", "code", errorCode)
+				SetRequestIDHeader(w, req)
 				SetDurationHeader(w, req)
 				w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
 				http.Error(w, "Simulated error", errorCode)

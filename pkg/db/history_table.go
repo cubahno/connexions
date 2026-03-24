@@ -39,6 +39,7 @@ type HistoryRequest struct {
 	Body       []byte   `json:"body,omitempty"`
 	Headers    []string `json:"headers,omitempty"`
 	RemoteAddr string   `json:"remoteAddr,omitempty"`
+	RequestID  string   `json:"requestId,omitempty"`
 }
 
 // HistoryEntry represents a recorded request in the history.
@@ -60,13 +61,15 @@ type HistoryEntry struct {
 // ContentType is the Content-Type header of the response
 // IsFromUpstream is true if the response was received from the upstream server
 // UpstreamURL is the URL that was actually sent to the upstream service
+// Duration is the time taken to produce the response
 type HistoryResponse struct {
-	Body           []byte   `json:"body"`
-	StatusCode     int      `json:"statusCode"`
-	ContentType    string   `json:"contentType"`
-	IsFromUpstream bool     `json:"isFromUpstream"`
-	UpstreamURL    string   `json:"upstreamURL"`
-	Headers        []string `json:"headers,omitempty"`
+	Body           []byte        `json:"body"`
+	StatusCode     int           `json:"statusCode"`
+	ContentType    string        `json:"contentType"`
+	IsFromUpstream bool          `json:"isFromUpstream"`
+	UpstreamURL    string        `json:"upstreamURL"`
+	Headers        []string      `json:"headers,omitempty"`
+	Duration       time.Duration `json:"duration,omitempty"`
 }
 
 // FlattenHeaders converts http.Header to a sorted slice of "Key: value" strings.

@@ -15,6 +15,7 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			requestID := GetRequestID(req)
 			// Capture request body before downstream handlers consume it.
 			var requestBody []byte
 			if recordHistory && req.Body != nil && req.Body != http.NoBody {
@@ -44,8 +45,10 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 					Body:       requestBody,
 					Headers:    db.FlattenHeaders(req.Header),
 					RemoteAddr: req.RemoteAddr,
+					RequestID:  requestID,
 				}
 				respHeaders := db.FlattenHeaders(rw.Header())
+				duration := GetDuration(req)
 				go func() {
 					ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 					defer cancel()
@@ -54,11 +57,13 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 						StatusCode:  respStatusCode,
 						ContentType: respContentType,
 						Headers:     respHeaders,
+						Duration:    duration,
 					})
 				}()
 			}
 
 			// Set our custom headers before writing
+			SetRequestIDHeader(w, req)
 			SetDurationHeader(w, req)
 			w.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
 			if respContentType != "" {

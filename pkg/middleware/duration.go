@@ -26,3 +26,11 @@ func SetDurationHeader(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Cxs-Duration", fmt.Sprintf("%.3fms", duration))
 	}
 }
+
+// GetDuration returns the elapsed time since the request started.
+func GetDuration(r *http.Request) time.Duration {
+	if start, ok := r.Context().Value(startTimeKey).(time.Time); ok {
+		return time.Since(start)
+	}
+	return 0
+}

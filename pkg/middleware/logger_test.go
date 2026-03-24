@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	chiMw "github.com/go-chi/chi/v5/middleware"
 	assert2 "github.com/stretchr/testify/assert"
 )
 
@@ -53,6 +55,35 @@ func TestLoggerMiddleware(t *testing.T) {
 		assert.True(strings.Contains(logOutput, "Incoming HTTP request"), "Expected log output to contain 'incoming HTTP request'")
 		assert.True(strings.Contains(logOutput, "GET"), "Expected log output to contain method 'GET'")
 		assert.True(strings.Contains(logOutput, "service=smartum"), "Expected log output to contain service name")
+	})
+
+	t.Run("logs request ID", func(t *testing.T) {
+		current := os.Getenv("DISABLE_LOGGER")
+		defer func() {
+			_ = os.Setenv("DISABLE_LOGGER", current)
+		}()
+		_ = os.Setenv("DISABLE_LOGGER", "false")
+
+		var buf bytes.Buffer
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+		oldLogger := slog.Default()
+		slog.SetDefault(logger)
+		defer slog.SetDefault(oldLogger)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/svc/path", nil)
+		ctx := context.WithValue(req.Context(), chiMw.RequestIDKey, "log-req-id-42")
+		req = req.WithContext(ctx)
+
+		f := LoggerMiddleware(handler)
+		f.ServeHTTP(w, req)
+
+		logOutput := buf.String()
+		assert.True(strings.Contains(logOutput, "log-req-id-42"), "Expected log output to contain request ID, got: %s", logOutput)
 	})
 
 	t.Run("skips-healthz", func(t *testing.T) {
