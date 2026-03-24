@@ -16,11 +16,10 @@
         console.log(`loaded appConfig:`, appConfig)
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
+    {{if .Contents.Styles}}{{.Contents.Styles}}{{else}}<link rel="icon" type="image/x-icon" href="icons/favicon.ico">{{end}}
     <link type="text/css" rel="stylesheet" href="css/console.css?v={{.Version}}"/>
     <link type="text/css" rel="stylesheet" href="css/overwrite.css?v={{.Version}}"/>
     <script type="module" src="js/index.js?v={{.Version}}" defer=""></script>
-    {{.Contents.Styles}}
 </head>
 <body>
 <div class="app">
