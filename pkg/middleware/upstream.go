@@ -337,7 +337,7 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 
 	// When the UI sends X-Cxs-Upstream-Headers, only forward those explicitly
 	// chosen headers. Otherwise, forward all headers as-is.
-	if allowList := req.Header.Get(headerUpstreamHeaders); allowList != "" {
+	if allowList := req.Header.Get(headerPrefix + headerUpstreamHeaders); allowList != "" {
 		allowed := parseUpstreamHeadersList(allowList)
 		for name, values := range req.Header {
 			if _, ok := allowed[http.CanonicalHeaderKey(name)]; ok {

@@ -17,10 +17,10 @@ const (
 	headerPrefix = "X-Cxs-"
 
 	// Supported header names (without prefix, canonicalized form)
-	headerCacheRequests    = "Cache-Requests"
-	headerLatency          = "Latency"
-	headerUpstreamURL      = "Upstream-Url"
-	headerUpstreamHeaders  = "X-Cxs-Upstream-Headers"
+	headerCacheRequests   = "Cache-Requests"
+	headerLatency         = "Latency"
+	headerUpstreamURL     = "Upstream-Url"
+	headerUpstreamHeaders = "Upstream-Headers"
 )
 
 // CreateConfigOverrideMiddleware creates a middleware that reads X-Cxs-* headers
