@@ -63,6 +63,51 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Body)
 	})
 
+	t.Run("X-Cxs-Upstream-Headers allowlist forwards only listed headers", func(t *testing.T) {
+		var receivedHeaders http.Header
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedHeaders = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message": "OK"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+		req.Header.Set("Authorization", "Basic internal-creds")
+		req.Header.Set("Smartum-Version", "2020-04-02")
+		req.Header.Set("X-Custom", "keep-me")
+		req.Header.Set("Cookie", "session=abc")
+		req.Header.Set("Origin", "http://localhost:2200")
+		req.Header.Set("Sec-Fetch-Mode", "cors")
+		req.Header.Set("X-Cxs-Upstream-Headers", "Smartum-Version,X-Custom")
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal(`{"message": "OK"}`, string(w.buf))
+
+		// Only allowlisted headers should be forwarded
+		assert.Equal("2020-04-02", receivedHeaders.Get("Smartum-Version"))
+		assert.Equal("keep-me", receivedHeaders.Get("X-Custom"))
+		assert.Equal("Connexions/2.0", receivedHeaders.Get("User-Agent"))
+
+		// Everything else should be stripped
+		assert.Empty(receivedHeaders.Get("Authorization"))
+		assert.Empty(receivedHeaders.Get("Cookie"))
+		assert.Empty(receivedHeaders.Get("Origin"))
+		assert.Empty(receivedHeaders.Get("Sec-Fetch-Mode"))
+		assert.Empty(receivedHeaders.Get("X-Cxs-Upstream-Headers"))
+	})
+
 	t.Run("query parameters are forwarded to upstream", func(t *testing.T) {
 		var receivedURL string
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

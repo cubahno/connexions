@@ -287,6 +287,19 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 	return settings
 }
 
+// parseUpstreamHeadersList parses a comma-separated list of header names
+// into a set of canonical header keys.
+func parseUpstreamHeadersList(value string) map[string]struct{} {
+	allowed := make(map[string]struct{})
+	for _, name := range strings.Split(value, ",") {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			allowed[http.CanonicalHeaderKey(name)] = struct{}{}
+		}
+	}
+	return allowed
+}
+
 func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*upstreamResponse, error) {
 	log = RequestLog(log, req)
 	cfg := params.ServiceConfig.Upstream
@@ -322,9 +335,22 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 		return nil, err
 	}
 
-	for name, values := range req.Header {
-		for _, value := range values {
-			upReq.Header.Add(name, value)
+	// When the UI sends X-Cxs-Upstream-Headers, only forward those explicitly
+	// chosen headers. Otherwise, forward all headers as-is.
+	if allowList := req.Header.Get(headerUpstreamHeaders); allowList != "" {
+		allowed := parseUpstreamHeadersList(allowList)
+		for name, values := range req.Header {
+			if _, ok := allowed[http.CanonicalHeaderKey(name)]; ok {
+				for _, value := range values {
+					upReq.Header.Add(name, value)
+				}
+			}
+		}
+	} else {
+		for name, values := range req.Header {
+			for _, value := range values {
+				upReq.Header.Add(name, value)
+			}
 		}
 	}
 
