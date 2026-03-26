@@ -209,7 +209,11 @@ docs-deploy: docs-prepare
 	mkdocs gh-deploy --force
 
 # Suppress "is up to date" messages for positional arguments (spec files, URLs)
-# These get passed to MAKECMDGOALS and treated as targets
-.PHONY: $(filter testdata/%, $(MAKECMDGOALS)) $(filter https://%, $(MAKECMDGOALS)) $(filter http://%, $(MAKECMDGOALS))
-$(filter testdata/%, $(MAKECMDGOALS)) $(filter https://%, $(MAKECMDGOALS)) $(filter http://%, $(MAKECMDGOALS)):
+# These get passed to MAKECMDGOALS and treated as targets.
+# testdata paths are handled explicitly since they match real files.
+# The catch-all %: rule handles URLs and other unknown targets.
+.PHONY: $(filter testdata/%, $(MAKECMDGOALS))
+$(filter testdata/%, $(MAKECMDGOALS)):
+	@:
+%:
 	@:

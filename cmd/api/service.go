@@ -7,12 +7,13 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/doordash-oss/oapi-codegen-dd/v3/pkg/codegen"
 	"github.com/mockzilla/connexions/v2/cmd/gen/templatehelpers"
 	"github.com/mockzilla/connexions/v2/internal/files"
-	"github.com/mockzilla/connexions/v2/pkg/api"
+	"github.com/mockzilla/connexions/v2/internal/types"
 	"github.com/mockzilla/connexions/v2/pkg/config"
 	"github.com/mockzilla/connexions/v2/pkg/typedef"
 	"go.yaml.in/yaml/v4"
@@ -53,7 +54,8 @@ type ServiceOptions struct {
 
 // setupTemplateData contains data for rendering setup templates.
 type setupTemplateData struct {
-	ServiceName string
+	ServiceName string // User-provided name (e.g., "pet/store/v1")
+	PackageName string // Valid Go package name derived from ServiceName (e.g., "pet_store_v1")
 	SpecPath    string // Path or URL to OpenAPI spec (empty for local openapi.yml/json)
 }
 
@@ -236,21 +238,36 @@ func GenerateService(opts ServiceOptions) error {
 		cfg.UserTemplates = make(map[string]string)
 	}
 
+	// Resolve user template file paths relative to setup directory.
+	// Single-line values are treated as file paths by oapi-codegen.
+	for key, val := range cfg.UserTemplates {
+		if !strings.Contains(val, "\n") && !filepath.IsAbs(val) {
+			cfg.UserTemplates[key] = filepath.Join(setupDir, val)
+		}
+	}
+
 	// Override handler templates (scaffold templates + service-options)
+	// Skip templates already provided by the user in codegen.yml user-templates.
 	for _, tmplName := range []string{"service.tmpl", "server.tmpl", "middleware.tmpl", "service-options.tmpl"} {
+		key := "handler/" + tmplName
+		if _, ok := cfg.UserTemplates[key]; ok {
+			continue
+		}
 		tmplContent, err := templatesFS.ReadFile("templates/handler/" + tmplName)
 		if err != nil {
 			return fmt.Errorf("reading %s template: %w", tmplName, err)
 		}
-		cfg.UserTemplates["handler/"+tmplName] = string(tmplContent)
+		cfg.UserTemplates[key] = string(tmplContent)
 	}
 
 	// Override chi handler template to include connexions generator code
-	chiHandlerContent, err := templatesFS.ReadFile("templates/handler/chi/handler.tmpl")
-	if err != nil {
-		return fmt.Errorf("reading chi/handler.tmpl: %w", err)
+	if _, ok := cfg.UserTemplates["handler/chi/handler.tmpl"]; !ok {
+		chiHandlerContent, err := templatesFS.ReadFile("templates/handler/chi/handler.tmpl")
+		if err != nil {
+			return fmt.Errorf("reading chi/handler.tmpl: %w", err)
+		}
+		cfg.UserTemplates["handler/chi/handler.tmpl"] = string(chiHandlerContent)
 	}
-	cfg.UserTemplates["handler/chi/handler.tmpl"] = string(chiHandlerContent)
 
 	// Add imports required by connexions generator code
 	cfg.AdditionalImports = append(cfg.AdditionalImports,
@@ -374,8 +391,10 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 		return nil
 	}
 
-	// Normalize service name
-	serviceName := api.NormalizeServiceName(opts.Name)
+	// Use the user-provided name as-is for the service name.
+	// NormalizeServiceName uses filepath.Base which would strip path segments
+	// (e.g., "a/b/c/v1" would become just "v1").
+	serviceName := opts.Name
 	if serviceName == "" {
 		return fmt.Errorf("service name is required for initial setup")
 	}
@@ -450,6 +469,7 @@ func ensureSetupDir(opts ServiceOptions, serviceDir, setupDir string) error {
 	}
 	data := setupTemplateData{
 		ServiceName: serviceName,
+		PackageName: types.ToSnakeCase(serviceName),
 		SpecPath:    specPath,
 	}
 

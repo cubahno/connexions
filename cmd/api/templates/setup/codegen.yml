@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doordash-oss/oapi-codegen-dd/main/configuration-schema.json
-package: {{.ServiceName}}
+package: {{.PackageName}}
 output:
   use-single-file: true
   skip-fmt: true
