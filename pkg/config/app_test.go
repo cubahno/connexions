@@ -15,7 +15,7 @@ func TestNewDefaultAppConfig(t *testing.T) {
 		cfg := NewDefaultAppConfig(baseDir)
 
 		assert.NotNil(cfg)
-		assert.Equal("Connexions", cfg.Title)
+		assert.Equal("API Explorer", cfg.Title)
 		assert.Equal(2200, cfg.Port)
 		assert.Equal("/.ui", cfg.HomeURL)
 		assert.Equal("/.services", cfg.ServiceURL)

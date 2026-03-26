@@ -41,7 +41,7 @@ type AppConfig struct {
 // NewDefaultAppConfig creates a new default app config in case the config file is missing, not found or any other error.
 func NewDefaultAppConfig(baseDir string) *AppConfig {
 	return &AppConfig{
-		Title:             "Connexions",
+		Title:             "API Explorer",
 		Port:              2200,
 		HomeURL:           "/.ui",
 		ServiceURL:        "/.services",

@@ -1,7 +1,7 @@
 # Connexions App Configuration
 # Override these values by mounting your own app.yml in Docker
 
-title: Connexions
+title: API Explorer
 port: 2200
 homeURL: /.ui
 serviceURL: /.services

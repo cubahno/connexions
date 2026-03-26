@@ -23,21 +23,27 @@ import (
 	"github.com/mockzilla/connexions/v2/pkg/api"
 )
 
-// {{ $serviceName }} implements the ServiceInterface with your business logic.
+{{- block "service-struct" . }}
+
+// service implements the ServiceInterface with your business logic.
 // Return nil, nil to fall back to the generator for mock responses.
 // Return a response to override the generated response.
 // Return an error to return an error response.
-type {{ $serviceName }} struct {
+type service struct {
 	params *api.ServiceParams
 }
+{{- end }}
 
 // Ensure service implements ServiceInterface.
 var _ {{ $modelsPrefix }}ServiceInterface = (*{{ $serviceName }})(nil)
 
+{{- block "service-constructor" . }}
+
 // newService creates a new service instance.
-func newService(params *api.ServiceParams) *{{ $serviceName }} {
-	return &{{ $serviceName }}{params: params}
+func newService(params *api.ServiceParams) *service {
+	return &service{params: params}
 }
+{{- end }}
 
 {{- range $operations }}{{ $op := . }}
 
