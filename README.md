@@ -45,7 +45,7 @@ Total: 2215 services, 98464 endpoints
 docker run -it --rm \
   -p 2200:2200 \
   -v connexions:/app/resources/data \
-  cubahno/connexions api
+  mockzilla/connexions api
 
 ``` 
 

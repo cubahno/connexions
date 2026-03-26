@@ -42,7 +42,7 @@ The simplest way to create a mock server. Just provide an OpenAPI specification 
 # Using Docker with mounted spec
 docker run -p 2200:2200 \
   -v ./my-spec.yml:/app/resources/data/openapi/my-spec.yml \
-  cubahno/connexions
+  mockzilla/connexions
 ```
 
 Responses are generated based on:

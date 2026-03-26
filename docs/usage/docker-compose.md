@@ -5,7 +5,7 @@ Mount your OpenAPI specs and static files using Docker Compose:
 ```yaml title="docker-compose.yml"
 services:
   connexions:
-    image: cubahno/connexions:latest
+    image: mockzilla/connexions:latest
     ports:
       - "2200:2200"
     volumes:

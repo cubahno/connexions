@@ -4,7 +4,7 @@ info:
   description: Internal API for the Connexions UI to manage and interact with mock services.
   version: v2.0.0
   contact:
-    name: cubahno
+    name: Mockzilla
 servers:
   - url: http://localhost:2200
     description: Local development server
