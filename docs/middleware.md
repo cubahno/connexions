@@ -4,15 +4,11 @@ Compiled Go services support custom middleware for advanced use cases like authe
 
 ## Overview
 
-Custom middleware is applied **after** the standard middleware chain:
+Custom middleware is prepended before the built-in middleware chain:
 
 ```
-Request → [Standard Middleware] → [Custom Middleware] → Handler → Response
-
-Standard: Config Override → Latency/Error → Replay Read/Write → Cache Read → Upstream → Cache Write
+Request → Resource Resolver → Config Override → [Custom Middleware] → Latency/Error → Replay Read/Write → Cache Read → Upstream → Cache Write → Handler → Response
 ```
-
-Standard middleware handles: latency, errors, replay, caching, upstream proxy.
 
 ## Adding Custom Middleware
 

@@ -534,7 +534,7 @@ func registerTestServiceWithRoutes(router *Router, service *mockServiceWithRoute
 	if service.config.Name == "" {
 		service.config.Name = service.name
 	}
-	router.RegisterService(service.config, service, nil)
+	router.RegisterService(service.config, service)
 }
 
 // mockServiceWithGenerate extends mockService with custom Generate implementation
@@ -553,7 +553,7 @@ func registerTestServiceWithGenerate(router *Router, service *mockServiceWithGen
 	if service.config.Name == "" {
 		service.config.Name = service.name
 	}
-	router.RegisterService(service.config, service, nil)
+	router.RegisterService(service.config, service)
 }
 
 func TestServiceParams(t *testing.T) {

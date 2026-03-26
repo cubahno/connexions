@@ -88,13 +88,17 @@ func NewRouter(options ...RouterOption) *Router {
 
 // RegisterService registers a service with the router.
 // The service config must have a Name field set.
-// Service middleware is applied AFTER the standard middleware chain.
 // The service will be registered at the route "/{cfg.Name}".
 func (r *Router) RegisterService(
 	cfg *config.ServiceConfig,
 	handler Handler,
-	serviceMiddleware []func(*middleware.Params) func(http.Handler) http.Handler,
+	opts ...HandlerOption,
 ) {
+	options := &handlerOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	// Get service-scoped DB from shared storage
 	serviceDB := r.storage.NewDB(cfg.Name, r.config.HistoryDuration)
 	mwParams := middleware.NewParams(cfg, r.config.Storage, serviceDB)
@@ -105,8 +109,13 @@ func (r *Router) RegisterService(
 		// Resource resolver (must be before other middleware that read the resource path)
 		subRouter.Use(middleware.CreateResourceResolverMiddleware(mwParams))
 
-		// Config override middleware (must be first to override config before other middlewares)
+		// Config override middleware (must be before other middlewares to override config)
 		subRouter.Use(middleware.CreateConfigOverrideMiddleware(mwParams))
+
+		// Custom middleware
+		for _, createMw := range options.middleware {
+			subRouter.Use(createMw(mwParams))
+		}
 
 		// Standard middleware (always applied)
 		subRouter.Use(middleware.CreateLatencyAndErrorMiddleware(mwParams))
@@ -115,11 +124,6 @@ func (r *Router) RegisterService(
 		subRouter.Use(middleware.CreateCacheReadMiddleware(mwParams))
 		subRouter.Use(middleware.CreateUpstreamRequestMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheWriteMiddleware(mwParams))
-
-		// Service-specific middleware (applied after standard middleware)
-		for _, createMw := range serviceMiddleware {
-			subRouter.Use(createMw(mwParams))
-		}
 
 		handler.RegisterRoutes(subRouter)
 		mwParams.SetRouter(subRouter)
@@ -141,14 +145,14 @@ func (r *Router) RegisterService(
 	r.databases[cfg.Name] = serviceDB
 }
 
-// HandlerOption configures RegisterHTTPHandler behavior.
+// HandlerOption configures service registration behavior.
 type HandlerOption func(*handlerOptions)
 
 type handlerOptions struct {
 	middleware []func(*middleware.Params) func(http.Handler) http.Handler
 }
 
-// WithMiddleware adds service-specific middleware applied AFTER the standard middleware chain.
+// WithMiddleware prepends middleware before the built-in middleware chain.
 func WithMiddleware(mw []func(*middleware.Params) func(http.Handler) http.Handler) HandlerOption {
 	return func(o *handlerOptions) {
 		o.middleware = mw
@@ -182,8 +186,13 @@ func (r *Router) RegisterHTTPHandler(
 		// Resource resolver (must be before other middleware that read the resource path)
 		subRouter.Use(middleware.CreateResourceResolverMiddleware(mwParams))
 
-		// Config override middleware (must be first to override config before other middlewares)
+		// Config override middleware (must be before other middlewares to override config)
 		subRouter.Use(middleware.CreateConfigOverrideMiddleware(mwParams))
+
+		// Custom middleware
+		for _, createMw := range options.middleware {
+			subRouter.Use(createMw(mwParams))
+		}
 
 		// Standard middleware (always applied)
 		subRouter.Use(middleware.CreateLatencyAndErrorMiddleware(mwParams))
@@ -193,12 +202,6 @@ func (r *Router) RegisterHTTPHandler(
 		subRouter.Use(middleware.CreateUpstreamRequestMiddleware(mwParams))
 		subRouter.Use(middleware.CreateCacheWriteMiddleware(mwParams))
 
-		// Service-specific middleware (applied after standard middleware)
-		for _, createMw := range options.middleware {
-			subRouter.Use(createMw(mwParams))
-		}
-
-		// Register the handler's routes
 		handler.RegisterRoutes(subRouter)
 		mwParams.SetRouter(subRouter)
 	})

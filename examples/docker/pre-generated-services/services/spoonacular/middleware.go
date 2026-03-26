@@ -12,7 +12,7 @@ import (
 // getMiddleware returns custom middleware for this service.
 //
 // This function is called during service registration.
-// Middleware returned here will be applied AFTER the standard middleware chain.
+// Middleware returned here will be applied BEFORE the standard middleware chain.
 // Example:
 //
 //	return []func(*middleware.Params) func(http.Handler) http.Handler{
