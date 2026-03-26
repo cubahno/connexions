@@ -901,7 +901,7 @@ historyDuration: 10m
 
 		cfg := loadAppConfig(tmpDir)
 
-		assert.Equal(t, "Connexions", cfg.Title)
+		assert.Equal(t, "API Explorer", cfg.Title)
 		assert.Equal(t, 2200, cfg.Port)
 		assert.Equal(t, 5*time.Minute, cfg.HistoryDuration)
 	})
@@ -916,7 +916,7 @@ historyDuration: 10m
 
 		cfg := loadAppConfig(tmpDir)
 
-		assert.Equal(t, "Connexions", cfg.Title)
+		assert.Equal(t, "API Explorer", cfg.Title)
 		assert.Equal(t, 2200, cfg.Port)
 	})
 
