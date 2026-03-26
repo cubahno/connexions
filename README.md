@@ -6,11 +6,11 @@
 
 [![CI](https://github.com/mockzilla/connexions/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/mockzilla/connexions/actions/workflows/ci.yml?query=branch%3Amaster)
 [![Endpoint Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fgist.githubusercontent.com%2Fmockzilla%2F4110782af3ec09dd1ebabc3304756f1f%2Fraw%2Fcovbadge.json&labelColor=%23058FF3&color=%2306C53B)](https://github.com/mockzilla/connexions/actions/workflows/ci.yml?query=event%3Apush+branch%3Amaster+workflow%3ACI)
-[![codecov](https://codecov.io/gh/cubahno/connexions/graph/badge.svg?token=XGCEHYUDH0)](https://codecov.io/gh/cubahno/connexions)
-[![GoReportCard](https://goreportcard.com/badge/github.com/cubahno/connexions)](https://goreportcard.com/report/github.com/cubahno/connexions)
-[![GoDoc](https://godoc.org/github.com/cubahno/connexions?status.svg)](https://godoc.org/github.com/cubahno/connexions)
-[![Go Reference](https://pkg.go.dev/badge/github.com/cubahno/connexions.svg)](https://pkg.go.dev/github.com/cubahno/connexions)
-[![License](https://img.shields.io/github/license/mockzilla/connexions)](https://github.com/cubahno/connexions/blob/master/LICENSE)
+[![codecov](https://codecov.io/gh/mockzilla/connexions/graph/badge.svg?token=XGCEHYUDH0)](https://codecov.io/gh/mockzilla/connexions)
+[![GoReportCard](https://goreportcard.com/badge/github.com/mockzilla/connexions)](https://goreportcard.com/report/github.com/mockzilla/connexions)
+[![GoDoc](https://godoc.org/github.com/mockzilla/connexions?status.svg)](https://godoc.org/github.com/mockzilla/connexions)
+[![Go Reference](https://pkg.go.dev/badge/github.com/mockzilla/connexions.svg)](https://pkg.go.dev/github.com/mockzilla/connexions)
+[![License](https://img.shields.io/github/license/mockzilla/connexions)](https://github.com/mockzilla/connexions/blob/master/LICENSE)
 
 
 **Connexions** is a mock server generator for OpenAPI specifications.<br/>
@@ -32,7 +32,7 @@ You can also define static responses for any arbitrary path.<br/>
 
 ## Real-World Validation
 
-Connexions continuously generates and validates data against **2,200+ real-world OpenAPI specifications** from [cubahno/specs](https://github.com/cubahno/specs):
+Connexions continuously generates and validates data against **2,200+ real-world OpenAPI specifications** from [mockzilla/specs](https://github.com/mockzilla/specs):
 
 ```
 Total: 2215 services, 98464 endpoints
