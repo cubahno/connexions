@@ -1,6 +1,6 @@
 services:
   connexions:
-    image: cubahno/connexions:latest
+    image: mockzilla/connexions:latest
     ports:
       - "2200:2200"
     volumes:

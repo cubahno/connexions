@@ -5,7 +5,7 @@ Mount your OpenAPI specs and get a mock server instantly:
 ```bash
 docker run -p 2200:2200 \
   -v ~/my-specs:/app/resources/data/openapi \
-  cubahno/connexions:latest
+  mockzilla/connexions:latest
 ```
 
 ## Mount OpenAPI Specs
@@ -15,7 +15,7 @@ Place your OpenAPI specs (`.yml`, `.yaml`, `.json`) in a directory and mount it:
 ```bash
 docker run -p 2200:2200 \
   -v /path/to/specs:/app/resources/data/openapi \
-  cubahno/connexions:latest
+  mockzilla/connexions:latest
 ```
 
 Each spec file becomes a service. For example, `petstore.yml` creates endpoints at `/petstore/...`.
@@ -38,7 +38,7 @@ Mount the directory:
 ```bash
 docker run -p 2200:2200 \
   -v /path/to/static:/app/resources/data/static \
-  cubahno/connexions:latest
+  mockzilla/connexions:latest
 ```
 
 ## Mount Both
@@ -49,7 +49,7 @@ You can mount both OpenAPI specs and static files:
 docker run -p 2200:2200 \
   -v ~/my-specs:/app/resources/data/openapi \
   -v ~/my-static:/app/resources/data/static \
-  cubahno/connexions:latest
+  mockzilla/connexions:latest
 ```
 
 ## Hot Reload

@@ -1,5 +1,5 @@
 build_dir := ./.build
-IMAGE_NAME ?= "cubahno/connexions"
+IMAGE_NAME ?= "mockzilla/connexions"
 VOLUME_NAME ?= "connexions"
 VERSION ?= "latest"
 GO_VERSION := $(shell awk '/^go / {print $$2}' go.mod)
