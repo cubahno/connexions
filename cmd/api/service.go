@@ -83,8 +83,9 @@ func GenerateService(opts ServiceOptions) error {
 	}
 
 	// If name is provided and output directory doesn't end with the name,
-	// append the name to create the service subdirectory
-	if opts.Name != "" && filepath.Base(opts.OutputDir) != opts.Name {
+	// append the name to create the service subdirectory.
+	// Use HasSuffix with cleaned paths to handle multi-segment names (e.g., "hello/world/v2").
+	if opts.Name != "" && !strings.HasSuffix(filepath.Clean(opts.OutputDir), filepath.Clean(opts.Name)) {
 		opts.OutputDir = filepath.Join(opts.OutputDir, opts.Name)
 	}
 
