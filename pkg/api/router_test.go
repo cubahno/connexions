@@ -56,7 +56,7 @@ func registerTestService(router *Router, service *mockService) {
 	if service.config.Name == "" {
 		service.config.Name = service.name
 	}
-	router.RegisterService(service.config, service, nil)
+	router.RegisterService(service.config, service)
 }
 
 func TestNewRouter(t *testing.T) {
@@ -158,7 +158,7 @@ func TestRouter_RegisterService(t *testing.T) {
 			},
 		}
 
-		router.RegisterService(cfg, service, nil)
+		router.RegisterService(cfg, service)
 
 		// Test that the route is accessible
 		req := httptest.NewRequest(http.MethodGet, "/test-service/hello", nil)
@@ -198,8 +198,8 @@ func TestRouter_RegisterService(t *testing.T) {
 			},
 		}
 
-		router.RegisterService(cfg1, service1, nil)
-		router.RegisterService(cfg2, service2, nil)
+		router.RegisterService(cfg1, service1)
+		router.RegisterService(cfg2, service2)
 
 		// Test service1
 		req1 := httptest.NewRequest(http.MethodGet, "/service1/endpoint1", nil)
@@ -1000,5 +1000,52 @@ func TestRegisterHTTPHandler(t *testing.T) {
 		assert.True(t, middlewareCalled, "Custom middleware should be called")
 		assert.Equal(t, "applied", w.Header().Get("X-Custom"))
 		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("middleware can mutate request before upstream", func(t *testing.T) {
+		var receivedAuth string
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedAuth = r.Header.Get("Authorization")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("upstream"))
+		}))
+		defer upstreamServer.Close()
+
+		router := newTestRouter(t)
+
+		cfgBytes := []byte(`
+upstream:
+  url: ` + upstreamServer.URL + `
+`)
+		cfg, _ := config.NewServiceConfigFromBytes(cfgBytes)
+		cfg.Name = "reqmw"
+
+		addAuthMw := func(params *middleware.Params) func(http.Handler) http.Handler {
+			return func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					r.Header.Set("Authorization", "Bearer test-token")
+					next.ServeHTTP(w, r)
+				})
+			}
+		}
+
+		router.RegisterHTTPHandler(cfg, func(d db.DB) Handler {
+			return &mockService{
+				name:   "reqmw",
+				config: cfg,
+				routes: func(r chi.Router) {
+					r.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+						_, _ = w.Write([]byte("fallback"))
+					})
+				},
+			}
+		}, WithMiddleware([]func(*middleware.Params) func(http.Handler) http.Handler{addAuthMw}))
+
+		req := httptest.NewRequest("GET", "/reqmw/test", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, "Bearer test-token", receivedAuth, "Upstream should receive the header set by middleware")
+		assert.Equal(t, "upstream", w.Body.String())
 	})
 }
