@@ -47,7 +47,7 @@ test:
 .PHONY: fetch-specs
 fetch-specs:
 	rm -rf ./testdata/specs
-	git clone https://github.com/cubahno/specs.git ./testdata/specs
+	git clone https://github.com/mockzilla/specs.git ./testdata/specs
 	find ./testdata/specs -mindepth 1 -name ".*" -exec rm -rf {} +
 
 .PHONY: test-integration
