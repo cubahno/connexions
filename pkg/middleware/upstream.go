@@ -187,17 +187,20 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 							RemoteAddr: req.RemoteAddr,
 							RequestID:  requestID,
 						}
+						histResp := &db.HistoryResponse{
+							Body:           []byte(httpErr.Body),
+							StatusCode:     httpErr.StatusCode,
+							ContentType:    httpErr.ContentType,
+							IsFromUpstream: true,
+							Duration:       duration,
+						}
+						params.transformHistory(svcCfg, histReq, histResp)
 						resourcePath := GetResourcePath(req)
+
 						go func() {
 							ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 							defer cancel()
-							params.DB().History().Set(ctx, resourcePath, histReq, &db.HistoryResponse{
-								Body:           []byte(httpErr.Body),
-								StatusCode:     httpErr.StatusCode,
-								ContentType:    httpErr.ContentType,
-								IsFromUpstream: true,
-								Duration:       duration,
-							})
+							params.DB().History().Set(ctx, resourcePath, histReq, histResp)
 						}()
 					}
 
@@ -392,20 +395,21 @@ func getUpstreamResponse(log *slog.Logger, svcCfg *config.ServiceConfig, params 
 			RemoteAddr: req.RemoteAddr,
 			RequestID:  GetRequestID(req),
 		}
-		duration := GetDuration(req)
+		histResp := &db.HistoryResponse{
+			Body:           body,
+			StatusCode:     statusCode,
+			ContentType:    contentType,
+			IsFromUpstream: true,
+			UpstreamURL:    outURL,
+			Headers:        db.FlattenHeaders(resp.Header),
+			Duration:       GetDuration(req),
+		}
+		params.transformHistory(svcCfg, histReq, histResp)
 		resourcePath := GetResourcePath(req)
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 			defer cancel()
-			history.Set(ctx, resourcePath, histReq, &db.HistoryResponse{
-				Body:           body,
-				StatusCode:     statusCode,
-				ContentType:    contentType,
-				IsFromUpstream: true,
-				UpstreamURL:    outURL,
-				Headers:        db.FlattenHeaders(resp.Header),
-				Duration:       duration,
-			})
+			history.Set(ctx, resourcePath, histReq, histResp)
 		}()
 	}
 

@@ -90,3 +90,57 @@ func FlattenHeaders(h http.Header) []string {
 	}
 	return result
 }
+
+// MaskHeaderValues masks values of headers matching the patterns in maskHeaders,
+// replacing all but the last 4 characters with asterisks.
+// Patterns are matched case-insensitively. A trailing "*" matches any header
+// with that prefix (e.g. "X-Internal-*" matches "X-Internal-Token").
+// The input slice is modified in place.
+func MaskHeaderValues(headers []string, maskHeaders []string) {
+	if len(headers) == 0 || len(maskHeaders) == 0 {
+		return
+	}
+
+	exact := make(map[string]bool)
+	var prefixes []string
+	for _, pattern := range maskHeaders {
+		lower := strings.ToLower(pattern)
+		if strings.HasSuffix(lower, "*") {
+			prefixes = append(prefixes, strings.TrimSuffix(lower, "*"))
+		} else {
+			exact[lower] = true
+		}
+	}
+
+	for i, h := range headers {
+		colonIdx := strings.Index(h, ": ")
+		if colonIdx < 0 {
+			continue
+		}
+		name := strings.ToLower(h[:colonIdx])
+		if shouldMask(name, exact, prefixes) {
+			headers[i] = h[:colonIdx] + ": " + maskValue(h[colonIdx+2:])
+		}
+	}
+}
+
+func shouldMask(name string, exact map[string]bool, prefixes []string) bool {
+	if exact[name] {
+		return true
+	}
+	for _, p := range prefixes {
+		if strings.HasPrefix(name, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// maskValue replaces all but the last 4 characters of v with asterisks.
+// Values with fewer than 5 characters are fully masked.
+func maskValue(v string) string {
+	if len(v) < 5 {
+		return strings.Repeat("*", len(v))
+	}
+	return strings.Repeat("*", len(v)-4) + v[len(v)-4:]
+}

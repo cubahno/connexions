@@ -305,6 +305,112 @@ func TestFlattenHeaders(t *testing.T) {
 	})
 }
 
+func TestMaskHeaderValues(t *testing.T) {
+	assert := assert2.New(t)
+
+	t.Run("nil headers", func(t *testing.T) {
+		MaskHeaderValues(nil, []string{"Authorization"})
+	})
+
+	t.Run("nil mask list", func(t *testing.T) {
+		headers := []string{"Authorization: Bearer token123"}
+		MaskHeaderValues(headers, nil)
+		assert.Equal([]string{"Authorization: Bearer token123"}, headers)
+	})
+
+	t.Run("empty mask list", func(t *testing.T) {
+		headers := []string{"Authorization: Bearer token123"}
+		MaskHeaderValues(headers, []string{})
+		assert.Equal([]string{"Authorization: Bearer token123"}, headers)
+	})
+
+	t.Run("masks matching header", func(t *testing.T) {
+		headers := []string{
+			"Accept: text/html",
+			"Authorization: Bearer token123",
+			"Content-Type: application/json",
+		}
+		MaskHeaderValues(headers, []string{"Authorization"})
+		assert.Equal([]string{
+			"Accept: text/html",
+			"Authorization: ***********n123",
+			"Content-Type: application/json",
+		}, headers)
+	})
+
+	t.Run("case insensitive match", func(t *testing.T) {
+		headers := []string{"Authorization: Bearer secret"}
+		MaskHeaderValues(headers, []string{"authorization"})
+		assert.Equal([]string{"Authorization: *********cret"}, headers)
+	})
+
+	t.Run("multiple mask headers", func(t *testing.T) {
+		headers := []string{
+			"Authorization: Bearer abc123",
+			"X-Api-Key: my-secret-key",
+		}
+		MaskHeaderValues(headers, []string{"Authorization", "X-Api-Key"})
+		assert.Equal([]string{
+			"Authorization: *********c123",
+			"X-Api-Key: *********-key",
+		}, headers)
+	})
+
+	t.Run("short value fully masked", func(t *testing.T) {
+		headers := []string{"X-Token: abc"}
+		MaskHeaderValues(headers, []string{"X-Token"})
+		assert.Equal([]string{"X-Token: ***"}, headers)
+	})
+
+	t.Run("exactly 4 chars fully masked", func(t *testing.T) {
+		headers := []string{"X-Token: abcd"}
+		MaskHeaderValues(headers, []string{"X-Token"})
+		assert.Equal([]string{"X-Token: ****"}, headers)
+	})
+
+	t.Run("5 chars shows last 4", func(t *testing.T) {
+		headers := []string{"X-Token: abcde"}
+		MaskHeaderValues(headers, []string{"X-Token"})
+		assert.Equal([]string{"X-Token: *bcde"}, headers)
+	})
+
+	t.Run("prefix pattern masks matching headers", func(t *testing.T) {
+		headers := []string{
+			"Accept: text/html",
+			"X-Internal-Token: secret-value",
+			"X-Internal-Trace: trace-id-123",
+		}
+		MaskHeaderValues(headers, []string{"X-Internal-*"})
+		assert.Equal([]string{
+			"Accept: text/html",
+			"X-Internal-Token: ********alue",
+			"X-Internal-Trace: ********-123",
+		}, headers)
+	})
+
+	t.Run("prefix pattern case insensitive", func(t *testing.T) {
+		headers := []string{"X-Internal-Token: secret"}
+		MaskHeaderValues(headers, []string{"x-internal-*"})
+		assert.Equal([]string{"X-Internal-Token: **cret"}, headers)
+	})
+
+	t.Run("mixed exact and prefix patterns", func(t *testing.T) {
+		headers := []string{
+			"Authorization: Bearer tok123",
+			"X-Custom-Secret: hidden",
+			"X-Custom-Public: visible",
+			"Content-Type: application/json",
+		}
+		MaskHeaderValues(headers, []string{"Authorization", "X-Custom-*"})
+		assert.Equal([]string{
+			"Authorization: *********k123",
+			"X-Custom-Secret: **dden",
+			"X-Custom-Public: ***ible",
+			"Content-Type: application/json",
+		}, headers)
+	})
+}
+
 // lookupKey is tested indirectly through Get (uses *http.Request) and Set (uses *HistoryRequest)
 // to verify they produce the same key.
 func TestMemoryHistoryTable_LookupKeyConsistency(t *testing.T) {
