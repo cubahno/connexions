@@ -17,10 +17,10 @@ func TestHTTPStatusConfig_Is(t *testing.T) {
 	}
 
 	testcases := []testcase{
-		{received: 400, cfg: &HTTPStatusConfig{400, ""}, expected: true},
-		{received: 401, cfg: &HTTPStatusConfig{400, ""}, expected: false},
-		{received: 400, cfg: &HTTPStatusConfig{0, "400-404"}, expected: true},
-		{received: 400, cfg: &HTTPStatusConfig{0, "500-600"}, expected: false},
+		{received: 400, cfg: &HTTPStatusConfig{Exact: 400}, expected: true},
+		{received: 401, cfg: &HTTPStatusConfig{Exact: 400}, expected: false},
+		{received: 400, cfg: &HTTPStatusConfig{Range: "400-404"}, expected: true},
+		{received: 400, cfg: &HTTPStatusConfig{Range: "500-600"}, expected: false},
 	}
 
 	for i, tc := range testcases {
@@ -30,12 +30,36 @@ func TestHTTPStatusConfig_Is(t *testing.T) {
 	}
 
 	t.Run("invalid range", func(t *testing.T) {
-		cfg := &HTTPStatusConfig{0, "400-"}
+		cfg := &HTTPStatusConfig{Range: "400-"}
 		assert.False(cfg.Is(401))
 	})
 
+	t.Run("except excludes from range", func(t *testing.T) {
+		cfg := &HTTPStatusConfig{Range: "400-499", Except: []int{401, 403}}
+		testCases := []struct {
+			status   int
+			expected bool
+		}{
+			{400, true},
+			{401, false},
+			{402, true},
+			{403, false},
+			{404, true},
+			{499, true},
+			{500, false},
+		}
+		for _, tc := range testCases {
+			assert.Equal(tc.expected, cfg.Is(tc.status))
+		}
+	})
+
+	t.Run("except excludes from exact", func(t *testing.T) {
+		cfg := &HTTPStatusConfig{Exact: 400, Except: []int{400}}
+		assert.False(cfg.Is(400))
+	})
+
 	t.Run("range boundaries", func(t *testing.T) {
-		cfg := &HTTPStatusConfig{0, "400-404"}
+		cfg := &HTTPStatusConfig{Range: "400-404"}
 		testCases := []struct {
 			status   int
 			expected bool
@@ -52,7 +76,7 @@ func TestHTTPStatusConfig_Is(t *testing.T) {
 	})
 
 	t.Run("both exact and range can match", func(t *testing.T) {
-		cfg := &HTTPStatusConfig{400, "500-600"}
+		cfg := &HTTPStatusConfig{Exact: 400, Range: "500-600"}
 		testCases := []struct {
 			status   int
 			expected bool
@@ -68,17 +92,17 @@ func TestHTTPStatusConfig_Is(t *testing.T) {
 	})
 
 	t.Run("no match", func(t *testing.T) {
-		cfg := &HTTPStatusConfig{0, ""}
+		cfg := &HTTPStatusConfig{}
 		assert.False(cfg.Is(400))
 	})
 
 	t.Run("invalid range format - single number", func(t *testing.T) {
-		cfg := &HTTPStatusConfig{0, "400"}
+		cfg := &HTTPStatusConfig{Range: "400"}
 		assert.False(cfg.Is(400))
 	})
 
 	t.Run("invalid range format - non-numeric", func(t *testing.T) {
-		cfg := &HTTPStatusConfig{0, "abc-def"}
+		cfg := &HTTPStatusConfig{Range: "abc-def"}
 		assert.False(cfg.Is(400))
 	})
 }
@@ -88,7 +112,7 @@ func TestHTTPStatusMatchConfig_Is(t *testing.T) {
 
 	t.Run("single", func(t *testing.T) {
 		cfg := HTTPStatusMatchConfig{
-			{400, ""},
+			{Exact: 400},
 		}
 		assert.True(cfg.Is(400))
 		assert.False(cfg.Is(401))
@@ -96,7 +120,7 @@ func TestHTTPStatusMatchConfig_Is(t *testing.T) {
 
 	t.Run("range", func(t *testing.T) {
 		cfg := HTTPStatusMatchConfig{
-			{0, "400-404"},
+			{Range: "400-404"},
 		}
 		assert.True(cfg.Is(400))
 		assert.True(cfg.Is(404))
@@ -105,8 +129,8 @@ func TestHTTPStatusMatchConfig_Is(t *testing.T) {
 
 	t.Run("multiple", func(t *testing.T) {
 		cfg := HTTPStatusMatchConfig{
-			{400, ""},
-			{0, "500-600"},
+			{Exact: 400},
+			{Range: "500-600"},
 		}
 		assert.True(cfg.Is(400))
 		assert.True(cfg.Is(500))
@@ -123,8 +147,8 @@ func TestHTTPStatusMatchConfig_Is(t *testing.T) {
 
 	t.Run("overlapping ranges", func(t *testing.T) {
 		cfg := HTTPStatusMatchConfig{
-			{0, "400-450"},
-			{0, "440-500"},
+			{Range: "400-450"},
+			{Range: "440-500"},
 		}
 		assert.True(cfg.Is(400))
 		assert.True(cfg.Is(445)) // in both ranges

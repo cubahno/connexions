@@ -445,7 +445,7 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal("Hello, from local!", string(w.buf))
 	})
 
-	t.Run("400 returns upstream error by default (fail-on 400)", func(t *testing.T) {
+	t.Run("400 returns upstream error by default (fail-on 400-499 except 401,403)", func(t *testing.T) {
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
@@ -473,10 +473,61 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal(ResponseHeaderSourceUpstream, w.header.Get(ResponseHeaderSource))
 	})
 
-	t.Run("non-400 4xx falls back to generator by default", func(t *testing.T) {
+	t.Run("401 falls back to generator by default (excepted from 4xx range)", func(t *testing.T) {
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte(`{"message": "Unauthorized"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal("Hello, from local!", string(w.buf))
+	})
+
+	t.Run("404 returns upstream error by default (4xx in range, not excepted)", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message": "Not Found"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodGet, "/test/foo", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal(`{"message": "Not Found"}`, string(w.buf))
+		assert.Equal(http.StatusNotFound, w.statusCode)
+		assert.Equal(ResponseHeaderSourceUpstream, w.header.Get(ResponseHeaderSource))
+	})
+
+	t.Run("403 falls back to generator by default (excepted from 4xx range)", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(`{"message": "Forbidden"}`))
 		}))
 		defer upstreamServer.Close()
 
