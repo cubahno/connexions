@@ -35,7 +35,6 @@ build: clean
 	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/server/bootstrap ./cmd/server
 
 .PHONY: test
-# TODO: add race flag, currently it breaks plugins tests
 test:
 	@if [ -z "$(PKG)" ]; then \
 		go test -race $$(go list ./... | grep -v '/cmd/' | grep -v '/resources/') -skip=TestIntegration -count=1 -coverprofile=coverage.out && ./coverage-exclude.sh; \

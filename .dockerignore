@@ -1,4 +1,5 @@
 .data
+vendor
 resources/data/services
 resources/data/openapi
 resources/data/static

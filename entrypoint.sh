@@ -11,7 +11,7 @@ if [  "$1" = "api" ]; then
 
   # Build the server with discovered services
   echo "Building server..."
-  go build -mod=vendor -o /app/server ./cmd/server
+  go build -o /app/server ./cmd/server
 
   # Start the server (watcher is built-in, will auto-rebuild and restart)
   echo "Starting server with built-in hot-reload..."
