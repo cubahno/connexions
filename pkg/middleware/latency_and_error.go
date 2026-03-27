@@ -11,7 +11,7 @@ func CreateLatencyAndErrorMiddleware(params *Params) func(http.Handler) http.Han
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			reqLog := RequestLog(log, req)
-			cfg := params.ServiceConfig
+			cfg := params.GetServiceConfig(req)
 			latency := cfg.GetLatency()
 			if latency > 0 {
 				reqLog.Info("Latency", "delay", latency)

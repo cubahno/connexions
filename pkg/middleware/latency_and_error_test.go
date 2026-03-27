@@ -24,9 +24,7 @@ func TestCreateLatencyAndErrorMiddleware(t *testing.T) {
 	t.Run("no latency and no error", func(t *testing.T) {
 		cfg := config.NewServiceConfig()
 
-		params := &Params{
-			ServiceConfig: cfg,
-		}
+		params := newTestParams(cfg, nil)
 
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -45,9 +43,7 @@ func TestCreateLatencyAndErrorMiddleware(t *testing.T) {
 		cfg := config.NewServiceConfig()
 		cfg.Latency = 100 * time.Millisecond
 
-		params := &Params{
-			ServiceConfig: cfg,
-		}
+		params := newTestParams(cfg, nil)
 
 		// Capture slog output
 		var buf bytes.Buffer
@@ -86,9 +82,7 @@ errors:
 `)
 		cfg, _ = config.NewServiceConfigFromBytes(cfgBytes)
 
-		params := &Params{
-			ServiceConfig: cfg,
-		}
+		params := newTestParams(cfg, nil)
 
 		// Capture slog output
 		var buf bytes.Buffer
@@ -124,9 +118,7 @@ errors:
 `)
 		cfg, _ := config.NewServiceConfigFromBytes(cfgBytes)
 
-		params := &Params{
-			ServiceConfig: cfg,
-		}
+		params := newTestParams(cfg, nil)
 
 		w := NewBufferedResponseWriter()
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)

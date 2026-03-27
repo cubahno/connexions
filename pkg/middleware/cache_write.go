@@ -11,7 +11,7 @@ import (
 
 // CreateCacheWriteMiddleware is a method on the Router to create a middleware
 func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler {
-	recordHistory := params.ServiceConfig.HistoryEnabled()
+	recordHistory := params.serviceConfig.HistoryEnabled()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

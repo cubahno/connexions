@@ -89,7 +89,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 	// Circuit breaker is created at startup with the original config.
 	// It's tied to the upstream URL and shared across requests.
 	var cb circuitBreakerExecutor
-	if cfg := params.ServiceConfig.Upstream; cfg != nil && cfg.URL != "" && cfg.CircuitBreaker != nil {
+	if cfg := params.serviceConfig.Upstream; cfg != nil && cfg.URL != "" && cfg.CircuitBreaker != nil {
 		cbTable := params.DB().Table("circuit-breaker")
 		var lastError string
 		settings := buildCircuitBreakerSettings(log, cfg.URL, cfg.CircuitBreaker, cbTable, &lastError)
@@ -97,7 +97,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 		var inner circuitBreakerExecutor
 		var localCB *gobreaker.CircuitBreaker[*upstreamResponse]
 
-		if storageCfg := params.StorageConfig; storageCfg != nil && storageCfg.Type == config.StorageTypeRedis {
+		if storageCfg := params.storageConfig; storageCfg != nil && storageCfg.Type == config.StorageTypeRedis {
 			dcb, err := gobreaker.NewDistributedCircuitBreaker[*upstreamResponse](params.DB().CircuitBreakerStore(), settings)
 			if err != nil {
 				log.Error("Failed to create distributed circuit breaker, falling back to local",
@@ -127,7 +127,8 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			cfg := params.ServiceConfig.Upstream
+			svcCfg := params.GetServiceConfig(req)
+			cfg := svcCfg.Upstream
 			if cfg == nil || cfg.URL == "" {
 				next.ServeHTTP(w, req)
 				return
@@ -141,10 +142,10 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 			if cb != nil {
 				resp, err = cb.Execute(func() (*upstreamResponse, error) {
-					return getUpstreamResponse(log, params, req)
+					return getUpstreamResponse(log, svcCfg, params, req)
 				})
 			} else {
-				resp, err = getUpstreamResponse(log, params, req)
+				resp, err = getUpstreamResponse(log, svcCfg, params, req)
 			}
 
 			// If an upstream service returns a successful response, write it and return immediately
@@ -176,7 +177,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 
 					requestID := GetRequestID(req)
 					duration := GetDuration(req)
-					if params.ServiceConfig.HistoryEnabled() {
+					if svcCfg.HistoryEnabled() {
 						histReq := &db.HistoryRequest{
 							Method:     req.Method,
 							URL:        req.URL.String(),
@@ -301,9 +302,9 @@ func buildCircuitBreakerSettings(log *slog.Logger, upstreamURL string, cbCfg *co
 	return settings
 }
 
-func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*upstreamResponse, error) {
+func getUpstreamResponse(log *slog.Logger, svcCfg *config.ServiceConfig, params *Params, req *http.Request) (*upstreamResponse, error) {
 	log = RequestLog(log, req)
-	cfg := params.ServiceConfig.Upstream
+	cfg := svcCfg.Upstream
 
 	timeout := config.DefaultUpstreamTimeout
 	if cfg.Timeout > 0 {
@@ -315,8 +316,8 @@ func getUpstreamResponse(log *slog.Logger, params *Params, req *http.Request) (*
 	}
 
 	history := params.DB().History()
-	resourcePrefix := "/" + params.ServiceConfig.Name
-	recordHistory := params.ServiceConfig.HistoryEnabled()
+	resourcePrefix := "/" + svcCfg.Name
+	recordHistory := svcCfg.HistoryEnabled()
 
 	bodyBytes := readAndRestoreBody(req)
 
