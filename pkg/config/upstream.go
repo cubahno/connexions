@@ -14,15 +14,16 @@ type UpstreamConfig struct {
 
 	// FailOn defines which upstream HTTP status codes should be returned immediately
 	// to the client without falling back to the generator.
-	// nil (omitted): uses default (400). Set to empty list (fail-on: []) to disable.
+	// nil (omitted): uses default (400-499 except 401, 403). Set to empty list (fail-on: []) to disable.
 	FailOn *HTTPStatusMatchConfig `yaml:"fail-on"`
 }
 
 // DefaultFailOnStatus is the default fail-on config applied when FailOn is nil.
-// 400 Bad Request indicates a problem with the request itself, so falling back
-// to the generator would not help.
+// Most 4xx errors indicate client-side problems that the generator cannot fix.
+// 401/403 are excluded because they typically indicate missing/invalid credentials
+// in the proxy setup, not a real client error.
 var DefaultFailOnStatus = HTTPStatusMatchConfig{
-	{Exact: 400},
+	{Range: "400-499", Except: []int{401, 403}},
 }
 
 // DefaultUpstreamTimeout defaults.
@@ -89,11 +90,18 @@ func (c *CircuitBreakerConfig) WithDefaults() *CircuitBreakerConfig {
 }
 
 type HTTPStatusConfig struct {
-	Exact int    `yaml:"exact"`
-	Range string `yaml:"range"`
+	Exact  int    `yaml:"exact"`
+	Range  string `yaml:"range"`
+	Except []int  `yaml:"except"`
 }
 
 func (s *HTTPStatusConfig) Is(status int) bool {
+	for _, ex := range s.Except {
+		if ex == status {
+			return false
+		}
+	}
+
 	if s.Exact == status {
 		return true
 	}

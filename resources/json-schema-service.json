@@ -191,19 +191,38 @@
               "type": "array",
               "description": "HTTP status codes that count as circuit breaker failures. If not set, all errors (>= 400) count.",
               "items": {
-                "type": "object",
-                "properties": {
-                  "exact": {
-                    "type": "integer",
-                    "description": "Exact HTTP status code."
-                  },
-                  "range": {
-                    "type": "string",
-                    "description": "HTTP status range (e.g., '500-599')."
-                  }
-                }
+                "$ref": "#/definitions/http-status-match"
               }
             }
+          }
+        },
+        "fail-on": {
+          "type": "array",
+          "description": "HTTP status codes to return directly to the client without falling back to the generator. Default: 400-499 except 401, 403. Set to empty array to disable.",
+          "items": {
+            "$ref": "#/definitions/http-status-match"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "http-status-match": {
+      "type": "object",
+      "properties": {
+        "exact": {
+          "type": "integer",
+          "description": "Exact HTTP status code."
+        },
+        "range": {
+          "type": "string",
+          "description": "HTTP status range (e.g., '500-599')."
+        },
+        "except": {
+          "type": "array",
+          "description": "Status codes to exclude from matching.",
+          "items": {
+            "type": "integer"
           }
         }
       }
