@@ -63,6 +63,38 @@ func TestCreateUpstreamRequestMiddleware(t *testing.T) {
 		assert.Equal([]byte(`{"message": "Hello, from remote!"}`), rec.Response.Body)
 	})
 
+	t.Run("upstream non-200 success status code is preserved", func(t *testing.T) {
+		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id": "new-resource"}`))
+		}))
+		defer upstreamServer.Close()
+
+		w := NewBufferedResponseWriter()
+		req := httptest.NewRequest(http.MethodPost, "/test/resource", nil)
+
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test",
+			Upstream: &config.UpstreamConfig{
+				URL: upstreamServer.URL,
+			},
+		}, nil)
+
+		f := CreateUpstreamRequestMiddleware(params)
+		f(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		assert.Equal(`{"id": "new-resource"}`, string(w.buf))
+		assert.Equal(http.StatusCreated, w.statusCode)
+
+		// Check history preserves status code
+		data := params.DB().History().Data(context.Background())
+		assert.Equal(1, len(data))
+		rec := data[0]
+		assert.Equal(http.StatusCreated, rec.Response.StatusCode)
+	})
+
 	t.Run("X-Cxs headers are stripped before forwarding to upstream", func(t *testing.T) {
 		var receivedHeaders http.Header
 		upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
