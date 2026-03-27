@@ -55,6 +55,7 @@ func NewParams(serviceConfig *config.ServiceConfig, storageConfig *config.Storag
 // SetHistoryTransform registers a callback that is invoked before each history
 // entry is saved. The callback may modify the request and response in place.
 // It runs before the mask-headers config is applied.
+// Must be called during setup, before the server starts serving requests.
 func (p *Params) SetHistoryTransform(fn HistoryTransformFunc) {
 	p.historyTransform = fn
 }
