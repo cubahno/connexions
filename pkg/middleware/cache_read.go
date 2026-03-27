@@ -10,7 +10,7 @@ func CreateCacheReadMiddleware(params *Params) func(http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			cfg := params.ServiceConfig
+			cfg := params.GetServiceConfig(req)
 			if cfg == nil || cfg.Cache == nil {
 				next.ServeHTTP(w, req)
 				return

@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -59,12 +60,9 @@ func CreateConfigOverrideMiddleware(params *Params) func(http.Handler) http.Hand
 			overrides := parseConfigOverrides(req.Header)
 
 			if len(overrides) > 0 {
-				// Save original config and restore after request
-				originalConfig := params.ServiceConfig
-				params.ServiceConfig = applyOverrides(originalConfig, overrides)
-				defer func() {
-					params.ServiceConfig = originalConfig
-				}()
+				cfg := applyOverrides(params.serviceConfig, overrides)
+				ctx := context.WithValue(req.Context(), serviceConfigKey, cfg)
+				req = req.WithContext(ctx)
 			}
 
 			fromUI := req.Header.Get(headerPrefix+headerSource) == sourceUI

@@ -44,7 +44,7 @@ func TestCreateReplayWriteMiddleware(t *testing.T) {
 
 	t.Run("nil config passes through", func(t *testing.T) {
 		params := newTestParams(nil, nil)
-		params.ServiceConfig = nil
+		params.serviceConfig = nil
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("ok"))
 		})

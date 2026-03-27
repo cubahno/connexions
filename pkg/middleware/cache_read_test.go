@@ -20,7 +20,7 @@ func TestCreateCacheReadMiddleware(t *testing.T) {
 
 	t.Run("nil config passes through", func(t *testing.T) {
 		params := newTestParams(nil, nil)
-		params.ServiceConfig = nil
+		params.serviceConfig = nil
 		mw := CreateCacheReadMiddleware(params)
 		assert.NotNil(mw)
 

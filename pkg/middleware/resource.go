@@ -15,7 +15,7 @@ const resourcePathKey ctxKey = "resourcePath"
 func CreateResourceResolverMiddleware(params *Params) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			endpointPath := getEndpointPath(req, params.ServiceConfig.Name)
+			endpointPath := getEndpointPath(req, params.serviceConfig.Name)
 
 			resourcePath := endpointPath
 			if r := params.router; r != nil {

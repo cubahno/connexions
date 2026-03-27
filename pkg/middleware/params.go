@@ -25,10 +25,12 @@ const (
 	ResponseHeaderSourceReplay    = "replay"
 )
 
+const serviceConfigKey ctxKey = "serviceConfig"
+
 // Params provides access to service configuration and database for middleware.
 type Params struct {
-	ServiceConfig *config.ServiceConfig
-	StorageConfig *config.StorageConfig
+	serviceConfig *config.ServiceConfig
+	storageConfig *config.StorageConfig
 	database      db.DB
 	log           *slog.Logger
 	router        chi.Routes
@@ -37,11 +39,20 @@ type Params struct {
 // NewParams creates a new Params instance with the given configuration and database.
 func NewParams(serviceConfig *config.ServiceConfig, storageConfig *config.StorageConfig, database db.DB) *Params {
 	return &Params{
-		ServiceConfig: serviceConfig,
-		StorageConfig: storageConfig,
+		serviceConfig: serviceConfig,
+		storageConfig: storageConfig,
 		database:      database,
 		log:           slog.With("service", serviceConfig.Name),
 	}
+}
+
+// GetServiceConfig returns the per-request service config from the context if set
+// by the config override middleware, otherwise falls back to the shared config.
+func (p *Params) GetServiceConfig(req *http.Request) *config.ServiceConfig {
+	if cfg, ok := req.Context().Value(serviceConfigKey).(*config.ServiceConfig); ok {
+		return cfg
+	}
+	return p.serviceConfig
 }
 
 // SetRouter stores the router for resource path resolution at request time.

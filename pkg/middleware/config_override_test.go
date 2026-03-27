@@ -165,11 +165,11 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 			Name:    "test",
 			Latency: 100 * time.Millisecond,
 		}
-		params := &Params{ServiceConfig: original}
+		params := newTestParams(original, nil)
 
 		var capturedConfig *config.ServiceConfig
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			capturedConfig = params.ServiceConfig
+			capturedConfig = params.GetServiceConfig(r)
 			w.WriteHeader(http.StatusOK)
 		})
 
@@ -187,11 +187,11 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 			Name:    "test",
 			Latency: 100 * time.Millisecond,
 		}
-		params := &Params{ServiceConfig: original}
+		params := newTestParams(original, nil)
 
 		var capturedLatency time.Duration
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			capturedLatency = params.ServiceConfig.Latency
+			capturedLatency = params.GetServiceConfig(r).Latency
 			w.WriteHeader(http.StatusOK)
 		})
 
@@ -204,20 +204,19 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 
 		// Handler saw overridden value
 		assert.Equal(500*time.Millisecond, capturedLatency)
-		// Original restored after request
-		assert.Same(original, params.ServiceConfig)
-		assert.Equal(100*time.Millisecond, params.ServiceConfig.Latency)
+		// Original unchanged
+		assert.Equal(100*time.Millisecond, original.Latency)
 	})
 
-	t.Run("restores config after panic", func(t *testing.T) {
+	t.Run("original config unchanged after override", func(t *testing.T) {
 		original := &config.ServiceConfig{
 			Name:    "test",
 			Latency: 100 * time.Millisecond,
 		}
-		params := &Params{ServiceConfig: original}
+		params := newTestParams(original, nil)
 
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			panic("test panic")
+			w.WriteHeader(http.StatusOK)
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
@@ -225,17 +224,14 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 		w := NewBufferedResponseWriter()
 
 		mw := CreateConfigOverrideMiddleware(params)
+		mw(handler).ServeHTTP(w, req)
 
-		assert.Panics(func() {
-			mw(handler).ServeHTTP(w, req)
-		})
-
-		// Original restored even after panic
-		assert.Same(original, params.ServiceConfig)
+		// Original never mutated
+		assert.Equal(100*time.Millisecond, original.Latency)
 	})
 
 	t.Run("X-Cxs headers are preserved on request", func(t *testing.T) {
-		params := &Params{ServiceConfig: &config.ServiceConfig{Name: "test"}}
+		params := newTestParams(&config.ServiceConfig{Name: "test"}, nil)
 
 		var capturedHeaders http.Header
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +252,7 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 	})
 
 	t.Run("browser headers are stripped from request", func(t *testing.T) {
-		params := &Params{ServiceConfig: &config.ServiceConfig{Name: "test"}}
+		params := newTestParams(&config.ServiceConfig{Name: "test"}, nil)
 
 		var capturedHeaders http.Header
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -292,7 +288,7 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 	})
 
 	t.Run("Authorization is stripped when request comes from UI", func(t *testing.T) {
-		params := &Params{ServiceConfig: &config.ServiceConfig{Name: "test"}}
+		params := newTestParams(&config.ServiceConfig{Name: "test"}, nil)
 
 		var capturedHeaders http.Header
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -322,15 +318,16 @@ func TestCreateConfigOverrideMiddleware(t *testing.T) {
 			Latency: 100 * time.Millisecond,
 			Cache:   &config.CacheConfig{Requests: true},
 		}
-		params := &Params{ServiceConfig: original}
+		params := newTestParams(original, nil)
 
 		var captured struct {
 			latency       time.Duration
 			cacheRequests bool
 		}
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			captured.latency = params.ServiceConfig.Latency
-			captured.cacheRequests = params.ServiceConfig.Cache.Requests
+			cfg := params.GetServiceConfig(r)
+			captured.latency = cfg.Latency
+			captured.cacheRequests = cfg.Cache.Requests
 			w.WriteHeader(http.StatusOK)
 		})
 
