@@ -33,7 +33,7 @@ type ServiceConfig struct {
 	Latencies       map[string]time.Duration `yaml:"latencies,omitempty"`
 	Errors          map[string]int           `yaml:"errors,omitempty"`
 	Cache           *CacheConfig             `yaml:"cache,omitempty"`
-	History         *bool                    `yaml:"history,omitempty"`
+	History         *HistoryConfig           `yaml:"history,omitempty"`
 	ResourcesPrefix string                   `yaml:"resources-prefix,omitempty"`
 	SpecOptions     *SpecOptions             `yaml:"spec,omitempty"`
 	Extra           map[string]any           `yaml:"extra,omitempty"`
@@ -48,6 +48,7 @@ func NewServiceConfig() *ServiceConfig {
 		Errors:      make(map[string]int),
 		Latencies:   make(map[string]time.Duration),
 		Cache:       NewCacheConfig(),
+		History:     NewHistoryConfig(),
 		SpecOptions: NewSpecOptions(),
 		Extra:       make(map[string]any),
 	}
@@ -73,6 +74,12 @@ func (s *ServiceConfig) WithDefaults() *ServiceConfig {
 	// Fill nil pointer fields
 	if s.Cache == nil {
 		s.Cache = defaults.Cache
+	}
+
+	if s.History == nil {
+		s.History = defaults.History
+	} else if len(s.History.MaskHeaders) == 0 && (s.History.Enabled == nil || *s.History.Enabled) {
+		s.History.MaskHeaders = defaults.History.MaskHeaders
 	}
 
 	if s.SpecOptions == nil {
@@ -162,6 +169,10 @@ func (s *ServiceConfig) OverwriteWith(other *ServiceConfig) *ServiceConfig {
 		s.errors = s.parseErrors()
 	}
 
+	if other.History != nil {
+		s.History = other.History
+	}
+
 	if other.SpecOptions != nil {
 		s.SpecOptions = other.SpecOptions
 	}
@@ -217,7 +228,7 @@ func (s *ServiceConfig) GetError() int {
 // HistoryEnabled returns whether request history recording is enabled.
 // Defaults to true when not explicitly set.
 func (s *ServiceConfig) HistoryEnabled() bool {
-	return s.History == nil || *s.History
+	return s.History == nil || s.History.Enabled == nil || *s.History.Enabled
 }
 
 func (s *ServiceConfig) parseLatencies() []*KeyValue[int, time.Duration] {
@@ -253,6 +264,62 @@ func (s *ServiceConfig) parseErrors() []*KeyValue[int, int] {
 		return errors[i].Key < errors[j].Key
 	})
 	return errors
+}
+
+// HistoryConfig controls request/response history recording for a service.
+//
+// Enabled toggles recording on or off (defaults to true when nil).
+// MaskHeaders lists header names whose values should be masked before saving,
+// showing only the last 4 characters (matched case-insensitively).
+//
+// Example YAML:
+//
+//	history:
+//	  enabled: true
+//	  mask-headers:
+//	    - Authorization
+//	    - X-Api-Key
+//
+// Shorthand to disable history entirely:
+//
+//	history:
+//	  enabled: false
+type HistoryConfig struct {
+	Enabled     *bool    `yaml:"enabled,omitempty"`
+	MaskHeaders []string `yaml:"mask-headers,omitempty"`
+}
+
+// defaultMaskHeaders is the default set of header names masked in history entries.
+var defaultMaskHeaders = []string{
+	"Authorization",
+	"Cookie",
+	"Set-Cookie",
+	"X-Api-Key",
+}
+
+// NewHistoryConfig creates a HistoryConfig with defaults: enabled, common
+// sensitive headers masked.
+func NewHistoryConfig() *HistoryConfig {
+	return &HistoryConfig{
+		MaskHeaders: defaultMaskHeaders,
+	}
+}
+
+// UnmarshalYAML supports both boolean shorthand and object forms:
+//
+//	history: false        # shorthand to disable
+//	history:              # full form
+//	  enabled: true
+//	  mask-headers: [Authorization]
+func (h *HistoryConfig) UnmarshalYAML(unmarshal func(any) error) error {
+	var enabled bool
+	if err := unmarshal(&enabled); err == nil {
+		h.Enabled = &enabled
+		return nil
+	}
+
+	type plain HistoryConfig
+	return unmarshal((*plain)(h))
 }
 
 // CacheConfig defines the cache configuration for a service.
@@ -323,8 +390,10 @@ type ReplayEndpoint struct {
 type ReplayMatch struct {
 	// Path fields are path variable names to include in the replay key.
 	Path []string `yaml:"path"`
+
 	// Body fields are extracted from the request body (JSON dotted paths or form-encoded flat keys).
 	Body []string `yaml:"body"`
+
 	// Query fields are extracted from the URL query string.
 	Query []string `yaml:"query"`
 }

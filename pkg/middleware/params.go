@@ -27,13 +27,19 @@ const (
 
 const serviceConfigKey ctxKey = "serviceConfig"
 
+// HistoryTransformFunc is a callback invoked before saving a history entry.
+// It receives the request and response about to be stored and may modify them
+// in place (e.g. masking sensitive headers or redacting body fields).
+type HistoryTransformFunc func(req *db.HistoryRequest, resp *db.HistoryResponse)
+
 // Params provides access to service configuration and database for middleware.
 type Params struct {
-	serviceConfig *config.ServiceConfig
-	storageConfig *config.StorageConfig
-	database      db.DB
-	log           *slog.Logger
-	router        chi.Routes
+	serviceConfig    *config.ServiceConfig
+	storageConfig    *config.StorageConfig
+	database         db.DB
+	log              *slog.Logger
+	router           chi.Routes
+	historyTransform HistoryTransformFunc
 }
 
 // NewParams creates a new Params instance with the given configuration and database.
@@ -43,6 +49,27 @@ func NewParams(serviceConfig *config.ServiceConfig, storageConfig *config.Storag
 		storageConfig: storageConfig,
 		database:      database,
 		log:           slog.With("service", serviceConfig.Name),
+	}
+}
+
+// SetHistoryTransform registers a callback that is invoked before each history
+// entry is saved. The callback may modify the request and response in place.
+// It runs before the mask-headers config is applied.
+func (p *Params) SetHistoryTransform(fn HistoryTransformFunc) {
+	p.historyTransform = fn
+}
+
+// transformHistory applies the user callback (if set) and then masks headers
+// listed in the service config's MaskHeaders field.
+func (p *Params) transformHistory(svcCfg *config.ServiceConfig, req *db.HistoryRequest, resp *db.HistoryResponse) {
+	if p.historyTransform != nil {
+		p.historyTransform(req, resp)
+	}
+	if svcCfg.History != nil && len(svcCfg.History.MaskHeaders) > 0 {
+		db.MaskHeaderValues(req.Headers, svcCfg.History.MaskHeaders)
+		if resp != nil {
+			db.MaskHeaderValues(resp.Headers, svcCfg.History.MaskHeaders)
+		}
 	}
 }
 

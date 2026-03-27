@@ -47,20 +47,20 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 					RemoteAddr: req.RemoteAddr,
 					RequestID:  requestID,
 				}
-				respHeaders := db.FlattenHeaders(rw.Header())
-				duration := GetDuration(req)
+				histResp := &db.HistoryResponse{
+					Body:          respContent,
+					StatusCode:    respStatusCode,
+					ContentType:   respContentType,
+					Headers:       db.FlattenHeaders(rw.Header()),
+					Duration:      GetDuration(req),
+					UpstreamError: GetUpstreamError(req),
+				}
+				params.transformHistory(params.serviceConfig, histReq, histResp)
 				resourcePath := GetResourcePath(req)
 				go func() {
 					ctx, cancel := context.WithTimeout(context.Background(), asyncWriteTimeout)
 					defer cancel()
-					params.DB().History().Set(ctx, resourcePath, histReq, &db.HistoryResponse{
-						Body:          respContent,
-						StatusCode:    respStatusCode,
-						ContentType:   respContentType,
-						Headers:       respHeaders,
-						Duration:      duration,
-						UpstreamError: GetUpstreamError(req),
-					})
+					params.DB().History().Set(ctx, resourcePath, histReq, histResp)
 				}()
 			}
 
