@@ -50,19 +50,45 @@ This allows multiple APIs to coexist on the same server without route conflicts.
 ### History
 
 ```yaml
-# Record request/response history (default: true)
-history: false
+history:
+  enabled: true           # Record request/response history (default: true)
+  mask-headers:            # Header names to mask in history entries
+    - Authorization
+    - Cookie
+    - Set-Cookie
+    - X-Api-Key
 ```
 
 When enabled (default), incoming requests and their responses are recorded in the service's history table. This data is available via the DB Explorer UI or the history API.
 
-Set to `false` for UI services or other endpoints where request tracking is not needed.
+**Header masking:** Headers matching `mask-headers` patterns have their values replaced with asterisks, keeping only the last 4 characters visible. For example, `Bearer sk-proj-abc123` becomes `***********c123`.
+
+Patterns support two forms:
+- **Exact match** - `Authorization` matches only that header
+- **Prefix match** - `X-Internal-*` matches any header starting with `X-Internal-`
+
+Matching is case-insensitive. By default, `Authorization`, `Cookie`, `Set-Cookie`, and `X-Api-Key` are masked.
+
+**Shorthand:** to disable history entirely:
+
+```yaml
+history:
+  enabled: false
+```
+
+The boolean shorthand `history: false` is also supported for backward compatibility.
 
 ### Latency
 
 ```yaml
-# Record request/response history (default: true)
-history: true
+# Request/response history
+history:
+  enabled: true
+  mask-headers:
+    - Authorization
+    - Cookie
+    - Set-Cookie
+    - X-Api-Key
 
 # Simulated latency for responses
 latency: 100ms

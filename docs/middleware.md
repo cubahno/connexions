@@ -150,6 +150,30 @@ type Storage interface {
 
 **Note:** Storage is cleared periodically based on `historyDuration` setting (default: 5 minutes).
 
+## History Transform
+
+Register a callback to modify history entries before they are saved. This runs before the `mask-headers` config is applied, so you can implement custom redaction logic.
+
+```go
+params.SetHistoryTransform(func(req *db.HistoryRequest, resp *db.HistoryResponse) {
+    // Redact request body
+    if len(req.Body) > 0 {
+        req.Body = []byte("[redacted]")
+    }
+
+    // Remove specific headers entirely
+    filtered := req.Headers[:0]
+    for _, h := range req.Headers {
+        if !strings.HasPrefix(h, "X-Internal-") {
+            filtered = append(filtered, h)
+        }
+    }
+    req.Headers = filtered
+})
+```
+
+The callback receives pointers to the request and response structs and can modify them in place. After the callback returns, any `mask-headers` patterns from the service config are applied on top.
+
 ## Common Patterns
 
 ### Request Logging
