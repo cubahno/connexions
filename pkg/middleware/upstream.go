@@ -43,6 +43,7 @@ func (e *upstreamHTTPError) Error() string {
 type upstreamResponse struct {
 	Body        []byte
 	ContentType string
+	StatusCode  int
 }
 
 // circuitBreakerExecutor defines the interface for circuit breaker execution.
@@ -156,6 +157,7 @@ func CreateUpstreamRequestMiddleware(params *Params) func(http.Handler) http.Han
 				if resp.ContentType != "" {
 					w.Header().Set("Content-Type", resp.ContentType)
 				}
+				w.WriteHeader(resp.StatusCode)
 				_, _ = w.Write(resp.Body)
 				return
 			}
@@ -410,6 +412,7 @@ func getUpstreamResponse(log *slog.Logger, svcCfg *config.ServiceConfig, params 
 	return &upstreamResponse{
 		Body:        body,
 		ContentType: contentType,
+		StatusCode:  statusCode,
 	}, nil
 }
 
