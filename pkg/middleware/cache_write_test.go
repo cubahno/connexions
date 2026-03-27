@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -337,5 +338,56 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		assert.Equal("value", w.Header().Get("X-Custom"))
 		assert.Equal(http.StatusAccepted, w.Code)
 		assert.Equal("accepted", w.Body.String())
+	})
+
+	t.Run("applies history transform callback", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+		}, nil)
+		params.SetHistoryTransform(func(req *db.HistoryRequest, resp *db.HistoryResponse) {
+			req.Body = []byte("[redacted]")
+		})
+
+		mw := CreateCacheWriteMiddleware(params)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		})
+
+		req := httptest.NewRequest(http.MethodPost, "/api/test", strings.NewReader("secret-body"))
+		w := httptest.NewRecorder()
+		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		rec, exists := params.DB().History().Get(context.Background(), req)
+		assert.True(exists)
+		assert.Equal([]byte("[redacted]"), rec.Request.Body)
+	})
+
+	t.Run("applies mask-headers from config", func(t *testing.T) {
+		params := newTestParams(&config.ServiceConfig{
+			Name: "test-service",
+			History: &config.HistoryConfig{
+				MaskHeaders: []string{"Authorization"},
+			},
+		}, nil)
+
+		mw := CreateCacheWriteMiddleware(params)
+
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
+		req.Header.Set("Authorization", "Bearer secret-token")
+		w := httptest.NewRecorder()
+		mw(handler).ServeHTTP(w, req)
+		waitForAsync()
+
+		rec, exists := params.DB().History().Get(context.Background(), req)
+		assert.True(exists)
+		assert.Contains(rec.Request.Headers, "Authorization: ***************oken")
 	})
 }

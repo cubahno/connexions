@@ -804,6 +804,23 @@ func TestServiceConfig_OverwriteWith(t *testing.T) {
 		assert.False(t, result.Cache.Requests)
 	})
 
+	t.Run("Overwrites History when other has non-nil History", func(t *testing.T) {
+		cfg := &ServiceConfig{
+			History: &HistoryConfig{
+				MaskHeaders: []string{"Authorization"},
+			},
+		}
+		other := &ServiceConfig{
+			History: &HistoryConfig{
+				MaskHeaders: []string{"X-Api-Key"},
+			},
+		}
+
+		result := cfg.OverwriteWith(other)
+
+		assert.Equal(t, []string{"X-Api-Key"}, result.History.MaskHeaders)
+	})
+
 	t.Run("Overwrites SpecOptions when other has non-nil SpecOptions", func(t *testing.T) {
 		cfg := &ServiceConfig{
 			SpecOptions: nil,
@@ -1153,5 +1170,119 @@ cache:
 		cfg, err := NewServiceConfigFromBytes(yamlData)
 		assert.NoError(t, err)
 		assert.False(t, cfg.Cache.Replay.AutoReplay)
+	})
+}
+
+func TestHistoryEnabled(t *testing.T) {
+	t.Run("true when History is nil", func(t *testing.T) {
+		cfg := &ServiceConfig{}
+		assert.True(t, cfg.HistoryEnabled())
+	})
+
+	t.Run("true when Enabled is nil", func(t *testing.T) {
+		cfg := &ServiceConfig{History: &HistoryConfig{}}
+		assert.True(t, cfg.HistoryEnabled())
+	})
+
+	t.Run("true when explicitly enabled", func(t *testing.T) {
+		enabled := true
+		cfg := &ServiceConfig{History: &HistoryConfig{Enabled: &enabled}}
+		assert.True(t, cfg.HistoryEnabled())
+	})
+
+	t.Run("false when explicitly disabled", func(t *testing.T) {
+		disabled := false
+		cfg := &ServiceConfig{History: &HistoryConfig{Enabled: &disabled}}
+		assert.False(t, cfg.HistoryEnabled())
+	})
+}
+
+func TestHistoryConfig_UnmarshalYAML(t *testing.T) {
+	t.Run("boolean shorthand false", func(t *testing.T) {
+		yamlData := []byte(`history: false`)
+		var cfg ServiceConfig
+		err := yaml.Unmarshal(yamlData, &cfg)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.History)
+		assert.NotNil(t, cfg.History.Enabled)
+		assert.False(t, *cfg.History.Enabled)
+	})
+
+	t.Run("boolean shorthand true", func(t *testing.T) {
+		yamlData := []byte(`history: true`)
+		var cfg ServiceConfig
+		err := yaml.Unmarshal(yamlData, &cfg)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.History)
+		assert.NotNil(t, cfg.History.Enabled)
+		assert.True(t, *cfg.History.Enabled)
+	})
+
+	t.Run("object form with mask-headers", func(t *testing.T) {
+		yamlData := []byte(`
+history:
+  enabled: true
+  mask-headers:
+    - Authorization
+    - X-Secret-*
+`)
+		var cfg ServiceConfig
+		err := yaml.Unmarshal(yamlData, &cfg)
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.History)
+		assert.True(t, *cfg.History.Enabled)
+		assert.Equal(t, []string{"Authorization", "X-Secret-*"}, cfg.History.MaskHeaders)
+	})
+
+	t.Run("object form without enabled defaults to nil", func(t *testing.T) {
+		yamlData := []byte(`
+history:
+  mask-headers:
+    - Authorization
+`)
+		var cfg ServiceConfig
+		err := yaml.Unmarshal(yamlData, &cfg)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg.History)
+		assert.Nil(t, cfg.History.Enabled)
+		assert.Equal(t, []string{"Authorization"}, cfg.History.MaskHeaders)
+	})
+}
+
+func TestWithDefaults_History(t *testing.T) {
+	t.Run("sets default history when nil", func(t *testing.T) {
+		cfg := &ServiceConfig{}
+		cfg.WithDefaults()
+
+		assert.NotNil(t, cfg.History)
+		assert.Equal(t, defaultMaskHeaders, cfg.History.MaskHeaders)
+	})
+
+	t.Run("fills default mask-headers when empty and enabled", func(t *testing.T) {
+		cfg := &ServiceConfig{History: &HistoryConfig{}}
+		cfg.WithDefaults()
+		assert.Equal(t, defaultMaskHeaders, cfg.History.MaskHeaders)
+	})
+
+	t.Run("preserves custom mask-headers", func(t *testing.T) {
+		cfg := &ServiceConfig{
+			History: &HistoryConfig{
+				MaskHeaders: []string{"X-Custom"},
+			},
+		}
+		cfg.WithDefaults()
+		assert.Equal(t, []string{"X-Custom"}, cfg.History.MaskHeaders)
+	})
+
+	t.Run("skips default mask-headers when disabled", func(t *testing.T) {
+		disabled := false
+		cfg := &ServiceConfig{
+			History: &HistoryConfig{Enabled: &disabled},
+		}
+		cfg.WithDefaults()
+		assert.Nil(t, cfg.History.MaskHeaders)
 	})
 }
