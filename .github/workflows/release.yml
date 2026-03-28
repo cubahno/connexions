@@ -75,5 +75,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "${{ env.TAG }}" --generate-notes
-          gh release upload "${{ env.TAG }}" connexions-*
+          gh release upload "${{ env.TAG }}" connexions-* --clobber
