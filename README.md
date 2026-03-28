@@ -39,15 +39,23 @@ Total: 2215 services, 98464 endpoints
 ✅ Success: 98464  ❌ Fails: 0
 ```
 
-## Simple start
+## Quick Start
 
-```bash 
+Try it now - no files needed:
+
+```bash
+go run github.com/mockzilla/connexions/v2/cmd/server@latest \
+  https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+Or with Docker:
+
+```bash
 docker run -it --rm \
   -p 2200:2200 \
   -v connexions:/app/resources/data \
   mockzilla/connexions api
-
-``` 
+```
 
 Read full documentation at [mockzilla.github.io/connexions](https://mockzilla.github.io/connexions/).
 

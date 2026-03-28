@@ -164,3 +164,15 @@ func (f *Factory) ResponseBodyFromRequest(r *http.Request, ctx map[string]any) (
 func (f *Factory) Operations() []typedef.RouteInfo {
 	return f.registry.GetRouteInfo()
 }
+
+// MatchPath resolves a concrete request path (e.g., /users/42) to the
+// corresponding OpenAPI spec path pattern (e.g., /users/{id}).
+// Returns the spec path and true if a match is found.
+func (f *Factory) MatchPath(requestPath, method string) (string, bool) {
+	return f.matcher.Match(requestPath, method)
+}
+
+// FindOperation returns the parsed operation for the given spec path and method.
+func (f *Factory) FindOperation(path, method string) *schema.Operation {
+	return f.registry.FindOperation(path, method)
+}

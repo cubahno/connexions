@@ -32,7 +32,7 @@ lint:
 build: clean
 	@echo "Go version: $(GO_VERSION)"
 	@go mod download
-	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/server/bootstrap ./cmd/server
+	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/server/connexions ./cmd/server
 
 .PHONY: test
 test:

@@ -65,8 +65,8 @@ nav:
       - 'Welcome': 'index.md'
       - 'How It Works': 'how-it-works.md'
   - Usage:
-      - Docker: 'usage/docker.md'
-      - Docker Compose: 'usage/docker-compose.md'
+      - Portable Mode: 'usage/portable.md'
+      - Server Mode: 'usage/server.md'
   - Services: 'services.md'
   - Factory: 'factory.md'
   - Configuration:

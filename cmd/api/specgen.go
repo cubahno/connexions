@@ -298,8 +298,8 @@ func generateOperationId(method, path string) string {
 	return method + strings.Join(nameParts, "")
 }
 
-// generateSpecFromStaticDir generates an OpenAPI spec from a static files directory.
-func generateSpecFromStaticDir(staticDir, serviceName string) ([]byte, error) {
+// GenerateSpecFromStaticDir generates an OpenAPI spec from a static files directory.
+func GenerateSpecFromStaticDir(staticDir, serviceName string) ([]byte, error) {
 	// Scan static files
 	routes, err := scanStaticFiles(staticDir)
 	if err != nil {
