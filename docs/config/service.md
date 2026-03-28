@@ -14,7 +14,7 @@ services/petstore/
     └── openapi.yml     # OpenAPI specification
 ```
 
-For Docker with mounted specs, use a directory structure with `config.yml` alongside your spec:
+For the full server mode with mounted specs, use a directory structure with `config.yml` alongside your spec:
 
 ```
 openapi/
@@ -24,6 +24,8 @@ openapi/
 ```
 
 Note: Flat specs like `openapi/petstore.yml` don't support config files - use the directory structure above.
+
+For portable mode, use the `--config` flag instead. See [Portable Mode](../usage/portable.md).
 
 ## Configuration Options
 

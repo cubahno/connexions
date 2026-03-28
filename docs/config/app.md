@@ -6,6 +6,8 @@ App-level configuration for Connexions server.
 
 `resources/data/app.yml`
 
+For portable mode, use the `--config` flag with the `app` section. See [Portable Mode](../usage/portable.md).
+
 For Docker, mount your custom config:
 ```yaml
 volumes:
