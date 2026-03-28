@@ -16,6 +16,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
+	"github.com/mockzilla/connexions/v2/internal/portable"
 	"github.com/mockzilla/connexions/v2/pkg/api"
 	"github.com/mockzilla/connexions/v2/pkg/config"
 	"github.com/mockzilla/connexions/v2/pkg/loader"
@@ -76,10 +77,19 @@ func main() {
 }
 
 func runServer() int {
-	appDir := os.Getenv("APP_DIR")
-	if appDir == "" {
-		_, b, _, _ := runtime.Caller(0)
-		appDir = filepath.Dir(filepath.Dir(filepath.Dir(b)))
+	// Check for portable mode: if args contain spec files or directories with spec files
+	if len(os.Args) > 1 && portable.IsPortableMode(os.Args[1:]) {
+		return portable.Run(os.Args[1:])
+	}
+
+	appDir := "."
+	if v := os.Getenv("APP_DIR"); v != "" {
+		appDir = v
+	}
+	if len(os.Args) > 1 {
+		if info, err := os.Stat(os.Args[1]); err == nil && info.IsDir() {
+			appDir = os.Args[1]
+		}
 	}
 	_ = godotenv.Load(fmt.Sprintf("%s/.env", appDir), fmt.Sprintf("%s/.env.dist", appDir))
 

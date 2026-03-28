@@ -88,8 +88,6 @@ func newDataWatcher(paths config.Paths) (*dataWatcher, error) {
 		sw.watchSubdirectories(dir)
 	}
 
-	slog.Info("File watcher initialized", "dataDir", paths.Data)
-
 	return sw, nil
 }
 

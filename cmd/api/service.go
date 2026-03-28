@@ -110,7 +110,7 @@ func GenerateService(opts ServiceOptions) error {
 	// For static services, regenerate openapi.yml from the data directory
 	// This ensures changes to static files are reflected in the spec
 	if isStaticService(opts.SpecPath, opts.ServiceType) && opts.SpecPath != "" {
-		specContents, err := generateSpecFromStaticDir(opts.SpecPath, opts.Name)
+		specContents, err := GenerateSpecFromStaticDir(opts.SpecPath, opts.Name)
 		if err != nil {
 			return fmt.Errorf("generating spec from static directory %s: %w", opts.SpecPath, err)
 		}
@@ -589,7 +589,7 @@ func handleSetupSourceSpec(opts ServiceOptions, setupDir, serviceName, serviceTy
 	}
 
 	if serviceType == "static" {
-		specContents, err := generateSpecFromStaticDir(opts.SpecPath, serviceName)
+		specContents, err := GenerateSpecFromStaticDir(opts.SpecPath, serviceName)
 		if err != nil {
 			return fmt.Errorf("generating spec from static directory %s: %w", opts.SpecPath, err)
 		}
