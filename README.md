@@ -41,13 +41,20 @@ Total: 2215 services, 98464 endpoints
 
 ## Quick Start
 
-Try it now:
+### Homebrew
+
+```bash
+brew tap mockzilla/tap
+brew install connexions
+connexions https://petstore3.swagger.io/api/v3/openapi.json
+```
+
+### Go
 
 ```bash
 go run github.com/mockzilla/connexions/v2/cmd/server@latest \
   https://petstore3.swagger.io/api/v3/openapi.json
 ```
-
 
 Read full documentation at [mockzilla.github.io/connexions](https://mockzilla.github.io/connexions/).
 
