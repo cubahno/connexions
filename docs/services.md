@@ -39,10 +39,7 @@ Connexions supports three types of services, each suited for different use cases
 The simplest way to create a mock server. Just provide an OpenAPI specification and Connexions generates responses automatically.
 
 ```bash
-# Using Docker with mounted spec
-docker run -p 2200:2200 \
-  -v ./my-spec.yml:/app/resources/data/openapi/my-spec.yml \
-  mockzilla/connexions
+connexions my-spec.yml
 ```
 
 Responses are generated based on:
