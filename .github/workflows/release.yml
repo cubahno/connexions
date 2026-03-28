@@ -81,9 +81,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: release
     steps:
-      - name: Checkout connexions repo
-        uses: actions/checkout@v4
-
       - name: Extract tag and version
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
@@ -99,17 +96,20 @@ jobs:
             echo "${VAR}=${HASH}" >> $GITHUB_ENV
           done
 
-      - name: Update Homebrew formula
+      - name: Update and push formula to homebrew-tap
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          sed -i "s/version \".*\"/version \"${{ env.VERSION }}\"/" Formula/connexions.rb
+          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/mockzilla/homebrew-tap.git" tap
+          cd tap
+
+          FORMULA="Formula/connexions.rb"
+          sed -i "s/version \".*\"/version \"${{ env.VERSION }}\"/" "$FORMULA"
 
           update_sha() {
-            local old_url_pattern="$1"
+            local url_pattern="$1"
             local new_sha="$2"
-            # Find the line with the URL pattern and update the sha256 on the next line
-            sed -i "/${old_url_pattern}/{n;s/sha256 \".*\"/sha256 \"${new_sha}\"/}" Formula/connexions.rb
+            sed -i "/${url_pattern}/{n;s/sha256 \".*\"/sha256 \"${new_sha}\"/}" "$FORMULA"
           }
 
           update_sha "darwin-arm64" "${{ env.SHA_darwin_arm64 }}"
@@ -117,16 +117,9 @@ jobs:
           update_sha "linux-arm64"  "${{ env.SHA_linux_arm64 }}"
           update_sha "linux-amd64"  "${{ env.SHA_linux_amd64 }}"
 
-      - name: Push formula to homebrew-tap
-        env:
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/mockzilla/homebrew-tap.git" tap
-          cp Formula/connexions.rb tap/Formula/connexions.rb
-          cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/connexions.rb
+          git add "$FORMULA"
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "connexions ${{ env.TAG }}"
           git push
