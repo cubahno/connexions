@@ -1,9 +1,9 @@
-# Server Mode
+# Codegen Mode
 
-Server mode generates typed Go code from your OpenAPI specs, giving you compiled services with custom middleware,
+Codegen mode generates typed Go code from your OpenAPI specs, giving you compiled services with custom middleware,
 typed request/response handlers, and a single binary you can deploy anywhere.
 
-Use server mode when you need more than what [Portable Mode](portable.md) offers -
+Use codegen mode when you need more than what [Portable Mode](portable.md) offers -
 custom business logic, authentication middleware, request validation, or a self-contained binary.
 
 ## Quick Start
@@ -193,12 +193,20 @@ Control what gets generated via `setup/codegen.yml`. See [Codegen Config](../con
 - [Factory](../factory.md) - use the generation engine programmatically from Go
 - [Service Command](../commands/service.md) - full reference for `gen/service`
 
-## When to Use Server Mode
+## Template
+
+Start from a GitHub template with CI/CD, API Explorer UI, and example services ready to go:
+
+- [connexions-codegen-template](https://github.com/mockzilla/connexions-codegen-template)
+
+See [Templates](../templates.md) for all available templates.
+
+## When to Use Codegen Mode
 
 | Need | Use |
 |------|-----|
 | Quick prototyping, testing | [Portable Mode](portable.md) |
-| Custom auth, business logic | Server Mode |
-| Single deployable binary | Server Mode |
-| Typed request/response handling | Server Mode |
+| Custom auth, business logic | Codegen Mode |
+| Single deployable binary | Codegen Mode |
+| Typed request/response handling | Codegen Mode |
 | CI/CD mock server | Either |
