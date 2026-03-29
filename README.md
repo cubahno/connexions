@@ -56,6 +56,10 @@ go run github.com/mockzilla/connexions/v2/cmd/server@latest \
   https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
+### Template
+
+Use the [portable template](https://github.com/mockzilla/connexions-portable-template) to create a repo that builds a single binary with your specs embedded.
+
 Read full documentation at [mockzilla.github.io/connexions](https://mockzilla.github.io/connexions/).
 
 [OpenAPI Specification](https://editor.swagger.io/?url=https://raw.githubusercontent.com/mockzilla/connexions/master/resources/openapi.yml)
