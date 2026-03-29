@@ -116,6 +116,7 @@ async function onLoad() {
     const savedStates = getAccordionStates();
 
     accordionHeaders.forEach(accordionHeader => {
+        if (accordionHeader.id === 'history-summary-header') return;
         const key = accordionHeader.textContent.trim();
         const accordionContent = accordionHeader.closest('.accordion').querySelector('.accordion-content');
 

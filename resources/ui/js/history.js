@@ -20,6 +20,15 @@ const decodeBody = (raw) => {
     return {text, mode};
 };
 
+// Go's time.Duration JSON-marshals as nanoseconds.
+const formatDuration = (ns) => {
+    const us = ns / 1e3;
+    if (us < 1000) return `${Math.round(us)}µs`;
+    const ms = us / 1e3;
+    if (ms < 1000) return `${ms.toFixed(2)}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+};
+
 const formatTime = (dateStr) => {
     const now = new Date();
     const date = new Date(dateStr);
@@ -36,6 +45,16 @@ const statusClass = (code) => {
     return '';
 };
 
+const addMetaRow = (tbody, label, value) => {
+    const row = document.createElement('tr');
+    const nameCell = document.createElement('td');
+    nameCell.textContent = label;
+    const valueCell = document.createElement('td');
+    valueCell.textContent = value;
+    row.append(nameCell, valueCell);
+    tbody.appendChild(row);
+};
+
 const showTabs = (service) => {
     config.serviceTabs.style.display = 'flex';
     config.tabResources.href = `#/services/${service}`;
@@ -48,10 +67,54 @@ const showDetail = (entry) => {
     const detail = document.getElementById('history-detail');
     detail.style.display = 'block';
 
-    const title = document.getElementById('history-detail-title');
     const req = entry.request;
     const resp = entry.response;
-    title.textContent = req ? `${req.method} ${decodeURIComponent(req.url)}` : 'Detail';
+
+    // Update panel header with the URL
+    const panelTitle = document.getElementById('history-detail-title');
+    panelTitle.textContent = req ? decodeURIComponent(req.url) : 'Select an entry';
+
+    // Details accordion
+    const summaryHeader = document.getElementById('history-summary-header');
+    summaryHeader.textContent = 'Details';
+
+    const summaryContent = document.getElementById('history-summary-content');
+    summaryContent.classList.remove('active');
+    summaryHeader.classList.remove('expanded');
+
+    if (!summaryHeader.hasAttribute('data-wired')) {
+        summaryHeader.setAttribute('data-wired', '1');
+        summaryHeader.addEventListener('click', () => {
+            summaryContent.classList.toggle('active');
+            summaryHeader.classList.toggle('expanded');
+        });
+    }
+
+    const tbody = document.createElement('tbody');
+    if (resp) {
+        if (resp.statusCode) addMetaRow(tbody, 'Status', `${resp.statusCode}`);
+        if (resp.duration) addMetaRow(tbody, 'Duration', formatDuration(resp.duration));
+        if (resp.contentType) addMetaRow(tbody, 'Content-Type', resp.contentType);
+
+        // Derive source from X-Cxs-Source header or isFromUpstream flag
+        const sourceHeader = (resp.headers || [])
+            .find(h => h.toLowerCase().startsWith('x-cxs-source:'));
+        if (sourceHeader) {
+            addMetaRow(tbody, 'Source', sourceHeader.split(': ')[1]);
+        } else {
+            addMetaRow(tbody, 'Source', resp.isFromUpstream ? 'upstream' : 'generated');
+        }
+
+        if (resp.upstreamURL) addMetaRow(tbody, 'Upstream URL', decodeURIComponent(resp.upstreamURL));
+        if (resp.upstreamError) addMetaRow(tbody, 'Upstream Error', resp.upstreamError);
+    }
+    if (req && req.remoteAddr) addMetaRow(tbody, 'Remote', req.remoteAddr);
+
+    const table = document.createElement('table');
+    table.className = 'response-headers-table';
+    table.appendChild(tbody);
+    summaryContent.innerHTML = '';
+    summaryContent.appendChild(table);
 
     // Request headers
     const reqHeadersBody = document.getElementById('history-req-headers-body');
@@ -123,7 +186,7 @@ const renderEntries = (items, service) => {
     if (!items || items.length === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 5;
+        cell.colSpan = 6;
         cell.textContent = 'No history entries';
         cell.style.textAlign = 'center';
         cell.style.color = 'var(--text-muted)';
@@ -169,6 +232,13 @@ const renderEntries = (items, service) => {
             statusCell.className = `history-status ${statusClass(entry.response.statusCode)}`;
         }
         row.appendChild(statusCell);
+
+        const durationCell = document.createElement('td');
+        durationCell.className = 'history-duration';
+        if (entry.response && entry.response.duration) {
+            durationCell.textContent = formatDuration(entry.response.duration);
+        }
+        row.appendChild(durationCell);
 
         const timeCell = document.createElement('td');
         timeCell.textContent = formatTime(entry.createdAt);

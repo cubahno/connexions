@@ -286,6 +286,9 @@ func TestCreateCacheWriteMiddleware(t *testing.T) {
 		assert.True(exists)
 		assert.Equal("test-req-id-001", rec.Request.RequestID)
 		assert.GreaterOrEqual(rec.Response.Duration, 25*time.Millisecond)
+
+		// Verify X-Cxs-Source is captured in history headers
+		assert.Contains(rec.Response.Headers, ResponseHeaderSource+": "+ResponseHeaderSourceGenerated)
 	})
 
 	t.Run("sets X-Cxs-Request-Id response header", func(t *testing.T) {

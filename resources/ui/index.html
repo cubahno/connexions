@@ -77,7 +77,8 @@
 
                     <div class="panel panel-results">
                         <div class="panel-header">
-                            <h4>Select a resource <span id="refresh" title="Refresh"><i class="fa-solid fa-rotate-right"></i></span></h4>
+                            <span id="refresh" title="Refresh" style="display:none;"><i class="fa-solid fa-rotate-right"></i></span>
+                            <h4 id="resource-panel-title">Select a resource</h4>
                             <div id="preset-controls" style="display:none;">
                                 <label for="preset-select" id="preset-label">Preset:</label>
                                 <select id="preset-select"></select>
@@ -247,6 +248,7 @@
                                     <th>Method</th>
                                     <th>Path</th>
                                     <th>Status</th>
+                                    <th>Duration</th>
                                     <th>Time</th>
                                 </tr>
                                 </thead>
@@ -263,6 +265,11 @@
                         </div>
                         <div class="panel-body">
                             <div id="history-detail" style="display: none;">
+                                <div class="accordion">
+                                    <div class="accordion-header" id="history-summary-header"></div>
+                                    <div class="accordion-content" id="history-summary-content"></div>
+                                </div>
+
                                 <div class="accordion">
                                     <div class="accordion-header">Request Headers</div>
                                     <div class="accordion-content">

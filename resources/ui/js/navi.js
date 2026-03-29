@@ -202,6 +202,7 @@ export const resetContents = () => {
     document.getElementById('resource-result').innerHTML = '';
     document.getElementById('resource-edit-container').style.display = 'none';
     config.resourceRefreshBtn.style.display = 'none';
+    document.getElementById('resource-panel-title').textContent = 'Select a resource';
 
     config.fixedServiceContainer.style.display = 'none';
     config.historyContainer.style.display = 'none';

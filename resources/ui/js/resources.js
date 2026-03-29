@@ -283,9 +283,8 @@ export const generateResult = (service, ix, path, method) => {
                 return;
             }
 
-            // Decode URL-encoded path for better readability
-            document.getElementById('request-path').innerHTML = decodeURIComponent(reqPath);
-            document.getElementById('request-path-container').style.display = 'block';
+            // Update panel header with the generated URL
+            document.getElementById('resource-panel-title').textContent = decodeURIComponent(reqPath);
             const reqContentType = res["contentType"];
             const reqBody = res["body"];
             const reqHeaders = res["headers"] || {};
