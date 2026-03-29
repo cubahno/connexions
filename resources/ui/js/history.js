@@ -51,7 +51,7 @@ const showDetail = (entry) => {
     const title = document.getElementById('history-detail-title');
     const req = entry.request;
     const resp = entry.response;
-    title.textContent = req ? `${req.method} ${req.url}` : 'Detail';
+    title.textContent = req ? `${req.method} ${decodeURIComponent(req.url)}` : 'Detail';
 
     // Request headers
     const reqHeadersBody = document.getElementById('history-req-headers-body');
@@ -157,7 +157,8 @@ const renderEntries = (items, service) => {
         const pathCell = document.createElement('td');
         pathCell.className = 'fixed-resource-path';
         const pathSpan = document.createElement('span');
-        pathSpan.textContent = entry.resource || (entry.request ? entry.request.url : '');
+        const rawPath = entry.resource || (entry.request ? entry.request.url : '');
+        pathSpan.textContent = decodeURIComponent(rawPath);
         pathCell.appendChild(pathSpan);
         pathCell.title = pathSpan.textContent;
         row.appendChild(pathCell);
