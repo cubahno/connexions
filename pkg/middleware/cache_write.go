@@ -37,6 +37,11 @@ func CreateCacheWriteMiddleware(params *Params) func(http.Handler) http.Handler 
 			respStatusCode := rw.statusCode
 			respContentType := rw.Header().Get("Content-Type")
 
+			// Tag the source before snapshotting headers for history.
+			if rw.Header().Get(ResponseHeaderSource) == "" {
+				rw.Header().Set(ResponseHeaderSource, ResponseHeaderSourceGenerated)
+			}
+
 			// Record request + response asynchronously - no need to block the response.
 			if recordHistory {
 				histReq := &db.HistoryRequest{

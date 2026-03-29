@@ -171,6 +171,14 @@ export const show = match => {
             }
             config.contentTitleEl.innerHTML = `${name} resources`;
 
+            if (config.historyEnabled) {
+                config.serviceTabs.style.display = 'flex';
+                config.tabResources.href = `#/services/${service}`;
+                config.tabHistory.href = `#/history/${service}`;
+                config.tabResources.classList.add('active');
+                config.tabHistory.classList.remove('active');
+            }
+
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
             const mapped = {};
@@ -275,9 +283,8 @@ export const generateResult = (service, ix, path, method) => {
                 return;
             }
 
-            // Decode URL-encoded path for better readability
-            document.getElementById('request-path').innerHTML = decodeURIComponent(reqPath);
-            document.getElementById('request-path-container').style.display = 'block';
+            // Update panel header with the generated URL
+            document.getElementById('resource-panel-title').textContent = decodeURIComponent(reqPath);
             const reqContentType = res["contentType"];
             const reqBody = res["body"];
             const reqHeaders = res["headers"] || {};

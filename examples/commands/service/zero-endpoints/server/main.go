@@ -32,6 +32,7 @@ func main() {
 	_ = api.CreateHealthRoutes(router)
 	_ = api.CreateHomeRoutes(router)
 	_ = api.CreateServiceRoutes(router)
+	_ = api.CreateHistoryRoutes(router)
 
 	// Register this service directly
 	handler.RegisterAPIRouter(router)

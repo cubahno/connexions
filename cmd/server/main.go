@@ -127,6 +127,7 @@ func runServer() int {
 	_ = api.CreateHealthRoutes(router)
 	_ = api.CreateHomeRoutes(router)
 	_ = api.CreateServiceRoutes(router)
+	_ = api.CreateHistoryRoutes(router)
 
 	// Auto-discover and register all services
 	// Services are automatically registered via their init() functions

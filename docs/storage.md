@@ -84,7 +84,7 @@ Typed wrapper for request/response tracking:
 
 - Stores request body, response data, status codes
 - Used by caching and upstream middleware
-- Cleared periodically based on `historyDuration` config
+- Cleared periodically based on `history.duration` config
 
 ## Circuit Breaker Store
 

@@ -26,10 +26,30 @@ volumes:
 | `serviceURL` | string | `/.services` | URL for service endpoints in UI |
 | `contextAreaPrefix` | string | `in-` | Prefix for context area replacements |
 | `disableUI` | bool | `false` | Disable the web UI |
-| `historyDuration` | duration | `5m` | How long to keep request history in memory |
 | `editor.theme` | string | `chrome` | Code editor theme in UI |
 | `editor.fontSize` | int | `16` | Code editor font size |
 | `extra` | map | `{}` | User-defined key-value config (accessible in services) |
+
+## History Configuration
+
+Configure request/response history recording and the History Explorer UI.
+
+```yaml
+history:
+  enabled: true
+  url: /.history
+  duration: 60m
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `history.enabled` | bool | `true` | Enable history API and UI tab |
+| `history.url` | string | `/.history` | URL prefix for history API endpoints |
+| `history.duration` | duration | `60m` | How long to keep request history in memory |
+
+Setting `enabled: false` hides the History tab from the UI and disables the history API endpoints. History recording per service is controlled separately via [service configuration](service.md).
+
+The `ROUTER_HISTORY_DURATION` environment variable overrides `history.duration`.
 
 ## Storage Configuration
 
@@ -59,7 +79,7 @@ Environment variables override file values:
 |----------|-----------|
 | `APP_BASE_URL` | `baseURL` |
 | `APP_INTERNAL_URL` | `internalURL` |
-| `ROUTER_HISTORY_DURATION` | `historyDuration` |
+| `ROUTER_HISTORY_DURATION` | `history.duration` |
 
 ## Example
 
@@ -69,7 +89,9 @@ port: 8080
 baseURL: https://api.example.com
 internalURL: http://localhost:2200
 disableUI: false
-historyDuration: 10m
+
+history:
+  duration: 60m
 
 editor:
   theme: monokai

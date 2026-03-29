@@ -188,7 +188,7 @@ cache:
 1. **Cache Read**: Before processing, check if response exists in cache
 2. **Cache Write**: After generating response, store in cache
 
-Cached responses are keyed by `METHOD:URL` and cleared periodically (configurable via `historyDuration` in app settings).
+Cached responses are keyed by `METHOD:URL` and cleared periodically (configurable via `history.duration` in app settings).
 
 ### Cache Behavior
 
