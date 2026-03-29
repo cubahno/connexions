@@ -39,6 +39,13 @@ Total: 2215 services, 98464 endpoints
 ✅ Success: 98464  ❌ Fails: 0
 ```
 
+## Modes
+
+Connexions runs in two modes:
+
+- **[Portable](https://mockzilla.github.io/connexions/usage/portable/)** - point at OpenAPI specs and run. No code generation, no setup.
+- **[Codegen](https://mockzilla.github.io/connexions/usage/codegen/)** - generate typed Go handlers with custom logic and middleware.
+
 ## Quick Start
 
 ### Homebrew
@@ -56,9 +63,10 @@ go run github.com/mockzilla/connexions/v2/cmd/server@latest \
   https://petstore3.swagger.io/api/v3/openapi.json
 ```
 
-### Template
+### Templates
 
-Use the [portable template](https://github.com/mockzilla/connexions-portable-template) to create a repo that builds a single binary with your specs embedded.
+- [Portable template](https://github.com/mockzilla/connexions-portable-template) - embed specs into a single binary via `go:embed`
+- [Codegen template](https://github.com/mockzilla/connexions-codegen-template) - generate Go handlers with custom logic and middleware
 
 Read full documentation at [mockzilla.github.io/connexions](https://mockzilla.github.io/connexions/).
 

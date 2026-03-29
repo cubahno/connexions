@@ -66,7 +66,8 @@ nav:
       - 'How It Works': 'how-it-works.md'
   - Usage:
       - Portable Mode: 'usage/portable.md'
-      - Server Mode: 'usage/server.md'
+      - Codegen Mode: 'usage/codegen.md'
+  - Templates: 'templates.md'
   - Services: 'services.md'
   - Factory: 'factory.md'
   - Configuration:
