@@ -168,7 +168,11 @@ func RunFS(fsys fs.FS, args []string) int {
 		}
 	}
 
-	runArgs := []string{dir}
+	var runArgs []string
+	if openapiDir := filepath.Join(dir, "openapi"); fileExists(openapiDir) {
+		runArgs = append(runArgs, openapiDir)
+	}
+	runArgs = append(runArgs, dir)
 	if fileExists(configPath + ".cfg") {
 		runArgs = append(runArgs, "--config", configPath+".cfg")
 	}
