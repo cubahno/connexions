@@ -9,33 +9,40 @@ import (
 )
 
 // AppConfig is the app configuration.
-// Title is the title of the app displayed in the UI.
-// Port is the port number to listen on.
-// BaseURL is the public base URL for the application (e.g., "https://api.example.com").
-// InternalURL is the internal base URL for service-to-service communication (e.g., "http://localhost:2200").
-// HomeURL is the URL for the UI home page.
-// ServiceURL is the URL for the service and resources endpoints in the UI.
-// ContextAreaPrefix sets sub-contexts for replacements in path, header or any other supported place.
-// DisableUI is a flag whether to disable the UI.
-// Paths is the paths to various resource directories.
-// Editor is the editor configuration for the UI.
-// HistoryDuration is the duration to keep the history of requests in memory.
-// Storage configures shared storage for distributed features (e.g., circuit breaker state).
-// Extra is a map for user-defined configuration values.
 type AppConfig struct {
-	Title             string         `yaml:"title"`
-	Port              int            `yaml:"port"`
-	BaseURL           string         `yaml:"baseURL" env:"APP_BASE_URL"`
-	InternalURL       string         `yaml:"internalURL" env:"APP_INTERNAL_URL"`
-	HomeURL           string         `yaml:"homeURL"`
-	ServiceURL        string         `yaml:"serviceURL"`
-	ContextAreaPrefix string         `yaml:"contextAreaPrefix"`
-	DisableUI         bool           `yaml:"disableUI"`
-	Paths             Paths          `yaml:"-"`
-	Editor            *EditorConfig  `yaml:"editor"`
-	HistoryDuration   time.Duration  `yaml:"historyDuration" env:"ROUTER_HISTORY_DURATION"`
-	Storage           *StorageConfig `yaml:"storage"`
-	Extra             map[string]any `yaml:"extra"`
+	Title             string            `yaml:"title"`
+	Port              int               `yaml:"port"`
+	BaseURL           string            `yaml:"baseURL" env:"APP_BASE_URL"`
+	InternalURL       string            `yaml:"internalURL" env:"APP_INTERNAL_URL"`
+	HomeURL           string            `yaml:"homeURL"`
+	ServiceURL        string            `yaml:"serviceURL"`
+	ContextAreaPrefix string            `yaml:"contextAreaPrefix"`
+	DisableUI         bool              `yaml:"disableUI"`
+	Paths             Paths             `yaml:"-"`
+	Editor            *EditorConfig     `yaml:"editor"`
+	History           *AppHistoryConfig `yaml:"history"`
+	Storage           *StorageConfig    `yaml:"storage"`
+	Extra             map[string]any    `yaml:"extra"`
+}
+
+const (
+	DefaultHistoryURL      = "/.history"
+	DefaultHistoryDuration = 60 * time.Minute
+)
+
+// NewDefaultAppHistoryConfig creates the default history config.
+func NewDefaultAppHistoryConfig() *AppHistoryConfig {
+	return &AppHistoryConfig{
+		URL:      DefaultHistoryURL,
+		Duration: DefaultHistoryDuration,
+	}
+}
+
+// AppHistoryConfig configures request/response history at the application level.
+type AppHistoryConfig struct {
+	Enabled  *bool         `yaml:"enabled"`
+	URL      string        `yaml:"url"`
+	Duration time.Duration `yaml:"duration" env:"ROUTER_HISTORY_DURATION"`
 }
 
 // NewDefaultAppConfig creates a new default app config in case the config file is missing, not found or any other error.
@@ -52,8 +59,8 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 			DarkTheme: "monokai",
 			FontSize:  14,
 		},
-		HistoryDuration: 5 * time.Minute,
-		Extra:           make(map[string]any),
+		History: NewDefaultAppHistoryConfig(),
+		Extra:   make(map[string]any),
 	}
 }
 
@@ -67,6 +74,13 @@ func NewAppConfigFromBytes(bts []byte, baseDir string) (*AppConfig, error) {
 	cfg.Paths = NewPaths(baseDir)
 
 	// Ensure nested structs exist so env.Parse can populate them.
+	if cfg.History == nil {
+		cfg.History = NewDefaultAppHistoryConfig()
+	}
+	// When explicitly disabled, clear the URL so downstream checks are simple.
+	if cfg.History.Enabled != nil && !*cfg.History.Enabled {
+		cfg.History.URL = ""
+	}
 	if cfg.Storage == nil {
 		cfg.Storage = &StorageConfig{}
 	}

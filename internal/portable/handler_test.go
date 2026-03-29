@@ -314,6 +314,7 @@ func TestIntegration_EndToEnd(t *testing.T) {
 	// Wire up the full router like Run() does
 	router := testRouter(t)
 	_ = api.CreateServiceRoutes(router)
+	_ = api.CreateHistoryRoutes(router)
 	handlers := make(map[string]*swappableHandler)
 
 	err := registerService(router, specPath, nil, nil, handlers)

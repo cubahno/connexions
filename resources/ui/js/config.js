@@ -1,5 +1,7 @@
 export const url = window.location.origin;
 export const serviceUrl = `${url}${appConfig.serviceUrl}`;
+export const historyEnabled = !!appConfig.historyUrl;
+export const historyUrl = appConfig.historyUrl ? `${url}${appConfig.historyUrl}` : '';
 export const version = appConfig.version;
 export const editor = appConfig.editor;
 export const homeContents = document.getElementById('home-contents');
@@ -11,3 +13,7 @@ export const iframeContents = document.getElementById('iframe-contents');
 export const messageCont = document.getElementById('message');
 export const fixedServiceContainer = document.getElementById('fixed-service-container');
 export const resourceRefreshBtn = document.getElementById('refresh');
+export const historyContainer = document.getElementById('history-container');
+export const serviceTabs = document.getElementById('service-tabs');
+export const tabResources = document.getElementById('tab-resources');
+export const tabHistory = document.getElementById('tab-history');

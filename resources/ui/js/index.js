@@ -3,11 +3,13 @@ import * as navi from './navi.js';
 import * as services from './services.js';
 import * as home from './home.js';
 import * as resources from './resources.js';
+import * as history from './history.js';
 
 const pageMap = new Map([
     ['', home.home],
     ['#/services/:name*', resources.show],
     ['#/services', services.show],
+    ['#/history/:name*', history.show],
 ]);
 
 async function onLoad() {
@@ -39,41 +41,46 @@ async function onLoad() {
 
     commons.initAceThemeSelect();
 
-    // Panel resizer
-    const RESIZER_STORAGE_KEY = 'panel-split';
-    const contentPanels = document.querySelector('.content-panels');
-    const resizer = document.querySelector('.panel-resizer');
+    // Panel resizers - each container gets its own stored split
+    const initResizer = (panelsEl, resizerEl, storageKey) => {
+        if (!panelsEl || !resizerEl) return;
 
-    const savedSplit = localStorage.getItem(RESIZER_STORAGE_KEY);
-    if (savedSplit) {
-        contentPanels.style.setProperty('--resources-width', savedSplit + '%');
-    }
+        const savedSplit = localStorage.getItem(storageKey);
+        if (savedSplit) {
+            panelsEl.style.setProperty('--resources-width', savedSplit + '%');
+        }
 
-    resizer.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        resizer.classList.add('dragging');
-        contentPanels.classList.add('resizing');
+        resizerEl.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            resizerEl.classList.add('dragging');
+            panelsEl.classList.add('resizing');
 
-        const onMouseMove = (e) => {
-            const rect = contentPanels.getBoundingClientRect();
-            const pct = ((e.clientX - rect.left) / rect.width) * 100;
-            const clamped = Math.min(Math.max(pct, 20), 80);
-            contentPanels.style.setProperty('--resources-width', clamped + '%');
-        };
+            const onMouseMove = (e) => {
+                const rect = panelsEl.getBoundingClientRect();
+                const pct = ((e.clientX - rect.left) / rect.width) * 100;
+                const clamped = Math.min(Math.max(pct, 20), 80);
+                panelsEl.style.setProperty('--resources-width', clamped + '%');
+            };
 
-        const onMouseUp = () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-            resizer.classList.remove('dragging');
-            contentPanels.classList.remove('resizing');
-            const leftPanel = document.querySelector('.panel-resources');
-            const pct = (leftPanel.offsetWidth / contentPanels.offsetWidth) * 100;
-            localStorage.setItem(RESIZER_STORAGE_KEY, pct.toFixed(1));
-        };
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                resizerEl.classList.remove('dragging');
+                panelsEl.classList.remove('resizing');
+                const leftPanel = panelsEl.querySelector('.panel-resources');
+                const pct = (leftPanel.offsetWidth / panelsEl.offsetWidth) * 100;
+                localStorage.setItem(storageKey, pct.toFixed(1));
+            };
 
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
-    });
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    };
+
+    const allPanels = document.querySelectorAll('.content-panels');
+    const allResizers = document.querySelectorAll('.panel-resizer');
+    initResizer(allPanels[0], allResizers[0], 'panel-split');
+    initResizer(allPanels[1], allResizers[1], 'panel-split-history');
 
     // Copy buttons
     document.addEventListener('click', (e) => {

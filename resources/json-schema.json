@@ -36,10 +36,26 @@
           "description": "Disable the UI.",
           "default": false
         },
-        "historyDuration": {
-          "type": "string",
-          "description": "Duration to keep request history (e.g., '5m', '1h').",
-          "default": "5m"
+        "history": {
+          "type": "object",
+          "description": "Request/response history configuration.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable history API and UI tab.",
+              "default": true
+            },
+            "url": {
+              "type": "string",
+              "description": "URL prefix for history API endpoints.",
+              "default": "/.history"
+            },
+            "duration": {
+              "type": "string",
+              "description": "Duration to keep request history (e.g., '60m', '2h').",
+              "default": "60m"
+            }
+          }
         },
         "editor": {
           "type": "object",
@@ -106,6 +122,24 @@
         "name": {
           "type": "string",
           "description": "Service name."
+        },
+        "history": {
+          "type": "object",
+          "description": "Request/response history recording configuration.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable history recording.",
+              "default": true
+            },
+            "mask-headers": {
+              "type": "array",
+              "description": "Header name patterns to mask in history entries.",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         },
         "latency": {
           "type": "string",

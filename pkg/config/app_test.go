@@ -20,7 +20,9 @@ func TestNewDefaultAppConfig(t *testing.T) {
 		assert.Equal("/.ui", cfg.HomeURL)
 		assert.Equal("/.services", cfg.ServiceURL)
 		assert.Equal("in-", cfg.ContextAreaPrefix)
-		assert.Equal(5*time.Minute, cfg.HistoryDuration)
+		assert.NotNil(cfg.History)
+		assert.Equal(DefaultHistoryDuration, cfg.History.Duration)
+		assert.Equal("/.history", cfg.History.URL)
 		assert.False(cfg.DisableUI)
 
 		// Check paths
@@ -132,7 +134,8 @@ homeURL: /home
 serviceURL: /api
 contextAreaPrefix: ctx-
 disableUI: true
-historyDuration: 10m
+history:
+  duration: 10m
 editor:
   theme: monokai
   fontSize: 14
@@ -145,7 +148,7 @@ editor:
 		assert.Equal("/api", cfg.ServiceURL)
 		assert.Equal("ctx-", cfg.ContextAreaPrefix)
 		assert.True(cfg.DisableUI)
-		assert.Equal(10*time.Minute, cfg.HistoryDuration)
+		assert.Equal(10*time.Minute, cfg.History.Duration)
 		assert.Equal("monokai", cfg.Editor.Theme)
 		assert.Equal(14, cfg.Editor.FontSize)
 		assert.Equal("/base", cfg.Paths.Base)
@@ -158,9 +161,9 @@ title: Custom Title
 		cfg, err := NewAppConfigFromBytes(yaml, "/test")
 		assert.NoError(err)
 		assert.Equal("Custom Title", cfg.Title)
-		assert.Equal(2200, cfg.Port)                     // default
-		assert.Equal("/.ui", cfg.HomeURL)                // default
-		assert.Equal(5*time.Minute, cfg.HistoryDuration) // default
+		assert.Equal(2200, cfg.Port)                               // default
+		assert.Equal("/.ui", cfg.HomeURL)                          // default
+		assert.Equal(DefaultHistoryDuration, cfg.History.Duration) // default
 	})
 
 	t.Run("parses storage config", func(t *testing.T) {

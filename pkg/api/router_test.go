@@ -885,7 +885,8 @@ func TestLoadAppConfig(t *testing.T) {
 		configContent := []byte(`
 title: Test App
 port: 3000
-historyDuration: 10m
+history:
+  duration: 10m
 `)
 		_ = os.WriteFile(dataDir+"/app.yml", configContent, 0644)
 
@@ -893,7 +894,7 @@ historyDuration: 10m
 
 		assert.Equal(t, "Test App", cfg.Title)
 		assert.Equal(t, 3000, cfg.Port)
-		assert.Equal(t, 10*time.Minute, cfg.HistoryDuration)
+		assert.Equal(t, 10*time.Minute, cfg.History.Duration)
 	})
 
 	t.Run("uses defaults when file missing", func(t *testing.T) {
@@ -903,7 +904,7 @@ historyDuration: 10m
 
 		assert.Equal(t, "API Explorer", cfg.Title)
 		assert.Equal(t, 2200, cfg.Port)
-		assert.Equal(t, 5*time.Minute, cfg.HistoryDuration)
+		assert.Equal(t, config.DefaultHistoryDuration, cfg.History.Duration)
 	})
 
 	t.Run("uses defaults on invalid yaml", func(t *testing.T) {
@@ -927,7 +928,8 @@ historyDuration: 10m
 
 		configContent := []byte(`
 title: File Title
-historyDuration: 10m
+history:
+  duration: 10m
 `)
 		_ = os.WriteFile(dataDir+"/app.yml", configContent, 0644)
 
@@ -937,7 +939,7 @@ historyDuration: 10m
 		cfg := loadAppConfig(tmpDir)
 
 		assert.Equal(t, "File Title", cfg.Title)
-		assert.Equal(t, 20*time.Minute, cfg.HistoryDuration)
+		assert.Equal(t, 20*time.Minute, cfg.History.Duration)
 	})
 }
 

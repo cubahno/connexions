@@ -171,6 +171,14 @@ export const show = match => {
             }
             config.contentTitleEl.innerHTML = `${name} resources`;
 
+            if (config.historyEnabled) {
+                config.serviceTabs.style.display = 'flex';
+                config.tabResources.href = `#/services/${service}`;
+                config.tabHistory.href = `#/history/${service}`;
+                config.tabResources.classList.add('active');
+                config.tabHistory.classList.remove('active');
+            }
+
             const table = document.getElementById('fixed-service-table-body');
             let i = 0;
             const mapped = {};

@@ -8,9 +8,22 @@
       "description": "Service name."
     },
     "history": {
-      "type": "boolean",
-      "description": "Record request/response history. Defaults to true.",
-      "default": true
+      "type": "object",
+      "description": "Request/response history recording configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable history recording.",
+          "default": true
+        },
+        "mask-headers": {
+          "type": "array",
+          "description": "Header name patterns to mask in history entries. Supports trailing wildcard (e.g., 'X-Internal-*').",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "latency": {
       "type": "string",
