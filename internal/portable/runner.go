@@ -157,12 +157,23 @@ func RunFS(fsys fs.FS, args []string) int {
 		return exitCodeError
 	}
 
-	runArgs := []string{dir}
-	if configPath := filepath.Join(dir, "app.yml"); fileExists(configPath) {
-		runArgs = append(runArgs, "--config", configPath)
+	// Capture config/context paths before moving them out of the way.
+	configPath := filepath.Join(dir, "app.yml")
+	contextPath := filepath.Join(dir, "context.yml")
+
+	// Move config files so resolveSpecs doesn't treat them as OpenAPI specs.
+	for _, p := range []string{configPath, contextPath} {
+		if fileExists(p) {
+			_ = os.Rename(p, p+".cfg")
+		}
 	}
-	if contextPath := filepath.Join(dir, "context.yml"); fileExists(contextPath) {
-		runArgs = append(runArgs, "--context", contextPath)
+
+	runArgs := []string{dir}
+	if fileExists(configPath + ".cfg") {
+		runArgs = append(runArgs, "--config", configPath+".cfg")
+	}
+	if fileExists(contextPath + ".cfg") {
+		runArgs = append(runArgs, "--context", contextPath+".cfg")
 	}
 	runArgs = append(runArgs, args...)
 
