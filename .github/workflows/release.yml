@@ -47,7 +47,7 @@ jobs:
             EXT=".exe"
           fi
           BINARY="connexions-${{ env.TAG }}-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
-          go build -ldflags="-s -w" -o "${BINARY}" ./cmd/server
+          go build -ldflags="-s -w -X main.version=${TAG}" -o "${BINARY}" ./cmd/server
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

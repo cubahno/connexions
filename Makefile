@@ -32,7 +32,7 @@ lint:
 build: clean
 	@echo "Go version: $(GO_VERSION)"
 	@go mod download
-	@go build $(GO_BUILD_FLAGS) -o ${build_dir}/server/connexions ./cmd/server
+	@go build $(GO_BUILD_FLAGS) -ldflags="-X main.version=$(shell git describe --tags --abbrev=0 2>/dev/null || echo dev)" -o ${build_dir}/server/connexions ./cmd/server
 
 .PHONY: test
 test:
@@ -154,7 +154,7 @@ check-fmt:
 server:
 	@echo "Building and starting development server with built-in hot-reload..."
 	@mkdir -p ${build_dir}/server
-	@go build -o ${build_dir}/server/server ./cmd/server
+	@go build -ldflags="-X main.version=$(shell git describe --tags --abbrev=0 2>/dev/null || echo dev)" -o ${build_dir}/server/server ./cmd/server
 	@${build_dir}/server/server
 
 .PHONY: docker-build
