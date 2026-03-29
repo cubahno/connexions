@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
@@ -139,6 +140,55 @@ func Run(args []string) int {
 
 	log.Println("Server exited")
 	return exitCodeShutdown
+}
+
+// RunFS extracts an fs.FS to a temp directory and runs portable mode.
+// The FS root should contain OpenAPI spec files (*.yml, *.yaml, *.json),
+// and optionally: static/, app.yml, context.yml.
+func RunFS(fsys fs.FS, args []string) int {
+	dir, err := os.MkdirTemp("", "connexions-portable-fs-*")
+	if err != nil {
+		log.Printf("Failed to create temp dir: %v", err)
+		return exitCodeError
+	}
+
+	if err := extractFS(fsys, dir); err != nil {
+		log.Printf("Failed to extract FS: %v", err)
+		return exitCodeError
+	}
+
+	runArgs := []string{dir}
+	if configPath := filepath.Join(dir, "app.yml"); fileExists(configPath) {
+		runArgs = append(runArgs, "--config", configPath)
+	}
+	if contextPath := filepath.Join(dir, "context.yml"); fileExists(contextPath) {
+		runArgs = append(runArgs, "--context", contextPath)
+	}
+	runArgs = append(runArgs, args...)
+
+	return Run(runArgs)
+}
+
+func extractFS(fsys fs.FS, dest string) error {
+	return fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dest, path)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return fmt.Errorf("reading %s: %w", path, err)
+		}
+		return os.WriteFile(target, data, 0o644)
+	})
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // registerService creates and registers a handler for a single spec file.
