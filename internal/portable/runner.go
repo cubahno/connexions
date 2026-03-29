@@ -114,7 +114,7 @@ func Run(args []string) int {
 	}
 
 	go func() {
-		log.Printf("Connexions portable mode on %s", addr)
+		log.Printf("Connexions portable mode on http://localhost:%d%s", appCfg.Port, appCfg.HomeURL)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Server failed: %v", err)
 		}

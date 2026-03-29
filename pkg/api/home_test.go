@@ -67,7 +67,7 @@ func TestCreateHomeRoutes(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("home", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.ui/", nil)
+		req := httptest.NewRequest("GET", "/", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -80,7 +80,7 @@ func TestCreateHomeRoutes(t *testing.T) {
 	t.Run("static", func(t *testing.T) {
 		err = os.WriteFile(filepath.Join(router.Config().Paths.UI, "test.yml"), []byte("app:"), 0644)
 		assert.Nil(err)
-		req := httptest.NewRequest("GET", "/.ui/test.yml", nil)
+		req := httptest.NewRequest("GET", "/test.yml", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -94,12 +94,44 @@ func TestCreateHomeRoutes(t *testing.T) {
 		_ = os.Mkdir(siteDir, 0755)
 		_ = os.WriteFile(filepath.Join(siteDir, "hi.md"), []byte("Hallo!"), 0644)
 
-		req := httptest.NewRequest("GET", "/.ui/docs/hi.md", nil)
+		req := httptest.NewRequest("GET", "/docs/hi.md", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
 		assert.Equal(http.StatusOK, w.Code)
 		assert.Equal("Hallo!", w.Body.String())
+	})
+}
+
+func TestCreateHomeRoutes_CustomURL(t *testing.T) {
+	assert := assert2.New(t)
+
+	cfg := config.NewDefaultAppConfig(t.TempDir())
+	cfg.HomeURL = "/.ui"
+
+	err := files.CopyDirectory(filepath.Join("..", "..", "resources", "ui"), cfg.Paths.UI)
+	assert.Nil(err)
+
+	router := NewRouter(WithConfigOption(cfg))
+	err = CreateHomeRoutes(router)
+	assert.Nil(err)
+
+	t.Run("home", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.ui/", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(http.StatusOK, w.Code)
+		assert.Equal("text/html; charset=utf-8", w.Header().Get("Content-Type"))
+		assert.Contains(w.Body.String(), `serviceUrl: "\/.services"`)
+	})
+
+	t.Run("redirect without trailing slash", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/.ui", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(http.StatusMovedPermanently, w.Code)
 	})
 }
 
@@ -114,7 +146,7 @@ func TestCreateHomeRoutes_EmbeddedFallback(t *testing.T) {
 	assert.Nil(err)
 
 	t.Run("home uses embedded", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.ui/", nil)
+		req := httptest.NewRequest("GET", "/", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -126,7 +158,7 @@ func TestCreateHomeRoutes_EmbeddedFallback(t *testing.T) {
 	})
 
 	t.Run("static files from embedded", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/.ui/css/console.css", nil)
+		req := httptest.NewRequest("GET", "/css/console.css", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
