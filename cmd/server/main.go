@@ -26,6 +26,8 @@ import (
 	_ "github.com/google/uuid"
 )
 
+var version = "dev"
+
 const (
 	exitCodeShutdown = 0
 	exitCodeRestart  = 100
@@ -33,6 +35,11 @@ const (
 )
 
 func main() {
+	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		fmt.Println(version)
+		return
+	}
+
 	for {
 		exitCode := runServer()
 		if exitCode == exitCodeRestart {
