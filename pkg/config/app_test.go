@@ -17,7 +17,7 @@ func TestNewDefaultAppConfig(t *testing.T) {
 		assert.NotNil(cfg)
 		assert.Equal("API Explorer", cfg.Title)
 		assert.Equal(2200, cfg.Port)
-		assert.Equal("/.ui", cfg.HomeURL)
+		assert.Equal("/", cfg.HomeURL)
 		assert.Equal("/.services", cfg.ServiceURL)
 		assert.Equal("in-", cfg.ContextAreaPrefix)
 		assert.NotNil(cfg.History)
@@ -162,7 +162,7 @@ title: Custom Title
 		assert.NoError(err)
 		assert.Equal("Custom Title", cfg.Title)
 		assert.Equal(2200, cfg.Port)                               // default
-		assert.Equal("/.ui", cfg.HomeURL)                          // default
+		assert.Equal("/", cfg.HomeURL)                             // default
 		assert.Equal(DefaultHistoryDuration, cfg.History.Duration) // default
 	})
 

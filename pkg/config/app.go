@@ -50,7 +50,7 @@ func NewDefaultAppConfig(baseDir string) *AppConfig {
 	return &AppConfig{
 		Title:             "API Explorer",
 		Port:              2200,
-		HomeURL:           "/.ui",
+		HomeURL:           "/",
 		ServiceURL:        "/.services",
 		ContextAreaPrefix: "in-",
 		Paths:             NewPaths(baseDir),

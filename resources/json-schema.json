@@ -19,7 +19,7 @@
         "homeURL": {
           "type": "string",
           "description": "URL for the UI home page.",
-          "default": "/.ui"
+          "default": "/"
         },
         "serviceURL": {
           "type": "string",

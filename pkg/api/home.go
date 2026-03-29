@@ -18,15 +18,29 @@ import (
 // CreateHomeRoutes creates routes for home.
 func CreateHomeRoutes(router *Router) error {
 	homeURL := router.Config().HomeURL
-	url := "/" + strings.Trim(homeURL, "/") + "/"
+	trimmed := strings.Trim(homeURL, "/")
 
-	homeRedirect := http.RedirectHandler(url, http.StatusMovedPermanently).ServeHTTP
-	router.Get(strings.TrimSuffix(url, "/"), homeRedirect)
+	var url string
+	if trimmed == "" {
+		url = "/"
+	} else {
+		url = "/" + trimmed + "/"
+	}
+
+	if url != "/" {
+		homeRedirect := http.RedirectHandler(url, http.StatusMovedPermanently).ServeHTTP
+		router.Get(strings.TrimSuffix(url, "/"), homeRedirect)
+	}
 
 	router.Get(url, createUIHandler(router))
 
-	docsServer(fmt.Sprintf("/%s/docs/*", strings.Trim(url, "/")), router)
-	fileServer(fmt.Sprintf("/%s/*", strings.Trim(url, "/")), router)
+	if trimmed == "" {
+		docsServer("/docs/*", router)
+		fileServer("/*", router)
+	} else {
+		docsServer(fmt.Sprintf("/%s/docs/*", trimmed), router)
+		fileServer(fmt.Sprintf("/%s/*", trimmed), router)
+	}
 
 	return nil
 }

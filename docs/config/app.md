@@ -22,7 +22,7 @@ volumes:
 | `port` | int | `2200` | Server port |
 | `baseURL` | string | - | Public base URL (e.g., `https://api.example.com`) |
 | `internalURL` | string | - | Internal URL for service-to-service calls |
-| `homeURL` | string | `/.ui` | URL for UI home page |
+| `homeURL` | string | `/` | URL for UI home page |
 | `serviceURL` | string | `/.services` | URL for service endpoints in UI |
 | `contextAreaPrefix` | string | `in-` | Prefix for context area replacements |
 | `disableUI` | bool | `false` | Disable the web UI |
