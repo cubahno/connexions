@@ -108,7 +108,14 @@ const showDetail = (entry) => {
         if (resp.upstreamURL) addMetaRow(tbody, 'Upstream URL', decodeURIComponent(resp.upstreamURL));
         if (resp.upstreamError) addMetaRow(tbody, 'Upstream Error', resp.upstreamError);
     }
+    if (req && req.requestId) addMetaRow(tbody, 'Request ID', req.requestId);
     if (req && req.remoteAddr) addMetaRow(tbody, 'Remote', req.remoteAddr);
+    if (entry.createdAt) {
+        const d = new Date(entry.createdAt);
+        const pad = (n) => String(n).padStart(2, '0');
+        const ts = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        addMetaRow(tbody, 'Time', ts);
+    }
 
     const table = document.createElement('table');
     table.className = 'response-headers-table';
